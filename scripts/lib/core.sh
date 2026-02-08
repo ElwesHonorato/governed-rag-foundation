@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly STACK_NETWORK="rag-local"
 readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+if [[ -f "$REPO_ROOT/.env" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "$REPO_ROOT/.env"
+  set +a
+fi
+
+readonly STACK_NETWORK="${STACK_NETWORK:-rag-local}"
 readonly LOCALDATA_DIR="$REPO_ROOT/localdata"
 readonly DOMAINS=(storage vector cache lineage llm apps)
 

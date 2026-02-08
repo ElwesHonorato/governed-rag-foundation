@@ -1,9 +1,9 @@
 services:
   redis:
-    image: redis:7-alpine
+    image: ${REDIS_IMAGE}
     command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT}:6379"
     volumes:
       - ../../localdata/redis:/data
     healthcheck:
@@ -15,4 +15,4 @@ services:
 networks:
   default:
     external: true
-    name: rag-local
+    name: ${STACK_NETWORK}

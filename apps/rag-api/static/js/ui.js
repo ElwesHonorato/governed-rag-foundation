@@ -25,8 +25,8 @@ async function sendPrompt() {
     }
 
     resultEl.textContent = [
-      `Original: ${data.original}`,
-      `Remix: ${data.remix}`,
+      `Prompt: ${data.prompt}`,
+      `Model: ${data.model}`,
       `Response: ${data.response}`,
     ].join("\n");
   } catch (err) {

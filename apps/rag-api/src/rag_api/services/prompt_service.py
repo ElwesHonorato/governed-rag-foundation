@@ -3,23 +3,41 @@ from __future__ import annotations
 from rag_api.llm_client import OllamaClient
 
 
-def normalize_prompt(raw_prompt: object) -> str:
-    if not isinstance(raw_prompt, str):
-        raise ValueError("prompt must be a string")
+class PromptService:
+    def __init__(self, *, llm_client: OllamaClient, model: str) -> None:
+        self.llm_client = llm_client
+        self.model = model
 
-    prompt_text = raw_prompt.strip()
-    if not prompt_text:
-        raise ValueError("prompt is required")
-    if len(prompt_text) > 2000:
-        raise ValueError("prompt is too long (max 2000 characters)")
+    def normalize_prompt(self, payload: dict[str, object]) -> str:
+        raw_prompt = payload.get("prompt", "")
+        if not isinstance(raw_prompt, str):
+            raise ValueError("prompt must be a string")
 
-    return prompt_text
+        prompt_text = raw_prompt.strip()
+        if not prompt_text:
+            raise ValueError("prompt is required")
+        if len(prompt_text) > 2000:
+            raise ValueError("prompt is too long (max 2000 characters)")
 
+        return prompt_text
 
-def run_prompt(*, prompt: str, model: str, llm_client: OllamaClient) -> dict[str, str]:
-    response = llm_client.generate(prompt=prompt, model=model)
-    return {
-        "prompt": prompt,
-        "model": model,
-        "response": response,
-    }
+    def run_prompt(self, *, prompt: str) -> dict[str, str]:
+        response = self.llm_client.generate(prompt=prompt, model=self.model)
+        return {
+            "prompt": prompt,
+            "model": self.model,
+            "response": response,
+        }
+
+    def handle_prompt(self, payload: dict[str, object]) -> tuple[dict[str, str], int]:
+        try:
+            prompt_text = self.normalize_prompt(payload)
+        except ValueError as exc:
+            return {"error": str(exc)}, 400
+
+        try:
+            result = self.run_prompt(prompt=prompt_text)
+        except RuntimeError as exc:
+            return {"error": str(exc)}, 502
+
+        return result, 200

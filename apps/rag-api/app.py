@@ -48,9 +48,19 @@ def prompt():
     if len(prompt_text) > 2000:
         return jsonify({"error": "prompt is too long (max 2000 characters)"}), 400
 
-    llm_url = os.getenv("LLM_URL", "http://ollama:11434")
-    llm_model = os.getenv("LLM_MODEL", "llama3.2:1b")
-    llm_timeout = float(os.getenv("LLM_TIMEOUT_SECONDS", "30"))
+    llm_url = os.getenv("LLM_URL")
+    llm_model = os.getenv("LLM_MODEL")
+    llm_timeout_raw = os.getenv("LLM_TIMEOUT_SECONDS", "30")
+
+    if not llm_url:
+        return jsonify({"error": "LLM_URL is not configured"}), 500
+    if not llm_model:
+        return jsonify({"error": "LLM_MODEL is not configured"}), 500
+
+    try:
+        llm_timeout = float(llm_timeout_raw)
+    except ValueError:
+        return jsonify({"error": "LLM_TIMEOUT_SECONDS must be numeric"}), 500
     llm_client = OllamaClient(llm_url=llm_url, timeout_seconds=llm_timeout)
 
     try:

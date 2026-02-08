@@ -2,6 +2,8 @@
 
 Reference repository for a locally runnable, governed RAG stack.
 
+Configuration defaults are centralized in `.env` at the repository root.
+
 ## Repository Layout
 
 - `apps/rag-api`: API service for RAG operations.

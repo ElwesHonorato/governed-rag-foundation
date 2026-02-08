@@ -1,1 +1,4 @@
 localdata/
+.venv/
+__pycache__/
+*.pyc

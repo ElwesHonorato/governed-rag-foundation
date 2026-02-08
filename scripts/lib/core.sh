@@ -4,7 +4,7 @@ set -euo pipefail
 readonly STACK_NETWORK="rag-local"
 readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 readonly LOCALDATA_DIR="$REPO_ROOT/localdata"
-readonly DOMAINS=(storage vector cache lineage apps)
+readonly DOMAINS=(storage vector cache lineage llm apps)
 
 ui_use_color() {
   [[ -t 1 ]] && [[ -z "${NO_COLOR:-}" ]]
@@ -119,5 +119,6 @@ ensure_localdata_dirs() {
     "$LOCALDATA_DIR/minio" \
     "$LOCALDATA_DIR/weaviate" \
     "$LOCALDATA_DIR/redis" \
-    "$LOCALDATA_DIR/postgres"
+    "$LOCALDATA_DIR/postgres" \
+    "$LOCALDATA_DIR/ollama"
 }

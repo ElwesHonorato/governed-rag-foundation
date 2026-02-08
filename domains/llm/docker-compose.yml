@@ -1,0 +1,14 @@
+services:
+  ollama:
+    build:
+      context: ./domains/llm
+      dockerfile: Dockerfile
+      args:
+        LLM_MODEL: ${LLM_MODEL:-llama3.2:1b}
+    ports:
+      - "11434:11434"
+
+networks:
+  default:
+    external: true
+    name: rag-local

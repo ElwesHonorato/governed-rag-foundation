@@ -11,6 +11,7 @@ Reference repository for a locally runnable, governed RAG stack.
   - `vector` (Weaviate)
   - `cache` (Redis)
   - `lineage` (Marquez)
+  - `llm` (Ollama)
   - `apps` (rag-api and pipeline-worker)
 - `scripts/`: Shared shell helpers used by `stack.sh`.
 - `stack.sh`: Entry point for bringing the local stack up/down.
@@ -27,6 +28,7 @@ Run from repository root:
 ./stack.sh up vector
 ./stack.sh up cache
 ./stack.sh up lineage
+./stack.sh up llm
 ./stack.sh up apps
 ./stack.sh logs apps
 ./stack.sh ps
@@ -41,6 +43,7 @@ Recommended first-run order from repository root:
 ./stack.sh up vector
 ./stack.sh up cache
 ./stack.sh up lineage
+./stack.sh up llm
 ./stack.sh up apps
 ```
 
@@ -63,6 +66,7 @@ When finished:
 - Weaviate: `http://localhost:8080`
 - Marquez API: `http://localhost:5000`
 - Marquez UI: `http://localhost:3000`
+- Ollama API: `http://localhost:11434`
 - rag-api: `http://localhost:8000`
 
 ## Python Dependencies (Poetry)
@@ -92,3 +96,6 @@ poetry lock
 
 - Domain compose files join the shared external Docker network `rag-local`.
 - Start domains independently or as a full stack, depending on what you are developing.
+- `domains/llm` builds a custom Ollama image and bakes `LLM_MODEL` (default: `llama3.2:1b`) at build time.
+- To build with a different model:
+  - `LLM_MODEL=<your-model> ./stack.sh up llm`

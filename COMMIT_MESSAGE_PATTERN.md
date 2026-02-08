@@ -1,9 +1,9 @@
-# Commit Message Pattern (Phase-Based RAG Development)
+# Commit Message Pattern
 
 Use this structure for all commits:
 
 ```text
-<type>(<scope>): [phase-<n>] <short summary>
+<type>(<scope>): <short summary>
 
 Why:
 - <problem or goal>
@@ -24,7 +24,6 @@ Refs:
 ## Header rules
 - Keep subject line under 72 chars.
 - Use imperative mood (`add`, `fix`, `refactor`).
-- Use one phase per commit (`phase-1`, `phase-2`, etc.).
 
 ## Allowed types
 - `feat`: new behavior/capability
@@ -42,15 +41,15 @@ Refs:
 
 ## Examples
 ```text
-feat(retrieval): [phase-1] add vector search endpoint
+feat(retrieval): add vector search endpoint
 ```
 
 ```text
-fix(worker): [phase-2] prevent duplicate chunk upserts on retry
+fix(worker): prevent duplicate chunk upserts on retry
 ```
 
 ```text
-docs(governance): [phase-3] define policy evaluation lifecycle
+docs(governance): define policy evaluation lifecycle
 ```
 
 ## Optional local setup

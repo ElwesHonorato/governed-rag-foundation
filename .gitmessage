@@ -1,5 +1,5 @@
 # Format:
-# <type>(<scope>): [phase-<n>] <short summary>
+# <type>(<scope>): <short summary>
 #
 # Types: feat, fix, refactor, docs, test, chore, ci, perf, security
 # Scopes: api, worker, retrieval, ingestion, governance, eval, infra, data, ops
@@ -20,7 +20,7 @@
 # Refs:
 # - <issue/ticket/ADR/PR>
 
-<type>(<scope>): [phase-<n>] <short summary>
+<type>(<scope>): <short summary>
 
 Why:
 - <problem or goal>

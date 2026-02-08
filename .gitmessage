@@ -1,0 +1,38 @@
+# Format:
+# <type>(<scope>): [phase-<n>] <short summary>
+#
+# Types: feat, fix, refactor, docs, test, chore, ci, perf, security
+# Scopes: api, worker, retrieval, ingestion, governance, eval, infra, data, ops
+#
+# Why:
+# - <problem or goal>
+#
+# What:
+# - <main change>
+# - <secondary change>
+#
+# Validation:
+# - <tests/checks run>
+#
+# Risks/Notes:
+# - <impact, rollout notes, follow-ups>
+#
+# Refs:
+# - <issue/ticket/ADR/PR>
+
+<type>(<scope>): [phase-<n>] <short summary>
+
+Why:
+- <problem or goal>
+
+What:
+- <main change>
+
+Validation:
+- <tests/checks run>
+
+Risks/Notes:
+- <impact, rollout notes, follow-ups>
+
+Refs:
+- <issue/ticket/ADR/PR>

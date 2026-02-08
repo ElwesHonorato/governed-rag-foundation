@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RAG Prompt UI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ui.css') }}" />
+  </head>
+  <body>
+    <main class="card">
+      <h1>Prompt Playground</h1>
+      <p>Write your prompt and we will apply a funny remix.</p>
+
+      <label for="prompt">Prompt</label>
+      <textarea id="prompt" placeholder="Type your prompt here..."></textarea>
+
+      <div class="row">
+        <button id="send" type="button">Send Prompt</button>
+      </div>
+
+      <pre id="result">Response will appear here.</pre>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/ui.js') }}"></script>
+  </body>
+</html>

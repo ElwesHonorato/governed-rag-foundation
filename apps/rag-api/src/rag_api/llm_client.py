@@ -53,7 +53,7 @@ class OllamaClient:
         if options is not None:
             payload["options"] = options
 
-        data = self._post_with_retries(payload, model=model.strip())
+        data = self._post_with_retries("/api/generate", payload, model=model.strip())
 
         if data.get("error"):
             raise LLMResponseError(f"Ollama error for model '{model.strip()}': {data['error']}")
@@ -63,8 +63,53 @@ class OllamaClient:
             raise LLMResponseError("Ollama response is missing 'response' string field")
         return response
 
-    def _post_with_retries(self, payload: dict[str, Any], *, model: str) -> dict[str, Any]:
-        endpoint = f"{self.llm_url}/api/generate"
+    def chat(
+        self,
+        *,
+        messages: list[dict[str, str]],
+        model: str,
+        options: dict[str, Any] | None = None,
+        stream: bool = False,
+    ) -> str:
+        if not isinstance(model, str) or not model.strip():
+            raise ValueError("model must be a non-empty string")
+        if not isinstance(messages, list) or not messages:
+            raise ValueError("messages must be a non-empty list")
+        if options is not None and not isinstance(options, dict):
+            raise ValueError("options must be a dict when provided")
+        if not isinstance(stream, bool):
+            raise ValueError("stream must be a bool")
+
+        for item in messages:
+            if not isinstance(item, dict):
+                raise ValueError("each message must be an object")
+            role = item.get("role")
+            content = item.get("content")
+            if not isinstance(role, str) or not role.strip():
+                raise ValueError("message role must be a non-empty string")
+            if not isinstance(content, str):
+                raise ValueError("message content must be a string")
+
+        payload: dict[str, Any] = {"model": model.strip(), "messages": messages, "stream": stream}
+        if options is not None:
+            payload["options"] = options
+
+        data = self._post_with_retries("/api/chat", payload, model=model.strip())
+
+        if data.get("error"):
+            raise LLMResponseError(f"Ollama error for model '{model.strip()}': {data['error']}")
+
+        message = data.get("message")
+        if not isinstance(message, dict):
+            raise LLMResponseError("Ollama chat response is missing 'message' object")
+
+        content = message.get("content")
+        if not isinstance(content, str):
+            raise LLMResponseError("Ollama chat response is missing message content")
+        return content
+
+    def _post_with_retries(self, path: str, payload: dict[str, Any], *, model: str) -> dict[str, Any]:
+        endpoint = f"{self.llm_url}{path}"
         total_attempts = self.retries + 1
 
         for attempt in range(1, total_attempts + 1):

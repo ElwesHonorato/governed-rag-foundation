@@ -1,0 +1,94 @@
+# Governed RAG Foundation
+
+Reference repository for a locally runnable, governed RAG stack.
+
+## Repository Layout
+
+- `apps/rag-api`: API service for RAG operations.
+- `apps/pipeline-worker`: Background worker for ingestion and pipeline tasks.
+- `domains/`: Docker Compose definitions split by domain:
+  - `storage` (MinIO)
+  - `vector` (Weaviate)
+  - `cache` (Redis)
+  - `lineage` (Marquez)
+  - `apps` (rag-api and pipeline-worker)
+- `scripts/`: Shared shell helpers used by `stack.sh`.
+- `stack.sh`: Entry point for bringing the local stack up/down.
+
+## Local Stack Commands
+
+Run from repository root:
+
+```bash
+./stack.sh up
+./stack.sh down
+./stack.sh wipe
+./stack.sh up storage
+./stack.sh up vector
+./stack.sh up cache
+./stack.sh up lineage
+./stack.sh up apps
+./stack.sh logs apps
+./stack.sh ps
+```
+
+## Getting Started
+
+Recommended first-run order from repository root:
+
+```bash
+./stack.sh up storage
+./stack.sh up vector
+./stack.sh up cache
+./stack.sh up lineage
+./stack.sh up apps
+```
+
+Quick checks:
+
+```bash
+./stack.sh ps
+./stack.sh logs apps
+```
+
+When finished:
+
+```bash
+./stack.sh down
+```
+
+## Local Endpoints
+
+- MinIO Console: `http://localhost:9001`
+- Weaviate: `http://localhost:8080`
+- Marquez API: `http://localhost:5000`
+- Marquez UI: `http://localhost:3000`
+- rag-api: `http://localhost:8000`
+
+## Python Dependencies (Poetry)
+
+Both Python apps use Poetry with project-local virtual environments (`.venv`) via `poetry.toml`.
+
+- `apps/rag-api`
+- `apps/pipeline-worker`
+
+Typical workflow:
+
+```bash
+cd apps/rag-api
+poetry install
+
+cd ../pipeline-worker
+poetry install
+```
+
+If lock files need updates:
+
+```bash
+poetry lock
+```
+
+## Notes
+
+- Domain compose files join the shared external Docker network `rag-local`.
+- Start domains independently or as a full stack, depending on what you are developing.

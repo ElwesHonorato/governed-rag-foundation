@@ -1,16 +1,5 @@
-import os
-import time
+from pipeline_worker.app import run
 
 
-while True:
-    print(
-        "pipeline-worker heartbeat",
-        {
-            "weaviate": os.getenv("WEAVIATE_URL"),
-            "redis": os.getenv("REDIS_URL"),
-            "s3": os.getenv("S3_ENDPOINT"),
-            "marquez": os.getenv("MARQUEZ_URL"),
-        },
-        flush=True,
-    )
-    time.sleep(30)
+if __name__ == "__main__":
+    run()

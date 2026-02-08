@@ -4,11 +4,11 @@ services:
       context: ./domains/llm
       dockerfile: Dockerfile
       args:
-        LLM_MODEL: ${LLM_MODEL:-llama3.2:1b}
+        LLM_MODEL: ${LLM_MODEL:?LLM_MODEL is required}
     ports:
-      - "${LLM_PORT}:11434"
+      - "${LLM_PORT:?LLM_PORT is required}:11434"
 
 networks:
   default:
     external: true
-    name: ${STACK_NETWORK}
+    name: ${STACK_NETWORK:?STACK_NETWORK is required}

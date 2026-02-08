@@ -1,9 +1,9 @@
 services:
   redis:
-    image: ${REDIS_IMAGE}
+    image: ${REDIS_IMAGE:?REDIS_IMAGE is required}
     command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "${REDIS_PORT}:6379"
+      - "${REDIS_PORT:?REDIS_PORT is required}:6379"
     volumes:
       - ../../localdata/redis:/data
     healthcheck:
@@ -15,4 +15,4 @@ services:
 networks:
   default:
     external: true
-    name: ${STACK_NETWORK}
+    name: ${STACK_NETWORK:?STACK_NETWORK is required}

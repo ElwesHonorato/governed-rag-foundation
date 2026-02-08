@@ -1,26 +1,26 @@
 services:
   postgres:
-    image: ${POSTGRES_IMAGE}
+    image: ${POSTGRES_IMAGE:?POSTGRES_IMAGE is required}
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "${POSTGRES_PORT:?POSTGRES_PORT is required}:5432"
     volumes:
       - ../../localdata/postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:?POSTGRES_USER is required} -d ${POSTGRES_DB:?POSTGRES_DB is required}"]
       interval: 10s
       timeout: 5s
       retries: 10
 
   marquez:
-    image: ${MARQUEZ_IMAGE}
+    image: ${MARQUEZ_IMAGE:?MARQUEZ_IMAGE is required}
     environment:
       MARQUEZ_CONFIG: /opt/marquez/marquez.yml
     ports:
-      - "${MARQUEZ_API_PORT}:5000"
+      - "${MARQUEZ_API_PORT:?MARQUEZ_API_PORT is required}:5000"
     volumes:
       - ./domains/lineage/marquez.yml:/opt/marquez/marquez.yml:ro
     depends_on:
@@ -34,13 +34,13 @@ services:
       start_period: 30s
 
   marquez-web:
-    image: ${MARQUEZ_WEB_IMAGE}
+    image: ${MARQUEZ_WEB_IMAGE:?MARQUEZ_WEB_IMAGE is required}
     environment:
       MARQUEZ_HOST: marquez
       MARQUEZ_PORT: "5000"
-      WEB_PORT: "${MARQUEZ_WEB_PORT}"
+      WEB_PORT: "${MARQUEZ_WEB_PORT:?MARQUEZ_WEB_PORT is required}"
     ports:
-      - "${MARQUEZ_WEB_PORT}:3000"
+      - "${MARQUEZ_WEB_PORT:?MARQUEZ_WEB_PORT is required}:3000"
     depends_on:
       marquez:
         condition: service_healthy
@@ -48,4 +48,4 @@ services:
 networks:
   default:
     external: true
-    name: ${STACK_NETWORK}
+    name: ${STACK_NETWORK:?STACK_NETWORK is required}

@@ -1,6 +1,6 @@
 FROM ollama/ollama:latest
 
-ARG LLM_MODEL=llama3.2:1b
+ARG LLM_MODEL
 
 # Bake the selected model into the image at build time.
 RUN set -eu; \

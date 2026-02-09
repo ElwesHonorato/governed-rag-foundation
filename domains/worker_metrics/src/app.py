@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import time
 
-from pipeline_common.config import WorkerS3LoopSettings
 from pipeline_common.observability import Counters
 from pipeline_common.s3 import S3Store, build_s3_client
+from configs.configs import WorkerS3LoopSettings
 
 
 def _count_suffix(keys: list[str], suffix: str) -> int:

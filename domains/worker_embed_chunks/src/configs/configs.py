@@ -12,7 +12,7 @@ class WorkerS3QueueLoopSettings:
     s3_bucket: str
     aws_region: str
     poll_interval_seconds: int
-    redis_url: str
+    broker_url: str
 
     @classmethod
     def from_env(cls) -> "WorkerS3QueueLoopSettings":
@@ -23,5 +23,5 @@ class WorkerS3QueueLoopSettings:
             s3_bucket=_required_env("S3_BUCKET"),
             aws_region=_optional_env("AWS_REGION", "us-east-1"),
             poll_interval_seconds=_required_int("WORKER_POLL_INTERVAL_SECONDS", 30),
-            redis_url=_required_env("REDIS_URL"),
+            broker_url=_required_env("BROKER_URL"),
         )

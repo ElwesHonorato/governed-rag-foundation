@@ -9,7 +9,7 @@ from services.worker_parse_document_service import WorkerParseDocumentService
 
 def run() -> None:
     settings = WorkerS3QueueLoopSettings.from_env()
-    stage_queue = StageQueue(settings.redis_url)
+    stage_queue = StageQueue(settings.broker_url)
     source_type = os.getenv("SOURCE_TYPE", "html")
     security_clearance = os.getenv("DEFAULT_SECURITY_CLEARANCE", "internal")
     s3 = S3Store(

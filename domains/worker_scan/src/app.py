@@ -8,7 +8,7 @@ from services.worker_scan_service import WorkerScanService
 
 def run() -> None:
     settings = WorkerS3QueueLoopSettings.from_env()
-    stage_queue = StageQueue(settings.redis_url)
+    stage_queue = StageQueue(settings.broker_url)
     s3 = S3Store(
         build_s3_client(
             endpoint_url=settings.s3_endpoint,

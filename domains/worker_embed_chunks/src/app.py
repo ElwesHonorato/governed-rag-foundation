@@ -9,7 +9,7 @@ from services.worker_embed_chunks_service import WorkerEmbedChunksService
 
 def run() -> None:
     settings = WorkerS3QueueLoopSettings.from_env()
-    stage_queue = StageQueue(settings.redis_url)
+    stage_queue = StageQueue(settings.broker_url)
     dimension = int(os.getenv("EMBEDDING_DIM", "32"))
     s3 = S3Store(
         build_s3_client(

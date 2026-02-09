@@ -9,7 +9,7 @@ class Settings:
     llm_model: str = field(init=False)
     llm_timeout_seconds: int = field(init=False)
     weaviate_url: str = field(init=False)
-    redis_url: str = field(init=False)
+    broker_url: str = field(init=False)
     s3_endpoint: str = field(init=False)
     marquez_url: str = field(init=False)
 
@@ -24,14 +24,14 @@ class Settings:
         self.llm_model = self._required_env("LLM_MODEL")
         self.llm_timeout_seconds = llm_timeout
         self.weaviate_url = self._required_env("WEAVIATE_URL")
-        self.redis_url = self._required_env("REDIS_URL")
+        self.broker_url = self._required_env("BROKER_URL")
         self.s3_endpoint = self._required_env("S3_ENDPOINT")
         self.marquez_url = self._required_env("MARQUEZ_URL")
 
     def dependencies_payload(self) -> dict[str, str]:
         return {
             "weaviate": self.weaviate_url,
-            "redis": self.redis_url,
+            "broker": self.broker_url,
             "s3": self.s3_endpoint,
             "marquez": self.marquez_url,
             "llm": self.llm_url,

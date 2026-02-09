@@ -7,7 +7,6 @@ Configuration defaults are centralized in `.env` at the repository root.
 ## Repository Layout
 
 - `apps/rag-api`: API service for RAG operations.
-- `apps/pipeline-worker`: Legacy monolithic worker (replaced by worker domains below).
 - `libs/pipeline-common`: Shared pipeline helpers used by isolated worker domains.
 - `domains/`: Docker Compose definitions split by domain:
   - `storage` (MinIO)
@@ -95,18 +94,14 @@ When finished:
 
 ## Python Dependencies (Poetry)
 
-Both Python apps use Poetry with project-local virtual environments (`.venv`) via `poetry.toml`.
+Python app domains use Poetry with project-local virtual environments (`.venv`) via `poetry.toml`.
 
 - `apps/rag-api`
-- `apps/pipeline-worker`
 
 Typical workflow:
 
 ```bash
 cd apps/rag-api
-poetry install
-
-cd ../pipeline-worker
 poetry install
 ```
 

@@ -1,5 +1,5 @@
 import time
-from services.cycle_processor import CycleProcessor
+from services.scan_cycle_processor import ScanCycleProcessor
 from services.worker_service import WorkerService
 
 
@@ -7,7 +7,7 @@ class WorkerScanService(WorkerService):
     def __init__(
         self,
         *,
-        processor: CycleProcessor,
+        processor: ScanCycleProcessor,
         poll_interval_seconds: int,
     ) -> None:
         self.processor = processor

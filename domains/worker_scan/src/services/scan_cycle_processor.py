@@ -1,11 +1,17 @@
+from abc import ABC, abstractmethod
 from collections.abc import Sequence
 
 from pipeline_common.queue import StageQueue
 from pipeline_common.s3 import S3Store
-from services.cycle_processor import CycleProcessor
 
 
-class ScanCycleProcessor(CycleProcessor):
+class ScanCycleProcessor(ABC):
+    @abstractmethod
+    def scan(self) -> int:
+        """Run one scan cycle and return the number of processed items."""
+
+
+class S3ScanCycleProcessor(ScanCycleProcessor):
     """Move incoming S3 objects to raw storage and enqueue parse jobs."""
 
     def __init__(

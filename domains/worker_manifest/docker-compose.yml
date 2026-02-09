@@ -2,7 +2,7 @@ services:
   pipeline-worker-manifest:
     build:
       context: .
-      dockerfile: ./domains/worker_manifest/app/Dockerfile
+      dockerfile: ./domains/worker_manifest/Dockerfile
     environment:
       S3_ENDPOINT: ${S3_ENDPOINT:?S3_ENDPOINT is required}
       S3_BUCKET: ${S3_BUCKET:?S3_BUCKET is required}

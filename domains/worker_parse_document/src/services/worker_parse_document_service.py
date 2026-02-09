@@ -1,0 +1,92 @@
+from __future__ import annotations
+
+import os
+import time
+
+from pipeline_common.contracts import doc_id_from_source_key, utc_now_iso
+from pipeline_common.queue import StageQueue
+from pipeline_common.s3 import S3Store, build_s3_client
+from configs.configs import WorkerS3QueueLoopSettings
+from parsing.registry import parser_for_key
+
+
+class WorkerParseDocumentService:
+    def __init__(
+        self,
+        *,
+        settings: WorkerS3QueueLoopSettings,
+        stage_queue: StageQueue,
+        s3: S3Store,
+        source_type: str,
+        security_clearance: str,
+    ) -> None:
+        self.settings = settings
+        self.stage_queue = stage_queue
+        self.s3 = s3
+        self.source_type = source_type
+        self.security_clearance = security_clearance
+
+    @classmethod
+    def from_env(cls) -> "WorkerParseDocumentService":
+        settings = WorkerS3QueueLoopSettings.from_env()
+        stage_queue = StageQueue(settings.redis_url)
+        source_type = os.getenv("SOURCE_TYPE", "html")
+        security_clearance = os.getenv("DEFAULT_SECURITY_CLEARANCE", "internal")
+        s3 = S3Store(
+            build_s3_client(
+                endpoint_url=settings.s3_endpoint,
+                access_key=settings.s3_access_key,
+                secret_key=settings.s3_secret_key,
+                region_name=settings.aws_region,
+            )
+        )
+        s3.ensure_workspace(settings.s3_bucket)
+        return cls(
+            settings=settings,
+            stage_queue=stage_queue,
+            s3=s3,
+            source_type=source_type,
+            security_clearance=security_clearance,
+        )
+
+    def process_source_key(self, source_key: str) -> None:
+        if not source_key.startswith("02_raw/"):
+            return
+        if not source_key.endswith((".html", ".htm")):
+            return
+
+        doc_id = doc_id_from_source_key(source_key)
+        destination_key = f"03_processed/{doc_id}.json"
+        if self.s3.object_exists(self.settings.s3_bucket, destination_key):
+            return
+
+        parser = parser_for_key(source_key)
+        parsed = parser.parse(self.s3.read_text(self.settings.s3_bucket, source_key))
+        payload = {
+            "doc_id": doc_id,
+            "source_key": source_key,
+            "source_type": self.source_type,
+            "timestamp": utc_now_iso(),
+            "security_clearance": self.security_clearance,
+            "title": parsed["title"],
+            "text": parsed["text"],
+        }
+        self.s3.write_json(self.settings.s3_bucket, destination_key, payload)
+        self.stage_queue.push("q.chunk_text", {"processed_key": destination_key, "doc_id": doc_id})
+        print(f"[worker_parse_document] wrote {destination_key}", flush=True)
+
+    def run_forever(self) -> None:
+        while True:
+            queued = self.stage_queue.pop("q.parse_document", timeout_seconds=1)
+            if queued and isinstance(queued.get("raw_key"), str):
+                self.process_source_key(str(queued["raw_key"]))
+            else:
+                keys = [
+                    key
+                    for key in self.s3.list_keys(self.settings.s3_bucket, "02_raw/")
+                    if key != "02_raw/" and key.endswith((".html", ".htm"))
+                ]
+                for source_key in keys:
+                    self.process_source_key(source_key)
+
+            time.sleep(self.settings.poll_interval_seconds)

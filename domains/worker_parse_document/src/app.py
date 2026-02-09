@@ -1,8 +1,7 @@
 
-import os
-
 from pipeline_common.queue import StageQueue
 from pipeline_common.s3 import S3Store, build_s3_client
+from configs.constants import DEFAULT_SECURITY_CLEARANCE, SOURCE_TYPE_DEFAULT
 from configs.configs import WorkerS3QueueLoopSettings
 from services.worker_parse_document_service import WorkerParseDocumentService
 
@@ -10,8 +9,8 @@ from services.worker_parse_document_service import WorkerParseDocumentService
 def run() -> None:
     settings = WorkerS3QueueLoopSettings.from_env()
     stage_queue = StageQueue(settings.broker_url)
-    source_type = os.getenv("SOURCE_TYPE", "html")
-    security_clearance = os.getenv("DEFAULT_SECURITY_CLEARANCE", "internal")
+    source_type = SOURCE_TYPE_DEFAULT
+    security_clearance = DEFAULT_SECURITY_CLEARANCE
     s3 = S3Store(
         build_s3_client(
             endpoint_url=settings.s3_endpoint,

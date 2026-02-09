@@ -17,7 +17,6 @@ def run() -> None:
             region_name=settings.aws_region,
         )
     )
-    s3.ensure_workspace(settings.s3_bucket)
     ensure_schema(settings.weaviate_url)
     WorkerIndexWeaviateService(
         stage_queue=stage_queue,

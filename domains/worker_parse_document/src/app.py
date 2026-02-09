@@ -19,7 +19,6 @@ def run() -> None:
             region_name=settings.aws_region,
         )
     )
-    s3.ensure_workspace(settings.s3_bucket)
     WorkerParseDocumentService(
         stage_queue=stage_queue,
         s3=s3,

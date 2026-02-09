@@ -14,7 +14,6 @@ def run() -> None:
             region_name=settings.aws_region,
         )
     )
-    s3.ensure_workspace(settings.s3_bucket)
     WorkerManifestService(
         s3=s3,
         s3_bucket=settings.s3_bucket,

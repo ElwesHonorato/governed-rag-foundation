@@ -72,13 +72,21 @@ class S3ScanCycleProcessor(ScanCycleProcessor):
 
     def _copy_and_enqueue(self, source_key: str, destination_key: str) -> None:
         """Copy source object to raw prefix and enqueue downstream parsing."""
-        self.s3.copy(self.bucket, source_key, destination_key)
-        self.stage_queue.push(self.parse_queue, {"raw_key": destination_key})
+        self._copy_source_to_destination(source_key, destination_key)
+        self._enqueue_destination(destination_key)
         print(f"[worker_scan] moved {source_key} -> {destination_key}", flush=True)
 
     def _delete_source(self, source_key: str) -> None:
         """Delete the source object after processing to avoid reprocessing."""
         self.s3.delete(self.bucket, source_key)
+
+    def _copy_source_to_destination(self, source_key: str, destination_key: str) -> None:
+        """Copy one source object into the destination path."""
+        self.s3.copy(self.bucket, source_key, destination_key)
+
+    def _enqueue_destination(self, destination_key: str) -> None:
+        """Enqueue the destination object for downstream parsing."""
+        self.stage_queue.push(self.parse_queue, {"raw_key": destination_key})
 
     def _is_candidate_key(self, key: str) -> bool:
         """Return True when a key is a processable source object."""

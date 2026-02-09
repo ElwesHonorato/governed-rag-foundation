@@ -1,25 +1,19 @@
-from __future__ import annotations
 
 from pipeline_common.queue import StageQueue
 from pipeline_common.s3 import S3Store
 
 
 class ScanCycleProcessor:
-    INCOMING_PREFIX = "01_incoming/"
-    RAW_PREFIX = "02_raw/"
-    PARSE_QUEUE = "q.parse_document"
-    HTML_EXTENSION = ".html"
-
     def __init__(
         self,
         *,
         s3: S3Store,
         stage_queue: StageQueue,
         bucket: str,
-        incoming_prefix: str = INCOMING_PREFIX,
-        raw_prefix: str = RAW_PREFIX,
-        parse_queue: str = PARSE_QUEUE,
-        extension: str = HTML_EXTENSION,
+        incoming_prefix: str,
+        raw_prefix: str,
+        parse_queue: str,
+        extension: str,
     ) -> None:
         self.s3 = s3
         self.stage_queue = stage_queue

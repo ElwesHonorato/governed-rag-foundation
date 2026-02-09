@@ -1,6 +1,12 @@
+from abc import ABC, abstractmethod
 import time
 from services.scan_cycle_processor import ScanCycleProcessor
-from services.worker_service import WorkerService
+
+
+class WorkerService(ABC):
+    @abstractmethod
+    def run_forever(self) -> None:
+        """Run the worker loop indefinitely."""
 
 
 class WorkerScanService(WorkerService):

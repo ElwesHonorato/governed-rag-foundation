@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import time
 
-from pipeline_common.config import WorkerS3QueueLoopSettings
 from pipeline_common.contracts import chunk_id_for
 from pipeline_common.queue import StageQueue
 from pipeline_common.s3 import S3Store, build_s3_client
 from pipeline_common.text import chunk_text
+from configs.configs import WorkerS3QueueLoopSettings
 
 
 def run() -> None:

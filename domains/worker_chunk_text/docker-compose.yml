@@ -2,7 +2,7 @@ services:
   pipeline-worker-chunk-text:
     build:
       context: .
-      dockerfile: ./domains/worker_chunk_text/app/Dockerfile
+      dockerfile: ./domains/worker_chunk_text/Dockerfile
     environment:
       REDIS_URL: ${REDIS_URL:?REDIS_URL is required}
       S3_ENDPOINT: ${S3_ENDPOINT:?S3_ENDPOINT is required}

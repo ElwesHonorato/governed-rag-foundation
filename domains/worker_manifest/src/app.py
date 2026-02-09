@@ -1,10 +1,26 @@
 from __future__ import annotations
 
+from pipeline_common.s3 import S3Store, build_s3_client
+from configs.configs import WorkerS3LoopSettings
 from services.worker_manifest_service import WorkerManifestService
 
 
 def run() -> None:
-    WorkerManifestService.from_env().run_forever()
+    settings = WorkerS3LoopSettings.from_env()
+    s3 = S3Store(
+        build_s3_client(
+            endpoint_url=settings.s3_endpoint,
+            access_key=settings.s3_access_key,
+            secret_key=settings.s3_secret_key,
+            region_name=settings.aws_region,
+        )
+    )
+    s3.ensure_workspace(settings.s3_bucket)
+    WorkerManifestService(
+        s3=s3,
+        s3_bucket=settings.s3_bucket,
+        poll_interval_seconds=settings.poll_interval_seconds,
+    ).run_forever()
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@ import hashlib
 import os
 import time
 
-from pipeline_common.config import Settings
+from pipeline_common.config import WorkerS3QueueLoopSettings
 from pipeline_common.queue import StageQueue
 from pipeline_common.s3 import S3Store, build_s3_client
 
@@ -19,7 +19,7 @@ def deterministic_embedding(text: str, dimension: int) -> list[float]:
 
 
 def run() -> None:
-    settings = Settings()
+    settings = WorkerS3QueueLoopSettings.from_env()
     stage_queue = StageQueue(settings.redis_url)
     dimension = int(os.getenv("EMBEDDING_DIM", "32"))
     s3 = S3Store(

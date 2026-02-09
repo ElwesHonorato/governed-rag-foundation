@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import time
 
-from pipeline_common.config import Settings
+from pipeline_common.config import WorkerS3LoopSettings
 from pipeline_common.s3 import S3Store, build_s3_client
 
 
 def run() -> None:
-    settings = Settings()
+    settings = WorkerS3LoopSettings.from_env()
     s3 = S3Store(
         build_s3_client(
             endpoint_url=settings.s3_endpoint,

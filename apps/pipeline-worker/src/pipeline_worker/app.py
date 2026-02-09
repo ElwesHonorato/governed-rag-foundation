@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 
-from pipeline_worker.config import Settings
+from pipeline_common.config import WorkerS3LoopSettings
 from pipeline_worker.ingestion.incoming_scanner import IncomingFileScanner
 from pipeline_worker.ingestion.incoming_to_raw_mover import IncomingToRawMover
 from pipeline_worker.storage.s3_workspace import (
@@ -22,7 +22,7 @@ def process_pending_files(*, mover: IncomingToRawMover, bucket: str, keys: list[
 
 
 def run() -> None:
-    settings = Settings()
+    settings = WorkerS3LoopSettings.from_env()
     s3_client = build_s3_client(
         endpoint_url=settings.s3_endpoint,
         access_key=settings.s3_access_key,
@@ -43,7 +43,7 @@ def run() -> None:
         pending_files = poll_incoming_files(scanner=scanner, bucket=settings.s3_bucket)
         if pending_files:
             process_pending_files(mover=mover, bucket=settings.s3_bucket, keys=pending_files)
-        time.sleep(30)
+        time.sleep(settings.poll_interval_seconds)
 
 
 if __name__ == "__main__":

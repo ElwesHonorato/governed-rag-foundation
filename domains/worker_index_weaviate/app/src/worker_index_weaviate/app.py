@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import time
 
-from pipeline_common.config import Settings
+from pipeline_common.config import WorkerIndexWeaviateSettings
 from pipeline_common.queue import StageQueue
 from pipeline_common.s3 import S3Store, build_s3_client
 from pipeline_common.weaviate import ensure_schema, upsert_chunk, verify_query
 
 
 def run() -> None:
-    settings = Settings()
+    settings = WorkerIndexWeaviateSettings.from_env()
     stage_queue = StageQueue(settings.redis_url)
     s3 = S3Store(
         build_s3_client(

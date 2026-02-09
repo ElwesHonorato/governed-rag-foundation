@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 
-from pipeline_common.config import Settings
+from pipeline_common.config import WorkerS3LoopSettings
 from pipeline_common.observability import Counters
 from pipeline_common.s3 import S3Store, build_s3_client
 
@@ -12,7 +12,7 @@ def _count_suffix(keys: list[str], suffix: str) -> int:
 
 
 def run() -> None:
-    settings = Settings()
+    settings = WorkerS3LoopSettings.from_env()
     counters = Counters().for_worker("worker_metrics")
     s3 = S3Store(
         build_s3_client(

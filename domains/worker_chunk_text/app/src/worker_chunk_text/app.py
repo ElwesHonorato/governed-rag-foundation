@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 
-from pipeline_common.config import Settings
+from pipeline_common.config import WorkerS3QueueLoopSettings
 from pipeline_common.contracts import chunk_id_for
 from pipeline_common.queue import StageQueue
 from pipeline_common.s3 import S3Store, build_s3_client
@@ -10,7 +10,7 @@ from pipeline_common.text import chunk_text
 
 
 def run() -> None:
-    settings = Settings()
+    settings = WorkerS3QueueLoopSettings.from_env()
     stage_queue = StageQueue(settings.redis_url)
     s3 = S3Store(
         build_s3_client(

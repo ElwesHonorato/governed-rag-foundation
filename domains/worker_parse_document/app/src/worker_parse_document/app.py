@@ -4,14 +4,14 @@ import os
 import time
 
 from pipeline_common.contracts import doc_id_from_source_key, utc_now_iso
-from pipeline_common.config import Settings
+from pipeline_common.config import WorkerS3QueueLoopSettings
 from pipeline_common.queue import StageQueue
 from pipeline_common.s3 import S3Store, build_s3_client
 from worker_parse_document.parsing.registry import parser_for_key
 
 
 def run() -> None:
-    settings = Settings()
+    settings = WorkerS3QueueLoopSettings.from_env()
     stage_queue = StageQueue(settings.redis_url)
     source_type = os.getenv("SOURCE_TYPE", "html")
     security_clearance = os.getenv("DEFAULT_SECURITY_CLEARANCE", "internal")

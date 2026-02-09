@@ -12,7 +12,7 @@ class ScanCycleProcessor(ABC):
 
 
 class S3ScanCycleProcessor(ScanCycleProcessor):
-    """Move incoming S3 objects to raw storage and enqueue parse jobs."""
+    """Move S3 objects from a source prefix to a destination prefix and enqueue jobs."""
 
     def __init__(
         self,
@@ -20,16 +20,16 @@ class S3ScanCycleProcessor(ScanCycleProcessor):
         s3: S3Store,
         stage_queue: StageQueue,
         bucket: str,
-        incoming_prefix: str,
-        raw_prefix: str,
+        source_prefix: str,
+        destination_prefix: str,
         parse_queue: str,
         extensions: Sequence[str],
     ) -> None:
         self.s3 = s3
         self.stage_queue = stage_queue
         self.bucket = bucket
-        self.incoming_prefix = incoming_prefix
-        self.raw_prefix = raw_prefix
+        self.source_prefix = source_prefix
+        self.destination_prefix = destination_prefix
         self.parse_queue = parse_queue
         self.extensions = self._normalize_extensions(extensions)
 
@@ -41,10 +41,10 @@ class S3ScanCycleProcessor(ScanCycleProcessor):
         return processed
 
     def _candidate_keys(self) -> list[str]:
-        """List incoming keys that match the configured extension filter."""
+        """List source keys that match the configured extension filter."""
         return [
             key
-            for key in self.s3.list_keys(self.bucket, self.incoming_prefix)
+            for key in self.s3.list_keys(self.bucket, self.source_prefix)
             if self._is_candidate_key(key)
         ]
 
@@ -81,16 +81,16 @@ class S3ScanCycleProcessor(ScanCycleProcessor):
         self.s3.delete(self.bucket, source_key)
 
     def _is_candidate_key(self, key: str) -> bool:
-        """Return True when a key is a processable incoming file."""
+        """Return True when a key is a processable source object."""
         return (
-            key.startswith(self.incoming_prefix)
-            and key != self.incoming_prefix
+            key.startswith(self.source_prefix)
+            and key != self.source_prefix
             and key.endswith(self.extensions)
         )
 
     def _destination_key(self, source_key: str) -> str:
-        """Map an incoming key to its destination raw key."""
-        return source_key.replace(self.incoming_prefix, self.raw_prefix, 1)
+        """Map a source key to its destination key."""
+        return source_key.replace(self.source_prefix, self.destination_prefix, 1)
 
     def _normalize_extensions(self, extensions: Sequence[str]) -> tuple[str, ...]:
         """Normalize extension list into a tuple for str.endswith checks."""

@@ -22,8 +22,8 @@ def run() -> None:
         s3=s3,
         stage_queue=stage_queue,
         bucket=settings.s3_bucket,
-        incoming_prefix=INCOMING_PREFIX,
-        raw_prefix=RAW_PREFIX,
+        source_prefix=INCOMING_PREFIX,
+        destination_prefix=RAW_PREFIX,
         parse_queue=PARSE_QUEUE,
         extensions=HTML_EXTENSIONS,
     )

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from worker_parse_document.parsing.base import DocumentParser
-from worker_parse_document.parsing.html_parser import HtmlParser
+from parsing.base import DocumentParser
+from parsing.html_parser import HtmlParser
 
 
 def parser_for_key(source_key: str) -> DocumentParser:

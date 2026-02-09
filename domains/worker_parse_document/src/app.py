@@ -4,10 +4,10 @@ import os
 import time
 
 from pipeline_common.contracts import doc_id_from_source_key, utc_now_iso
-from pipeline_common.config import WorkerS3QueueLoopSettings
 from pipeline_common.queue import StageQueue
 from pipeline_common.s3 import S3Store, build_s3_client
-from worker_parse_document.parsing.registry import parser_for_key
+from configs.configs import WorkerS3QueueLoopSettings
+from parsing.registry import parser_for_key
 
 
 def run() -> None:

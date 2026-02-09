@@ -1,14 +1,9 @@
-
 import time
-from typing import Protocol
+from services.cycle_processor import CycleProcessor
+from services.worker_service import WorkerService
 
 
-class CycleProcessor(Protocol):
-    def process_once(self) -> int:
-        ...
-
-
-class WorkerScanService:
+class WorkerScanService(WorkerService):
     def __init__(
         self,
         *,
@@ -20,5 +15,5 @@ class WorkerScanService:
 
     def run_forever(self) -> None:
         while True:
-            self.processor.process_once()
+            self.processor.scan()
             time.sleep(self.poll_interval_seconds)

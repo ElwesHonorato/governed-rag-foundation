@@ -69,6 +69,37 @@ class S3ObjectStore:
     def create_empty_object(self, bucket: str, key: str) -> None:
         self.client.put_object(Bucket=bucket, Key=key, Body=b"")
 
+    def list_object_keys(self, bucket: str, prefix: str) -> list[str]:
+        keys: list[str] = []
+        continuation_token: str | None = None
+
+        while True:
+            params = {"Bucket": bucket, "Prefix": prefix}
+            if continuation_token:
+                params["ContinuationToken"] = continuation_token
+
+            response = self.client.list_objects_v2(**params)
+            for item in response.get("Contents", []):
+                key = item.get("Key")
+                if isinstance(key, str):
+                    keys.append(key)
+
+            if not response.get("IsTruncated"):
+                break
+            continuation_token = response.get("NextContinuationToken")
+
+        return keys
+
+    def copy_object(self, bucket: str, source_key: str, destination_key: str) -> None:
+        self.client.copy_object(
+            Bucket=bucket,
+            CopySource={"Bucket": bucket, "Key": source_key},
+            Key=destination_key,
+        )
+
+    def delete_object(self, bucket: str, key: str) -> None:
+        self.client.delete_object(Bucket=bucket, Key=key)
+
 def build_s3_client(*, endpoint_url: str, access_key: str, secret_key: str, region_name: str):
     return boto3.client(
         "s3",

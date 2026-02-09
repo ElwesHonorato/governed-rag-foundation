@@ -2,7 +2,7 @@ services:
   pipeline-worker-scan:
     build:
       context: .
-      dockerfile: ./domains/worker_scan/app/Dockerfile
+      dockerfile: ./domains/worker_scan/Dockerfile
     environment:
       REDIS_URL: ${REDIS_URL:?REDIS_URL is required}
       S3_ENDPOINT: ${S3_ENDPOINT:?S3_ENDPOINT is required}

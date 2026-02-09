@@ -2,7 +2,7 @@ services:
   pipeline-worker-index-weaviate:
     build:
       context: .
-      dockerfile: ./domains/worker_index_weaviate/app/Dockerfile
+      dockerfile: ./domains/worker_index_weaviate/Dockerfile
     environment:
       WEAVIATE_URL: ${WEAVIATE_URL:?WEAVIATE_URL is required}
       REDIS_URL: ${REDIS_URL:?REDIS_URL is required}

@@ -4,9 +4,9 @@ import hashlib
 import os
 import time
 
-from pipeline_common.config import WorkerS3QueueLoopSettings
 from pipeline_common.queue import StageQueue
 from pipeline_common.s3 import S3Store, build_s3_client
+from configs.configs import WorkerS3QueueLoopSettings
 
 
 def deterministic_embedding(text: str, dimension: int) -> list[float]:

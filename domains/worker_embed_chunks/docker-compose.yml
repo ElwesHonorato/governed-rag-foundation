@@ -2,7 +2,7 @@ services:
   pipeline-worker-embed-chunks:
     build:
       context: .
-      dockerfile: ./domains/worker_embed_chunks/app/Dockerfile
+      dockerfile: ./domains/worker_embed_chunks/Dockerfile
     environment:
       REDIS_URL: ${REDIS_URL:?REDIS_URL is required}
       S3_ENDPOINT: ${S3_ENDPOINT:?S3_ENDPOINT is required}

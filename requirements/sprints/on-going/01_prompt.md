@@ -40,8 +40,8 @@ Each worker runs as its own dedicated container service from its own dedicated c
 
 ### 4. Generic Parsing Design (Future File Types)
 1. Name parsing stage worker `worker_parse_document` (not HTML-specific).
-2. Add parser registry in `domains/worker_parse_document/app/src/worker_parse_document/parsing/registry.py` to select parser by extension/content-type.
-3. Implement `domains/worker_parse_document/app/src/worker_parse_document/parsing/html_parser.py` now.
+2. Add parser registry in `domains/worker_parse_document/src/parsing/registry.py` to select parser by extension/content-type.
+3. Implement `domains/worker_parse_document/src/parsing/html_parser.py` now.
 4. Add future parsers later (`pdf_parser.py`, `docx_parser.py`, `txt_parser.py`) without changing stage flow.
 5. Output from parsing remains the same canonical contract in `03_processed/`.
 
@@ -66,7 +66,7 @@ domains/worker_scan/
   app/
     Dockerfile
     pyproject.toml
-    src/worker_scan/
+    src/
     tests/
 
 domains/worker_parse_document/
@@ -74,7 +74,7 @@ domains/worker_parse_document/
   app/
     Dockerfile
     pyproject.toml
-    src/worker_parse_document/
+    src/
       parsing/
         base.py
         registry.py
@@ -86,7 +86,7 @@ domains/worker_chunk_text/
   app/
     Dockerfile
     pyproject.toml
-    src/worker_chunk_text/
+    src/
     tests/
 
 domains/worker_embed_chunks/
@@ -94,7 +94,7 @@ domains/worker_embed_chunks/
   app/
     Dockerfile
     pyproject.toml
-    src/worker_embed_chunks/
+    src/
     tests/
 
 domains/worker_index_weaviate/
@@ -102,7 +102,7 @@ domains/worker_index_weaviate/
   app/
     Dockerfile
     pyproject.toml
-    src/worker_index_weaviate/
+    src/
     tests/
 
 domains/worker_manifest/
@@ -110,7 +110,7 @@ domains/worker_manifest/
   app/
     Dockerfile
     pyproject.toml
-    src/worker_manifest/
+    src/
     tests/
 
 domains/worker_metrics/
@@ -118,7 +118,7 @@ domains/worker_metrics/
   app/
     Dockerfile
     pyproject.toml
-    src/worker_metrics/
+    src/
     tests/
 
 libs/pipeline-common/
@@ -142,10 +142,10 @@ libs/pipeline-common/
 - `domains/worker_index_weaviate/docker-compose.yml`
 - `domains/worker_manifest/docker-compose.yml`
 - `domains/worker_metrics/docker-compose.yml`
-2. Each worker compose defines only one service (its own worker) built from `domains/worker_<name>/app/Dockerfile`.
+2. Each worker compose defines only one service (its own worker) built from `domains/worker_<name>/Dockerfile`.
 3. App compose (`domains/app/docker-compose.yml`) is fully separate from worker domains and must not include worker services.
 4. No `depends_on` links from `domains/app` to worker domains, and no worker domain compose may require app domain startup.
-5. Run each worker with its own Poetry command (example: `poetry run python -m worker_scan.app`).
+5. Run each worker with its own Poetry command (example: `poetry run python -m app`).
 6. Keep shared infra env vars consistent across domains; keep stage-specific queue/env vars local to each worker domain.
 7. Scaling and lifecycle control must be per worker domain (examples: `docker compose -f domains/worker_chunk_text/docker-compose.yml up -d --scale pipeline-worker-chunk-text=3` and `docker compose -f domains/worker_chunk_text/docker-compose.yml down`).
 8. Review and update `/home/sultan/repos/governed-rag-foundation/stack.sh` to account for the new domain layout (`domains/app` and `domains/worker_*`) so stack commands correctly target app and individual worker domains.

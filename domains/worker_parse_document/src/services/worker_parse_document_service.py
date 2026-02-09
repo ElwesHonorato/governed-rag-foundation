@@ -5,9 +5,10 @@ from pipeline_common.contracts import doc_id_from_source_key, utc_now_iso
 from pipeline_common.queue import StageQueue
 from pipeline_common.s3 import S3Store
 from parsing.registry import parser_for_key
+from services.worker_service import WorkerService
 
 
-class WorkerParseDocumentService:
+class WorkerParseDocumentService(WorkerService):
     def __init__(
         self,
         *,

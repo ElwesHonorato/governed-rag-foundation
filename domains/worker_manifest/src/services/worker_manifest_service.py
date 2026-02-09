@@ -2,9 +2,10 @@
 import time
 
 from pipeline_common.s3 import S3Store
+from services.worker_service import WorkerService
 
 
-class WorkerManifestService:
+class WorkerManifestService(WorkerService):
     def __init__(self, *, s3: S3Store, s3_bucket: str, poll_interval_seconds: int) -> None:
         self.s3 = s3
         self.s3_bucket = s3_bucket

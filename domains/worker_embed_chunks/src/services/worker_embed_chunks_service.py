@@ -4,9 +4,10 @@ import time
 
 from pipeline_common.queue import StageQueue
 from pipeline_common.s3 import S3Store
+from services.worker_service import WorkerService
 
 
-class WorkerEmbedChunksService:
+class WorkerEmbedChunksService(WorkerService):
     def __init__(
         self,
         *,

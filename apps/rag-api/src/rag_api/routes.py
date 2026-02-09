@@ -1,4 +1,3 @@
-from __future__ import annotations
 
 from flask import Flask, jsonify, render_template, request
 

@@ -1,4 +1,3 @@
-from __future__ import annotations
 
 from rag_api.llm_client import OllamaClient
 

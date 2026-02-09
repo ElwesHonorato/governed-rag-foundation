@@ -141,6 +141,10 @@ Roadmap sequencing rationale:
 - Acceptance and scale verification are meaningful only after governed retrieval behavior exists.
 - Advanced multimodal and late-interaction optimization should follow baseline production readiness.
 
+### Immediate Vertical Slice Plan (HTML: S3 -> Weaviate)
+Tracked as a separate epic ticket:
+- `requirements/sprints/on-going/01_html-s3-weaviate-vertical-slice-epic.md`
+
 ## Risks, Assumptions, and Open Questions
 ### Risks
 - Delayed decisions on vector DB/embedding model/compliance scope will stall implementation across ingestion, retrieval, and security.
@@ -172,3 +176,6 @@ Roadmap sequencing rationale:
 
 ## Change Log
 - 2026-02-09: Initial creation of requirements coverage roadmap. Baseline assessment indicates foundation infrastructure is present but product capability coverage is largely missing; established deterministic coverage matrix, critical gaps, and dependency-aware execution roadmap.
+- 2026-02-09: Added immediate HTML vertical-slice execution plan (`rag-data/01_incoming` to Weaviate) with ordered implementation steps, idempotency guidance, observability counters, and slice-specific acceptance criteria.
+- 2026-02-09: Moved the HTML vertical-slice plan into a dedicated epic ticket document and left a roadmap reference link.
+- 2026-02-09: Relocated the HTML vertical-slice epic into `requirements/sprints/on-going/` and refreshed the roadmap reference.

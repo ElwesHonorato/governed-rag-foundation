@@ -1,11 +1,17 @@
 
+from abc import ABC, abstractmethod
 import time
 
 from pipeline_common.contracts import chunk_id_for
 from pipeline_common.queue import StageQueue
 from pipeline_common.s3 import S3Store
 from pipeline_common.text import chunk_text
-from services.worker_service import WorkerService
+
+
+class WorkerService(ABC):
+    @abstractmethod
+    def run_forever(self) -> None:
+        """Run the worker loop indefinitely."""
 
 
 class WorkerChunkTextService(WorkerService):

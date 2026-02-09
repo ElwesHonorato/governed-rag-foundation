@@ -1,9 +1,15 @@
 
+from abc import ABC, abstractmethod
 import time
 
 from pipeline_common.observability import Counters
 from pipeline_common.s3 import S3Store
-from services.worker_service import WorkerService
+
+
+class WorkerService(ABC):
+    @abstractmethod
+    def run_forever(self) -> None:
+        """Run the worker loop indefinitely."""
 
 
 class WorkerMetricsService(WorkerService):

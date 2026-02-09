@@ -18,6 +18,11 @@ Configuration defaults are centralized in `.env` at the repository root.
 - `scripts/`: Shared shell helpers used by `stack.sh`.
 - `stack.sh`: Entry point for bringing the local stack up/down.
 
+## Requirements Tracking
+
+- Requirements workspace: `requirements/README.md`
+- Coverage roadmap (canonical): `requirements/00-overview/requirements-coverage-roadmap.md`
+
 ## Local Stack Commands
 
 Run from repository root:

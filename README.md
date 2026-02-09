@@ -7,14 +7,22 @@ Configuration defaults are centralized in `.env` at the repository root.
 ## Repository Layout
 
 - `apps/rag-api`: API service for RAG operations.
-- `apps/pipeline-worker`: Background worker for ingestion and pipeline tasks.
+- `apps/pipeline-worker`: Legacy monolithic worker (replaced by worker domains below).
+- `libs/pipeline-common`: Shared pipeline helpers used by isolated worker domains.
 - `domains/`: Docker Compose definitions split by domain:
   - `storage` (MinIO)
   - `vector` (Weaviate)
   - `cache` (Redis)
   - `lineage` (Marquez)
   - `llm` (Ollama)
-  - `apps` (rag-api and pipeline-worker)
+  - `app` (rag-api only)
+  - `worker_scan`
+  - `worker_parse_document`
+  - `worker_chunk_text`
+  - `worker_embed_chunks`
+  - `worker_index_weaviate`
+  - `worker_manifest`
+  - `worker_metrics`
 - `scripts/`: Shared shell helpers used by `stack.sh`.
 - `stack.sh`: Entry point for bringing the local stack up/down.
 
@@ -36,8 +44,10 @@ Run from repository root:
 ./stack.sh up cache
 ./stack.sh up lineage
 ./stack.sh up llm
-./stack.sh up apps
-./stack.sh logs apps
+./stack.sh up app
+./stack.sh up worker_scan
+./stack.sh up worker_parse_document
+./stack.sh logs worker_scan
 ./stack.sh ps
 ```
 
@@ -51,14 +61,21 @@ Recommended first-run order from repository root:
 ./stack.sh up cache
 ./stack.sh up lineage
 ./stack.sh up llm
-./stack.sh up apps
+./stack.sh up app
+./stack.sh up worker_scan
+./stack.sh up worker_parse_document
+./stack.sh up worker_chunk_text
+./stack.sh up worker_embed_chunks
+./stack.sh up worker_index_weaviate
+./stack.sh up worker_manifest
+./stack.sh up worker_metrics
 ```
 
 Quick checks:
 
 ```bash
 ./stack.sh ps
-./stack.sh logs apps
+./stack.sh logs app
 ```
 
 When finished:

@@ -22,7 +22,7 @@ Usage:
   ./stack.sh ps [domain]
 
 Domains:
-  storage | vector | cache | lineage | llm | apps
+  storage | vector | cache | lineage | llm | app | worker_scan | worker_parse_document | worker_chunk_text | worker_embed_chunks | worker_index_weaviate | worker_manifest | worker_metrics
 USAGE
 }
 

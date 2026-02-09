@@ -1,43 +1,27 @@
 from __future__ import annotations
 
 import hashlib
-import os
 import time
 
 from pipeline_common.queue import StageQueue
-from pipeline_common.s3 import S3Store, build_s3_client
-from configs.configs import WorkerS3QueueLoopSettings
+from pipeline_common.s3 import S3Store
 
 
 class WorkerEmbedChunksService:
     def __init__(
         self,
         *,
-        settings: WorkerS3QueueLoopSettings,
         stage_queue: StageQueue,
         s3: S3Store,
+        s3_bucket: str,
+        poll_interval_seconds: int,
         dimension: int,
     ) -> None:
-        self.settings = settings
         self.stage_queue = stage_queue
         self.s3 = s3
+        self.s3_bucket = s3_bucket
+        self.poll_interval_seconds = poll_interval_seconds
         self.dimension = dimension
-
-    @classmethod
-    def from_env(cls) -> "WorkerEmbedChunksService":
-        settings = WorkerS3QueueLoopSettings.from_env()
-        stage_queue = StageQueue(settings.redis_url)
-        dimension = int(os.getenv("EMBEDDING_DIM", "32"))
-        s3 = S3Store(
-            build_s3_client(
-                endpoint_url=settings.s3_endpoint,
-                access_key=settings.s3_access_key,
-                secret_key=settings.s3_secret_key,
-                region_name=settings.aws_region,
-            )
-        )
-        s3.ensure_workspace(settings.s3_bucket)
-        return cls(settings=settings, stage_queue=stage_queue, s3=s3, dimension=dimension)
 
     def deterministic_embedding(self, text: str) -> list[float]:
         digest = hashlib.sha256(text.encode("utf-8")).digest()
@@ -53,10 +37,10 @@ class WorkerEmbedChunksService:
         if not source_key.endswith(".chunks.json"):
             return
 
-        payload = self.s3.read_json(self.settings.s3_bucket, source_key)
+        payload = self.s3.read_json(self.s3_bucket, source_key)
         doc_id = str(payload["doc_id"])
         destination_key = f"05_embeddings/{doc_id}.embeddings.json"
-        if self.s3.object_exists(self.settings.s3_bucket, destination_key):
+        if self.s3.object_exists(self.s3_bucket, destination_key):
             return
 
         records = []
@@ -78,7 +62,7 @@ class WorkerEmbedChunksService:
                 }
             )
 
-        self.s3.write_json(self.settings.s3_bucket, destination_key, {"doc_id": doc_id, "embeddings": records})
+        self.s3.write_json(self.s3_bucket, destination_key, {"doc_id": doc_id, "embeddings": records})
         self.stage_queue.push("q.index_weaviate", {"embeddings_key": destination_key, "doc_id": doc_id})
         print(f"[worker_embed_chunks] wrote {destination_key} embeddings={len(records)}", flush=True)
 
@@ -90,10 +74,10 @@ class WorkerEmbedChunksService:
             else:
                 keys = [
                     key
-                    for key in self.s3.list_keys(self.settings.s3_bucket, "04_chunks/")
+                    for key in self.s3.list_keys(self.s3_bucket, "04_chunks/")
                     if key != "04_chunks/" and key.endswith(".chunks.json")
                 ]
                 for source_key in keys:
                     self.process_source_key(source_key)
 
-            time.sleep(self.settings.poll_interval_seconds)
+            time.sleep(self.poll_interval_seconds)

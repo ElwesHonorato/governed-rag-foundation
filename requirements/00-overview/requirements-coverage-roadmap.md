@@ -19,7 +19,7 @@ Legend: `Covered` = implemented and traceable in code, `Partial` = scaffolded/in
 | FR-04 | Metadata-filtered retrieval (`source_type`, `timestamp`, domain) | Missing | `apps/rag-api/src/rag_api/routes.py` | No retrieval query API or metadata filter handling. |
 | NFR-01 | 1,000+ concurrent users | Missing | `apps/rag-api/src/rag_api/app.py` | Single-process Flask app; no load/perf controls or benchmark evidence. |
 | NFR-02 | Hybrid retrieval (BM25 + semantic) | Missing | `domains/vector/docker-compose.yml` | Weaviate deployed but no hybrid retrieval logic implemented. |
-| NFR-03 | Caching for latency/cost optimization | Missing | `domains/cache/docker-compose.yml` | Redis deployed but unused in app logic. |
+| NFR-03 | Caching for latency/cost optimization | Missing | `domains/queue/docker-compose.yml` | Redis deployed but unused in app logic. |
 | NFR-04 | Reliability under peak/degraded upstream | Partial | `apps/rag-api/src/rag_api/llm_client.py` | Basic retry for some LLM failures only; no circuit breaking, fallback retrieval, or resilience policy. |
 | A-01 | Full governed RAG flow (ingest->chunk->mask->embed->hybrid retrieve->grounded response) | Missing | `domains/worker_*/src`, `apps/rag-api/src/rag_api/services/prompt_service.py` | Worker stages exist, but masking and governed retrieval/grounded response behavior are still incomplete. |
 | A-02 | Context-aware chunking, parent-child indexing, versioned indexing | Partial | `domains/worker_chunk_text/src/app.py`, `domains/worker_index_weaviate/src/app.py` | Chunking and indexing stages exist, but advanced context-aware and versioning features are incomplete. |

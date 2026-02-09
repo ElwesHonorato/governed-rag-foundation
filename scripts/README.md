@@ -22,7 +22,7 @@ These scripts centralize local infrastructure lifecycle for development and test
 ./stack.sh up storage
 ./stack.sh up vector
 ./stack.sh up lineage
-./stack.sh up cache
+./stack.sh up queue
 ./stack.sh up llm
 ./stack.sh up app
 ./stack.sh up worker_scan

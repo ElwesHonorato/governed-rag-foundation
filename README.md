@@ -11,7 +11,7 @@ Configuration defaults are centralized in `.env` at the repository root.
 - `domains/`: Docker Compose definitions split by domain:
   - `storage` (MinIO)
   - `vector` (Weaviate)
-  - `cache` (Redis)
+  - `queue` (RabbitMQ broker)
   - `lineage` (Marquez)
   - `llm` (Ollama)
   - `app` (rag-api only)
@@ -40,7 +40,7 @@ Run from repository root:
 ./stack.sh wipe
 ./stack.sh up storage
 ./stack.sh up vector
-./stack.sh up cache
+./stack.sh up queue
 ./stack.sh up lineage
 ./stack.sh up llm
 ./stack.sh up app
@@ -57,7 +57,7 @@ Recommended first-run order from repository root:
 ```bash
 ./stack.sh up storage
 ./stack.sh up vector
-./stack.sh up cache
+./stack.sh up queue
 ./stack.sh up lineage
 ./stack.sh up llm
 ./stack.sh up app
@@ -87,6 +87,7 @@ When finished:
 
 - MinIO Console: `http://localhost:9001`
 - Weaviate: `http://localhost:8080`
+- RabbitMQ Management UI: `http://localhost:15672`
 - Marquez API: `http://localhost:5000`
 - Marquez UI: `http://localhost:3000`
 - Ollama API: `http://localhost:11434`

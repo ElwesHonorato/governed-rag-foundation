@@ -14,7 +14,7 @@ readonly LOCALDATA_DIR="$REPO_ROOT/localdata"
 readonly DOMAINS=(
   storage
   vector
-  cache
+  queue
   lineage
   llm
   app
@@ -139,7 +139,6 @@ ensure_localdata_dirs() {
   mkdir -p \
     "$LOCALDATA_DIR/minio" \
     "$LOCALDATA_DIR/weaviate" \
-    "$LOCALDATA_DIR/redis" \
     "$LOCALDATA_DIR/postgres" \
     "$LOCALDATA_DIR/ollama"
 }

@@ -1,16 +1,23 @@
 services:
-  redis:
-    image: ${REDIS_IMAGE:?REDIS_IMAGE is required}
-    command: ["redis-server", "--appendonly", "yes"]
+  rabbitmq:
+    image: ${RABBITMQ_IMAGE:?RABBITMQ_IMAGE is required}
+    hostname: rabbitmq
     ports:
-      - "${REDIS_PORT:?REDIS_PORT is required}:6379"
+      - "${RABBITMQ_PORT:?RABBITMQ_PORT is required}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:?RABBITMQ_MANAGEMENT_PORT is required}:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:?RABBITMQ_DEFAULT_USER is required}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS is required}
     volumes:
-      - ../../localdata/redis:/data
+      - rabbitmq-data:/var/lib/rabbitmq
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
       timeout: 3s
       retries: 10
+
+volumes:
+  rabbitmq-data:
 
 networks:
   default:

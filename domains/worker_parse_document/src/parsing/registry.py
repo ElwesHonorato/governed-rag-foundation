@@ -1,4 +1,3 @@
-from __future__ import annotations
 
 from parsing.base import DocumentParser
 from parsing.html_parser import HtmlParser

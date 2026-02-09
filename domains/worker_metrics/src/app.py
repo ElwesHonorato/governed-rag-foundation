@@ -1,4 +1,3 @@
-from __future__ import annotations
 
 from pipeline_common.observability import Counters
 from pipeline_common.s3 import S3Store, build_s3_client

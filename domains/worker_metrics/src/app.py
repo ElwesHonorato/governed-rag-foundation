@@ -1,6 +1,7 @@
 
 from pipeline_common.observability import Counters
 from pipeline_common.s3 import ObjectStorageGateway, build_s3_client
+from configs.constants import S3_BUCKET
 from configs.configs import WorkerS3LoopSettings
 from services.worker_metrics_service import WorkerMetricsService
 
@@ -19,7 +20,7 @@ def run() -> None:
     WorkerMetricsService(
         counters=counters,
         s3=s3,
-        s3_bucket=settings.s3_bucket,
+        s3_bucket=S3_BUCKET,
         poll_interval_seconds=settings.poll_interval_seconds,
     ).serve()
 

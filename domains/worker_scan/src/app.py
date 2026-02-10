@@ -1,6 +1,6 @@
 from pipeline_common.queue import StageQueue
 from pipeline_common.s3 import ObjectStorageGateway, build_s3_client
-from configs.constants import HTML_EXTENSIONS, INCOMING_PREFIX, PARSE_QUEUE, RAW_PREFIX
+from configs.constants import HTML_EXTENSIONS, INCOMING_PREFIX, PARSE_QUEUE, RAW_PREFIX, S3_BUCKET
 from configs.configs import WorkerS3QueueLoopSettings
 from services.scan_cycle_processor import S3ScanCycleProcessor
 from services.worker_scan_service import WorkerScanService
@@ -17,11 +17,11 @@ def run() -> None:
             region_name=settings.aws_region,
         )
     )
-    s3.bootstrap_bucket_prefixes(settings.s3_bucket)
+    s3.bootstrap_bucket_prefixes(S3_BUCKET)
     processor = S3ScanCycleProcessor(
         s3=s3,
         stage_queue=stage_queue,
-        bucket=settings.s3_bucket,
+        bucket=S3_BUCKET,
         source_prefix=INCOMING_PREFIX,
         destination_prefix=RAW_PREFIX,
         parse_queue=PARSE_QUEUE,

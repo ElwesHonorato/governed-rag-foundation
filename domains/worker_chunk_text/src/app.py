@@ -1,6 +1,7 @@
 
 from pipeline_common.queue import StageQueue
 from pipeline_common.s3 import ObjectStorageGateway, build_s3_client
+from configs.constants import S3_BUCKET
 from configs.configs import WorkerS3QueueLoopSettings
 from services.worker_chunk_text_service import WorkerChunkTextService
 
@@ -19,7 +20,7 @@ def run() -> None:
     WorkerChunkTextService(
         stage_queue=stage_queue,
         s3=s3,
-        s3_bucket=settings.s3_bucket,
+        s3_bucket=S3_BUCKET,
         poll_interval_seconds=settings.poll_interval_seconds,
     ).serve()
 

@@ -1,7 +1,7 @@
 from pipeline_common.queue import StageQueue
 from pipeline_common.s3 import ObjectStorageGateway, build_s3_client
 from pipeline_common.config import QueueRuntimeSettings, S3StorageSettings
-from configs.constants import PROCESSING_CONFIG_DEFAULT
+from configs.constants import PROCESSING_CONFIG_DEFAULT, S3_BUCKET
 from parsing.registry import build_default_parser_registry
 from services.worker_parse_document_service import WorkerParseDocumentService
 
@@ -22,7 +22,7 @@ def run() -> None:
     WorkerParseDocumentService(
         stage_queue=stage_queue,
         s3=s3,
-        s3_bucket=s3_settings.s3_bucket,
+        s3_bucket=S3_BUCKET,
         poll_interval_seconds=queue_settings.poll_interval_seconds,
         processing_config=PROCESSING_CONFIG_DEFAULT,
         parser_registry=parser_registry,

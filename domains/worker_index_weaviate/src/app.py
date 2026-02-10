@@ -2,6 +2,7 @@
 from pipeline_common.queue import StageQueue
 from pipeline_common.s3 import ObjectStorageGateway, build_s3_client
 from pipeline_common.weaviate import ensure_schema
+from configs.constants import S3_BUCKET
 from configs.configs import WorkerIndexWeaviateSettings
 from services.worker_index_weaviate_service import WorkerIndexWeaviateService
 
@@ -21,7 +22,7 @@ def run() -> None:
     WorkerIndexWeaviateService(
         stage_queue=stage_queue,
         s3=s3,
-        s3_bucket=settings.s3_bucket,
+        s3_bucket=S3_BUCKET,
         weaviate_url=settings.weaviate_url,
         poll_interval_seconds=settings.poll_interval_seconds,
     ).serve()

@@ -3,7 +3,7 @@
 Reference repository for a locally runnable, governed RAG stack.
 
 Runtime configuration is centralized in `.env` at the repository root.
-Core infrastructure image tags and the shared Docker network are hardcoded in the domain compose files.
+Core infrastructure image tags are hardcoded in the domain compose files.
 
 ## Repository Layout
 

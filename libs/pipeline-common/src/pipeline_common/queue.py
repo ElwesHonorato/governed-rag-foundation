@@ -3,10 +3,7 @@ import json
 import time
 from typing import Any
 
-try:
-    import pika
-except Exception:  # pragma: no cover
-    pika = None
+import pika
 
 
 class StageQueue:

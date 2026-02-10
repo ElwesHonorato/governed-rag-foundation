@@ -17,7 +17,7 @@ FOLDERS = (
 )
 
 
-class S3Store:
+class ObjectStorageGateway:
     def __init__(self, s3_client) -> None:
         self.client = s3_client
 
@@ -28,7 +28,7 @@ class S3Store:
         except Exception:
             return False
 
-    def ensure_workspace(self, bucket: str) -> None:
+    def bootstrap_bucket_prefixes(self, bucket: str) -> None:
         if not self.bucket_exists(bucket):
             self.client.create_bucket(Bucket=bucket)
         for prefix in FOLDERS:

@@ -3,12 +3,12 @@ from abc import ABC, abstractmethod
 import time
 
 from pipeline_common.observability import Counters
-from pipeline_common.s3 import S3Store
+from pipeline_common.s3 import ObjectStorageGateway
 
 
 class WorkerService(ABC):
     @abstractmethod
-    def run_forever(self) -> None:
+    def serve(self) -> None:
         """Run the worker loop indefinitely."""
 
 
@@ -17,7 +17,7 @@ class WorkerMetricsService(WorkerService):
         self,
         *,
         counters: Counters,
-        s3: S3Store,
+        s3: ObjectStorageGateway,
         s3_bucket: str,
         poll_interval_seconds: int,
     ) -> None:
@@ -30,7 +30,7 @@ class WorkerMetricsService(WorkerService):
     def _count_suffix(keys: list[str], suffix: str) -> int:
         return sum(1 for key in keys if key.endswith(suffix))
 
-    def run_forever(self) -> None:
+    def serve(self) -> None:
         while True:
             processed = self.s3.list_keys(self.s3_bucket, "03_processed/")
             chunks = self.s3.list_keys(self.s3_bucket, "04_chunks/")

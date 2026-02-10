@@ -4,13 +4,13 @@ import time
 
 from pipeline_common.contracts import chunk_id_for
 from pipeline_common.queue import StageQueue
-from pipeline_common.s3 import S3Store
+from pipeline_common.s3 import ObjectStorageGateway
 from pipeline_common.text import chunk_text
 
 
 class WorkerService(ABC):
     @abstractmethod
-    def run_forever(self) -> None:
+    def serve(self) -> None:
         """Run the worker loop indefinitely."""
 
 
@@ -19,7 +19,7 @@ class WorkerChunkTextService(WorkerService):
         self,
         *,
         stage_queue: StageQueue,
-        s3: S3Store,
+        s3: ObjectStorageGateway,
         s3_bucket: str,
         poll_interval_seconds: int,
     ) -> None:
@@ -60,7 +60,7 @@ class WorkerChunkTextService(WorkerService):
         self.stage_queue.push("q.embed_chunks", {"chunks_key": destination_key, "doc_id": doc_id})
         print(f"[worker_chunk_text] wrote {destination_key} chunks={len(records)}", flush=True)
 
-    def run_forever(self) -> None:
+    def serve(self) -> None:
         while True:
             queued = self.stage_queue.pop("q.chunk_text", timeout_seconds=1)
             if queued and isinstance(queued.get("processed_key"), str):

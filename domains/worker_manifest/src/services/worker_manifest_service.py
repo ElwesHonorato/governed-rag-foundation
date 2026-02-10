@@ -2,22 +2,22 @@
 from abc import ABC, abstractmethod
 import time
 
-from pipeline_common.s3 import S3Store
+from pipeline_common.s3 import ObjectStorageGateway
 
 
 class WorkerService(ABC):
     @abstractmethod
-    def run_forever(self) -> None:
+    def serve(self) -> None:
         """Run the worker loop indefinitely."""
 
 
 class WorkerManifestService(WorkerService):
-    def __init__(self, *, s3: S3Store, s3_bucket: str, poll_interval_seconds: int) -> None:
+    def __init__(self, *, s3: ObjectStorageGateway, s3_bucket: str, poll_interval_seconds: int) -> None:
         self.s3 = s3
         self.s3_bucket = s3_bucket
         self.poll_interval_seconds = poll_interval_seconds
 
-    def run_forever(self) -> None:
+    def serve(self) -> None:
         while True:
             processed_keys = [
                 key

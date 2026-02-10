@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 
 from pipeline_common.queue import StageQueue
-from pipeline_common.s3 import S3Store
+from pipeline_common.s3 import ObjectStorageGateway
 
 
 class ScanCycleProcessor(ABC):
@@ -17,7 +17,7 @@ class S3ScanCycleProcessor(ScanCycleProcessor):
     def __init__(
         self,
         *,
-        s3: S3Store,
+        s3: ObjectStorageGateway,
         stage_queue: StageQueue,
         bucket: str,
         source_prefix: str,

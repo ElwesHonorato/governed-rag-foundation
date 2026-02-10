@@ -4,12 +4,12 @@ import hashlib
 import time
 
 from pipeline_common.queue import StageQueue
-from pipeline_common.s3 import S3Store
+from pipeline_common.s3 import ObjectStorageGateway
 
 
 class WorkerService(ABC):
     @abstractmethod
-    def run_forever(self) -> None:
+    def serve(self) -> None:
         """Run the worker loop indefinitely."""
 
 
@@ -18,7 +18,7 @@ class WorkerEmbedChunksService(WorkerService):
         self,
         *,
         stage_queue: StageQueue,
-        s3: S3Store,
+        s3: ObjectStorageGateway,
         s3_bucket: str,
         poll_interval_seconds: int,
         dimension: int,
@@ -72,7 +72,7 @@ class WorkerEmbedChunksService(WorkerService):
         self.stage_queue.push("q.index_weaviate", {"embeddings_key": destination_key, "doc_id": doc_id})
         print(f"[worker_embed_chunks] wrote {destination_key} embeddings={len(records)}", flush=True)
 
-    def run_forever(self) -> None:
+    def serve(self) -> None:
         while True:
             queued = self.stage_queue.pop("q.embed_chunks", timeout_seconds=1)
             if queued and isinstance(queued.get("chunks_key"), str):

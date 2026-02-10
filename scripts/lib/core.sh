@@ -9,7 +9,7 @@ if [[ -f "$REPO_ROOT/.env" ]]; then
   set +a
 fi
 
-readonly STACK_NETWORK="${STACK_NETWORK:-rag-local}"
+readonly STACK_NETWORK="rag-local"
 readonly LOCALDATA_DIR="$REPO_ROOT/localdata"
 readonly DOMAINS=(
   storage

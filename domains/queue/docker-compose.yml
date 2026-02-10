@@ -1,6 +1,6 @@
 services:
   rabbitmq:
-    image: ${RABBITMQ_IMAGE:?RABBITMQ_IMAGE is required}
+    image: rabbitmq:3-management-alpine
     hostname: rabbitmq
     ports:
       - "${RABBITMQ_PORT:?RABBITMQ_PORT is required}:5672"
@@ -22,4 +22,4 @@ volumes:
 networks:
   default:
     external: true
-    name: ${STACK_NETWORK:?STACK_NETWORK is required}
+    name: rag-local

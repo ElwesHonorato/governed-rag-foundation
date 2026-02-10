@@ -11,4 +11,4 @@ services:
 networks:
   default:
     external: true
-    name: ${STACK_NETWORK:?STACK_NETWORK is required}
+    name: rag-local

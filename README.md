@@ -2,7 +2,8 @@
 
 Reference repository for a locally runnable, governed RAG stack.
 
-Configuration defaults are centralized in `.env` at the repository root.
+Runtime configuration is centralized in `.env` at the repository root.
+Core infrastructure image tags and the shared Docker network are hardcoded in the domain compose files.
 
 ## Repository Layout
 
@@ -115,6 +116,13 @@ poetry lock
 ## Notes
 
 - Domain compose files join the shared external Docker network `rag-local`.
+- Hardcoded infrastructure images:
+  - MinIO: `minio/minio:latest`
+  - Weaviate: `cr.weaviate.io/semitechnologies/weaviate:1.27.7`
+  - RabbitMQ: `rabbitmq:3-management-alpine`
+  - Postgres: `postgres:15-alpine`
+  - Marquez API: `marquezproject/marquez:latest`
+  - Marquez Web: `marquezproject/marquez-web:latest`
 - Start domains independently or as a full stack, depending on what you are developing.
 - `domains/llm` builds a custom Ollama image and bakes `LLM_MODEL` (default: `llama3.2:1b`) at build time.
 - To build with a different model:

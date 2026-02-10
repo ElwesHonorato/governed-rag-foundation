@@ -1,16 +1,38 @@
-
 from abc import ABC, abstractmethod
+import logging
 import time
+from typing import TypedDict
 
 from pipeline_common.contracts import doc_id_from_source_key, utc_now_iso
 from pipeline_common.queue import StageQueue
-from pipeline_common.s3 import S3Store
-from parsing.registry import parser_for_key
+from pipeline_common.s3 import ObjectStorageGateway
+from parsing.registry import ParserRegistry
+
+logger = logging.getLogger(__name__)
+
+
+class SourceConfig(TypedDict):
+    """Source-related parse metadata configuration."""
+
+    type: str
+
+
+class SecurityConfig(TypedDict):
+    """Security-related parse metadata configuration."""
+
+    clearance: str
+
+
+class DocumentProcessingConfig(TypedDict):
+    """Grouped metadata configuration emitted with processed payloads."""
+
+    source: SourceConfig
+    security: SecurityConfig
 
 
 class WorkerService(ABC):
     @abstractmethod
-    def run_forever(self) -> None:
+    def serve(self) -> None:
         """Run the worker loop indefinitely."""
 
 
@@ -21,19 +43,19 @@ class WorkerParseDocumentService(WorkerService):
         self,
         *,
         stage_queue: StageQueue,
-        s3: S3Store,
+        s3: ObjectStorageGateway,
         s3_bucket: str,
         poll_interval_seconds: int,
-        source_type: str,
-        security_clearance: str,
+        processing_config: DocumentProcessingConfig,
+        parser_registry: ParserRegistry,
     ) -> None:
         """Initialize parse worker dependencies and runtime settings."""
         self.stage_queue = stage_queue
         self.s3 = s3
         self.s3_bucket = s3_bucket
         self.poll_interval_seconds = poll_interval_seconds
-        self.source_type = source_type
-        self.security_clearance = security_clearance
+        self.processing_config = processing_config
+        self.parser_registry = parser_registry
 
     def process_source_key(self, source_key: str) -> None:
         """Parse a single raw document key and publish downstream work."""
@@ -48,13 +70,16 @@ class WorkerParseDocumentService(WorkerService):
         payload = self._build_processed_payload(source_key, doc_id)
         self._write_processed_document(destination_key, payload)
         self._enqueue_chunking(destination_key, doc_id)
-        print(f"[worker_parse_document] wrote {destination_key}", flush=True)
+        logger.info("Wrote processed document '%s'", destination_key)
 
-    def run_forever(self) -> None:
+    def serve(self) -> None:
         """Run the parse worker loop by queue-first then S3-fallback polling."""
         while True:
             for source_key in self._next_source_keys():
-                self.process_source_key(source_key)
+                try:
+                    self.process_source_key(source_key)
+                except Exception:
+                    logger.exception("Failed processing source key '%s'", source_key)
             time.sleep(self.poll_interval_seconds)
 
     def _next_source_keys(self) -> list[str]:
@@ -69,9 +94,11 @@ class WorkerParseDocumentService(WorkerService):
         ]
 
     def _is_supported_source_key(self, source_key: str) -> bool:
-        """Return whether a source key is in raw HTML format."""
-        return source_key.startswith("02_raw/") and source_key != "02_raw/" and source_key.endswith(
-            (".html", ".htm")
+        """Return whether a source key is in the raw stage and has a known parser."""
+        return (
+            source_key.startswith("02_raw/")
+            and source_key != "02_raw/"
+            and self.parser_registry.can_resolve(source_key)
         )
 
     def _processed_key(self, doc_id: str) -> str:
@@ -84,16 +111,16 @@ class WorkerParseDocumentService(WorkerService):
 
     def _build_processed_payload(self, source_key: str, doc_id: str) -> dict[str, str]:
         """Parse a source document and map it into processed payload fields."""
-        parser = parser_for_key(source_key)
-        parsed = parser.parse(self.s3.read_text(self.s3_bucket, source_key))
+        parser = self.parser_registry.resolve(source_key)
+        parsed_document = parser.parse(self.s3.read_text(self.s3_bucket, source_key))
         return {
             "doc_id": doc_id,
             "source_key": source_key,
-            "source_type": self.source_type,
+            "source_type": self.processing_config["source"]["type"],
             "timestamp": utc_now_iso(),
-            "security_clearance": self.security_clearance,
-            "title": parsed["title"],
-            "text": parsed["text"],
+            "security_clearance": self.processing_config["security"]["clearance"],
+            "title": parsed_document.title,
+            "text": parsed_document.text,
         }
 
     def _write_processed_document(self, destination_key: str, payload: dict[str, str]) -> None:

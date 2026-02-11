@@ -99,9 +99,20 @@ class WorkerParseDocumentService(WorkerService):
 
     def _next_source_keys(self) -> list[str]:
         """Return source keys from queue first, then from S3 polling fallback."""
-        queued = self.stage_queue.pop(self.parse_queue_name, timeout_seconds=1)
+        queued_source_key = self._pop_queued_source_key()
+        if queued_source_key is not None:
+            return [queued_source_key]
+        return self._scan_source_keys()
+
+    def _pop_queued_source_key(self) -> str | None:
+        """Pop one source key from parse queue when available."""
+        queued = self.stage_queue.pop(self.parse_queue_name)
         if queued and isinstance(queued.get("raw_key"), str):
-            return [str(queued["raw_key"])]
+            return str(queued["raw_key"])
+        return None
+
+    def _scan_source_keys(self) -> list[str]:
+        """List supported source keys from storage raw prefix."""
         return [
             key
             for key in self.object_storage.list_keys(self.storage_bucket, self.raw_prefix)

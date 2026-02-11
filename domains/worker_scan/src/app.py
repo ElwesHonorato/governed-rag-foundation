@@ -1,5 +1,5 @@
 from pipeline_common.queue import StageQueue
-from pipeline_common.s3 import ObjectStorageGateway, build_s3_client
+from pipeline_common.s3 import ObjectStorageGateway, S3Client
 from configs.constants import HTML_EXTENSIONS, INCOMING_PREFIX, PARSE_QUEUE, RAW_PREFIX, S3_BUCKET
 from configs.configs import WorkerS3QueueLoopSettings
 from services.scan_cycle_processor import S3ScanCycleProcessor
@@ -10,7 +10,7 @@ def run() -> None:
     settings = WorkerS3QueueLoopSettings.from_env()
     stage_queue = StageQueue(settings.broker_url)
     s3 = ObjectStorageGateway(
-        build_s3_client(
+        S3Client(
             endpoint_url=settings.s3_endpoint,
             access_key=settings.s3_access_key,
             secret_key=settings.s3_secret_key,

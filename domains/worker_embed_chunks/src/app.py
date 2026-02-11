@@ -2,7 +2,7 @@
 import os
 
 from pipeline_common.queue import StageQueue
-from pipeline_common.s3 import ObjectStorageGateway, build_s3_client
+from pipeline_common.s3 import ObjectStorageGateway, S3Client
 from configs.constants import S3_BUCKET
 from configs.configs import WorkerS3QueueLoopSettings
 from services.worker_embed_chunks_service import WorkerEmbedChunksService
@@ -13,7 +13,7 @@ def run() -> None:
     stage_queue = StageQueue(settings.broker_url)
     dimension = int(os.getenv("EMBEDDING_DIM", "32"))
     s3 = ObjectStorageGateway(
-        build_s3_client(
+        S3Client(
             endpoint_url=settings.s3_endpoint,
             access_key=settings.s3_access_key,
             secret_key=settings.s3_secret_key,

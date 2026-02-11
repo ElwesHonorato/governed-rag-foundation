@@ -1,5 +1,5 @@
 from pipeline_common.queue import StageQueue
-from pipeline_common.s3 import ObjectStorageGateway, build_s3_client
+from pipeline_common.s3 import ObjectStorageGateway, S3Client
 from pipeline_common.config import QueueRuntimeSettings, S3StorageSettings
 from configs.constants import PROCESSING_CONFIG_DEFAULT, S3_BUCKET
 from parsing.html import HtmlParser
@@ -13,7 +13,7 @@ def run() -> None:
     stage_queue = StageQueue(queue_settings.broker_url)
     parser_registry = ParserRegistry(parsers=[HtmlParser()])
     s3 = ObjectStorageGateway(
-        build_s3_client(
+        S3Client(
             endpoint_url=s3_settings.s3_endpoint,
             access_key=s3_settings.s3_access_key,
             secret_key=s3_settings.s3_secret_key,

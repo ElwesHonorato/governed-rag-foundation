@@ -1,6 +1,6 @@
 
 from pipeline_common.queue import StageQueue
-from pipeline_common.s3 import ObjectStorageGateway, build_s3_client
+from pipeline_common.s3 import ObjectStorageGateway, S3Client
 from pipeline_common.weaviate import ensure_schema
 from configs.constants import S3_BUCKET
 from configs.configs import WorkerIndexWeaviateSettings
@@ -11,7 +11,7 @@ def run() -> None:
     settings = WorkerIndexWeaviateSettings.from_env()
     stage_queue = StageQueue(settings.broker_url)
     s3 = ObjectStorageGateway(
-        build_s3_client(
+        S3Client(
             endpoint_url=settings.s3_endpoint,
             access_key=settings.s3_access_key,
             secret_key=settings.s3_secret_key,

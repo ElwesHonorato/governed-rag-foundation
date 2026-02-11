@@ -1,6 +1,6 @@
 
 from pipeline_common.observability import Counters
-from pipeline_common.s3 import ObjectStorageGateway, build_s3_client
+from pipeline_common.s3 import ObjectStorageGateway, S3Client
 from configs.constants import S3_BUCKET
 from configs.configs import WorkerS3LoopSettings
 from services.worker_metrics_service import WorkerMetricsService
@@ -10,7 +10,7 @@ def run() -> None:
     settings = WorkerS3LoopSettings.from_env()
     counters = Counters().for_worker("worker_metrics")
     s3 = ObjectStorageGateway(
-        build_s3_client(
+        S3Client(
             endpoint_url=settings.s3_endpoint,
             access_key=settings.s3_access_key,
             secret_key=settings.s3_secret_key,

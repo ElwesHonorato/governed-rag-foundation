@@ -1,6 +1,6 @@
 
 import json
-from typing import Any
+from typing import Any, Protocol
 
 import boto3
 
@@ -18,8 +18,85 @@ FOLDERS = (
 
 
 class ObjectStorageGateway:
-    def __init__(self, s3_client) -> None:
-        self.client = s3_client
+    def __init__(self, client: "ObjectStorageClient") -> None:
+        self.client = client
+
+    def bucket_exists(self, bucket: str) -> bool:
+        return self.client.bucket_exists(bucket)
+
+    def bootstrap_bucket_prefixes(self, bucket: str) -> None:
+        if not self.bucket_exists(bucket):
+            self.client.create_bucket(bucket)
+        for prefix in FOLDERS:
+            if not self.object_exists(bucket, prefix):
+                self.client.write_bytes(bucket, prefix, b"", content_type="application/octet-stream")
+
+    def object_exists(self, bucket: str, key: str) -> bool:
+        return self.client.object_exists(bucket, key)
+
+    def list_keys(self, bucket: str, prefix: str) -> list[str]:
+        return self.client.list_keys(bucket, prefix)
+
+    def read_text(self, bucket: str, key: str) -> str:
+        body = self.client.read_bytes(bucket, key)
+        return body.decode("utf-8", errors="ignore")
+
+    def read_json(self, bucket: str, key: str) -> dict[str, Any]:
+        return json.loads(self.read_text(bucket, key))
+
+    def write_text(self, bucket: str, key: str, content: str, content_type: str = "text/plain") -> None:
+        self.client.write_bytes(bucket, key, content.encode("utf-8"), content_type=content_type)
+
+    def write_json(self, bucket: str, key: str, payload: dict[str, Any]) -> None:
+        self.write_text(
+            bucket,
+            key,
+            json.dumps(payload, sort_keys=True, ensure_ascii=True, separators=(",", ":")),
+            content_type="application/json",
+        )
+
+    def copy(self, bucket: str, source_key: str, destination_key: str) -> None:
+        self.client.copy_object(bucket, source_key, destination_key)
+
+    def delete(self, bucket: str, key: str) -> None:
+        self.client.delete_object(bucket, key)
+
+
+class ObjectStorageClient(Protocol):
+    def bucket_exists(self, bucket: str) -> bool:
+        ...
+
+    def create_bucket(self, bucket: str) -> None:
+        ...
+
+    def object_exists(self, bucket: str, key: str) -> bool:
+        ...
+
+    def list_keys(self, bucket: str, prefix: str) -> list[str]:
+        ...
+
+    def read_bytes(self, bucket: str, key: str) -> bytes:
+        ...
+
+    def write_bytes(self, bucket: str, key: str, payload: bytes, content_type: str) -> None:
+        ...
+
+    def copy_object(self, bucket: str, source_key: str, destination_key: str) -> None:
+        ...
+
+    def delete_object(self, bucket: str, key: str) -> None:
+        ...
+
+
+class S3Client:
+    def __init__(self, *, endpoint_url: str, access_key: str, secret_key: str, region_name: str) -> None:
+        self.client = boto3.client(
+            "s3",
+            endpoint_url=endpoint_url,
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key,
+            region_name=region_name,
+        )
 
     def bucket_exists(self, bucket: str) -> bool:
         try:
@@ -28,12 +105,8 @@ class ObjectStorageGateway:
         except Exception:
             return False
 
-    def bootstrap_bucket_prefixes(self, bucket: str) -> None:
-        if not self.bucket_exists(bucket):
-            self.client.create_bucket(Bucket=bucket)
-        for prefix in FOLDERS:
-            if not self.object_exists(bucket, prefix):
-                self.client.put_object(Bucket=bucket, Key=prefix, Body=b"")
+    def create_bucket(self, bucket: str) -> None:
+        self.client.create_bucket(Bucket=bucket)
 
     def object_exists(self, bucket: str, key: str) -> bool:
         try:
@@ -59,46 +132,24 @@ class ObjectStorageGateway:
             continuation_token = response.get("NextContinuationToken")
         return keys
 
-    def read_text(self, bucket: str, key: str) -> str:
+    def read_bytes(self, bucket: str, key: str) -> bytes:
         response = self.client.get_object(Bucket=bucket, Key=key)
-        body = response["Body"].read()
-        return body.decode("utf-8", errors="ignore")
+        return response["Body"].read()
 
-    def read_json(self, bucket: str, key: str) -> dict[str, Any]:
-        return json.loads(self.read_text(bucket, key))
-
-    def write_text(self, bucket: str, key: str, content: str, content_type: str = "text/plain") -> None:
+    def write_bytes(self, bucket: str, key: str, payload: bytes, content_type: str) -> None:
         self.client.put_object(
             Bucket=bucket,
             Key=key,
-            Body=content.encode("utf-8"),
+            Body=payload,
             ContentType=content_type,
         )
 
-    def write_json(self, bucket: str, key: str, payload: dict[str, Any]) -> None:
-        self.write_text(
-            bucket,
-            key,
-            json.dumps(payload, sort_keys=True, ensure_ascii=True, separators=(",", ":")),
-            content_type="application/json",
-        )
-
-    def copy(self, bucket: str, source_key: str, destination_key: str) -> None:
+    def copy_object(self, bucket: str, source_key: str, destination_key: str) -> None:
         self.client.copy_object(
             Bucket=bucket,
             CopySource={"Bucket": bucket, "Key": source_key},
             Key=destination_key,
         )
 
-    def delete(self, bucket: str, key: str) -> None:
+    def delete_object(self, bucket: str, key: str) -> None:
         self.client.delete_object(Bucket=bucket, Key=key)
-
-
-def build_s3_client(*, endpoint_url: str, access_key: str, secret_key: str, region_name: str):
-    return boto3.client(
-        "s3",
-        endpoint_url=endpoint_url,
-        aws_access_key_id=access_key,
-        aws_secret_access_key=secret_key,
-        region_name=region_name,
-    )

@@ -1,4 +1,20 @@
 
+"""worker_manifest entrypoint.
+
+Purpose:
+- Bootstrap the manifest worker that materializes per-document stage status metadata.
+
+What this module should do:
+- Load storage settings.
+- Build object storage gateway.
+- Construct the manifest service and start the polling loop.
+
+Best practices:
+- Keep this file minimal and orchestration-focused.
+- Avoid embedding stage status rules here; keep those in service logic.
+- Keep startup dependencies explicit so runtime behavior is predictable.
+"""
+
 from pipeline_common.object_storage import ObjectStorageGateway, S3Client
 from pipeline_common.settings import S3StorageSettings
 from configs.constants import MANIFEST_PROCESSING_CONFIG

@@ -1,3 +1,19 @@
+"""worker_scan entrypoint.
+
+Purpose:
+- Bootstrap the scan stage worker that moves candidate files from incoming to raw storage.
+
+What this module should do:
+- Read runtime settings from environment.
+- Build queue and object storage gateways.
+- Initialize the scan processor and start the service loop.
+
+Best practices:
+- Keep orchestration-only code here; put business rules in services/processors.
+- Fail fast on missing configuration and rely on typed config constants.
+- Keep side effects explicit at startup (for example, bucket prefix bootstrap).
+"""
+
 from pipeline_common.queue import StageQueue
 
 from pipeline_common.object_storage import ObjectStorageGateway, S3Client

@@ -1,4 +1,20 @@
 
+"""worker_embed_chunks entrypoint.
+
+Purpose:
+- Bootstrap the embedding worker that transforms chunk artifacts into embedding payloads.
+
+What this module should do:
+- Load queue/storage settings and embedding dimension.
+- Create queue/storage gateways.
+- Construct the embedding service and run it.
+
+Best practices:
+- Treat this module as startup wiring only.
+- Keep tunables (for example `EMBEDDING_DIM`) explicit and validated at startup.
+- Keep downstream contract fields stable because later stages depend on them.
+"""
+
 import os
 
 from pipeline_common.queue import StageQueue

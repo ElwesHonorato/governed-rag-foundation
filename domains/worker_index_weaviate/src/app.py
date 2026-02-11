@@ -1,4 +1,20 @@
 
+"""worker_index_weaviate entrypoint.
+
+Purpose:
+- Bootstrap the indexing worker that upserts embeddings into Weaviate.
+
+What this module should do:
+- Load storage/queue settings and required Weaviate URL.
+- Ensure vector schema exists before starting the worker loop.
+- Construct the indexing service and run it.
+
+Best practices:
+- Keep schema setup idempotent and startup-only.
+- Keep this module orchestration-only; isolate indexing behavior in services.
+- Validate required environment variables before opening long-running loops.
+"""
+
 from pipeline_common.config import _required_env
 from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway, S3Client

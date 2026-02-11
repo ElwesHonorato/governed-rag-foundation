@@ -1,3 +1,19 @@
+"""worker_parse_document entrypoint.
+
+Purpose:
+- Bootstrap the parse stage worker that transforms raw objects into processed payloads.
+
+What this module should do:
+- Load queue/storage runtime settings.
+- Wire parser registry and storage/queue clients.
+- Construct the parse service and start the long-running loop.
+
+Best practices:
+- Keep only dependency wiring in this module.
+- Register parsers explicitly so supported formats are easy to audit.
+- Keep startup deterministic and free of hidden global side effects.
+"""
+
 from pipeline_common.queue import StageQueue
 
 from pipeline_common.object_storage import ObjectStorageGateway, S3Client

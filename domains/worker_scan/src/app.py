@@ -1,26 +1,27 @@
 from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway, S3Client
+from pipeline_common.settings import QueueRuntimeSettings, S3StorageSettings
 from configs.constants import SCAN_PROCESSING_CONFIG
-from configs.configs import WorkerS3QueueLoopSettings
 from services.scan_cycle_processor import StorageScanCycleProcessor
 from services.worker_scan_service import WorkerScanService
 
 
 def run() -> None:
-    settings = WorkerS3QueueLoopSettings.from_env()
+    s3_settings = S3StorageSettings.from_env()
+    queue_settings = QueueRuntimeSettings.from_env()
     processing_config = SCAN_PROCESSING_CONFIG
-    stage_queue = StageQueue(settings.broker_url, queue_config=processing_config["queue"])
-    storage = ObjectStorageGateway(
+    stage_queue = StageQueue(queue_settings.broker_url, queue_config=processing_config["queue"])
+    object_storage = ObjectStorageGateway(
         S3Client(
-            endpoint_url=settings.s3_endpoint,
-            access_key=settings.s3_access_key,
-            secret_key=settings.s3_secret_key,
-            region_name=settings.aws_region,
+            endpoint_url=s3_settings.s3_endpoint,
+            access_key=s3_settings.s3_access_key,
+            secret_key=s3_settings.s3_secret_key,
+            region_name=s3_settings.aws_region,
         )
     )
-    storage.bootstrap_bucket_prefixes(processing_config["storage"]["bucket"])
+    object_storage.bootstrap_bucket_prefixes(processing_config["storage"]["bucket"])
     processor = StorageScanCycleProcessor(
-        storage=storage,
+        storage=object_storage,
         stage_queue=stage_queue,
         bucket=processing_config["storage"]["bucket"],
         source_prefix=processing_config["storage"]["incoming_prefix"],
@@ -29,7 +30,7 @@ def run() -> None:
     )
     WorkerScanService(
         processor=processor,
-        poll_interval_seconds=settings.poll_interval_seconds,
+        poll_interval_seconds=queue_settings.poll_interval_seconds,
     ).serve()
 
 

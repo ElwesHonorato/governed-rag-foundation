@@ -106,8 +106,8 @@ class WorkerParseDocumentService(WorkerService):
             )
             logger.exception("Failed parsing source key '%s'; sent to DLQ", source_key)
             return
-        self._write_processed_document(destination_key, payload)
-        self._enqueue_chunking(destination_key)
+        self._write_processed_object(destination_key, payload)
+        self._enqueue_processed_object(destination_key)
         logger.info("Wrote processed document '%s'", destination_key)
 
     def _pop_queued_source_key(self) -> str | None:
@@ -138,7 +138,7 @@ class WorkerParseDocumentService(WorkerService):
             "parsed": parsed_payload,
         }
 
-    def _write_processed_document(self, destination_key: str, payload: dict[str, Any]) -> None:
+    def _write_processed_object(self, destination_key: str, payload: dict[str, Any]) -> None:
         """Persist parsed document payload into the processed S3 stage."""
         self.object_storage.write_object(
             self.storage_bucket,
@@ -147,7 +147,7 @@ class WorkerParseDocumentService(WorkerService):
             content_type="application/json",
         )
 
-    def _enqueue_chunking(self, destination_key: str) -> None:
+    def _enqueue_processed_object(self, destination_key: str) -> None:
         """Publish chunking work for a newly produced processed document."""
         self.stage_queue.push_produce_message(storage_key=destination_key)
 

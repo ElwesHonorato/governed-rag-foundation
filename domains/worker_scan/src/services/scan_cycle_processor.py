@@ -1,10 +1,12 @@
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
+import logging
 from typing import TypedDict
 
 from pipeline_common.queue import StageQueue
-from pipeline_common.queue.contracts import QueueStorageKeyMessage
 from pipeline_common.object_storage import ObjectStorageGateway
+
+logger = logging.getLogger(__name__)
 
 
 class ScanCycleProcessor(ABC):
@@ -34,11 +36,11 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
     def __init__(
         self,
         *,
-        storage: ObjectStorageGateway,
+        object_storage: ObjectStorageGateway,
         stage_queue: StageQueue,
         processing_config: ScanProcessingConfig,
     ) -> None:
-        self.storage = storage
+        self.object_storage = object_storage
         self.stage_queue = stage_queue
         self._initialize_runtime_config(processing_config)
 
@@ -53,7 +55,7 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
         """List source keys that match the configured extension filter."""
         return [
             key
-            for key in self.storage.list_keys(self.bucket, self.source_prefix)
+            for key in self.object_storage.list_keys(self.bucket, self.source_prefix)
             if self._is_candidate_key(key)
         ]
 
@@ -73,29 +75,29 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
 
     def _source_exists(self, source_key: str) -> bool:
         """Check whether the source object is still present."""
-        return self.storage.object_exists(self.bucket, source_key)
+        return self.object_storage.object_exists(self.bucket, source_key)
 
     def _destination_exists(self, destination_key: str) -> bool:
         """Check whether the destination object already exists."""
-        return self.storage.object_exists(self.bucket, destination_key)
+        return self.object_storage.object_exists(self.bucket, destination_key)
 
     def _copy_and_enqueue(self, source_key: str, destination_key: str) -> None:
         """Copy source object to raw prefix and enqueue downstream parsing."""
         self._copy_source_to_destination(source_key, destination_key)
         self._enqueue_destination(destination_key)
-        print(f"[worker_scan] moved {source_key} -> {destination_key}", flush=True)
+        logger.info("Moved '%s' -> '%s'", source_key, destination_key)
 
     def _delete_source(self, source_key: str) -> None:
         """Delete the source object after processing to avoid reprocessing."""
-        self.storage.delete(self.bucket, source_key)
+        self.object_storage.delete(self.bucket, source_key)
 
     def _copy_source_to_destination(self, source_key: str, destination_key: str) -> None:
         """Copy one source object into the destination path."""
-        self.storage.copy(self.bucket, source_key, destination_key)
+        self.object_storage.copy(self.bucket, source_key, destination_key)
 
     def _enqueue_destination(self, destination_key: str) -> None:
         """Enqueue the destination object for downstream parsing."""
-        self.stage_queue.push(QueueStorageKeyMessage(storage_key=destination_key))
+        self.stage_queue.push_produce_message(storage_key=destination_key)
 
     def _is_candidate_key(self, key: str) -> bool:
         """Return True when a key is a processable source object."""

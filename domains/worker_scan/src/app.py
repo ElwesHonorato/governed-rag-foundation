@@ -21,7 +21,7 @@ def run() -> None:
     )
     object_storage.bootstrap_bucket_prefixes(processing_config["storage"]["bucket"])
     processor = StorageScanCycleProcessor(
-        storage=object_storage,
+        object_storage=object_storage,
         stage_queue=stage_queue,
         processing_config=processing_config,
     )

@@ -21,7 +21,7 @@ def run() -> None:
     )
     WorkerChunkTextService(
         stage_queue=stage_queue,
-        storage=object_storage,
+        object_storage=object_storage,
         processing_config=processing_config,
     ).serve()
 

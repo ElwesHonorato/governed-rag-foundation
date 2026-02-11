@@ -72,13 +72,9 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
             return False
 
         destination_key = self._destination_key(source_key)
-        moved = False
-        if not self._destination_exists(destination_key):
-            self._copy_and_enqueue(source_key, destination_key)
-            moved = True
-
+        self._copy_and_enqueue(source_key, destination_key)
         self._delete_source(source_key)
-        return moved
+        return True
 
     def _source_exists(self, source_key: str) -> bool:
         """Check whether the source object is still present."""
@@ -91,7 +87,7 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
     def _copy_and_enqueue(self, source_key: str, destination_key: str) -> None:
         """Copy source object to raw prefix and enqueue downstream parsing."""
         self._copy_source_to_destination(source_key, destination_key)
-        self._enqueue_destination(destination_key)
+        self._enqueue_parse_request(destination_key)
         logger.info("Moved '%s' -> '%s'", source_key, destination_key)
 
     def _delete_source(self, source_key: str) -> None:
@@ -102,8 +98,8 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
         """Copy one source object into the destination path."""
         self.object_storage.copy(self.bucket, source_key, destination_key)
 
-    def _enqueue_destination(self, destination_key: str) -> None:
-        """Enqueue the destination object for downstream parsing."""
+    def _enqueue_parse_request(self, destination_key: str) -> None:
+        """Publish parse-stage work for the destination raw object."""
         self.stage_queue.push_produce_message(storage_key=destination_key)
 
     def _is_candidate_key(self, key: str) -> bool:

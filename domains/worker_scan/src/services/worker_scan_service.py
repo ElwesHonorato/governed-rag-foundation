@@ -1,8 +1,11 @@
 from abc import ABC, abstractmethod
 
+import logging
 import time
 from typing import TypedDict
 from services.scan_cycle_processor import ScanCycleProcessor
+
+logger = logging.getLogger(__name__)
 
 
 class WorkerService(ABC):
@@ -33,7 +36,10 @@ class WorkerScanService(WorkerService):
     def serve(self) -> None:
         """Run the worker loop indefinitely."""
         while True:
-            self.processor.scan()
+            try:
+                self.processor.scan()
+            except Exception:
+                logger.exception("Scan cycle failed; continuing after poll interval")
             time.sleep(self.poll_interval_seconds)
 
     def _initialize_runtime_config(self, processing_config: ScanProcessingConfig) -> None:

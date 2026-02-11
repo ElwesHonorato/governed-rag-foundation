@@ -1,5 +1,6 @@
 
 from abc import ABC, abstractmethod
+import json
 import time
 from typing import TypedDict
 
@@ -44,7 +45,7 @@ class WorkerIndexWeaviateService(WorkerService):
         if not source_key.endswith(".embeddings.json"):
             return
 
-        payload = self.storage.read_json(self.storage_bucket, source_key)
+        payload = json.loads(self.storage.read_object(self.storage_bucket, source_key).decode("utf-8", errors="ignore"))
         for item in payload.get("embeddings", []):
             metadata = dict(item.get("metadata", {}))
             chunk_id = str(item["chunk_id"])
@@ -63,10 +64,16 @@ class WorkerIndexWeaviateService(WorkerService):
             )
 
         doc_id = payload.get("doc_id", "unknown")
-        self.storage.write_json(
+        self.storage.write_object(
             self.storage_bucket,
             f"06_indexes/{doc_id}.indexed.json",
-            {"doc_id": doc_id, "status": "indexed"},
+            json.dumps(
+                {"doc_id": doc_id, "status": "indexed"},
+                sort_keys=True,
+                ensure_ascii=True,
+                separators=(",", ":"),
+            ).encode("utf-8"),
+            content_type="application/json",
         )
         result = verify_query(self.weaviate_url, "logistics")
         print(f"[worker_index_weaviate] indexed doc_id={doc_id} verify={bool(result)}", flush=True)

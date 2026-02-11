@@ -1,5 +1,4 @@
 
-import json
 from typing import Any, Protocol
 
 import boto3
@@ -40,20 +39,14 @@ class ObjectStorageGateway:
     def read_object(self, bucket: str, key: str) -> bytes:
         return self.client.read_bytes(bucket, key)
 
-    def read_json(self, bucket: str, key: str) -> dict[str, Any]:
-        body = self.read_object(bucket, key)
-        return json.loads(body.decode("utf-8", errors="ignore"))
-
-    def write_text(self, bucket: str, key: str, content: str, content_type: str = "text/plain") -> None:
-        self.client.write_bytes(bucket, key, content.encode("utf-8"), content_type=content_type)
-
-    def write_json(self, bucket: str, key: str, payload: dict[str, Any]) -> None:
-        self.write_text(
-            bucket,
-            key,
-            json.dumps(payload, sort_keys=True, ensure_ascii=True, separators=(",", ":")),
-            content_type="application/json",
-        )
+    def write_object(
+        self,
+        bucket: str,
+        key: str,
+        payload: bytes,
+        content_type: str = "application/octet-stream",
+    ) -> None:
+        self.client.write_bytes(bucket, key, payload, content_type=content_type)
 
     def copy(self, bucket: str, source_key: str, destination_key: str) -> None:
         self.client.copy_object(bucket, source_key, destination_key)

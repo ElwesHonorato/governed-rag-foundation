@@ -1,5 +1,6 @@
 
 from abc import ABC, abstractmethod
+import json
 import time
 from typing import TypedDict
 
@@ -43,7 +44,7 @@ class WorkerChunkTextService(WorkerService):
         if not source_key.endswith(".json"):
             return
 
-        processed = self.storage.read_json(self.storage_bucket, source_key)
+        processed = json.loads(self.storage.read_object(self.storage_bucket, source_key).decode("utf-8", errors="ignore"))
         doc_id = str(processed["doc_id"])
         destination_key = f"04_chunks/{doc_id}.chunks.json"
         if self.storage.object_exists(self.storage_bucket, destination_key):
@@ -68,7 +69,17 @@ class WorkerChunkTextService(WorkerService):
                 }
             )
 
-        self.storage.write_json(self.storage_bucket, destination_key, {"doc_id": doc_id, "chunks": records})
+        self.storage.write_object(
+            self.storage_bucket,
+            destination_key,
+            json.dumps(
+                {"doc_id": doc_id, "chunks": records},
+                sort_keys=True,
+                ensure_ascii=True,
+                separators=(",", ":"),
+            ).encode("utf-8"),
+            content_type="application/json",
+        )
         self.stage_queue.push(QueueStorageKeyMessage(storage_key=destination_key))
         print(f"[worker_chunk_text] wrote {destination_key} chunks={len(records)}", flush=True)
 

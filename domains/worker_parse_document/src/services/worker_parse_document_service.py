@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import json
 import logging
 import time
 from typing import Any, TypedDict
@@ -139,7 +140,12 @@ class WorkerParseDocumentService(WorkerService):
 
     def _write_processed_document(self, destination_key: str, payload: dict[str, Any]) -> None:
         """Persist parsed document payload into the processed S3 stage."""
-        self.object_storage.write_json(self.storage_bucket, destination_key, payload)
+        self.object_storage.write_object(
+            self.storage_bucket,
+            destination_key,
+            json.dumps(payload, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode("utf-8"),
+            content_type="application/json",
+        )
 
     def _enqueue_chunking(self, destination_key: str) -> None:
         """Publish chunking work for a newly produced processed document."""

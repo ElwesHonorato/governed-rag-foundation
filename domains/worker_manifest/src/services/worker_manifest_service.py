@@ -1,5 +1,6 @@
 
 from abc import ABC, abstractmethod
+import json
 import time
 from typing import TypedDict
 
@@ -54,7 +55,12 @@ class WorkerManifestService(WorkerService):
                     "attempts": 1,
                     "last_error": None,
                 }
-                self.storage.write_json(self.storage_bucket, manifest_key, status)
+                self.storage.write_object(
+                    self.storage_bucket,
+                    manifest_key,
+                    json.dumps(status, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode("utf-8"),
+                    content_type="application/json",
+                )
 
             time.sleep(self.poll_interval_seconds)
 

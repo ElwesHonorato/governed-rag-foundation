@@ -1,6 +1,7 @@
 
 from abc import ABC, abstractmethod
 import hashlib
+import json
 import time
 from typing import TypedDict
 
@@ -52,7 +53,7 @@ class WorkerEmbedChunksService(WorkerService):
         if not source_key.endswith(".chunks.json"):
             return
 
-        payload = self.storage.read_json(self.storage_bucket, source_key)
+        payload = json.loads(self.storage.read_object(self.storage_bucket, source_key).decode("utf-8", errors="ignore"))
         doc_id = str(payload["doc_id"])
         destination_key = f"05_embeddings/{doc_id}.embeddings.json"
         if self.storage.object_exists(self.storage_bucket, destination_key):
@@ -77,7 +78,17 @@ class WorkerEmbedChunksService(WorkerService):
                 }
             )
 
-        self.storage.write_json(self.storage_bucket, destination_key, {"doc_id": doc_id, "embeddings": records})
+        self.storage.write_object(
+            self.storage_bucket,
+            destination_key,
+            json.dumps(
+                {"doc_id": doc_id, "embeddings": records},
+                sort_keys=True,
+                ensure_ascii=True,
+                separators=(",", ":"),
+            ).encode("utf-8"),
+            content_type="application/json",
+        )
         self.stage_queue.push(IndexWeaviateRequested(embeddings_key=destination_key, doc_id=doc_id))
         print(f"[worker_embed_chunks] wrote {destination_key} embeddings={len(records)}", flush=True)
 

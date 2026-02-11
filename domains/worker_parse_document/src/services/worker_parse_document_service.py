@@ -95,7 +95,7 @@ class WorkerParseDocumentService(WorkerService):
             return
 
         try:
-            payload = self._build_processed_payload(source_key, doc_id)
+            payload = self._process_object(source_key, doc_id)
         except Exception as exc:
             self.stage_queue.push_dlq_message(
                 storage_key=source_key,
@@ -112,9 +112,9 @@ class WorkerParseDocumentService(WorkerService):
     def _pop_queued_source_key(self) -> str | None:
         """Pop one source key from parse queue when available."""
         message = self.stage_queue.pop_message()
-        if message and isinstance(message.get("storage_key"), str):
-            return str(message["storage_key"])
-        return None
+        if message is None:
+            return None
+        return str(message["storage_key"])
 
     def _processed_key(self, doc_id: str) -> str:
         """Build the processed-stage key for a document id."""
@@ -124,7 +124,7 @@ class WorkerParseDocumentService(WorkerService):
         """Return whether the processed output already exists."""
         return self.object_storage.object_exists(self.storage_bucket, destination_key)
 
-    def _build_processed_payload(self, source_key: str, doc_id: str) -> dict[str, Any]:
+    def _process_object(self, source_key: str, doc_id: str) -> dict[str, Any]:
         """Parse a source document and map it into fixed + parser payload fields."""
         parser = self.parser_registry.resolve(source_key)
         raw_document = self.object_storage.read_object(self.storage_bucket, source_key)

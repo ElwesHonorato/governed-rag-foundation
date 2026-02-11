@@ -116,7 +116,8 @@ class WorkerParseDocumentService(WorkerService):
     def _build_processed_payload(self, source_key: str, doc_id: str) -> dict[str, str]:
         """Parse a source document and map it into processed payload fields."""
         parser = self.parser_registry.resolve(source_key)
-        parsed_document = parser.parse(self.object_storage.read_text(self.storage_bucket, source_key))
+        raw_document = self.object_storage.read_object(self.storage_bucket, source_key)
+        parsed_document = parser.parse(raw_document.decode("utf-8", errors="ignore"))
         return {
             "doc_id": doc_id,
             "source_key": source_key,

@@ -37,12 +37,12 @@ class ObjectStorageGateway:
     def list_keys(self, bucket: str, prefix: str) -> list[str]:
         return self.client.list_keys(bucket, prefix)
 
-    def read_text(self, bucket: str, key: str) -> str:
-        body = self.client.read_bytes(bucket, key)
-        return body.decode("utf-8", errors="ignore")
+    def read_object(self, bucket: str, key: str) -> bytes:
+        return self.client.read_bytes(bucket, key)
 
     def read_json(self, bucket: str, key: str) -> dict[str, Any]:
-        return json.loads(self.read_text(bucket, key))
+        body = self.read_object(bucket, key)
+        return json.loads(body.decode("utf-8", errors="ignore"))
 
     def write_text(self, bucket: str, key: str, content: str, content_type: str = "text/plain") -> None:
         self.client.write_bytes(bucket, key, content.encode("utf-8"), content_type=content_type)

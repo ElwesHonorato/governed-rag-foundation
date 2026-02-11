@@ -25,7 +25,7 @@ def run() -> None:
     ensure_schema(weaviate_url)
     WorkerIndexWeaviateService(
         stage_queue=stage_queue,
-        storage=object_storage,
+        object_storage=object_storage,
         processing_config=processing_config,
         weaviate_url=weaviate_url,
     ).serve()

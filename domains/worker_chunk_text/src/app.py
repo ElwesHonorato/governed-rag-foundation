@@ -1,8 +1,9 @@
 
 from pipeline_common.queue import StageQueue
+from pipeline_common.queue.contracts import WORKER_STAGE_QUEUES
 from pipeline_common.object_storage import ObjectStorageGateway, S3Client
 from pipeline_common.settings import QueueRuntimeSettings
-from configs.constants import CHUNK_TEXT_QUEUE, EMBED_CHUNKS_QUEUE, S3_BUCKET
+from configs.constants import S3_BUCKET
 from configs.configs import WorkerS3QueueLoopSettings
 from services.worker_chunk_text_service import WorkerChunkTextService
 
@@ -10,15 +11,10 @@ from services.worker_chunk_text_service import WorkerChunkTextService
 def run() -> None:
     settings = WorkerS3QueueLoopSettings.from_env()
     queue_settings = QueueRuntimeSettings.from_env()
-    chunk_text_queue = StageQueue(
+    stage_queue = StageQueue(
         queue_settings.broker_url,
-        queue_name=CHUNK_TEXT_QUEUE,
-        default_pop_timeout_seconds=queue_settings.queue_pop_timeout_seconds,
-    )
-    embed_chunks_queue = StageQueue(
-        queue_settings.broker_url,
-        queue_name=EMBED_CHUNKS_QUEUE,
-        default_pop_timeout_seconds=queue_settings.queue_pop_timeout_seconds,
+        stage="chunk_text",
+        stage_queues=WORKER_STAGE_QUEUES,
     )
     storage = ObjectStorageGateway(
         S3Client(
@@ -29,11 +25,11 @@ def run() -> None:
         )
     )
     WorkerChunkTextService(
-        chunk_text_queue=chunk_text_queue,
-        embed_chunks_queue=embed_chunks_queue,
+        stage_queue=stage_queue,
         storage=storage,
         storage_bucket=S3_BUCKET,
         poll_interval_seconds=settings.poll_interval_seconds,
+        queue_pop_timeout_seconds=queue_settings.queue_pop_timeout_seconds,
     ).serve()
 
 

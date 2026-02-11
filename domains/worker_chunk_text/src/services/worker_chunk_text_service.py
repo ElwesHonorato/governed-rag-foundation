@@ -19,17 +19,17 @@ class WorkerChunkTextService(WorkerService):
     def __init__(
         self,
         *,
-        chunk_text_queue: StageQueue,
-        embed_chunks_queue: StageQueue,
+        stage_queue: StageQueue,
         storage: ObjectStorageGateway,
         storage_bucket: str,
         poll_interval_seconds: int,
+        queue_pop_timeout_seconds: int,
     ) -> None:
-        self.chunk_text_queue = chunk_text_queue
-        self.embed_chunks_queue = embed_chunks_queue
+        self.stage_queue = stage_queue
         self.storage = storage
         self.storage_bucket = storage_bucket
         self.poll_interval_seconds = poll_interval_seconds
+        self.queue_pop_timeout_seconds = queue_pop_timeout_seconds
 
     def process_source_key(self, source_key: str) -> None:
         if not source_key.startswith("03_processed/"):
@@ -60,12 +60,12 @@ class WorkerChunkTextService(WorkerService):
             )
 
         self.storage.write_json(self.storage_bucket, destination_key, {"doc_id": doc_id, "chunks": records})
-        self.embed_chunks_queue.push(QueueStorageKeyMessage(storage_key=destination_key))
+        self.stage_queue.push(QueueStorageKeyMessage(storage_key=destination_key))
         print(f"[worker_chunk_text] wrote {destination_key} chunks={len(records)}", flush=True)
 
     def serve(self) -> None:
         while True:
-            queued = self.chunk_text_queue.pop()
+            queued = self.stage_queue.pop(timeout_seconds=self.queue_pop_timeout_seconds)
             if queued and isinstance(queued.get("storage_key"), str):
                 message = QueueStorageKeyMessage(storage_key=str(queued["storage_key"]))
                 self.process_source_key(message["storage_key"])

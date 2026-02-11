@@ -19,14 +19,14 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
         self,
         *,
         storage: ObjectStorageGateway,
-        parse_queue: StageQueue,
+        stage_queue: StageQueue,
         bucket: str,
         source_prefix: str,
         destination_prefix: str,
         extensions: Sequence[str],
     ) -> None:
         self.storage = storage
-        self.parse_queue = parse_queue
+        self.stage_queue = stage_queue
         self.bucket = bucket
         self.source_prefix = source_prefix
         self.destination_prefix = destination_prefix
@@ -85,7 +85,7 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
 
     def _enqueue_destination(self, destination_key: str) -> None:
         """Enqueue the destination object for downstream parsing."""
-        self.parse_queue.push(QueueStorageKeyMessage(storage_key=destination_key))
+        self.stage_queue.push(QueueStorageKeyMessage(storage_key=destination_key))
 
     def _is_candidate_key(self, key: str) -> bool:
         """Return True when a key is a processable source object."""

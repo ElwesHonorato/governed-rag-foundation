@@ -21,18 +21,9 @@ class SecurityConfig(TypedDict):
 class DocumentProcessingConfig(TypedDict):
     """Runtime config for parse worker queues, storage, polling, and metadata."""
 
-    poll_interval_seconds: int
-    queue: "QueueConfig"
+    queue_pop_timeout_seconds: int
     storage: "StorageConfig"
     security: SecurityConfig
-
-
-class QueueConfig(TypedDict):
-    """Queue names used by parse worker."""
-
-    parse: str
-    chunk_text: str
-    parse_dlq: str
 
 
 class StorageConfig(TypedDict):
@@ -57,18 +48,16 @@ class WorkerParseDocumentService(WorkerService):
     def __init__(
         self,
         *,
-        parse_queue: StageQueue,
-        chunk_text_queue: StageQueue,
-        parse_dlq_queue: StageQueue,
+        stage_queue: StageQueue,
         object_storage: ObjectStorageGateway,
+        poll_interval_seconds: int,
         processing_config: DocumentProcessingConfig,
         parser_registry: ParserRegistry,
     ) -> None:
         """Initialize parse worker dependencies and runtime settings."""
-        self.parse_queue = parse_queue
-        self.chunk_text_queue = chunk_text_queue
-        self.parse_dlq_queue = parse_dlq_queue
+        self.stage_queue = stage_queue
         self.object_storage = object_storage
+        self.poll_interval_seconds = poll_interval_seconds
         self.parser_registry = parser_registry
         self._initialize_runtime_config(processing_config)
 
@@ -111,7 +100,7 @@ class WorkerParseDocumentService(WorkerService):
 
     def _pop_queued_source_key(self) -> str | None:
         """Pop one source key from parse queue when available."""
-        queued = self.parse_queue.pop()
+        queued = self.stage_queue.pop(timeout_seconds=self.queue_pop_timeout_seconds)
         if queued and isinstance(queued.get("storage_key"), str):
             message = QueueStorageKeyMessage(storage_key=str(queued["storage_key"]))
             return message["storage_key"]
@@ -159,11 +148,11 @@ class WorkerParseDocumentService(WorkerService):
 
     def _enqueue_chunking(self, destination_key: str) -> None:
         """Publish chunking work for a newly produced processed document."""
-        self.chunk_text_queue.push(QueueStorageKeyMessage(storage_key=destination_key))
+        self.stage_queue.push(QueueStorageKeyMessage(storage_key=destination_key))
 
     def _enqueue_parse_dlq(self, source_key: str, doc_id: str, error: str) -> None:
         """Publish parse failures to DLQ for later inspection/retry."""
-        self.parse_dlq_queue.push(
+        self.stage_queue.push_dlq(
             ParseDocumentFailed(
                 storage_key=source_key,
                 doc_id=doc_id,
@@ -173,7 +162,7 @@ class WorkerParseDocumentService(WorkerService):
         )
 
     def _initialize_runtime_config(self, processing_config: DocumentProcessingConfig) -> None:
-        self.poll_interval_seconds = processing_config["poll_interval_seconds"]
+        self.queue_pop_timeout_seconds = processing_config["queue_pop_timeout_seconds"]
         self.storage_bucket = processing_config["storage"]["bucket"]
         self.raw_prefix = processing_config["storage"]["raw_prefix"]
         self.processed_prefix = processing_config["storage"]["processed_prefix"]

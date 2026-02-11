@@ -1,5 +1,6 @@
 from pipeline_common.queue.contracts import WORKER_STAGE_QUEUES
 
+
 CHUNK_TEXT_PROCESSING_CONFIG = {
     "poll_interval_seconds": 30,
     "storage": {

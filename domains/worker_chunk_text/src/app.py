@@ -7,6 +7,7 @@ from services.worker_chunk_text_service import WorkerChunkTextService
 
 
 def run() -> None:
+    """Initialize dependencies and start the worker service."""
     s3_settings = S3StorageSettings.from_env()
     queue_settings = QueueRuntimeSettings.from_env()
     processing_config = CHUNK_TEXT_PROCESSING_CONFIG

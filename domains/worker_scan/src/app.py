@@ -1,4 +1,5 @@
 from pipeline_common.queue import StageQueue
+
 from pipeline_common.object_storage import ObjectStorageGateway, S3Client
 from pipeline_common.settings import QueueRuntimeSettings, S3StorageSettings
 from configs.constants import SCAN_PROCESSING_CONFIG
@@ -7,6 +8,7 @@ from services.worker_scan_service import WorkerScanService
 
 
 def run() -> None:
+    """Initialize dependencies and start the worker service."""
     s3_settings = S3StorageSettings.from_env()
     queue_settings = QueueRuntimeSettings.from_env()
     processing_config = SCAN_PROCESSING_CONFIG

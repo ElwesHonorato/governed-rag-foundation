@@ -1,4 +1,5 @@
 from pipeline_common.queue import StageQueue
+
 from pipeline_common.object_storage import ObjectStorageGateway, S3Client
 from pipeline_common.settings import QueueRuntimeSettings, S3StorageSettings
 from configs.constants import PARSE_DOCUMENT_PROCESSING_CONFIG
@@ -8,6 +9,7 @@ from services.worker_parse_document_service import WorkerParseDocumentService
 
 
 def run() -> None:
+    """Initialize dependencies and start the worker service."""
     s3_settings = S3StorageSettings.from_env()
     queue_settings = QueueRuntimeSettings.from_env()
     processing_config = PARSE_DOCUMENT_PROCESSING_CONFIG

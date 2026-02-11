@@ -9,6 +9,7 @@ from services.worker_embed_chunks_service import WorkerEmbedChunksService
 
 
 def run() -> None:
+    """Initialize dependencies and start the worker service."""
     s3_settings = S3StorageSettings.from_env()
     queue_settings = QueueRuntimeSettings.from_env()
     processing_config = EMBED_CHUNKS_PROCESSING_CONFIG

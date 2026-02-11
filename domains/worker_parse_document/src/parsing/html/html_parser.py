@@ -1,4 +1,6 @@
+"""Parsing utilities for parsing."""
 import json
+
 from typing import Any
 
 import trafilatura
@@ -10,6 +12,7 @@ class HtmlParser:
     """HTML parser adapter backed by trafilatura content extraction."""
 
     def supported_extensions(self) -> tuple[str, ...]:
+        """Execute supported extensions."""
         return ("html", "htm")
 
     def parse(self, content: str) -> dict[str, Any]:

@@ -1,6 +1,7 @@
 from pipeline_common.queue.contracts import WORKER_STAGE_QUEUES
 
 
+
 PARSE_DOCUMENT_PROCESSING_CONFIG = {
     "poll_interval_seconds": 30,
     "queue": {

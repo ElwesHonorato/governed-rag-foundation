@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+
 import json
 import logging
 import time
@@ -152,6 +153,7 @@ class WorkerParseDocumentService(WorkerService):
         self.stage_queue.push_produce_message(storage_key=destination_key)
 
     def _initialize_runtime_config(self, processing_config: DocumentProcessingConfig) -> None:
+        """Internal helper for initialize runtime config."""
         self.poll_interval_seconds = processing_config["poll_interval_seconds"]
         self.storage_bucket = processing_config["storage"]["bucket"]
         self.raw_prefix = processing_config["storage"]["raw_prefix"]

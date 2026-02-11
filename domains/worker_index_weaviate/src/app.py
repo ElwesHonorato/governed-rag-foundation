@@ -9,6 +9,7 @@ from services.worker_index_weaviate_service import WorkerIndexWeaviateService
 
 
 def run() -> None:
+    """Initialize dependencies and start the worker service."""
     s3_settings = S3StorageSettings.from_env()
     queue_settings = QueueRuntimeSettings.from_env()
     weaviate_url = _required_env("WEAVIATE_URL")

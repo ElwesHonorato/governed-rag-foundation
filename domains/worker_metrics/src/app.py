@@ -7,6 +7,7 @@ from services.worker_metrics_service import WorkerMetricsService
 
 
 def run() -> None:
+    """Initialize dependencies and start the worker service."""
     s3_settings = S3StorageSettings.from_env()
     processing_config = METRICS_PROCESSING_CONFIG
     counters = Counters().for_worker("worker_metrics")

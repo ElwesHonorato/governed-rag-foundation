@@ -1,5 +1,6 @@
 from collections.abc import Iterable
 
+
 from parsing.base_parser import DocumentParser
 
 

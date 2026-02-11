@@ -6,6 +6,7 @@ from services.worker_manifest_service import WorkerManifestService
 
 
 def run() -> None:
+    """Initialize dependencies and start the worker service."""
     s3_settings = S3StorageSettings.from_env()
     processing_config = MANIFEST_PROCESSING_CONFIG
     object_storage = ObjectStorageGateway(

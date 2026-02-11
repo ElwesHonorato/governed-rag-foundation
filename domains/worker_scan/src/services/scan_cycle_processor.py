@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+
 from collections.abc import Sequence
 import logging
 from typing import TypedDict
@@ -10,22 +11,27 @@ logger = logging.getLogger(__name__)
 
 
 class ScanCycleProcessor(ABC):
+    """Contract for one scan cycle execution."""
+
     @abstractmethod
     def scan(self) -> int:
         """Run one scan cycle and return the number of processed items."""
 
 
 class StorageConfig(TypedDict):
+    """Storage bucket and stage prefix settings for scan worker."""
     bucket: str
     incoming_prefix: str
     raw_prefix: str
 
 
 class FiltersConfig(TypedDict):
+    """File-extension filters used to select processable source keys."""
     extensions: list[str]
 
 
 class ScanProcessingConfig(TypedDict):
+    """Runtime config for scan cycle storage and filtering."""
     storage: StorageConfig
     filters: FiltersConfig
 
@@ -40,6 +46,7 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
         stage_queue: StageQueue,
         processing_config: ScanProcessingConfig,
     ) -> None:
+        """Initialize instance state and dependencies."""
         self.object_storage = object_storage
         self.stage_queue = stage_queue
         self._initialize_runtime_config(processing_config)
@@ -116,6 +123,7 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
         return tuple(extensions)
 
     def _initialize_runtime_config(self, processing_config: ScanProcessingConfig) -> None:
+        """Internal helper for initialize runtime config."""
         self.bucket = processing_config["storage"]["bucket"]
         self.source_prefix = processing_config["storage"]["incoming_prefix"]
         self.destination_prefix = processing_config["storage"]["raw_prefix"]

@@ -8,6 +8,8 @@ from pipeline_common.object_storage import ObjectStorageGateway
 
 
 class WorkerService(ABC):
+    """Minimal worker interface for long-running service loops."""
+
     @abstractmethod
     def serve(self) -> None:
         """Run the worker loop indefinitely."""
@@ -32,16 +34,19 @@ class ManifestProcessingConfig(TypedDict):
 
 
 class WorkerManifestService(WorkerService):
+    """Build and write per-document manifest status artifacts."""
     def __init__(
         self,
         *,
         object_storage: ObjectStorageGateway,
         processing_config: ManifestProcessingConfig,
     ) -> None:
+        """Initialize instance state and dependencies."""
         self.object_storage = object_storage
         self._initialize_runtime_config(processing_config)
 
     def serve(self) -> None:
+        """Run the worker loop indefinitely."""
         while True:
             processed_keys = [
                 key
@@ -82,6 +87,7 @@ class WorkerManifestService(WorkerService):
             time.sleep(self.poll_interval_seconds)
 
     def _initialize_runtime_config(self, processing_config: ManifestProcessingConfig) -> None:
+        """Internal helper for initialize runtime config."""
         self.poll_interval_seconds = processing_config["poll_interval_seconds"]
         self.storage_bucket = processing_config["storage"]["bucket"]
         self.processed_prefix = processing_config["storage"]["processed_prefix"]

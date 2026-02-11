@@ -1,9 +1,7 @@
 import json
+from typing import Any
 
 import trafilatura
-
-from parsing.base_parser import ParsedDocument
-
 
 DEFAULT_TITLE = "Untitled"
 
@@ -14,8 +12,8 @@ class HtmlParser:
     def supported_extensions(self) -> tuple[str, ...]:
         return ("html", "htm")
 
-    def parse(self, content: str) -> ParsedDocument:
-        """Extract canonical title/text fields from HTML content."""
+    def parse(self, content: str) -> dict[str, Any]:
+        """Extract parser payload fields from HTML content."""
         extracted_json = trafilatura.extract(
             content,
             output_format="json",
@@ -30,10 +28,16 @@ class HtmlParser:
                 parsed = json.loads(extracted_json)
             except json.JSONDecodeError:
                 parsed = {}
-            title = str(parsed.get("title", "")).strip() or DEFAULT_TITLE
-            text = str(parsed.get("text", "")).strip()
+            if isinstance(parsed, dict):
+                parsed_payload: dict[str, Any] = dict(parsed)
+            else:
+                parsed_payload = {}
+            title = str(parsed_payload.get("title", "")).strip() or DEFAULT_TITLE
+            text = str(parsed_payload.get("text", "")).strip()
             if text:
-                return ParsedDocument(title=title, text=text)
+                parsed_payload["title"] = title
+                parsed_payload["text"] = text
+                return parsed_payload
 
         fallback_text = (
             trafilatura.extract(
@@ -45,4 +49,4 @@ class HtmlParser:
             )
             or ""
         ).strip()
-        return ParsedDocument(title=title, text=fallback_text)
+        return {"title": title, "text": fallback_text}

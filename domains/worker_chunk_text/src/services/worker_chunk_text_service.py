@@ -49,7 +49,10 @@ class WorkerChunkTextService(WorkerService):
         if self.storage.object_exists(self.storage_bucket, destination_key):
             return
 
-        chunks = chunk_text(str(processed.get("text", "")))
+        parsed_payload = processed.get("parsed")
+        parsed_text = parsed_payload.get("text", "") if isinstance(parsed_payload, dict) else ""
+        # Fallback keeps compatibility with legacy processed payload shape.
+        chunks = chunk_text(str(parsed_text or processed.get("text", "")))
         records = []
         for index, chunk in enumerate(chunks):
             records.append(

@@ -124,21 +124,20 @@ class WorkerParseDocumentService(WorkerService):
         """Return whether the processed output already exists."""
         return self.object_storage.object_exists(self.storage_bucket, destination_key)
 
-    def _build_processed_payload(self, source_key: str, doc_id: str) -> dict[str, str]:
-        """Parse a source document and map it into processed payload fields."""
+    def _build_processed_payload(self, source_key: str, doc_id: str) -> dict[str, Any]:
+        """Parse a source document and map it into fixed + parser payload fields."""
         parser = self.parser_registry.resolve(source_key)
         raw_document = self.object_storage.read_object(self.storage_bucket, source_key)
-        parsed_document = parser.parse(raw_document.decode("utf-8", errors="ignore"))
+        parsed_payload = parser.parse(raw_document.decode("utf-8", errors="ignore"))
         return {
             "doc_id": doc_id,
             "source_key": source_key,
             "timestamp": utc_now_iso(),
             "security_clearance": self.security_clearance,
-            "title": parsed_document.title,
-            "text": parsed_document.text,
+            "parsed": parsed_payload,
         }
 
-    def _write_processed_document(self, destination_key: str, payload: dict[str, str]) -> None:
+    def _write_processed_document(self, destination_key: str, payload: dict[str, Any]) -> None:
         """Persist parsed document payload into the processed S3 stage."""
         self.object_storage.write_json(self.storage_bucket, destination_key, payload)
 

@@ -1,14 +1,5 @@
-from dataclasses import dataclass
 from abc import ABC, abstractmethod
-
-
-@dataclass(frozen=True, slots=True)
-class ParsedDocument:
-    """Immutable parsed-document value object used across parser boundaries."""
-
-    title: str
-    text: str
-
+from typing import Any
 
 class DocumentParser(ABC):
     """Parser interface for document formats keyed by file extension."""
@@ -19,6 +10,6 @@ class DocumentParser(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def parse(self, content: str) -> ParsedDocument:
-        """Convert raw document content into normalized text fields."""
+    def parse(self, content: str) -> dict[str, Any]:
+        """Convert raw document content into parser-specific payload fields."""
         raise NotImplementedError

@@ -24,7 +24,7 @@ def run() -> None:
     )
     WorkerEmbedChunksService(
         stage_queue=stage_queue,
-        storage=object_storage,
+        object_storage=object_storage,
         processing_config=processing_config,
         dimension=dimension,
     ).serve()

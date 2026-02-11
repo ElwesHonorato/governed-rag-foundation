@@ -74,7 +74,7 @@ class WorkerEmbedChunksService(WorkerService):
 
     def serve(self) -> None:
         while True:
-            queued = self.stage_queue.pop("q.embed_chunks", timeout_seconds=1)
+            queued = self.stage_queue.pop("q.embed_chunks")
             if queued and isinstance(queued.get("chunks_key"), str):
                 self.process_source_key(str(queued["chunks_key"]))
             else:

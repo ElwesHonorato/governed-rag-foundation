@@ -64,7 +64,7 @@ class WorkerIndexWeaviateService(WorkerService):
 
     def serve(self) -> None:
         while True:
-            queued = self.stage_queue.pop("q.index_weaviate", timeout_seconds=1)
+            queued = self.stage_queue.pop("q.index_weaviate")
             if queued and isinstance(queued.get("embeddings_key"), str):
                 self.process_source_key(str(queued["embeddings_key"]))
             else:

@@ -62,7 +62,7 @@ class WorkerChunkTextService(WorkerService):
 
     def serve(self) -> None:
         while True:
-            queued = self.stage_queue.pop("q.chunk_text", timeout_seconds=1)
+            queued = self.stage_queue.pop("q.chunk_text")
             if queued and isinstance(queued.get("processed_key"), str):
                 self.process_source_key(str(queued["processed_key"]))
             else:

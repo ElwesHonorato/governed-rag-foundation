@@ -10,7 +10,10 @@ from services.worker_parse_document_service import WorkerParseDocumentService
 def run() -> None:
     s3_settings = S3StorageSettings.from_env()
     queue_settings = QueueRuntimeSettings.from_env()
-    stage_queue = StageQueue(queue_settings.broker_url)
+    stage_queue = StageQueue(
+        queue_settings.broker_url,
+        default_pop_timeout_seconds=queue_settings.queue_pop_timeout_seconds,
+    )
     parser_registry = ParserRegistry(parsers=[HtmlParser()])
     object_storage = ObjectStorageGateway(
         S3Client(

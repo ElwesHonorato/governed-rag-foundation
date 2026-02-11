@@ -31,26 +31,6 @@ Core infrastructure image tags are hardcoded in the domain compose files.
 - Requirements workspace: `requirements/README.md`
 - Coverage roadmap (canonical): `requirements/00-overview/requirements-coverage-roadmap.md`
 
-## Local Stack Commands
-
-Run from repository root:
-
-```bash
-./stack.sh up
-./stack.sh down
-./stack.sh wipe
-./stack.sh up storage
-./stack.sh up vector
-./stack.sh up queue
-./stack.sh up lineage
-./stack.sh up llm
-./stack.sh up app
-./stack.sh up worker_scan
-./stack.sh up worker_parse_document
-./stack.sh logs worker_scan
-./stack.sh ps
-```
-
 ## Getting Started
 
 Recommended first-run order from repository root:
@@ -71,11 +51,24 @@ Recommended first-run order from repository root:
 ./stack.sh up worker_metrics
 ```
 
-Quick checks:
+Then check status/logs:
 
 ```bash
 ./stack.sh ps
 ./stack.sh logs app
+```
+
+## Local Stack Commands
+
+Run from repository root:
+
+```bash
+./stack.sh up                 # start all domains
+./stack.sh up <domain>        # start one domain, e.g. storage or worker_scan
+./stack.sh down               # stop running domains
+./stack.sh wipe               # stop stack and remove volumes
+./stack.sh logs <domain>      # follow one domain logs
+./stack.sh ps                 # show stack status
 ```
 
 When finished:
@@ -96,18 +89,27 @@ When finished:
 
 ## Python Dependencies (Poetry)
 
-Python app domains use Poetry with project-local virtual environments (`.venv`) via `poetry.toml`.
+Python projects in this repository are managed independently with Poetry (one `pyproject.toml` per app/lib/worker).
 
+Projects include:
 - `apps/rag-api`
+- `libs/pipeline-common`
+- `domains/worker_*`
 
-Typical workflow:
+Typical workflow (run inside the project directory you are working on):
 
 ```bash
-cd apps/rag-api
+cd <project-dir>
 poetry install
 ```
 
-If lock files need updates:
+Run project commands through Poetry:
+
+```bash
+poetry run <command>
+```
+
+Update lock files only when dependencies change:
 
 ```bash
 poetry lock

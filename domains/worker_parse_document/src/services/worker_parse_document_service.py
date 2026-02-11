@@ -18,7 +18,7 @@ class SecurityConfig(TypedDict):
 
 
 class DocumentProcessingConfig(TypedDict):
-    """Grouped metadata configuration emitted with processed payloads."""
+    """Runtime config for parse worker queues, storage, polling, and metadata."""
 
     poll_interval_seconds: int
     queue: "QueueConfig"
@@ -43,6 +43,8 @@ class StorageConfig(TypedDict):
 
 
 class WorkerService(ABC):
+    """Minimal worker interface for long-running service loops."""
+
     @abstractmethod
     def serve(self) -> None:
         """Run the worker loop indefinitely."""
@@ -62,8 +64,8 @@ class WorkerParseDocumentService(WorkerService):
         """Initialize parse worker dependencies and runtime settings."""
         self.stage_queue = stage_queue
         self.object_storage = object_storage
-        self.processing_config = processing_config
         self.parser_registry = parser_registry
+        self._initialize_runtime_config(processing_config)
 
     def process_source_key(self, source_key: str) -> None:
         """Parse a single raw document key and publish downstream work."""
@@ -93,60 +95,59 @@ class WorkerParseDocumentService(WorkerService):
                     self.process_source_key(source_key)
                 except Exception:
                     logger.exception("Failed processing source key '%s'", source_key)
-            time.sleep(self._poll_interval_seconds())
+            time.sleep(self.poll_interval_seconds)
 
     def _next_source_keys(self) -> list[str]:
         """Return source keys from queue first, then from S3 polling fallback."""
-        queued = self.stage_queue.pop(self._parse_queue_name(), timeout_seconds=1)
+        queued = self.stage_queue.pop(self.parse_queue_name, timeout_seconds=1)
         if queued and isinstance(queued.get("raw_key"), str):
             return [str(queued["raw_key"])]
         return [
             key
-            for key in self.object_storage.list_keys(self._storage_bucket(), self._raw_prefix())
+            for key in self.object_storage.list_keys(self.storage_bucket, self.raw_prefix)
             if self._is_supported_source_key(key)
         ]
 
     def _is_supported_source_key(self, source_key: str) -> bool:
         """Return whether a source key is in the raw stage."""
-        raw_prefix = self._raw_prefix()
         return (
-            source_key.startswith(raw_prefix)
-            and source_key != raw_prefix
+            source_key.startswith(self.raw_prefix)
+            and source_key != self.raw_prefix
         )
 
     def _processed_key(self, doc_id: str) -> str:
         """Build the processed-stage key for a document id."""
-        return f"{self._processed_prefix()}{doc_id}.json"
+        return f"{self.processed_prefix}{doc_id}.json"
 
     def _processed_exists(self, destination_key: str) -> bool:
         """Return whether the processed output already exists."""
-        return self.object_storage.object_exists(self._storage_bucket(), destination_key)
+        return self.object_storage.object_exists(self.storage_bucket, destination_key)
 
     def _build_processed_payload(self, source_key: str, doc_id: str) -> dict[str, str]:
         """Parse a source document and map it into processed payload fields."""
         parser = self.parser_registry.resolve(source_key)
-        parsed_document = parser.parse(self.object_storage.read_text(self._storage_bucket(), source_key))
+        parsed_document = parser.parse(self.object_storage.read_text(self.storage_bucket, source_key))
         return {
             "doc_id": doc_id,
             "source_key": source_key,
             "timestamp": utc_now_iso(),
-            "security_clearance": self.processing_config["security"]["clearance"],
+            "security_clearance": self.security_clearance,
             "title": parsed_document.title,
             "text": parsed_document.text,
         }
 
     def _write_processed_document(self, destination_key: str, payload: dict[str, str]) -> None:
         """Persist parsed document payload into the processed S3 stage."""
-        self.object_storage.write_json(self._storage_bucket(), destination_key, payload)
+        self.object_storage.write_json(self.storage_bucket, destination_key, payload)
 
     def _enqueue_chunking(self, destination_key: str, doc_id: str) -> None:
         """Publish chunking work for a newly produced processed document."""
-        self.stage_queue.push(self._chunk_text_queue_name(), {"processed_key": destination_key, "doc_id": doc_id})
+        self.stage_queue.push(self.chunk_text_queue_name, {"processed_key": destination_key, "doc_id": doc_id})
 
     def _enqueue_parse_dlq(self, source_key: str, doc_id: str, error: str) -> None:
         """Publish parse failures to DLQ for later inspection/retry."""
         self.stage_queue.push(
-            self._parse_dlq_queue_name(),
+            self.parse_dlq_queue_name,
             {
                 "raw_key": source_key,
                 "doc_id": doc_id,
@@ -155,23 +156,12 @@ class WorkerParseDocumentService(WorkerService):
             },
         )
 
-    def _raw_prefix(self) -> str:
-        return self.processing_config["storage"]["raw_prefix"]
-
-    def _processed_prefix(self) -> str:
-        return self.processing_config["storage"]["processed_prefix"]
-
-    def _storage_bucket(self) -> str:
-        return self.processing_config["storage"]["bucket"]
-
-    def _poll_interval_seconds(self) -> int:
-        return self.processing_config["poll_interval_seconds"]
-
-    def _parse_queue_name(self) -> str:
-        return self.processing_config["queue"]["parse_queue"]
-
-    def _chunk_text_queue_name(self) -> str:
-        return self.processing_config["queue"]["chunk_text_queue"]
-
-    def _parse_dlq_queue_name(self) -> str:
-        return self.processing_config["queue"]["parse_dlq_queue"]
+    def _initialize_runtime_config(self, processing_config: DocumentProcessingConfig) -> None:
+        self.poll_interval_seconds = processing_config["poll_interval_seconds"]
+        self.parse_queue_name = processing_config["queue"]["parse_queue"]
+        self.parse_dlq_queue_name = processing_config["queue"]["parse_dlq_queue"]
+        self.chunk_text_queue_name = processing_config["queue"]["chunk_text_queue"]
+        self.storage_bucket = processing_config["storage"]["bucket"]
+        self.raw_prefix = processing_config["storage"]["raw_prefix"]
+        self.processed_prefix = processing_config["storage"]["processed_prefix"]
+        self.security_clearance = processing_config["security"]["clearance"]

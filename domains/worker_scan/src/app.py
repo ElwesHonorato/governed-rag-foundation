@@ -1,6 +1,6 @@
 from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway, S3Client
-from configs.constants import HTML_EXTENSIONS, INCOMING_PREFIX, QUEUE_CONFIG_DEFAULT, RAW_PREFIX, S3_BUCKET
+from configs.constants import SCAN_PROCESSING_CONFIG
 from configs.configs import WorkerS3QueueLoopSettings
 from services.scan_cycle_processor import StorageScanCycleProcessor
 from services.worker_scan_service import WorkerScanService
@@ -8,7 +8,8 @@ from services.worker_scan_service import WorkerScanService
 
 def run() -> None:
     settings = WorkerS3QueueLoopSettings.from_env()
-    stage_queue = StageQueue(settings.broker_url, queue_config=QUEUE_CONFIG_DEFAULT)
+    processing_config = SCAN_PROCESSING_CONFIG
+    stage_queue = StageQueue(settings.broker_url, queue_config=processing_config["queue"])
     storage = ObjectStorageGateway(
         S3Client(
             endpoint_url=settings.s3_endpoint,
@@ -17,14 +18,14 @@ def run() -> None:
             region_name=settings.aws_region,
         )
     )
-    storage.bootstrap_bucket_prefixes(S3_BUCKET)
+    storage.bootstrap_bucket_prefixes(processing_config["storage"]["bucket"])
     processor = StorageScanCycleProcessor(
         storage=storage,
         stage_queue=stage_queue,
-        bucket=S3_BUCKET,
-        source_prefix=INCOMING_PREFIX,
-        destination_prefix=RAW_PREFIX,
-        extensions=HTML_EXTENSIONS,
+        bucket=processing_config["storage"]["bucket"],
+        source_prefix=processing_config["storage"]["incoming_prefix"],
+        destination_prefix=processing_config["storage"]["raw_prefix"],
+        extensions=processing_config["filters"]["extensions"],
     )
     WorkerScanService(
         processor=processor,

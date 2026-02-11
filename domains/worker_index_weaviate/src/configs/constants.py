@@ -1,9 +1,12 @@
 from pipeline_common.queue.contracts import WORKER_STAGE_QUEUES
 
-S3_BUCKET = "rag-data"
-
-QUEUE_CONFIG_DEFAULT = {
-    "stage": "index_weaviate",
-    "stage_queues": WORKER_STAGE_QUEUES,
-    "queue_pop_timeout_seconds": 1,
+INDEX_WEAVIATE_PROCESSING_CONFIG = {
+    "storage": {"bucket": "rag-data"},
+    "queue": {
+        "stage": "index_weaviate",
+        "stage_queues": WORKER_STAGE_QUEUES,
+        "queue_pop_timeout_seconds": 1,
+    },
 }
+
+S3_BUCKET = INDEX_WEAVIATE_PROCESSING_CONFIG["storage"]["bucket"]

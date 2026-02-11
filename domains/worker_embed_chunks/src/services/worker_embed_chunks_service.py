@@ -22,14 +22,12 @@ class WorkerEmbedChunksService(WorkerService):
         storage: ObjectStorageGateway,
         storage_bucket: str,
         poll_interval_seconds: int,
-        queue_pop_timeout_seconds: int,
         dimension: int,
     ) -> None:
         self.stage_queue = stage_queue
         self.storage = storage
         self.storage_bucket = storage_bucket
         self.poll_interval_seconds = poll_interval_seconds
-        self.queue_pop_timeout_seconds = queue_pop_timeout_seconds
         self.dimension = dimension
 
     def deterministic_embedding(self, text: str) -> list[float]:
@@ -77,7 +75,7 @@ class WorkerEmbedChunksService(WorkerService):
 
     def serve(self) -> None:
         while True:
-            queued = self.stage_queue.pop(timeout_seconds=self.queue_pop_timeout_seconds)
+            queued = self.stage_queue.pop()
             if queued and isinstance(queued.get("storage_key"), str):
                 message = QueueStorageKeyMessage(storage_key=str(queued["storage_key"]))
                 self.process_source_key(message["storage_key"])

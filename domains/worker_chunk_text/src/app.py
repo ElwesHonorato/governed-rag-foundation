@@ -2,7 +2,7 @@
 from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway, S3Client
 from pipeline_common.settings import QueueRuntimeSettings
-from configs.constants import QUEUE_CONFIG_DEFAULT, S3_BUCKET
+from configs.constants import CHUNK_TEXT_PROCESSING_CONFIG
 from configs.configs import WorkerS3QueueLoopSettings
 from services.worker_chunk_text_service import WorkerChunkTextService
 
@@ -10,7 +10,8 @@ from services.worker_chunk_text_service import WorkerChunkTextService
 def run() -> None:
     settings = WorkerS3QueueLoopSettings.from_env()
     queue_settings = QueueRuntimeSettings.from_env()
-    stage_queue = StageQueue(queue_settings.broker_url, queue_config=QUEUE_CONFIG_DEFAULT)
+    processing_config = CHUNK_TEXT_PROCESSING_CONFIG
+    stage_queue = StageQueue(queue_settings.broker_url, queue_config=processing_config["queue"])
     storage = ObjectStorageGateway(
         S3Client(
             endpoint_url=settings.s3_endpoint,
@@ -22,9 +23,8 @@ def run() -> None:
     WorkerChunkTextService(
         stage_queue=stage_queue,
         storage=storage,
-        storage_bucket=S3_BUCKET,
+        storage_bucket=processing_config["storage"]["bucket"],
         poll_interval_seconds=settings.poll_interval_seconds,
-        queue_pop_timeout_seconds=queue_settings.queue_pop_timeout_seconds,
     ).serve()
 
 

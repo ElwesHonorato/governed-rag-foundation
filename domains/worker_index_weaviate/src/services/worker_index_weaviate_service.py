@@ -23,14 +23,12 @@ class WorkerIndexWeaviateService(WorkerService):
         storage_bucket: str,
         weaviate_url: str,
         poll_interval_seconds: int,
-        queue_pop_timeout_seconds: int,
     ) -> None:
         self.stage_queue = stage_queue
         self.storage = storage
         self.storage_bucket = storage_bucket
         self.weaviate_url = weaviate_url
         self.poll_interval_seconds = poll_interval_seconds
-        self.queue_pop_timeout_seconds = queue_pop_timeout_seconds
 
     def process_source_key(self, source_key: str) -> None:
         if not source_key.startswith("05_embeddings/"):
@@ -67,7 +65,7 @@ class WorkerIndexWeaviateService(WorkerService):
 
     def serve(self) -> None:
         while True:
-            queued = self.stage_queue.pop(timeout_seconds=self.queue_pop_timeout_seconds)
+            queued = self.stage_queue.pop()
             if (
                 queued
                 and isinstance(queued.get("embeddings_key"), str)

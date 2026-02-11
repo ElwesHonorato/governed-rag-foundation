@@ -43,16 +43,16 @@ class WorkerParseDocumentService(WorkerService):
         self,
         *,
         stage_queue: StageQueue,
-        s3: ObjectStorageGateway,
-        s3_bucket: str,
+        storage: ObjectStorageGateway,
+        storage_bucket: str,
         poll_interval_seconds: int,
         processing_config: DocumentProcessingConfig,
         parser_registry: ParserRegistry,
     ) -> None:
         """Initialize parse worker dependencies and runtime settings."""
         self.stage_queue = stage_queue
-        self.s3 = s3
-        self.s3_bucket = s3_bucket
+        self.storage = storage
+        self.storage_bucket = storage_bucket
         self.poll_interval_seconds = poll_interval_seconds
         self.processing_config = processing_config
         self.parser_registry = parser_registry
@@ -89,7 +89,7 @@ class WorkerParseDocumentService(WorkerService):
             return [str(queued["raw_key"])]
         return [
             key
-            for key in self.s3.list_keys(self.s3_bucket, "02_raw/")
+            for key in self.storage.list_keys(self.storage_bucket, "02_raw/")
             if self._is_supported_source_key(key)
         ]
 
@@ -107,12 +107,12 @@ class WorkerParseDocumentService(WorkerService):
 
     def _processed_exists(self, destination_key: str) -> bool:
         """Return whether the processed output already exists."""
-        return self.s3.object_exists(self.s3_bucket, destination_key)
+        return self.storage.object_exists(self.storage_bucket, destination_key)
 
     def _build_processed_payload(self, source_key: str, doc_id: str) -> dict[str, str]:
         """Parse a source document and map it into processed payload fields."""
         parser = self.parser_registry.resolve(source_key)
-        parsed_document = parser.parse(self.s3.read_text(self.s3_bucket, source_key))
+        parsed_document = parser.parse(self.storage.read_text(self.storage_bucket, source_key))
         return {
             "doc_id": doc_id,
             "source_key": source_key,
@@ -125,7 +125,7 @@ class WorkerParseDocumentService(WorkerService):
 
     def _write_processed_document(self, destination_key: str, payload: dict[str, str]) -> None:
         """Persist parsed document payload into the processed S3 stage."""
-        self.s3.write_json(self.s3_bucket, destination_key, payload)
+        self.storage.write_json(self.storage_bucket, destination_key, payload)
 
     def _enqueue_chunking(self, destination_key: str, doc_id: str) -> None:
         """Publish chunking work for a newly produced processed document."""

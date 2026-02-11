@@ -9,7 +9,7 @@ from services.worker_metrics_service import WorkerMetricsService
 def run() -> None:
     settings = WorkerS3LoopSettings.from_env()
     counters = Counters().for_worker("worker_metrics")
-    s3 = ObjectStorageGateway(
+    storage = ObjectStorageGateway(
         S3Client(
             endpoint_url=settings.s3_endpoint,
             access_key=settings.s3_access_key,
@@ -19,8 +19,8 @@ def run() -> None:
     )
     WorkerMetricsService(
         counters=counters,
-        s3=s3,
-        s3_bucket=S3_BUCKET,
+        storage=storage,
+        storage_bucket=S3_BUCKET,
         poll_interval_seconds=settings.poll_interval_seconds,
     ).serve()
 

@@ -12,7 +12,7 @@ def run() -> None:
     queue_settings = QueueRuntimeSettings.from_env()
     stage_queue = StageQueue(queue_settings.broker_url)
     parser_registry = ParserRegistry(parsers=[HtmlParser()])
-    s3 = ObjectStorageGateway(
+    storage = ObjectStorageGateway(
         S3Client(
             endpoint_url=s3_settings.s3_endpoint,
             access_key=s3_settings.s3_access_key,
@@ -22,8 +22,8 @@ def run() -> None:
     )
     WorkerParseDocumentService(
         stage_queue=stage_queue,
-        s3=s3,
-        s3_bucket=S3_BUCKET,
+        storage=storage,
+        storage_bucket=S3_BUCKET,
         poll_interval_seconds=queue_settings.poll_interval_seconds,
         processing_config=PROCESSING_CONFIG_DEFAULT,
         parser_registry=parser_registry,

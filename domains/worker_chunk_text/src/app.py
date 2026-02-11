@@ -9,7 +9,7 @@ from services.worker_chunk_text_service import WorkerChunkTextService
 def run() -> None:
     settings = WorkerS3QueueLoopSettings.from_env()
     stage_queue = StageQueue(settings.broker_url)
-    s3 = ObjectStorageGateway(
+    storage = ObjectStorageGateway(
         S3Client(
             endpoint_url=settings.s3_endpoint,
             access_key=settings.s3_access_key,
@@ -19,8 +19,8 @@ def run() -> None:
     )
     WorkerChunkTextService(
         stage_queue=stage_queue,
-        s3=s3,
-        s3_bucket=S3_BUCKET,
+        storage=storage,
+        storage_bucket=S3_BUCKET,
         poll_interval_seconds=settings.poll_interval_seconds,
     ).serve()
 

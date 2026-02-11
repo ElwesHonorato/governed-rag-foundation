@@ -18,14 +18,14 @@ class WorkerEmbedChunksService(WorkerService):
         self,
         *,
         stage_queue: StageQueue,
-        s3: ObjectStorageGateway,
-        s3_bucket: str,
+        storage: ObjectStorageGateway,
+        storage_bucket: str,
         poll_interval_seconds: int,
         dimension: int,
     ) -> None:
         self.stage_queue = stage_queue
-        self.s3 = s3
-        self.s3_bucket = s3_bucket
+        self.storage = storage
+        self.storage_bucket = storage_bucket
         self.poll_interval_seconds = poll_interval_seconds
         self.dimension = dimension
 
@@ -43,10 +43,10 @@ class WorkerEmbedChunksService(WorkerService):
         if not source_key.endswith(".chunks.json"):
             return
 
-        payload = self.s3.read_json(self.s3_bucket, source_key)
+        payload = self.storage.read_json(self.storage_bucket, source_key)
         doc_id = str(payload["doc_id"])
         destination_key = f"05_embeddings/{doc_id}.embeddings.json"
-        if self.s3.object_exists(self.s3_bucket, destination_key):
+        if self.storage.object_exists(self.storage_bucket, destination_key):
             return
 
         records = []
@@ -68,7 +68,7 @@ class WorkerEmbedChunksService(WorkerService):
                 }
             )
 
-        self.s3.write_json(self.s3_bucket, destination_key, {"doc_id": doc_id, "embeddings": records})
+        self.storage.write_json(self.storage_bucket, destination_key, {"doc_id": doc_id, "embeddings": records})
         self.stage_queue.push("q.index_weaviate", {"embeddings_key": destination_key, "doc_id": doc_id})
         print(f"[worker_embed_chunks] wrote {destination_key} embeddings={len(records)}", flush=True)
 
@@ -80,7 +80,7 @@ class WorkerEmbedChunksService(WorkerService):
             else:
                 keys = [
                     key
-                    for key in self.s3.list_keys(self.s3_bucket, "04_chunks/")
+                    for key in self.storage.list_keys(self.storage_bucket, "04_chunks/")
                     if key != "04_chunks/" and key.endswith(".chunks.json")
                 ]
                 for source_key in keys:

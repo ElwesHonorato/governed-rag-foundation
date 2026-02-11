@@ -11,13 +11,13 @@ class ScanCycleProcessor(ABC):
         """Run one scan cycle and return the number of processed items."""
 
 
-class S3ScanCycleProcessor(ScanCycleProcessor):
-    """Move S3 objects from a source prefix to a destination prefix and enqueue jobs."""
+class StorageScanCycleProcessor(ScanCycleProcessor):
+    """Move objects from a source prefix to a destination prefix and enqueue jobs."""
 
     def __init__(
         self,
         *,
-        s3: ObjectStorageGateway,
+        storage: ObjectStorageGateway,
         stage_queue: StageQueue,
         bucket: str,
         source_prefix: str,
@@ -25,7 +25,7 @@ class S3ScanCycleProcessor(ScanCycleProcessor):
         parse_queue: str,
         extensions: Sequence[str],
     ) -> None:
-        self.s3 = s3
+        self.storage = storage
         self.stage_queue = stage_queue
         self.bucket = bucket
         self.source_prefix = source_prefix
@@ -44,7 +44,7 @@ class S3ScanCycleProcessor(ScanCycleProcessor):
         """List source keys that match the configured extension filter."""
         return [
             key
-            for key in self.s3.list_keys(self.bucket, self.source_prefix)
+            for key in self.storage.list_keys(self.bucket, self.source_prefix)
             if self._is_candidate_key(key)
         ]
 
@@ -63,12 +63,12 @@ class S3ScanCycleProcessor(ScanCycleProcessor):
         return moved
 
     def _source_exists(self, source_key: str) -> bool:
-        """Check whether the source object is still present in S3."""
-        return self.s3.object_exists(self.bucket, source_key)
+        """Check whether the source object is still present."""
+        return self.storage.object_exists(self.bucket, source_key)
 
     def _destination_exists(self, destination_key: str) -> bool:
-        """Check whether the destination object already exists in S3."""
-        return self.s3.object_exists(self.bucket, destination_key)
+        """Check whether the destination object already exists."""
+        return self.storage.object_exists(self.bucket, destination_key)
 
     def _copy_and_enqueue(self, source_key: str, destination_key: str) -> None:
         """Copy source object to raw prefix and enqueue downstream parsing."""
@@ -78,11 +78,11 @@ class S3ScanCycleProcessor(ScanCycleProcessor):
 
     def _delete_source(self, source_key: str) -> None:
         """Delete the source object after processing to avoid reprocessing."""
-        self.s3.delete(self.bucket, source_key)
+        self.storage.delete(self.bucket, source_key)
 
     def _copy_source_to_destination(self, source_key: str, destination_key: str) -> None:
         """Copy one source object into the destination path."""
-        self.s3.copy(self.bucket, source_key, destination_key)
+        self.storage.copy(self.bucket, source_key, destination_key)
 
     def _enqueue_destination(self, destination_key: str) -> None:
         """Enqueue the destination object for downstream parsing."""

@@ -17,13 +17,13 @@ class WorkerMetricsService(WorkerService):
         self,
         *,
         counters: Counters,
-        s3: ObjectStorageGateway,
-        s3_bucket: str,
+        storage: ObjectStorageGateway,
+        storage_bucket: str,
         poll_interval_seconds: int,
     ) -> None:
         self.counters = counters
-        self.s3 = s3
-        self.s3_bucket = s3_bucket
+        self.storage = storage
+        self.storage_bucket = storage_bucket
         self.poll_interval_seconds = poll_interval_seconds
 
     @staticmethod
@@ -32,10 +32,10 @@ class WorkerMetricsService(WorkerService):
 
     def serve(self) -> None:
         while True:
-            processed = self.s3.list_keys(self.s3_bucket, "03_processed/")
-            chunks = self.s3.list_keys(self.s3_bucket, "04_chunks/")
-            embeddings = self.s3.list_keys(self.s3_bucket, "05_embeddings/")
-            indexed = self.s3.list_keys(self.s3_bucket, "06_indexes/")
+            processed = self.storage.list_keys(self.storage_bucket, "03_processed/")
+            chunks = self.storage.list_keys(self.storage_bucket, "04_chunks/")
+            embeddings = self.storage.list_keys(self.storage_bucket, "05_embeddings/")
+            indexed = self.storage.list_keys(self.storage_bucket, "06_indexes/")
 
             self.counters.files_processed = self._count_suffix(processed, ".json")
             self.counters.chunks_created = self._count_suffix(chunks, ".chunks.json")

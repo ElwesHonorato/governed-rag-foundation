@@ -18,14 +18,14 @@ class WorkerIndexWeaviateService(WorkerService):
         self,
         *,
         stage_queue: StageQueue,
-        s3: ObjectStorageGateway,
-        s3_bucket: str,
+        storage: ObjectStorageGateway,
+        storage_bucket: str,
         weaviate_url: str,
         poll_interval_seconds: int,
     ) -> None:
         self.stage_queue = stage_queue
-        self.s3 = s3
-        self.s3_bucket = s3_bucket
+        self.storage = storage
+        self.storage_bucket = storage_bucket
         self.weaviate_url = weaviate_url
         self.poll_interval_seconds = poll_interval_seconds
 
@@ -35,7 +35,7 @@ class WorkerIndexWeaviateService(WorkerService):
         if not source_key.endswith(".embeddings.json"):
             return
 
-        payload = self.s3.read_json(self.s3_bucket, source_key)
+        payload = self.storage.read_json(self.storage_bucket, source_key)
         for item in payload.get("embeddings", []):
             metadata = dict(item.get("metadata", {}))
             chunk_id = str(item["chunk_id"])
@@ -54,8 +54,8 @@ class WorkerIndexWeaviateService(WorkerService):
             )
 
         doc_id = payload.get("doc_id", "unknown")
-        self.s3.write_json(
-            self.s3_bucket,
+        self.storage.write_json(
+            self.storage_bucket,
             f"06_indexes/{doc_id}.indexed.json",
             {"doc_id": doc_id, "status": "indexed"},
         )
@@ -70,7 +70,7 @@ class WorkerIndexWeaviateService(WorkerService):
             else:
                 keys = [
                     key
-                    for key in self.s3.list_keys(self.s3_bucket, "05_embeddings/")
+                    for key in self.storage.list_keys(self.storage_bucket, "05_embeddings/")
                     if key != "05_embeddings/" and key.endswith(".embeddings.json")
                 ]
                 for source_key in keys:

@@ -3,12 +3,12 @@ import time
 from typing import Any
 
 import pika
-from pipeline_common.queue.contracts import StageQueueContract
+from pipeline_common.queue.contracts import WorkerStageQueueContract
 
 
 class StageQueue:
     stage: str
-    stage_queues: dict[str, StageQueueContract]
+    stage_queues: dict[str, WorkerStageQueueContract]
     timeout_seconds: int
 
     def __init__(
@@ -66,6 +66,6 @@ class StageQueue:
         if self.stage not in self.stage_queues:
             raise ValueError(f"Unknown stage queue contract: {self.stage}")
         stage_queue_contract = self.stage_queues[self.stage]
-        self.consume = stage_queue_contract["consume"]
-        self.produce = stage_queue_contract["produce"]
-        self.dlq = stage_queue_contract["dlq"]
+        self.consume = stage_queue_contract["consume"]["queue_name"]
+        self.produce = stage_queue_contract["produce"]["queue_name"]
+        self.dlq = stage_queue_contract["dlq"]["queue_name"]

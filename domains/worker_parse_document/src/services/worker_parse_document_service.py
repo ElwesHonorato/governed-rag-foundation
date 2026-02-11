@@ -5,7 +5,11 @@ from typing import TypedDict
 
 from pipeline_common.contracts import doc_id_from_source_key, utc_now_iso
 from pipeline_common.queue import StageQueue
-from pipeline_common.queue.contracts import ParseDocumentFailed, QueueStorageKeyMessage, StageQueueContract
+from pipeline_common.queue.contracts import (
+    ParseDocumentFailed,
+    QueueStorageKeyMessage,
+    WorkerStageQueueContract,
+)
 from pipeline_common.object_storage import ObjectStorageGateway
 from parsing.registry import ParserRegistry
 
@@ -38,7 +42,7 @@ class QueueConfig(TypedDict):
     """Queue contract and timeout settings for parse worker."""
 
     stage: str
-    stage_queues: dict[str, StageQueueContract]
+    stage_queues: dict[str, WorkerStageQueueContract]
     queue_pop_timeout_seconds: int
 
 

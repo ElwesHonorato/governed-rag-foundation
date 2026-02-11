@@ -28,10 +28,6 @@ class ParserRegistry:
             self._raise_unsupported_source_key(source_key)
         return parser
 
-    def can_resolve(self, source_key: str) -> bool:
-        """Return whether registry has a parser for the source key."""
-        return self._has_parser_for_extension(self._extension_from_key(source_key))
-
     def _normalize_extension(self, extension: str) -> str:
         """Normalize extension to lowercase with no leading dot."""
         return extension.strip().lower().lstrip(".")

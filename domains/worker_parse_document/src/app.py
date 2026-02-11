@@ -1,6 +1,6 @@
 from pipeline_common.queue import StageQueue
 from pipeline_common.s3 import ObjectStorageGateway, S3Client
-from pipeline_common.config import QueueRuntimeSettings, S3StorageSettings
+from pipeline_common.settings import QueueRuntimeSettings, S3StorageSettings
 from configs.constants import PROCESSING_CONFIG_DEFAULT, S3_BUCKET
 from parsing.html import HtmlParser
 from parsing.registry import ParserRegistry

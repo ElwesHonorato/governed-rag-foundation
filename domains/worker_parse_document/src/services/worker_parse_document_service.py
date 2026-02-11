@@ -63,14 +63,12 @@ class WorkerParseDocumentService(WorkerService):
         *,
         stage_queue: StageQueue,
         object_storage: ObjectStorageGateway,
-        poll_interval_seconds: int,
         processing_config: DocumentProcessingConfig,
         parser_registry: ParserRegistry,
     ) -> None:
         """Initialize parse worker dependencies and runtime settings."""
         self.stage_queue = stage_queue
         self.object_storage = object_storage
-        self.poll_interval_seconds = poll_interval_seconds
         self.parser_registry = parser_registry
         self._initialize_runtime_config(processing_config)
 
@@ -175,6 +173,7 @@ class WorkerParseDocumentService(WorkerService):
         )
 
     def _initialize_runtime_config(self, processing_config: DocumentProcessingConfig) -> None:
+        self.poll_interval_seconds = processing_config["poll_interval_seconds"]
         self.storage_bucket = processing_config["storage"]["bucket"]
         self.raw_prefix = processing_config["storage"]["raw_prefix"]
         self.processed_prefix = processing_config["storage"]["processed_prefix"]

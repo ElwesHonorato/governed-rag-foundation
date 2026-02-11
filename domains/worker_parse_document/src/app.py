@@ -24,7 +24,6 @@ def run() -> None:
     WorkerParseDocumentService(
         stage_queue=stage_queue,
         object_storage=object_storage,
-        poll_interval_seconds=processing_config["poll_interval_seconds"],
         processing_config=processing_config,
         parser_registry=parser_registry,
     ).serve()

@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 
 from pipeline_common.queue import StageQueue
+from pipeline_common.queue.contracts import QueueStorageKeyMessage
 from pipeline_common.object_storage import ObjectStorageGateway
 
 
@@ -18,19 +19,17 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
         self,
         *,
         storage: ObjectStorageGateway,
-        stage_queue: StageQueue,
+        parse_queue: StageQueue,
         bucket: str,
         source_prefix: str,
         destination_prefix: str,
-        parse_queue: str,
         extensions: Sequence[str],
     ) -> None:
         self.storage = storage
-        self.stage_queue = stage_queue
+        self.parse_queue = parse_queue
         self.bucket = bucket
         self.source_prefix = source_prefix
         self.destination_prefix = destination_prefix
-        self.parse_queue = parse_queue
         self.extensions = self._normalize_extensions(extensions)
 
     def scan(self) -> int:
@@ -86,7 +85,7 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
 
     def _enqueue_destination(self, destination_key: str) -> None:
         """Enqueue the destination object for downstream parsing."""
-        self.stage_queue.push(self.parse_queue, {"raw_key": destination_key})
+        self.parse_queue.push(QueueStorageKeyMessage(storage_key=destination_key))
 
     def _is_candidate_key(self, key: str) -> bool:
         """Return True when a key is a processable source object."""

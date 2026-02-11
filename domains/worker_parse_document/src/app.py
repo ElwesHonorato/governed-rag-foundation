@@ -10,8 +10,19 @@ from services.worker_parse_document_service import WorkerParseDocumentService
 def run() -> None:
     s3_settings = S3StorageSettings.from_env()
     queue_settings = QueueRuntimeSettings.from_env()
-    stage_queue = StageQueue(
+    parse_queue = StageQueue(
         queue_settings.broker_url,
+        queue_name=PROCESSING_CONFIG_DEFAULT["queue"]["parse"],
+        default_pop_timeout_seconds=queue_settings.queue_pop_timeout_seconds,
+    )
+    chunk_text_queue = StageQueue(
+        queue_settings.broker_url,
+        queue_name=PROCESSING_CONFIG_DEFAULT["queue"]["chunk_text"],
+        default_pop_timeout_seconds=queue_settings.queue_pop_timeout_seconds,
+    )
+    parse_dlq_queue = StageQueue(
+        queue_settings.broker_url,
+        queue_name=PROCESSING_CONFIG_DEFAULT["queue"]["parse_dlq"],
         default_pop_timeout_seconds=queue_settings.queue_pop_timeout_seconds,
     )
     parser_registry = ParserRegistry(parsers=[HtmlParser()])
@@ -24,7 +35,9 @@ def run() -> None:
         )
     )
     WorkerParseDocumentService(
-        stage_queue=stage_queue,
+        parse_queue=parse_queue,
+        chunk_text_queue=chunk_text_queue,
+        parse_dlq_queue=parse_dlq_queue,
         object_storage=object_storage,
         processing_config=PROCESSING_CONFIG_DEFAULT,
         parser_registry=parser_registry,

@@ -4,6 +4,7 @@ import time
 
 from pipeline_common.contracts import chunk_id_for
 from pipeline_common.queue import StageQueue
+from pipeline_common.queue.contracts import QueueStorageKeyMessage
 from pipeline_common.object_storage import ObjectStorageGateway
 from pipeline_common.text import chunk_text
 
@@ -18,12 +19,14 @@ class WorkerChunkTextService(WorkerService):
     def __init__(
         self,
         *,
-        stage_queue: StageQueue,
+        chunk_text_queue: StageQueue,
+        embed_chunks_queue: StageQueue,
         storage: ObjectStorageGateway,
         storage_bucket: str,
         poll_interval_seconds: int,
     ) -> None:
-        self.stage_queue = stage_queue
+        self.chunk_text_queue = chunk_text_queue
+        self.embed_chunks_queue = embed_chunks_queue
         self.storage = storage
         self.storage_bucket = storage_bucket
         self.poll_interval_seconds = poll_interval_seconds
@@ -57,14 +60,15 @@ class WorkerChunkTextService(WorkerService):
             )
 
         self.storage.write_json(self.storage_bucket, destination_key, {"doc_id": doc_id, "chunks": records})
-        self.stage_queue.push("q.embed_chunks", {"chunks_key": destination_key, "doc_id": doc_id})
+        self.embed_chunks_queue.push(QueueStorageKeyMessage(storage_key=destination_key))
         print(f"[worker_chunk_text] wrote {destination_key} chunks={len(records)}", flush=True)
 
     def serve(self) -> None:
         while True:
-            queued = self.stage_queue.pop("q.chunk_text")
-            if queued and isinstance(queued.get("processed_key"), str):
-                self.process_source_key(str(queued["processed_key"]))
+            queued = self.chunk_text_queue.pop()
+            if queued and isinstance(queued.get("storage_key"), str):
+                message = QueueStorageKeyMessage(storage_key=str(queued["storage_key"]))
+                self.process_source_key(message["storage_key"])
             else:
                 keys = [
                     key

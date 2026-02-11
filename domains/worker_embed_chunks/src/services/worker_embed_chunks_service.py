@@ -4,6 +4,7 @@ import hashlib
 import time
 
 from pipeline_common.queue import StageQueue
+from pipeline_common.queue.contracts import IndexWeaviateRequested, QueueStorageKeyMessage
 from pipeline_common.object_storage import ObjectStorageGateway
 
 
@@ -17,13 +18,15 @@ class WorkerEmbedChunksService(WorkerService):
     def __init__(
         self,
         *,
-        stage_queue: StageQueue,
+        embed_chunks_queue: StageQueue,
+        index_weaviate_queue: StageQueue,
         storage: ObjectStorageGateway,
         storage_bucket: str,
         poll_interval_seconds: int,
         dimension: int,
     ) -> None:
-        self.stage_queue = stage_queue
+        self.embed_chunks_queue = embed_chunks_queue
+        self.index_weaviate_queue = index_weaviate_queue
         self.storage = storage
         self.storage_bucket = storage_bucket
         self.poll_interval_seconds = poll_interval_seconds
@@ -69,14 +72,15 @@ class WorkerEmbedChunksService(WorkerService):
             )
 
         self.storage.write_json(self.storage_bucket, destination_key, {"doc_id": doc_id, "embeddings": records})
-        self.stage_queue.push("q.index_weaviate", {"embeddings_key": destination_key, "doc_id": doc_id})
+        self.index_weaviate_queue.push(IndexWeaviateRequested(embeddings_key=destination_key, doc_id=doc_id))
         print(f"[worker_embed_chunks] wrote {destination_key} embeddings={len(records)}", flush=True)
 
     def serve(self) -> None:
         while True:
-            queued = self.stage_queue.pop("q.embed_chunks")
-            if queued and isinstance(queued.get("chunks_key"), str):
-                self.process_source_key(str(queued["chunks_key"]))
+            queued = self.embed_chunks_queue.pop()
+            if queued and isinstance(queued.get("storage_key"), str):
+                message = QueueStorageKeyMessage(storage_key=str(queued["storage_key"]))
+                self.process_source_key(message["storage_key"])
             else:
                 keys = [
                     key

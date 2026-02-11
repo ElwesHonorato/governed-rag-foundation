@@ -8,7 +8,7 @@ from services.worker_scan_service import WorkerScanService
 
 def run() -> None:
     settings = WorkerS3QueueLoopSettings.from_env()
-    stage_queue = StageQueue(settings.broker_url)
+    parse_queue = StageQueue(settings.broker_url, queue_name=PARSE_QUEUE)
     storage = ObjectStorageGateway(
         S3Client(
             endpoint_url=settings.s3_endpoint,
@@ -20,11 +20,10 @@ def run() -> None:
     storage.bootstrap_bucket_prefixes(S3_BUCKET)
     processor = StorageScanCycleProcessor(
         storage=storage,
-        stage_queue=stage_queue,
+        parse_queue=parse_queue,
         bucket=S3_BUCKET,
         source_prefix=INCOMING_PREFIX,
         destination_prefix=RAW_PREFIX,
-        parse_queue=PARSE_QUEUE,
         extensions=HTML_EXTENSIONS,
     )
     WorkerScanService(

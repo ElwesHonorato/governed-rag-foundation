@@ -3,7 +3,7 @@ from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway, S3Client
 from pipeline_common.settings import QueueRuntimeSettings
 from pipeline_common.weaviate import ensure_schema
-from configs.constants import S3_BUCKET
+from configs.constants import INDEX_WEAVIATE_QUEUE, S3_BUCKET
 from configs.configs import WorkerIndexWeaviateSettings
 from services.worker_index_weaviate_service import WorkerIndexWeaviateService
 
@@ -11,8 +11,9 @@ from services.worker_index_weaviate_service import WorkerIndexWeaviateService
 def run() -> None:
     settings = WorkerIndexWeaviateSettings.from_env()
     queue_settings = QueueRuntimeSettings.from_env()
-    stage_queue = StageQueue(
+    index_weaviate_queue = StageQueue(
         queue_settings.broker_url,
+        queue_name=INDEX_WEAVIATE_QUEUE,
         default_pop_timeout_seconds=queue_settings.queue_pop_timeout_seconds,
     )
     storage = ObjectStorageGateway(
@@ -25,7 +26,7 @@ def run() -> None:
     )
     ensure_schema(settings.weaviate_url)
     WorkerIndexWeaviateService(
-        stage_queue=stage_queue,
+        index_weaviate_queue=index_weaviate_queue,
         storage=storage,
         storage_bucket=S3_BUCKET,
         weaviate_url=settings.weaviate_url,

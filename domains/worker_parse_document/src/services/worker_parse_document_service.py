@@ -5,6 +5,7 @@ from typing import TypedDict
 
 from pipeline_common.contracts import doc_id_from_source_key, utc_now_iso
 from pipeline_common.queue import StageQueue
+from pipeline_common.queue.contracts import ParseDocumentFailed, QueueStorageKeyMessage
 from pipeline_common.object_storage import ObjectStorageGateway
 from parsing.registry import ParserRegistry
 
@@ -29,9 +30,9 @@ class DocumentProcessingConfig(TypedDict):
 class QueueConfig(TypedDict):
     """Queue names used by parse worker."""
 
-    parse_queue: str
-    parse_dlq_queue: str
-    chunk_text_queue: str
+    parse: str
+    chunk_text: str
+    parse_dlq: str
 
 
 class StorageConfig(TypedDict):
@@ -56,13 +57,17 @@ class WorkerParseDocumentService(WorkerService):
     def __init__(
         self,
         *,
-        stage_queue: StageQueue,
+        parse_queue: StageQueue,
+        chunk_text_queue: StageQueue,
+        parse_dlq_queue: StageQueue,
         object_storage: ObjectStorageGateway,
         processing_config: DocumentProcessingConfig,
         parser_registry: ParserRegistry,
     ) -> None:
         """Initialize parse worker dependencies and runtime settings."""
-        self.stage_queue = stage_queue
+        self.parse_queue = parse_queue
+        self.chunk_text_queue = chunk_text_queue
+        self.parse_dlq_queue = parse_dlq_queue
         self.object_storage = object_storage
         self.parser_registry = parser_registry
         self._initialize_runtime_config(processing_config)
@@ -84,7 +89,7 @@ class WorkerParseDocumentService(WorkerService):
             logger.exception("Failed parsing source key '%s'; sent to DLQ", source_key)
             return
         self._write_processed_document(destination_key, payload)
-        self._enqueue_chunking(destination_key, doc_id)
+        self._enqueue_chunking(destination_key)
         logger.info("Wrote processed document '%s'", destination_key)
 
     def serve(self) -> None:
@@ -106,9 +111,10 @@ class WorkerParseDocumentService(WorkerService):
 
     def _pop_queued_source_key(self) -> str | None:
         """Pop one source key from parse queue when available."""
-        queued = self.stage_queue.pop(self.parse_queue_name)
-        if queued and isinstance(queued.get("raw_key"), str):
-            return str(queued["raw_key"])
+        queued = self.parse_queue.pop()
+        if queued and isinstance(queued.get("storage_key"), str):
+            message = QueueStorageKeyMessage(storage_key=str(queued["storage_key"]))
+            return message["storage_key"]
         return None
 
     def _scan_source_keys(self) -> list[str]:
@@ -151,27 +157,23 @@ class WorkerParseDocumentService(WorkerService):
         """Persist parsed document payload into the processed S3 stage."""
         self.object_storage.write_json(self.storage_bucket, destination_key, payload)
 
-    def _enqueue_chunking(self, destination_key: str, doc_id: str) -> None:
+    def _enqueue_chunking(self, destination_key: str) -> None:
         """Publish chunking work for a newly produced processed document."""
-        self.stage_queue.push(self.chunk_text_queue_name, {"processed_key": destination_key, "doc_id": doc_id})
+        self.chunk_text_queue.push(QueueStorageKeyMessage(storage_key=destination_key))
 
     def _enqueue_parse_dlq(self, source_key: str, doc_id: str, error: str) -> None:
         """Publish parse failures to DLQ for later inspection/retry."""
-        self.stage_queue.push(
-            self.parse_dlq_queue_name,
-            {
-                "raw_key": source_key,
-                "doc_id": doc_id,
-                "error": error,
-                "failed_at": utc_now_iso(),
-            },
+        self.parse_dlq_queue.push(
+            ParseDocumentFailed(
+                storage_key=source_key,
+                doc_id=doc_id,
+                error=error,
+                failed_at=utc_now_iso(),
+            ),
         )
 
     def _initialize_runtime_config(self, processing_config: DocumentProcessingConfig) -> None:
         self.poll_interval_seconds = processing_config["poll_interval_seconds"]
-        self.parse_queue_name = processing_config["queue"]["parse_queue"]
-        self.parse_dlq_queue_name = processing_config["queue"]["parse_dlq_queue"]
-        self.chunk_text_queue_name = processing_config["queue"]["chunk_text_queue"]
         self.storage_bucket = processing_config["storage"]["bucket"]
         self.raw_prefix = processing_config["storage"]["raw_prefix"]
         self.processed_prefix = processing_config["storage"]["processed_prefix"]

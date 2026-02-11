@@ -69,7 +69,7 @@ class WorkerParseDocumentService(WorkerService):
 
     def process_source_key(self, source_key: str) -> None:
         """Parse a single raw document key and publish downstream work."""
-        if not self._is_supported_source_key(source_key):
+        if not source_key.startswith(self.raw_prefix) or source_key == self.raw_prefix:
             return
 
         doc_id = doc_id_from_source_key(source_key)
@@ -88,44 +88,22 @@ class WorkerParseDocumentService(WorkerService):
         logger.info("Wrote processed document '%s'", destination_key)
 
     def serve(self) -> None:
-        """Run the parse worker loop by queue-first then S3-fallback polling."""
+        """Run the parse worker loop by polling queue messages."""
         while True:
-            for source_key in self._next_source_keys():
+            source_key = self._pop_queued_source_key()
+            if source_key is not None:
                 try:
                     self.process_source_key(source_key)
                 except Exception:
                     logger.exception("Failed processing source key '%s'", source_key)
             time.sleep(self.poll_interval_seconds)
 
-    def _next_source_keys(self) -> list[str]:
-        """Return source keys from queue first, then from S3 polling fallback."""
-        queued_source_key = self._pop_queued_source_key()
-        if queued_source_key is not None:
-            return [queued_source_key]
-        return self._scan_source_keys()
-
     def _pop_queued_source_key(self) -> str | None:
         """Pop one source key from parse queue when available."""
-        queued = self.stage_queue.pop()
-        if queued and isinstance(queued.get("storage_key"), str):
-            message = self.stage_queue.consume_contract(storage_key=str(queued["storage_key"]))
-            return message["storage_key"]
+        message = self.stage_queue.pop_message()
+        if message and isinstance(message.get("storage_key"), str):
+            return str(message["storage_key"])
         return None
-
-    def _scan_source_keys(self) -> list[str]:
-        """List supported source keys from storage raw prefix."""
-        return [
-            key
-            for key in self.object_storage.list_keys(self.storage_bucket, self.raw_prefix)
-            if self._is_supported_source_key(key)
-        ]
-
-    def _is_supported_source_key(self, source_key: str) -> bool:
-        """Return whether a source key is in the raw stage."""
-        return (
-            source_key.startswith(self.raw_prefix)
-            and source_key != self.raw_prefix
-        )
 
     def _processed_key(self, doc_id: str) -> str:
         """Build the processed-stage key for a document id."""
@@ -154,17 +132,15 @@ class WorkerParseDocumentService(WorkerService):
 
     def _enqueue_chunking(self, destination_key: str) -> None:
         """Publish chunking work for a newly produced processed document."""
-        self.stage_queue.push(self.stage_queue.produce_contract(storage_key=destination_key))
+        self.stage_queue.push_produce_message(storage_key=destination_key)
 
     def _enqueue_parse_dlq(self, source_key: str, doc_id: str, error: str) -> None:
         """Publish parse failures to DLQ for later inspection/retry."""
-        self.stage_queue.push_dlq(
-            self.stage_queue.dlq_contract(
-                storage_key=source_key,
-                doc_id=doc_id,
-                error=error,
-                failed_at=utc_now_iso(),
-            ),
+        self.stage_queue.push_dlq_message(
+            storage_key=source_key,
+            doc_id=doc_id,
+            error=error,
+            failed_at=utc_now_iso(),
         )
 
     def _initialize_runtime_config(self, processing_config: DocumentProcessingConfig) -> None:

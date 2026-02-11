@@ -31,6 +31,18 @@ class StageQueue:
         consume_timeout = self.timeout_seconds if timeout_seconds is None else timeout_seconds
         return self._consume(self.consume, timeout_seconds=consume_timeout)
 
+    def pop_message(self, timeout_seconds: int | None = None) -> dict[str, Any] | None:
+        payload = self.pop(timeout_seconds=timeout_seconds)
+        if payload is None:
+            return None
+        return self.consume_contract(**payload)
+
+    def push_produce_message(self, **payload: Any) -> None:
+        self.push(self.produce_contract(**payload))
+
+    def push_dlq_message(self, **payload: Any) -> None:
+        self.push_dlq(self.dlq_contract(**payload))
+
     def _publish(self, queue_name: str, payload: dict[str, Any]) -> None:
         if not self._channel:
             return

@@ -67,6 +67,17 @@ class WorkerParseDocumentService(WorkerService):
         self.parser_registry = parser_registry
         self._initialize_runtime_config(processing_config)
 
+    def serve(self) -> None:
+        """Run the parse worker loop by polling queue messages."""
+        while True:
+            source_key = self._pop_queued_source_key()
+            if source_key is not None:
+                try:
+                    self.process_source_key(source_key)
+                except Exception:
+                    logger.exception("Failed processing source key '%s'", source_key)
+            time.sleep(self.poll_interval_seconds)
+
     def process_source_key(self, source_key: str) -> None:
         """Parse a single raw document key and publish downstream work."""
         if not source_key.startswith(self.raw_prefix) or source_key == self.raw_prefix:
@@ -86,17 +97,6 @@ class WorkerParseDocumentService(WorkerService):
         self._write_processed_document(destination_key, payload)
         self._enqueue_chunking(destination_key)
         logger.info("Wrote processed document '%s'", destination_key)
-
-    def serve(self) -> None:
-        """Run the parse worker loop by polling queue messages."""
-        while True:
-            source_key = self._pop_queued_source_key()
-            if source_key is not None:
-                try:
-                    self.process_source_key(source_key)
-                except Exception:
-                    logger.exception("Failed processing source key '%s'", source_key)
-            time.sleep(self.poll_interval_seconds)
 
     def _pop_queued_source_key(self) -> str | None:
         """Pop one source key from parse queue when available."""

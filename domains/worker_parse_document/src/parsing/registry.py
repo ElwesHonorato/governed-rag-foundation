@@ -1,7 +1,6 @@
 from collections.abc import Iterable
 
 from parsing.base_parser import DocumentParser
-from parsing.html import HtmlParser
 
 
 class UnsupportedDocumentTypeError(ValueError):
@@ -45,8 +44,3 @@ class ParserRegistry:
         if "." not in normalized:
             return ""
         return normalized.rsplit(".", maxsplit=1)[1]
-
-
-def build_default_parser_registry() -> ParserRegistry:
-    """Build the production parser registry with built-in parser adapters."""
-    return ParserRegistry(parsers=[HtmlParser()])

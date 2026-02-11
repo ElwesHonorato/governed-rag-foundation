@@ -86,12 +86,23 @@ class WorkerParseDocumentService(WorkerService):
         doc_id = doc_id_from_source_key(source_key)
         destination_key = self._processed_key(doc_id)
         if self._processed_exists(destination_key):
+            self.stage_queue.push_dlq_message(
+                storage_key=source_key,
+                doc_id=doc_id,
+                error=f"Processed document already exists: {destination_key}",
+                failed_at=utc_now_iso(),
+            )
             return
 
         try:
             payload = self._build_processed_payload(source_key, doc_id)
         except Exception as exc:
-            self._enqueue_parse_dlq(source_key, doc_id, str(exc))
+            self.stage_queue.push_dlq_message(
+                storage_key=source_key,
+                doc_id=doc_id,
+                error=str(exc),
+                failed_at=utc_now_iso(),
+            )
             logger.exception("Failed parsing source key '%s'; sent to DLQ", source_key)
             return
         self._write_processed_document(destination_key, payload)
@@ -134,15 +145,6 @@ class WorkerParseDocumentService(WorkerService):
     def _enqueue_chunking(self, destination_key: str) -> None:
         """Publish chunking work for a newly produced processed document."""
         self.stage_queue.push_produce_message(storage_key=destination_key)
-
-    def _enqueue_parse_dlq(self, source_key: str, doc_id: str, error: str) -> None:
-        """Publish parse failures to DLQ for later inspection/retry."""
-        self.stage_queue.push_dlq_message(
-            storage_key=source_key,
-            doc_id=doc_id,
-            error=error,
-            failed_at=utc_now_iso(),
-        )
 
     def _initialize_runtime_config(self, processing_config: DocumentProcessingConfig) -> None:
         self.poll_interval_seconds = processing_config["poll_interval_seconds"]

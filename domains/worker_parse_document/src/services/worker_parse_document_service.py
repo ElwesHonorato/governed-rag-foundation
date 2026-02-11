@@ -55,13 +55,13 @@ class WorkerParseDocumentService(WorkerService):
         self,
         *,
         stage_queue: StageQueue,
-        storage: ObjectStorageGateway,
+        object_storage: ObjectStorageGateway,
         processing_config: DocumentProcessingConfig,
         parser_registry: ParserRegistry,
     ) -> None:
         """Initialize parse worker dependencies and runtime settings."""
         self.stage_queue = stage_queue
-        self.storage = storage
+        self.object_storage = object_storage
         self.processing_config = processing_config
         self.parser_registry = parser_registry
 
@@ -102,7 +102,7 @@ class WorkerParseDocumentService(WorkerService):
             return [str(queued["raw_key"])]
         return [
             key
-            for key in self.storage.list_keys(self._storage_bucket(), self._raw_prefix())
+            for key in self.object_storage.list_keys(self._storage_bucket(), self._raw_prefix())
             if self._is_supported_source_key(key)
         ]
 
@@ -120,12 +120,12 @@ class WorkerParseDocumentService(WorkerService):
 
     def _processed_exists(self, destination_key: str) -> bool:
         """Return whether the processed output already exists."""
-        return self.storage.object_exists(self._storage_bucket(), destination_key)
+        return self.object_storage.object_exists(self._storage_bucket(), destination_key)
 
     def _build_processed_payload(self, source_key: str, doc_id: str) -> dict[str, str]:
         """Parse a source document and map it into processed payload fields."""
         parser = self.parser_registry.resolve(source_key)
-        parsed_document = parser.parse(self.storage.read_text(self._storage_bucket(), source_key))
+        parsed_document = parser.parse(self.object_storage.read_text(self._storage_bucket(), source_key))
         return {
             "doc_id": doc_id,
             "source_key": source_key,
@@ -137,7 +137,7 @@ class WorkerParseDocumentService(WorkerService):
 
     def _write_processed_document(self, destination_key: str, payload: dict[str, str]) -> None:
         """Persist parsed document payload into the processed S3 stage."""
-        self.storage.write_json(self._storage_bucket(), destination_key, payload)
+        self.object_storage.write_json(self._storage_bucket(), destination_key, payload)
 
     def _enqueue_chunking(self, destination_key: str, doc_id: str) -> None:
         """Publish chunking work for a newly produced processed document."""

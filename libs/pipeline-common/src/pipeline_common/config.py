@@ -1,7 +1,9 @@
 import os
 
 
+
 def _required_env(name: str) -> str:
+    """Internal helper for required env."""
     value = os.getenv(name)
     if not value:
         raise ValueError(f"{name} is not configured")
@@ -9,11 +11,13 @@ def _required_env(name: str) -> str:
 
 
 def _optional_env(name: str, default: str) -> str:
+    """Internal helper for optional env."""
     value = os.getenv(name, default)
     return value.strip() or default
 
 
 def _required_int(name: str, default: int) -> int:
+    """Internal helper for required int."""
     raw = _optional_env(name, str(default))
     try:
         parsed = int(raw)

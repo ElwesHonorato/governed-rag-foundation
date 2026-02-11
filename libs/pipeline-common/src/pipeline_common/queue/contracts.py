@@ -1,12 +1,15 @@
 from dataclasses import dataclass
+
 from typing import TypedDict
 
 
 class QueueStorageKeyMessage(TypedDict):
+    """QueueStorageKeyMessage type definition."""
     storage_key: str
 
 
 class ParseDocumentFailed(TypedDict):
+    """ParseDocumentFailed type definition."""
     storage_key: str
     doc_id: str
     error: str
@@ -14,16 +17,19 @@ class ParseDocumentFailed(TypedDict):
 
 
 class IndexWeaviateRequested(TypedDict):
+    """IndexWeaviateRequested type definition."""
     embeddings_key: str
     doc_id: str
 
 
 class StageQueueContract(TypedDict):
+    """StageQueueContract type definition."""
     queue_name: str
     queue_contract: type
 
 
 class WorkerStageQueueContract(TypedDict):
+    """WorkerStageQueueContract type definition."""
     consume: StageQueueContract
     produce: StageQueueContract
     dlq: StageQueueContract
@@ -31,6 +37,7 @@ class WorkerStageQueueContract(TypedDict):
 
 @dataclass(frozen=True)
 class QueueDef:
+    """QueueDef type definition."""
     name: str
     contract: type
 
@@ -49,6 +56,7 @@ QUEUE_DEFINITIONS = {
 
 
 def queue_contract_for(q: QueueDef) -> StageQueueContract:
+    """Execute queue contract for."""
     return {"queue_name": q.name, "queue_contract": q.contract}
 
 

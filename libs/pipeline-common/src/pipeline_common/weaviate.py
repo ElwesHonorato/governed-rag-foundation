@@ -5,6 +5,7 @@ from urllib import request
 
 
 def _http_json(url: str, method: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Internal helper for http json."""
     data = None
     headers = {"Content-Type": "application/json"}
     if payload is not None:
@@ -16,6 +17,7 @@ def _http_json(url: str, method: str, payload: dict[str, Any] | None = None) -> 
 
 
 def ensure_schema(weaviate_url: str) -> None:
+    """Execute ensure schema."""
     schema_url = f"{weaviate_url.rstrip('/')}/v1/schema"
     schema = _http_json(schema_url, "GET")
     classes = {c.get("class") for c in schema.get("classes", [])}
@@ -40,6 +42,7 @@ def ensure_schema(weaviate_url: str) -> None:
 
 
 def _stable_uuid_from_chunk_id(chunk_id: str) -> str:
+    """Internal helper for stable uuid from chunk id."""
     normalized = (chunk_id or "").replace("-", "")
     hex32 = (normalized[:32]).ljust(32, "0")
     return (
@@ -49,6 +52,7 @@ def _stable_uuid_from_chunk_id(chunk_id: str) -> str:
 
 
 def upsert_chunk(weaviate_url: str, *, chunk_id: str, vector: list[float], properties: dict[str, Any]) -> None:
+    """Execute upsert chunk."""
     object_id = _stable_uuid_from_chunk_id(chunk_id)
     url = f"{weaviate_url.rstrip('/')}/v1/objects/{object_id}"
     payload = {
@@ -61,6 +65,7 @@ def upsert_chunk(weaviate_url: str, *, chunk_id: str, vector: list[float], prope
 
 
 def verify_query(weaviate_url: str, phrase: str) -> dict[str, Any]:
+    """Execute verify query."""
     url = f"{weaviate_url.rstrip('/')}/v1/graphql"
     gql = {
         "query": (

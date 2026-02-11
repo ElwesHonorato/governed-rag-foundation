@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 
 @dataclass
 class Counters:
+    """Counters type definition."""
     files_processed: int = 0
     chunks_created: int = 0
     embedding_artifacts: int = 0
@@ -12,10 +13,12 @@ class Counters:
     _worker_name: str = field(default="worker")
 
     def for_worker(self, worker_name: str) -> "Counters":
+        """Execute for worker."""
         self._worker_name = worker_name
         return self
 
     def emit(self) -> None:
+        """Execute emit."""
         print(
             f"[{self._worker_name}] counters "
             f"files_processed={self.files_processed} "

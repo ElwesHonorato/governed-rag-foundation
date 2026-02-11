@@ -3,6 +3,7 @@ import re
 
 
 def chunk_text(text: str, *, target_size: int = 700) -> list[str]:
+    """Execute chunk text."""
     paragraphs = [p.strip() for p in text.split("\n") if p.strip()]
     chunks: list[str] = []
     current = ""

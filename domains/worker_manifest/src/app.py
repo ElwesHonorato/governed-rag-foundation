@@ -1,12 +1,13 @@
 
 from pipeline_common.object_storage import ObjectStorageGateway, S3Client
-from configs.constants import S3_BUCKET
+from configs.constants import MANIFEST_PROCESSING_CONFIG
 from configs.configs import WorkerS3LoopSettings
 from services.worker_manifest_service import WorkerManifestService
 
 
 def run() -> None:
     settings = WorkerS3LoopSettings.from_env()
+    processing_config = MANIFEST_PROCESSING_CONFIG
     storage = ObjectStorageGateway(
         S3Client(
             endpoint_url=settings.s3_endpoint,
@@ -17,7 +18,7 @@ def run() -> None:
     )
     WorkerManifestService(
         storage=storage,
-        storage_bucket=S3_BUCKET,
+        storage_bucket=processing_config["storage"]["bucket"],
         poll_interval_seconds=settings.poll_interval_seconds,
     ).serve()
 

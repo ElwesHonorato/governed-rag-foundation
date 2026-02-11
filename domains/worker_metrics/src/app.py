@@ -20,7 +20,7 @@ def run() -> None:
     )
     WorkerMetricsService(
         counters=counters,
-        storage=object_storage,
+        object_storage=object_storage,
         processing_config=processing_config,
     ).serve()
 

@@ -2,6 +2,7 @@
 from abc import ABC, abstractmethod
 import hashlib
 import time
+from typing import TypedDict
 
 from pipeline_common.queue import StageQueue
 from pipeline_common.queue.contracts import IndexWeaviateRequested, QueueStorageKeyMessage
@@ -14,20 +15,27 @@ class WorkerService(ABC):
         """Run the worker loop indefinitely."""
 
 
+class StorageConfig(TypedDict):
+    bucket: str
+
+
+class EmbedChunksProcessingConfig(TypedDict):
+    poll_interval_seconds: int
+    storage: StorageConfig
+
+
 class WorkerEmbedChunksService(WorkerService):
     def __init__(
         self,
         *,
         stage_queue: StageQueue,
         storage: ObjectStorageGateway,
-        storage_bucket: str,
-        poll_interval_seconds: int,
+        processing_config: EmbedChunksProcessingConfig,
         dimension: int,
     ) -> None:
         self.stage_queue = stage_queue
         self.storage = storage
-        self.storage_bucket = storage_bucket
-        self.poll_interval_seconds = poll_interval_seconds
+        self._initialize_runtime_config(processing_config)
         self.dimension = dimension
 
     def deterministic_embedding(self, text: str) -> list[float]:
@@ -89,3 +97,7 @@ class WorkerEmbedChunksService(WorkerService):
                     self.process_source_key(source_key)
 
             time.sleep(self.poll_interval_seconds)
+
+    def _initialize_runtime_config(self, processing_config: EmbedChunksProcessingConfig) -> None:
+        self.poll_interval_seconds = processing_config["poll_interval_seconds"]
+        self.storage_bucket = processing_config["storage"]["bucket"]

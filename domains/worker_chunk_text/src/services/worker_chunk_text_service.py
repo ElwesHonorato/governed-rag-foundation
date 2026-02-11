@@ -1,6 +1,7 @@
 
 from abc import ABC, abstractmethod
 import time
+from typing import TypedDict
 
 from pipeline_common.contracts import chunk_id_for
 from pipeline_common.queue import StageQueue
@@ -15,19 +16,26 @@ class WorkerService(ABC):
         """Run the worker loop indefinitely."""
 
 
+class StorageConfig(TypedDict):
+    bucket: str
+
+
+class ChunkTextProcessingConfig(TypedDict):
+    poll_interval_seconds: int
+    storage: StorageConfig
+
+
 class WorkerChunkTextService(WorkerService):
     def __init__(
         self,
         *,
         stage_queue: StageQueue,
         storage: ObjectStorageGateway,
-        storage_bucket: str,
-        poll_interval_seconds: int,
+        processing_config: ChunkTextProcessingConfig,
     ) -> None:
         self.stage_queue = stage_queue
         self.storage = storage
-        self.storage_bucket = storage_bucket
-        self.poll_interval_seconds = poll_interval_seconds
+        self._initialize_runtime_config(processing_config)
 
     def process_source_key(self, source_key: str) -> None:
         if not source_key.startswith("03_processed/"):
@@ -77,3 +85,7 @@ class WorkerChunkTextService(WorkerService):
                     self.process_source_key(source_key)
 
             time.sleep(self.poll_interval_seconds)
+
+    def _initialize_runtime_config(self, processing_config: ChunkTextProcessingConfig) -> None:
+        self.poll_interval_seconds = processing_config["poll_interval_seconds"]
+        self.storage_bucket = processing_config["storage"]["bucket"]

@@ -26,9 +26,8 @@ def run() -> None:
     WorkerIndexWeaviateService(
         stage_queue=stage_queue,
         storage=object_storage,
-        storage_bucket=processing_config["storage"]["bucket"],
+        processing_config=processing_config,
         weaviate_url=weaviate_url,
-        poll_interval_seconds=processing_config["poll_interval_seconds"],
     ).serve()
 
 

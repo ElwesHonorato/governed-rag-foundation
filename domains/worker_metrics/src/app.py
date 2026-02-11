@@ -21,8 +21,7 @@ def run() -> None:
     WorkerMetricsService(
         counters=counters,
         storage=object_storage,
-        storage_bucket=processing_config["storage"]["bucket"],
-        poll_interval_seconds=processing_config["poll_interval_seconds"],
+        processing_config=processing_config,
     ).serve()
 
 

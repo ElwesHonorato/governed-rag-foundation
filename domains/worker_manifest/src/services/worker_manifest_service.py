@@ -1,6 +1,7 @@
 
 from abc import ABC, abstractmethod
 import time
+from typing import TypedDict
 
 from pipeline_common.object_storage import ObjectStorageGateway
 
@@ -11,11 +12,24 @@ class WorkerService(ABC):
         """Run the worker loop indefinitely."""
 
 
+class StorageConfig(TypedDict):
+    bucket: str
+
+
+class ManifestProcessingConfig(TypedDict):
+    poll_interval_seconds: int
+    storage: StorageConfig
+
+
 class WorkerManifestService(WorkerService):
-    def __init__(self, *, storage: ObjectStorageGateway, storage_bucket: str, poll_interval_seconds: int) -> None:
+    def __init__(
+        self,
+        *,
+        storage: ObjectStorageGateway,
+        processing_config: ManifestProcessingConfig,
+    ) -> None:
         self.storage = storage
-        self.storage_bucket = storage_bucket
-        self.poll_interval_seconds = poll_interval_seconds
+        self._initialize_runtime_config(processing_config)
 
     def serve(self) -> None:
         while True:
@@ -43,3 +57,7 @@ class WorkerManifestService(WorkerService):
                 self.storage.write_json(self.storage_bucket, manifest_key, status)
 
             time.sleep(self.poll_interval_seconds)
+
+    def _initialize_runtime_config(self, processing_config: ManifestProcessingConfig) -> None:
+        self.poll_interval_seconds = processing_config["poll_interval_seconds"]
+        self.storage_bucket = processing_config["storage"]["bucket"]

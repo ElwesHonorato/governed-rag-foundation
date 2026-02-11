@@ -1,6 +1,7 @@
 
 from abc import ABC, abstractmethod
 import time
+from typing import TypedDict
 
 from pipeline_common.observability import Counters
 from pipeline_common.object_storage import ObjectStorageGateway
@@ -12,19 +13,26 @@ class WorkerService(ABC):
         """Run the worker loop indefinitely."""
 
 
+class StorageConfig(TypedDict):
+    bucket: str
+
+
+class MetricsProcessingConfig(TypedDict):
+    poll_interval_seconds: int
+    storage: StorageConfig
+
+
 class WorkerMetricsService(WorkerService):
     def __init__(
         self,
         *,
         counters: Counters,
         storage: ObjectStorageGateway,
-        storage_bucket: str,
-        poll_interval_seconds: int,
+        processing_config: MetricsProcessingConfig,
     ) -> None:
         self.counters = counters
         self.storage = storage
-        self.storage_bucket = storage_bucket
-        self.poll_interval_seconds = poll_interval_seconds
+        self._initialize_runtime_config(processing_config)
 
     @staticmethod
     def _count_suffix(keys: list[str], suffix: str) -> int:
@@ -43,3 +51,7 @@ class WorkerMetricsService(WorkerService):
             self.counters.index_upserts = self._count_suffix(indexed, ".indexed.json")
             self.counters.emit()
             time.sleep(self.poll_interval_seconds)
+
+    def _initialize_runtime_config(self, processing_config: MetricsProcessingConfig) -> None:
+        self.poll_interval_seconds = processing_config["poll_interval_seconds"]
+        self.storage_bucket = processing_config["storage"]["bucket"]

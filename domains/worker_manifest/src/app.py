@@ -1,5 +1,4 @@
 
-from pipeline_common.config import _required_int
 from pipeline_common.object_storage import ObjectStorageGateway, S3Client
 from pipeline_common.settings import S3StorageSettings
 from configs.constants import MANIFEST_PROCESSING_CONFIG
@@ -8,7 +7,6 @@ from services.worker_manifest_service import WorkerManifestService
 
 def run() -> None:
     s3_settings = S3StorageSettings.from_env()
-    poll_interval_seconds = _required_int("WORKER_POLL_INTERVAL_SECONDS", 30)
     processing_config = MANIFEST_PROCESSING_CONFIG
     object_storage = ObjectStorageGateway(
         S3Client(
@@ -21,7 +19,7 @@ def run() -> None:
     WorkerManifestService(
         storage=object_storage,
         storage_bucket=processing_config["storage"]["bucket"],
-        poll_interval_seconds=poll_interval_seconds,
+        poll_interval_seconds=processing_config["poll_interval_seconds"],
     ).serve()
 
 

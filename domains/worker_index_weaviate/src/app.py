@@ -28,7 +28,7 @@ def run() -> None:
         storage=object_storage,
         storage_bucket=processing_config["storage"]["bucket"],
         weaviate_url=weaviate_url,
-        poll_interval_seconds=queue_settings.poll_interval_seconds,
+        poll_interval_seconds=processing_config["poll_interval_seconds"],
     ).serve()
 
 

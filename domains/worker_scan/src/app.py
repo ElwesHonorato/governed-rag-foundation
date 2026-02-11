@@ -30,7 +30,7 @@ def run() -> None:
     )
     WorkerScanService(
         processor=processor,
-        poll_interval_seconds=queue_settings.poll_interval_seconds,
+        poll_interval_seconds=processing_config["poll_interval_seconds"],
     ).serve()
 
 

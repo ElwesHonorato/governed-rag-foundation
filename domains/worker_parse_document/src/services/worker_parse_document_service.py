@@ -25,6 +25,7 @@ class SecurityConfig(TypedDict):
 class DocumentProcessingConfig(TypedDict):
     """Runtime config for parse worker queues, storage, polling, and metadata."""
 
+    poll_interval_seconds: int
     queue: "QueueConfig"
     storage: "StorageConfig"
     security: SecurityConfig

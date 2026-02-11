@@ -26,7 +26,7 @@ def run() -> None:
         stage_queue=stage_queue,
         storage=object_storage,
         storage_bucket=processing_config["storage"]["bucket"],
-        poll_interval_seconds=queue_settings.poll_interval_seconds,
+        poll_interval_seconds=processing_config["poll_interval_seconds"],
         dimension=dimension,
     ).serve()
 

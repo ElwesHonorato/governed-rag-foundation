@@ -1,6 +1,5 @@
 
 from pipeline_common.observability import Counters
-from pipeline_common.config import _required_int
 from pipeline_common.object_storage import ObjectStorageGateway, S3Client
 from pipeline_common.settings import S3StorageSettings
 from configs.constants import METRICS_PROCESSING_CONFIG
@@ -9,7 +8,6 @@ from services.worker_metrics_service import WorkerMetricsService
 
 def run() -> None:
     s3_settings = S3StorageSettings.from_env()
-    poll_interval_seconds = _required_int("WORKER_POLL_INTERVAL_SECONDS", 30)
     processing_config = METRICS_PROCESSING_CONFIG
     counters = Counters().for_worker("worker_metrics")
     object_storage = ObjectStorageGateway(
@@ -24,7 +22,7 @@ def run() -> None:
         counters=counters,
         storage=object_storage,
         storage_bucket=processing_config["storage"]["bucket"],
-        poll_interval_seconds=poll_interval_seconds,
+        poll_interval_seconds=processing_config["poll_interval_seconds"],
     ).serve()
 
 

@@ -23,14 +23,11 @@ def run() -> None:
     processor = StorageScanCycleProcessor(
         storage=object_storage,
         stage_queue=stage_queue,
-        bucket=processing_config["storage"]["bucket"],
-        source_prefix=processing_config["storage"]["incoming_prefix"],
-        destination_prefix=processing_config["storage"]["raw_prefix"],
-        extensions=processing_config["filters"]["extensions"],
+        processing_config=processing_config,
     )
     WorkerScanService(
         processor=processor,
-        poll_interval_seconds=processing_config["poll_interval_seconds"],
+        processing_config=processing_config,
     ).serve()
 
 

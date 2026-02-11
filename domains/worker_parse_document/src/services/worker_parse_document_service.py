@@ -1,15 +1,10 @@
 from abc import ABC, abstractmethod
 import logging
 import time
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from pipeline_common.contracts import doc_id_from_source_key, utc_now_iso
 from pipeline_common.queue import StageQueue
-from pipeline_common.queue.contracts import (
-    ParseDocumentFailed,
-    QueueStorageKeyMessage,
-    WorkerStageQueueContract,
-)
 from pipeline_common.object_storage import ObjectStorageGateway
 from parsing.registry import ParserRegistry
 
@@ -43,7 +38,7 @@ class QueueConfig(TypedDict):
     """Queue contract and timeout settings for parse worker."""
 
     stage: str
-    stage_queues: dict[str, WorkerStageQueueContract]
+    stage_queues: dict[str, Any]
     queue_pop_timeout_seconds: int
 
 
@@ -113,7 +108,7 @@ class WorkerParseDocumentService(WorkerService):
         """Pop one source key from parse queue when available."""
         queued = self.stage_queue.pop()
         if queued and isinstance(queued.get("storage_key"), str):
-            message = QueueStorageKeyMessage(storage_key=str(queued["storage_key"]))
+            message = self.stage_queue.consume_contract(storage_key=str(queued["storage_key"]))
             return message["storage_key"]
         return None
 
@@ -159,12 +154,12 @@ class WorkerParseDocumentService(WorkerService):
 
     def _enqueue_chunking(self, destination_key: str) -> None:
         """Publish chunking work for a newly produced processed document."""
-        self.stage_queue.push(QueueStorageKeyMessage(storage_key=destination_key))
+        self.stage_queue.push(self.stage_queue.produce_contract(storage_key=destination_key))
 
     def _enqueue_parse_dlq(self, source_key: str, doc_id: str, error: str) -> None:
         """Publish parse failures to DLQ for later inspection/retry."""
         self.stage_queue.push_dlq(
-            ParseDocumentFailed(
+            self.stage_queue.dlq_contract(
                 storage_key=source_key,
                 doc_id=doc_id,
                 error=error,

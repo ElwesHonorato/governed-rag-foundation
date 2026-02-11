@@ -69,3 +69,6 @@ class StageQueue:
         self.consume = stage_queue_contract["consume"]["queue_name"]
         self.produce = stage_queue_contract["produce"]["queue_name"]
         self.dlq = stage_queue_contract["dlq"]["queue_name"]
+        self.consume_contract = stage_queue_contract["consume"]["queue_contract"]
+        self.produce_contract = stage_queue_contract["produce"]["queue_contract"]
+        self.dlq_contract = stage_queue_contract["dlq"]["queue_contract"]

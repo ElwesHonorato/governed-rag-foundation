@@ -24,16 +24,14 @@ class S3StorageSettings:
 
 @dataclass(frozen=True)
 class QueueRuntimeSettings:
-    """Queue and poll-loop settings for workers."""
+    """Queue runtime settings for workers."""
 
     broker_url: str
-    poll_interval_seconds: int
     queue_pop_timeout_seconds: int
 
     @classmethod
     def from_env(cls) -> "QueueRuntimeSettings":
         return cls(
             broker_url=_required_env("BROKER_URL"),
-            poll_interval_seconds=_required_int("WORKER_POLL_INTERVAL_SECONDS", 30),
             queue_pop_timeout_seconds=_required_int("QUEUE_POP_TIMEOUT_SECONDS", 1),
         )

@@ -17,7 +17,7 @@ def run() -> None:
         )
     )
     WorkerManifestService(
-        storage=object_storage,
+        object_storage=object_storage,
         processing_config=processing_config,
     ).serve()
 

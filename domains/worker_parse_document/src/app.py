@@ -1,8 +1,7 @@
 from pipeline_common.queue import StageQueue
-from pipeline_common.queue.contracts import WORKER_STAGE_QUEUES
 from pipeline_common.object_storage import ObjectStorageGateway, S3Client
 from pipeline_common.settings import QueueRuntimeSettings, S3StorageSettings
-from configs.constants import PROCESSING_CONFIG_DEFAULT
+from configs.constants import PROCESSING_CONFIG_DEFAULT, QUEUE_CONFIG_DEFAULT
 from parsing.html import HtmlParser
 from parsing.registry import ParserRegistry
 from services.worker_parse_document_service import WorkerParseDocumentService
@@ -11,11 +10,7 @@ from services.worker_parse_document_service import WorkerParseDocumentService
 def run() -> None:
     s3_settings = S3StorageSettings.from_env()
     queue_settings = QueueRuntimeSettings.from_env()
-    stage_queue = StageQueue(
-        queue_settings.broker_url,
-        stage="parse_document",
-        stage_queues=WORKER_STAGE_QUEUES,
-    )
+    stage_queue = StageQueue(queue_settings.broker_url, queue_config=QUEUE_CONFIG_DEFAULT)
     parser_registry = ParserRegistry(parsers=[HtmlParser()])
     object_storage = ObjectStorageGateway(
         S3Client(

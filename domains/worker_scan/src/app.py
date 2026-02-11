@@ -1,7 +1,6 @@
 from pipeline_common.queue import StageQueue
-from pipeline_common.queue.contracts import WORKER_STAGE_QUEUES
 from pipeline_common.object_storage import ObjectStorageGateway, S3Client
-from configs.constants import HTML_EXTENSIONS, INCOMING_PREFIX, RAW_PREFIX, S3_BUCKET
+from configs.constants import HTML_EXTENSIONS, INCOMING_PREFIX, QUEUE_CONFIG_DEFAULT, RAW_PREFIX, S3_BUCKET
 from configs.configs import WorkerS3QueueLoopSettings
 from services.scan_cycle_processor import StorageScanCycleProcessor
 from services.worker_scan_service import WorkerScanService
@@ -9,7 +8,7 @@ from services.worker_scan_service import WorkerScanService
 
 def run() -> None:
     settings = WorkerS3QueueLoopSettings.from_env()
-    stage_queue = StageQueue(settings.broker_url, stage="scan", stage_queues=WORKER_STAGE_QUEUES)
+    stage_queue = StageQueue(settings.broker_url, queue_config=QUEUE_CONFIG_DEFAULT)
     storage = ObjectStorageGateway(
         S3Client(
             endpoint_url=settings.s3_endpoint,

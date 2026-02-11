@@ -3,20 +3,23 @@ import time
 from typing import Any
 
 import pika
-from pipeline_common.queue.contracts import StageQueueContract, WORKER_STAGE_QUEUES
+from pipeline_common.queue.contracts import StageQueueContract
 
 
 class StageQueue:
+    stage: str
+    stage_queues: dict[str, StageQueueContract]
+    timeout_seconds: int
+
     def __init__(
         self,
         broker_url: str,
-        stage: str,
-        stage_queues: dict[str, StageQueueContract] = WORKER_STAGE_QUEUES,
+        queue_config: dict[str, Any],
     ) -> None:
         self._enabled = pika is not None
         self._connection = pika.BlockingConnection(pika.URLParameters(broker_url)) if self._enabled else None
         self._channel = self._connection.channel() if self._connection else None
-        self._initialize_stage_contract(stage=stage, stage_queues=stage_queues)
+        self._initialize_stage_contract(queue_config=queue_config)
 
     def push(self, payload: dict[str, Any]) -> None:
         self._publish(self.produce, payload)
@@ -24,8 +27,9 @@ class StageQueue:
     def push_dlq(self, payload: dict[str, Any]) -> None:
         self._publish(self.dlq, payload)
 
-    def pop(self, timeout_seconds: int) -> dict[str, Any] | None:
-        return self._consume(self.consume, timeout_seconds=timeout_seconds)
+    def pop(self, timeout_seconds: int | None = None) -> dict[str, Any] | None:
+        consume_timeout = self.timeout_seconds if timeout_seconds is None else timeout_seconds
+        return self._consume(self.consume, timeout_seconds=consume_timeout)
 
     def _publish(self, queue_name: str, payload: dict[str, Any]) -> None:
         if not self._channel:
@@ -54,12 +58,14 @@ class StageQueue:
     def _initialize_stage_contract(
         self,
         *,
-        stage: str,
-        stage_queues: dict[str, StageQueueContract],
+        queue_config: dict[str, Any],
     ) -> None:
-        if stage not in stage_queues:
-            raise ValueError(f"Unknown stage queue contract: {stage}")
-        contract = stage_queues[stage]
-        self.consume = contract["consume"]
-        self.produce = contract["produce"]
-        self.dlq = contract["dlq"]
+        self.stage = str(queue_config["stage"])
+        self.stage_queues = queue_config["stage_queues"]
+        self.timeout_seconds = int(queue_config["queue_pop_timeout_seconds"])
+        if self.stage not in self.stage_queues:
+            raise ValueError(f"Unknown stage queue contract: {self.stage}")
+        stage_queue_contract = self.stage_queues[self.stage]
+        self.consume = stage_queue_contract["consume"]
+        self.produce = stage_queue_contract["produce"]
+        self.dlq = stage_queue_contract["dlq"]

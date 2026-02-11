@@ -21,7 +21,6 @@ class SecurityConfig(TypedDict):
 class DocumentProcessingConfig(TypedDict):
     """Runtime config for parse worker queues, storage, polling, and metadata."""
 
-    queue_pop_timeout_seconds: int
     storage: "StorageConfig"
     security: SecurityConfig
 
@@ -100,7 +99,7 @@ class WorkerParseDocumentService(WorkerService):
 
     def _pop_queued_source_key(self) -> str | None:
         """Pop one source key from parse queue when available."""
-        queued = self.stage_queue.pop(timeout_seconds=self.queue_pop_timeout_seconds)
+        queued = self.stage_queue.pop()
         if queued and isinstance(queued.get("storage_key"), str):
             message = QueueStorageKeyMessage(storage_key=str(queued["storage_key"]))
             return message["storage_key"]
@@ -162,7 +161,6 @@ class WorkerParseDocumentService(WorkerService):
         )
 
     def _initialize_runtime_config(self, processing_config: DocumentProcessingConfig) -> None:
-        self.queue_pop_timeout_seconds = processing_config["queue_pop_timeout_seconds"]
         self.storage_bucket = processing_config["storage"]["bucket"]
         self.raw_prefix = processing_config["storage"]["raw_prefix"]
         self.processed_prefix = processing_config["storage"]["processed_prefix"]

@@ -4,7 +4,7 @@ import time
 
 from pipeline_common.contracts import chunk_id_for
 from pipeline_common.queue import StageQueue
-from pipeline_common.s3 import ObjectStorageGateway
+from pipeline_common.object_storage import ObjectStorageGateway
 from pipeline_common.text import chunk_text
 
 

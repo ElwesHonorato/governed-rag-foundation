@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import time
 
 from pipeline_common.queue import StageQueue
-from pipeline_common.s3 import ObjectStorageGateway
+from pipeline_common.object_storage import ObjectStorageGateway
 from pipeline_common.weaviate import upsert_chunk, verify_query
 
 

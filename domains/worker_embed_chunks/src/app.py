@@ -2,7 +2,7 @@
 import os
 
 from pipeline_common.queue import StageQueue
-from pipeline_common.s3 import ObjectStorageGateway, S3Client
+from pipeline_common.object_storage import ObjectStorageGateway, S3Client
 from configs.constants import S3_BUCKET
 from configs.configs import WorkerS3QueueLoopSettings
 from services.worker_embed_chunks_service import WorkerEmbedChunksService

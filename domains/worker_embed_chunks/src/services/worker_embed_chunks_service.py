@@ -4,7 +4,7 @@ import hashlib
 import time
 
 from pipeline_common.queue import StageQueue
-from pipeline_common.s3 import ObjectStorageGateway
+from pipeline_common.object_storage import ObjectStorageGateway
 
 
 class WorkerService(ABC):

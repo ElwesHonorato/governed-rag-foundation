@@ -1,5 +1,5 @@
 from pipeline_common.queue import StageQueue
-from pipeline_common.s3 import ObjectStorageGateway, S3Client
+from pipeline_common.object_storage import ObjectStorageGateway, S3Client
 from configs.constants import HTML_EXTENSIONS, INCOMING_PREFIX, PARSE_QUEUE, RAW_PREFIX, S3_BUCKET
 from configs.configs import WorkerS3QueueLoopSettings
 from services.scan_cycle_processor import S3ScanCycleProcessor

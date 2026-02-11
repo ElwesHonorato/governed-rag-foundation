@@ -5,7 +5,7 @@ from typing import TypedDict
 
 from pipeline_common.contracts import doc_id_from_source_key, utc_now_iso
 from pipeline_common.queue import StageQueue
-from pipeline_common.s3 import ObjectStorageGateway
+from pipeline_common.object_storage import ObjectStorageGateway
 from parsing.registry import ParserRegistry
 
 logger = logging.getLogger(__name__)

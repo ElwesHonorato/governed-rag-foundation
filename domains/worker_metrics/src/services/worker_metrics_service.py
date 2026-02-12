@@ -51,6 +51,11 @@ class WorkerMetricsService(WorkerService):
         """Internal helper for count suffix."""
         return sum(1 for key in keys if key.endswith(suffix))
 
+    @staticmethod
+    def _count_suffixes(keys: list[str], suffixes: tuple[str, ...]) -> int:
+        """Count keys that end with any suffix from the provided tuple."""
+        return sum(1 for key in keys if key.endswith(suffixes))
+
     def serve(self) -> None:
         """Run the worker loop indefinitely."""
         while True:
@@ -60,8 +65,10 @@ class WorkerMetricsService(WorkerService):
             indexed = self.object_storage.list_keys(self.storage_bucket, self.indexes_prefix)
 
             self.counters.files_processed = self._count_suffix(processed, ".json")
-            self.counters.chunks_created = self._count_suffix(chunks, ".chunks.json")
-            self.counters.embedding_artifacts = self._count_suffix(embeddings, ".embeddings.json")
+            self.counters.chunks_created = self._count_suffixes(chunks, (".chunk.json", ".chunks.json"))
+            self.counters.embedding_artifacts = self._count_suffixes(
+                embeddings, (".embedding.json", ".embeddings.json")
+            )
             self.counters.index_upserts = self._count_suffix(indexed, ".indexed.json")
             self.counters.emit()
             time.sleep(self.poll_interval_seconds)

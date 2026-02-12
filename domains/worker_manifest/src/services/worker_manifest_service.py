@@ -64,14 +64,20 @@ class WorkerManifestService(WorkerService):
                         "parse_document": self.object_storage.object_exists(
                             self.storage_bucket, f"{self.processed_prefix}{doc_id}.json"
                         ),
-                        "chunk_text": self.object_storage.object_exists(
-                            self.storage_bucket, f"{self.chunks_prefix}{doc_id}.chunks.json"
+                        "chunk_text": self._any_stage_object_exists(
+                            self.chunks_prefix,
+                            doc_id,
+                            (".chunk.json", ".chunks.json"),
                         ),
-                        "embed_chunks": self.object_storage.object_exists(
-                            self.storage_bucket, f"{self.embeddings_prefix}{doc_id}.embeddings.json"
+                        "embed_chunks": self._any_stage_object_exists(
+                            self.embeddings_prefix,
+                            doc_id,
+                            (".embedding.json", ".embeddings.json"),
                         ),
-                        "index_weaviate": self.object_storage.object_exists(
-                            self.storage_bucket, f"{self.indexes_prefix}{doc_id}.indexed.json"
+                        "index_weaviate": self._any_stage_object_exists(
+                            self.indexes_prefix,
+                            doc_id,
+                            (".indexed.json",),
                         ),
                     },
                     "attempts": 1,
@@ -85,6 +91,12 @@ class WorkerManifestService(WorkerService):
                 )
 
             time.sleep(self.poll_interval_seconds)
+
+    def _any_stage_object_exists(self, stage_prefix: str, doc_id: str, suffixes: tuple[str, ...]) -> bool:
+        """Return whether any stage object exists for the document id."""
+        doc_prefix = f"{stage_prefix}{doc_id}"
+        stage_keys = self.object_storage.list_keys(self.storage_bucket, doc_prefix)
+        return any(key != doc_prefix and key.endswith(suffixes) for key in stage_keys)
 
     def _initialize_runtime_config(self, processing_config: ManifestProcessingConfig) -> None:
         """Internal helper for initialize runtime config."""

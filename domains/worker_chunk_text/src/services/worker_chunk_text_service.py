@@ -73,7 +73,7 @@ class WorkerChunkTextService(WorkerService):
             time.sleep(self.poll_interval_seconds)
 
     def process_source_key(self, source_key: str) -> None:
-        """Chunk one processed document and publish downstream work."""
+        """Chunk one processed document and publish per-chunk downstream work."""
         if not source_key.startswith(self.processed_prefix) or source_key == self.processed_prefix:
             return
         if not source_key.endswith(self.processed_suffix):
@@ -81,15 +81,15 @@ class WorkerChunkTextService(WorkerService):
 
         processed = self._read_processed_object(source_key)
         doc_id = str(processed["doc_id"])
-        destination_key = self._chunks_key(doc_id)
-        if self._chunks_exists(destination_key):
-            self.stage_queue.push_dlq_message(storage_key=source_key)
-            return
-
-        payload = self._process_object(processed, doc_id)
-        self._write_chunked_object(destination_key, payload)
-        self._enqueue_chunked_object(destination_key)
-        logger.info("Wrote chunks '%s'", destination_key)
+        chunk_records = self._build_chunk_records(processed, doc_id)
+        written = 0
+        for chunk_record in chunk_records:
+            destination_key = self._chunk_object_key(doc_id, str(chunk_record["chunk_id"]))
+            if not self._chunk_object_exists(destination_key):
+                self._write_chunk_object(destination_key, chunk_record)
+                written += 1
+            self._enqueue_chunk_object(destination_key)
+        logger.info("Wrote %d chunk objects for doc_id '%s'", written, doc_id)
 
     def _pop_queued_source_key(self) -> str | None:
         """Pop one processed object key from chunking queue when available."""
@@ -98,12 +98,12 @@ class WorkerChunkTextService(WorkerService):
             return None
         return str(message["storage_key"])
 
-    def _chunks_key(self, doc_id: str) -> str:
-        """Build the chunks-stage key for a document id."""
-        return f"{self.chunks_prefix}{doc_id}.chunks.json"
+    def _chunk_object_key(self, doc_id: str, chunk_id: str) -> str:
+        """Build one chunk object key scoped under the document id."""
+        return f"{self.chunks_prefix}{doc_id}/{chunk_id}.chunk.json"
 
-    def _chunks_exists(self, destination_key: str) -> bool:
-        """Return whether the chunked output already exists."""
+    def _chunk_object_exists(self, destination_key: str) -> bool:
+        """Return whether one chunk object already exists."""
         return self.object_storage.object_exists(self.storage_bucket, destination_key)
 
     def _read_processed_object(self, source_key: str) -> dict[str, Any]:
@@ -111,8 +111,8 @@ class WorkerChunkTextService(WorkerService):
         raw_payload = self.object_storage.read_object(self.storage_bucket, source_key)
         return dict(json.loads(raw_payload.decode("utf-8", errors="ignore")))
 
-    def _process_object(self, processed: dict[str, Any], doc_id: str) -> dict[str, Any]:
-        """Map a processed payload into deterministic chunk records."""
+    def _build_chunk_records(self, processed: dict[str, Any], doc_id: str) -> list[dict[str, Any]]:
+        """Map a processed payload into deterministic per-chunk records."""
         parsed_payload = processed.get("parsed")
         parsed_text = parsed_payload.get("text", "") if isinstance(parsed_payload, dict) else ""
         chunks = chunk_text(str(parsed_text or processed.get("text", "")))
@@ -130,10 +130,10 @@ class WorkerChunkTextService(WorkerService):
                     "source_key": processed.get("source_key"),
                 }
             )
-        return {"doc_id": doc_id, "chunks": records}
+        return records
 
-    def _write_chunked_object(self, destination_key: str, payload: dict[str, Any]) -> None:
-        """Persist chunk payload into the chunks S3 stage."""
+    def _write_chunk_object(self, destination_key: str, payload: dict[str, Any]) -> None:
+        """Persist one chunk payload into the chunks S3 stage."""
         self.object_storage.write_object(
             self.storage_bucket,
             destination_key,
@@ -141,8 +141,8 @@ class WorkerChunkTextService(WorkerService):
             content_type="application/json",
         )
 
-    def _enqueue_chunked_object(self, destination_key: str) -> None:
-        """Publish embedding work for a newly produced chunk artifact."""
+    def _enqueue_chunk_object(self, destination_key: str) -> None:
+        """Publish embedding work for one chunk object artifact."""
         self.stage_queue.push_produce_message(storage_key=destination_key)
 
     def _initialize_runtime_config(self, processing_config: ChunkTextProcessingConfig) -> None:

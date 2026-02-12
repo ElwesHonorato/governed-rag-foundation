@@ -16,6 +16,7 @@ readonly DOMAINS=(
   vector
   queue
   lineage
+  portainer
   llm
   app
   worker_scan

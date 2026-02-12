@@ -14,6 +14,7 @@ Core infrastructure image tags are hardcoded in the domain compose files.
   - `vector` (Weaviate)
   - `queue` (RabbitMQ broker)
   - `lineage` (Marquez)
+  - `portainer` (Docker container UI)
   - `llm` (Ollama)
   - `app` (rag-api only)
   - `worker_scan`
@@ -40,6 +41,7 @@ Recommended first-run order from repository root:
 ./stack.sh up vector
 ./stack.sh up queue
 ./stack.sh up lineage
+./stack.sh up portainer
 ./stack.sh up llm
 ./stack.sh up app
 ./stack.sh up worker_scan
@@ -84,6 +86,7 @@ When finished:
 - RabbitMQ Management UI: `http://localhost:15672`
 - Marquez API: `http://localhost:5000`
 - Marquez UI: `http://localhost:3000`
+- Portainer: `https://localhost:9443`
 - Ollama API: `http://localhost:11434`
 - rag-api: `http://localhost:8000`
 

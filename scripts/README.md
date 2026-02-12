@@ -22,6 +22,7 @@ These scripts centralize local infrastructure lifecycle for development and test
 ./stack.sh up storage
 ./stack.sh up vector
 ./stack.sh up lineage
+./stack.sh up portainer
 ./stack.sh up queue
 ./stack.sh up llm
 ./stack.sh up app
@@ -43,5 +44,6 @@ The `llm` domain builds a custom Ollama image and bakes `LLM_MODEL` (defaults to
 - Weaviate: http://localhost:8080
 - Marquez API: http://localhost:5000
 - Marquez UI: http://localhost:3000
+- Portainer: https://localhost:9443
 - Ollama API: http://localhost:11434
 - rag-api: http://localhost:8000

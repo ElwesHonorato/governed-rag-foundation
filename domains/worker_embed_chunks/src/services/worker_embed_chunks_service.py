@@ -83,23 +83,24 @@ class WorkerEmbedChunksService(WorkerService):
         return values
 
     def process_source_key(self, source_key: str) -> None:
-        """Embed one chunks artifact and publish downstream indexing work."""
+        """Embed one chunk artifact and publish downstream indexing work."""
         if not source_key.startswith(self.chunks_prefix) or source_key == self.chunks_prefix:
             return
         if not source_key.endswith(self.chunks_suffix):
             return
 
-        payload = self._read_chunks_object(source_key)
-        doc_id = str(payload["doc_id"])
-        destination_key = self._embeddings_key(doc_id)
+        chunk_payload = self._read_chunks_object(source_key)
+        embedding_payload = self._process_object(chunk_payload)
+        doc_id = str(embedding_payload["doc_id"])
+        chunk_id = str(embedding_payload["chunk_id"])
+        destination_key = self._embedding_object_key(doc_id, chunk_id)
         if self._embeddings_exists(destination_key):
             self.stage_queue.push_dlq_message(storage_key=source_key)
             return
 
-        embeddings = self._process_object(payload)
-        self._write_embeddings_object(destination_key, {"doc_id": doc_id, "embeddings": embeddings})
+        self._write_embeddings_object(destination_key, embedding_payload)
         self._enqueue_embeddings_object(destination_key, doc_id)
-        logger.info("Wrote embeddings '%s'", destination_key)
+        logger.info("Wrote embedding object '%s'", destination_key)
 
     def _pop_queued_source_key(self) -> str | None:
         """Pop one chunks key from embedding queue when available."""
@@ -108,40 +109,48 @@ class WorkerEmbedChunksService(WorkerService):
             return None
         return str(message["storage_key"])
 
-    def _embeddings_key(self, doc_id: str) -> str:
-        """Build the embeddings-stage key for a document id."""
-        return f"{self.embeddings_prefix}{doc_id}.embeddings.json"
+    def _embedding_object_key(self, doc_id: str, chunk_id: str) -> str:
+        """Build one embeddings object key scoped under the document id."""
+        return f"{self.embeddings_prefix}{doc_id}/{chunk_id}.embedding.json"
 
     def _embeddings_exists(self, destination_key: str) -> bool:
         """Return whether the embeddings output already exists."""
         return self.object_storage.object_exists(self.storage_bucket, destination_key)
 
     def _read_chunks_object(self, source_key: str) -> dict[str, Any]:
-        """Read and decode the chunks-stage payload."""
+        """Read and decode one chunks-stage payload."""
         raw_payload = self.object_storage.read_object(self.storage_bucket, source_key)
         return dict(json.loads(raw_payload.decode("utf-8", errors="ignore")))
 
-    def _process_object(self, payload: dict[str, Any]) -> list[dict[str, Any]]:
-        """Map each chunk into an embedding record with retained metadata."""
-        records: list[dict[str, Any]] = []
-        for chunk in payload.get("chunks", []):
-            text = str(chunk["chunk_text"])
-            records.append(
-                {
-                    "chunk_id": chunk["chunk_id"],
-                    "vector": self.deterministic_embedding(text),
-                    "metadata": {
-                        "source_type": chunk.get("source_type"),
-                        "timestamp": chunk.get("timestamp"),
-                        "security_clearance": chunk.get("security_clearance"),
-                        "doc_id": chunk.get("doc_id"),
-                        "source_key": chunk.get("source_key"),
-                        "chunk_index": chunk.get("chunk_index"),
-                        "chunk_text": text,
-                    },
-                }
-            )
-        return records
+    def _process_object(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Map one chunk payload into one embedding record with metadata."""
+        # Backward compatibility: accept legacy {"doc_id": ..., "chunks": [...]} and use first chunk.
+        chunk_payload: dict[str, Any]
+        if isinstance(payload.get("chunks"), list):
+            chunks = payload.get("chunks", [])
+            if not chunks:
+                raise ValueError("Legacy chunks payload is empty")
+            chunk_payload = dict(chunks[0])
+        else:
+            chunk_payload = payload
+
+        text = str(chunk_payload["chunk_text"])
+        doc_id = str(chunk_payload.get("doc_id"))
+        chunk_id = str(chunk_payload["chunk_id"])
+        return {
+            "doc_id": doc_id,
+            "chunk_id": chunk_id,
+            "vector": self.deterministic_embedding(text),
+            "metadata": {
+                "source_type": chunk_payload.get("source_type"),
+                "timestamp": chunk_payload.get("timestamp"),
+                "security_clearance": chunk_payload.get("security_clearance"),
+                "doc_id": doc_id,
+                "source_key": chunk_payload.get("source_key"),
+                "chunk_index": chunk_payload.get("chunk_index"),
+                "chunk_text": text,
+            },
+        }
 
     def _write_embeddings_object(self, destination_key: str, payload: dict[str, Any]) -> None:
         """Persist embedding payload into the embeddings S3 stage."""
@@ -162,4 +171,4 @@ class WorkerEmbedChunksService(WorkerService):
         self.storage_bucket = processing_config["storage"]["bucket"]
         self.chunks_prefix = processing_config["storage"]["chunks_prefix"]
         self.embeddings_prefix = processing_config["storage"]["embeddings_prefix"]
-        self.chunks_suffix = ".chunks.json"
+        self.chunks_suffix = ".chunk.json"

@@ -75,7 +75,7 @@ class WorkerIndexWeaviateService(WorkerService):
             time.sleep(self.poll_interval_seconds)
 
     def process_embeddings_key(self, embeddings_key: str, doc_id: str) -> None:
-        """Index one embeddings artifact and write indexing status output."""
+        """Index one embedding artifact and write indexing status output."""
         if not embeddings_key.startswith(self.embeddings_prefix) or embeddings_key == self.embeddings_prefix:
             return
         if not embeddings_key.endswith(self.embeddings_suffix):
@@ -83,13 +83,14 @@ class WorkerIndexWeaviateService(WorkerService):
 
         payload = self._read_embeddings_object(embeddings_key)
         resolved_doc_id = str(payload.get("doc_id", doc_id))
-        destination_key = self._indexed_key(resolved_doc_id)
+        resolved_chunk_id = str(payload.get("chunk_id", ""))
+        destination_key = self._indexed_key(resolved_doc_id, resolved_chunk_id)
         if self._indexed_exists(destination_key):
             self.stage_queue.push_dlq_message(embeddings_key=embeddings_key, doc_id=resolved_doc_id)
             return
 
         self._upsert_embeddings(payload)
-        self._write_indexed_object(destination_key, resolved_doc_id)
+        self._write_indexed_object(destination_key, resolved_doc_id, resolved_chunk_id)
         logger.info("Wrote indexed status '%s'", destination_key)
 
     def _pop_queued_request(self) -> tuple[str, str] | None:
@@ -105,8 +106,12 @@ class WorkerIndexWeaviateService(WorkerService):
         return dict(json.loads(raw_payload.decode("utf-8", errors="ignore")))
 
     def _upsert_embeddings(self, payload: dict[str, Any]) -> None:
-        """Upsert each embedding record into Weaviate."""
-        for item in payload.get("embeddings", []):
+        """Upsert embedding record(s) into Weaviate."""
+        if isinstance(payload.get("embeddings"), list):
+            items = payload.get("embeddings", [])
+        else:
+            items = [payload]
+        for item in items:
             metadata = dict(item.get("metadata", {}))
             chunk_id = str(item["chunk_id"])
             vector = item.get("vector", [])
@@ -123,25 +128,25 @@ class WorkerIndexWeaviateService(WorkerService):
                 },
             )
 
-    def _indexed_key(self, doc_id: str) -> str:
-        """Build the indexed-stage key for a document id."""
+    def _indexed_key(self, doc_id: str, chunk_id: str) -> str:
+        """Build the indexed-stage key for one document chunk."""
+        if chunk_id:
+            return f"{self.indexes_prefix}{doc_id}/{chunk_id}.indexed.json"
         return f"{self.indexes_prefix}{doc_id}.indexed.json"
 
     def _indexed_exists(self, destination_key: str) -> bool:
         """Return whether the indexing status output already exists."""
         return self.object_storage.object_exists(self.storage_bucket, destination_key)
 
-    def _write_indexed_object(self, destination_key: str, doc_id: str) -> None:
+    def _write_indexed_object(self, destination_key: str, doc_id: str, chunk_id: str) -> None:
         """Persist indexed status payload into the indexes S3 stage."""
+        status_payload: dict[str, Any] = {"doc_id": doc_id, "status": "indexed"}
+        if chunk_id:
+            status_payload["chunk_id"] = chunk_id
         self.object_storage.write_object(
             self.storage_bucket,
             destination_key,
-            json.dumps(
-                {"doc_id": doc_id, "status": "indexed"},
-                sort_keys=True,
-                ensure_ascii=True,
-                separators=(",", ":"),
-            ).encode("utf-8"),
+            json.dumps(status_payload, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode("utf-8"),
             content_type="application/json",
         )
         result = verify_query(self.weaviate_url, "logistics")
@@ -153,4 +158,4 @@ class WorkerIndexWeaviateService(WorkerService):
         self.storage_bucket = processing_config["storage"]["bucket"]
         self.embeddings_prefix = processing_config["storage"]["embeddings_prefix"]
         self.indexes_prefix = processing_config["storage"]["indexes_prefix"]
-        self.embeddings_suffix = ".embeddings.json"
+        self.embeddings_suffix = ".embedding.json"

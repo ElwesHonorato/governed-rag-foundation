@@ -19,6 +19,7 @@ readonly DOMAINS=(
   portainer
   llm
   app
+  vector_ui
   worker_scan
   worker_parse_document
   worker_chunk_text

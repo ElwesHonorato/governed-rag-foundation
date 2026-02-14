@@ -17,6 +17,7 @@ Core infrastructure image tags are hardcoded in the domain compose files.
   - `portainer` (Docker container UI)
   - `llm` (Ollama)
   - `app` (rag-api only)
+  - `vector_ui` (standalone Weaviate query UI)
   - `worker_scan`
   - `worker_parse_document`
   - `worker_chunk_text`
@@ -44,6 +45,7 @@ Recommended first-run order from repository root:
 ./stack.sh up portainer
 ./stack.sh up llm
 ./stack.sh up app
+./stack.sh up vector_ui
 ./stack.sh up worker_scan
 ./stack.sh up worker_parse_document
 ./stack.sh up worker_chunk_text
@@ -89,6 +91,7 @@ When finished:
 - Portainer: `https://localhost:9443`
 - Ollama API: `http://localhost:11434`
 - rag-api: `http://localhost:8000`
+- vector-ui: `http://localhost:8010`
 
 ## Python Dependencies (Poetry)
 

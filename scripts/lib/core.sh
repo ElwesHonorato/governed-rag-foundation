@@ -11,7 +11,23 @@ fi
 
 readonly STACK_NETWORK="${STACK_NETWORK:-rag-local}"
 readonly LOCALDATA_DIR="$REPO_ROOT/localdata"
-readonly DOMAINS=(storage vector cache lineage llm apps)
+readonly DOMAINS=(
+  storage
+  vector
+  queue
+  lineage
+  portainer
+  llm
+  app
+  vector_ui
+  worker_scan
+  worker_parse_document
+  worker_chunk_text
+  worker_embed_chunks
+  worker_index_weaviate
+  worker_manifest
+  worker_metrics
+)
 
 ui_use_color() {
   [[ -t 1 ]] && [[ -z "${NO_COLOR:-}" ]]
@@ -125,7 +141,6 @@ ensure_localdata_dirs() {
   mkdir -p \
     "$LOCALDATA_DIR/minio" \
     "$LOCALDATA_DIR/weaviate" \
-    "$LOCALDATA_DIR/redis" \
     "$LOCALDATA_DIR/postgres" \
     "$LOCALDATA_DIR/ollama"
 }

@@ -87,3 +87,22 @@ button:hover {
   background: #f9fafb;
   white-space: pre-wrap;
 }
+
+#citations-wrap {
+  margin-top: 1rem;
+}
+
+#citations-wrap h2 {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+}
+
+#citations {
+  margin: 0;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  padding: 0.75rem;
+  min-height: 64px;
+  background: #f9fafb;
+  white-space: pre-wrap;
+}

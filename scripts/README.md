@@ -13,7 +13,7 @@ These scripts centralize local infrastructure lifecycle for development and test
 ./stack.sh up llm
 ./stack.sh logs lineage
 ./stack.sh ps
-./stack.sh ps apps
+./stack.sh ps app
 ```
 
 ## Domain-by-domain start
@@ -22,9 +22,17 @@ These scripts centralize local infrastructure lifecycle for development and test
 ./stack.sh up storage
 ./stack.sh up vector
 ./stack.sh up lineage
-./stack.sh up cache
+./stack.sh up portainer
+./stack.sh up queue
 ./stack.sh up llm
-./stack.sh up apps
+./stack.sh up app
+./stack.sh up worker_scan
+./stack.sh up worker_parse_document
+./stack.sh up worker_chunk_text
+./stack.sh up worker_embed_chunks
+./stack.sh up worker_index_weaviate
+./stack.sh up worker_manifest
+./stack.sh up worker_metrics
 ```
 
 All domains join the shared external Docker network `rag-local`, so services resolve each other by container service name when started independently.
@@ -36,5 +44,6 @@ The `llm` domain builds a custom Ollama image and bakes `LLM_MODEL` (defaults to
 - Weaviate: http://localhost:8080
 - Marquez API: http://localhost:5000
 - Marquez UI: http://localhost:3000
+- Portainer: https://localhost:9443
 - Ollama API: http://localhost:11434
 - rag-api: http://localhost:8000

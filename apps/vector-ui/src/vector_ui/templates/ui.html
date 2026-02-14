@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vector UI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ui.css') }}" />
+  </head>
+  <body>
+    <main class="page">
+      <h1>Vector DB Query UI</h1>
+      <form id="query-form">
+        <label>
+          Phrase (chunk_text contains)
+          <input id="phrase" type="text" placeholder="logistics" />
+        </label>
+        <label>
+          Doc ID (exact match)
+          <input id="doc_id" type="text" placeholder="optional" />
+        </label>
+        <label>
+          Limit
+          <input id="limit" type="number" min="1" max="100" value="25" />
+        </label>
+        <label>
+          Sort By
+          <select id="sort_by">
+            <option value="">None</option>
+            <option value="chunk_id">chunk_id</option>
+            <option value="doc_id">doc_id</option>
+            <option value="source_key">source_key</option>
+            <option value="security_clearance">security_clearance</option>
+          </select>
+        </label>
+        <label>
+          Sort Order
+          <select id="sort_order">
+            <option value="asc">asc</option>
+            <option value="desc">desc</option>
+          </select>
+        </label>
+        <button type="submit">Run Query</button>
+      </form>
+
+      <p id="status"></p>
+      <h2>GraphQL</h2>
+      <pre id="graphql"></pre>
+      <h2>Results</h2>
+      <pre id="results"></pre>
+    </main>
+    <script src="{{ url_for('static', filename='js/ui.js') }}"></script>
+  </body>
+</html>

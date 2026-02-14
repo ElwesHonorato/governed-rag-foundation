@@ -3,7 +3,7 @@
 ## Current Repository State Summary
 - Repository provides local-stack scaffolding and two runtime services:
 - `apps/rag-api`: Flask API exposing `/`, `/ui`, and `/prompt`; currently functions as a direct Ollama chat proxy without retrieval, citation, filtering, or policy enforcement (`apps/rag-api/src/rag_api/routes.py`, `apps/rag-api/src/rag_api/services/prompt_service.py`).
-- `apps/pipeline-worker`: polling worker that bootstraps S3 workspace folders and moves objects from `01_incoming/` to `02_raw/`; no parsing/chunking/embedding/indexing/governance stages implemented (`apps/pipeline-worker/src/pipeline_worker/app.py`, `apps/pipeline-worker/src/pipeline_worker/ingestion/incoming_to_raw_mover.py`).
+- `domains/worker_*`: isolated pipeline worker stages for scan, parse, chunk, embed, index, manifest, and metrics (`domains/worker_*/docker-compose.yml`).
 - Infrastructure domains are defined for MinIO, Weaviate, Redis, Marquez, Ollama, and app services (`domains/*/docker-compose.yml`), but most domain capabilities are not yet integrated into business logic.
 - No automated test suite is present in application code; acceptance criteria are documented but not executable (`requirements/80-testing-acceptance/acceptance-criteria-global-logistics-hub.md`).
 - Requirements set is comprehensive across functional, data, architecture, security, AI ops, and non-functional domains, while implementation is currently foundation-stage.
@@ -13,17 +13,17 @@ Legend: `Covered` = implemented and traceable in code, `Partial` = scaffolded/in
 
 | Requirement ID | Requirement Summary | Current Coverage | Evidence in Repository | Gap Notes |
 |---|---|---|---|---|
-| FR-01 | Unified ingestion across unstructured/structured/streaming/APIs/DB | Partial | `apps/pipeline-worker/src/pipeline_worker/app.py`, `apps/pipeline-worker/src/pipeline_worker/ingestion/*` | Only S3 incoming-to-raw file movement exists; no SharePoint/SAP/Oracle/Kafka/Flink/API/DB connectors. |
+| FR-01 | Unified ingestion across unstructured/structured/streaming/APIs/DB | Partial | `domains/worker_scan/src/app.py`, `domains/worker_parse_document/src/app.py` | Current implementation covers S3-driven document flow only; SharePoint/SAP/Oracle/Kafka/Flink/API/DB connectors are still missing. |
 | FR-02 | Retrieval for delays/contracts/IoT | Missing | `apps/rag-api/src/rag_api/routes.py` | No retrieval pipeline; `/prompt` calls LLM directly. |
 | FR-03 | Multimodal query support (text/tables/images) | Missing | `apps/rag-api/src/rag_api/services/prompt_service.py` | No multimodal parsing, indexing, or query path. |
 | FR-04 | Metadata-filtered retrieval (`source_type`, `timestamp`, domain) | Missing | `apps/rag-api/src/rag_api/routes.py` | No retrieval query API or metadata filter handling. |
 | NFR-01 | 1,000+ concurrent users | Missing | `apps/rag-api/src/rag_api/app.py` | Single-process Flask app; no load/perf controls or benchmark evidence. |
 | NFR-02 | Hybrid retrieval (BM25 + semantic) | Missing | `domains/vector/docker-compose.yml` | Weaviate deployed but no hybrid retrieval logic implemented. |
-| NFR-03 | Caching for latency/cost optimization | Missing | `domains/cache/docker-compose.yml` | Redis deployed but unused in app logic. |
+| NFR-03 | Caching for latency/cost optimization | Missing | `domains/queue/docker-compose.yml` | Redis deployed but unused in app logic. |
 | NFR-04 | Reliability under peak/degraded upstream | Partial | `apps/rag-api/src/rag_api/llm_client.py` | Basic retry for some LLM failures only; no circuit breaking, fallback retrieval, or resilience policy. |
-| A-01 | Full governed RAG flow (ingest->chunk->mask->embed->hybrid retrieve->grounded response) | Missing | `apps/pipeline-worker/src/pipeline_worker/app.py`, `apps/rag-api/src/rag_api/services/prompt_service.py` | End-to-end stages beyond raw file move are absent. |
-| A-02 | Context-aware chunking, parent-child indexing, versioned indexing | Missing | `apps/pipeline-worker/src/pipeline_worker` | No chunking/indexing/versioning components exist yet. |
-| INT-01 | S3 + SharePoint document sources | Partial | S3 config in `.env.example`; worker S3 store code in `apps/pipeline-worker/src/pipeline_worker/storage/s3_workspace.py` | S3 supported at object-storage level only; SharePoint missing. |
+| A-01 | Full governed RAG flow (ingest->chunk->mask->embed->hybrid retrieve->grounded response) | Missing | `domains/worker_*/src`, `apps/rag-api/src/rag_api/services/prompt_service.py` | Worker stages exist, but masking and governed retrieval/grounded response behavior are still incomplete. |
+| A-02 | Context-aware chunking, parent-child indexing, versioned indexing | Partial | `domains/worker_chunk_text/src/app.py`, `domains/worker_index_weaviate/src/app.py` | Chunking and indexing stages exist, but advanced context-aware and versioning features are incomplete. |
+| INT-01 | S3 + SharePoint document sources | Partial | S3 config in `.env.example`; S3 usage in `domains/worker_*/src` | S3 pipeline is present; SharePoint integration remains missing. |
 | INT-02 | SAP + Oracle shipment logs | Missing | N/A in app code | No connectors/contracts/ingestion jobs. |
 | INT-03 | Kafka/Flink streaming for IoT | Missing | N/A in app code | No stream consumers/processors. |
 | INT-04 | Port congestion + weather APIs | Missing | N/A in app code | No API clients or scheduled ingestion. |
@@ -36,7 +36,7 @@ Legend: `Covered` = implemented and traceable in code, `Partial` = scaffolded/in
 | SEC-01 | PII/PHI masking before vectorization | Missing | N/A in app code | No detection/masking stage before persistence. |
 | SEC-02 | RBAC authorization by user/document | Missing | `apps/rag-api/src/rag_api/routes.py` | No authn/authz stack. |
 | SEC-03 | Query-time authorization filters | Missing | N/A in app code | No security metadata filter layer in retrieval. |
-| AC-01 | Ingestion coverage for all source classes | Missing | `apps/pipeline-worker/src/pipeline_worker/app.py` | Current ingestion is limited to S3 object movement. |
+| AC-01 | Ingestion coverage for all source classes | Missing | `domains/worker_scan/src/app.py` | Current ingestion remains limited to S3-driven processing. |
 | AC-02 | Canonical data normalization | Missing | N/A in app code | No canonical mapping validation. |
 | AC-03 | Relevant hybrid retrieval with citations | Missing | `apps/rag-api/src/rag_api/services/prompt_service.py` | No retrieval/citation subsystem. |
 | AC-04 | Source/version/process traceability | Missing | Marquez infra defined in `domains/lineage/docker-compose.yml` | Lineage infra exists; no lineage events emitted from app/pipeline. |

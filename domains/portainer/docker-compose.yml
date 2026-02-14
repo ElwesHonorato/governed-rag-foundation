@@ -1,0 +1,18 @@
+services:
+  portainer:
+    image: portainer/portainer-ce:latest
+    ports:
+      - "${PORTAINER_HTTPS_PORT:-9443}:9443"
+      - "${PORTAINER_HTTP_PORT:-9002}:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer-data:/data
+    restart: unless-stopped
+
+volumes:
+  portainer-data:
+
+networks:
+  default:
+    external: true
+    name: ${STACK_NETWORK:?STACK_NETWORK is required}

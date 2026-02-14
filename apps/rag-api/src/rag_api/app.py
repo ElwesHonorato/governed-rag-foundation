@@ -1,4 +1,19 @@
-from __future__ import annotations
+
+"""rag-api Flask application entrypoint.
+
+Purpose:
+- Build and expose the HTTP API process used by the RAG application layer.
+
+What this module should do:
+- Read API/runtime settings.
+- Construct shared clients (for example LLM client) once at startup.
+- Create Flask app, register routes, and expose `app` for WSGI/ASGI runners.
+
+Best practices:
+- Keep request handling in route modules; keep this file focused on app wiring.
+- Keep client initialization explicit and centralized to simplify testing.
+- Use a production WSGI server in deployment instead of Flask dev server.
+"""
 
 from flask import Flask
 

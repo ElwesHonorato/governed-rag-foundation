@@ -1,4 +1,3 @@
-from __future__ import annotations
 
 import json
 import time
@@ -142,9 +141,10 @@ class OllamaClient:
                 exc.code,
                 f"HTTP {exc.code} from {endpoint} (model='{model}'): {body_preview}",
             ) from exc
-        except error.URLError as exc:
+        except (error.URLError, TimeoutError) as exc:
             raise LLMConnectionError(
-                f"Connection error calling {endpoint} (model='{model}'): {exc.reason}"
+                f"Connection error calling {endpoint} (model='{model}'): "
+                f"{getattr(exc, 'reason', str(exc))}"
             ) from exc
 
         text = raw.decode("utf-8", errors="replace")

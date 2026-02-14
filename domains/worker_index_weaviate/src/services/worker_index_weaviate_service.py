@@ -2,7 +2,6 @@
 from abc import ABC, abstractmethod
 import json
 import logging
-import time
 from typing import Any, TypedDict
 
 from pipeline_common.queue import StageQueue
@@ -65,14 +64,14 @@ class WorkerIndexWeaviateService(WorkerService):
         """Run the indexing worker loop by polling queue messages."""
         while True:
             request = self._pop_queued_request()
-            if request is not None:
-                embeddings_key, doc_id = request
-                try:
-                    self.process_embeddings_key(embeddings_key, doc_id)
-                except Exception:
-                    self.stage_queue.push_dlq_message(embeddings_key=embeddings_key, doc_id=doc_id)
-                    logger.exception("Failed indexing embeddings key '%s'; sent to DLQ", embeddings_key)
-            time.sleep(self.poll_interval_seconds)
+            if request is None:
+                continue
+            embeddings_key, doc_id = request
+            try:
+                self.process_embeddings_key(embeddings_key, doc_id)
+            except Exception:
+                self.stage_queue.push_dlq_message(embeddings_key=embeddings_key, doc_id=doc_id)
+                logger.exception("Failed indexing embeddings key '%s'; sent to DLQ", embeddings_key)
 
     def process_embeddings_key(self, embeddings_key: str, doc_id: str) -> None:
         """Index one embedding artifact and write indexing status output."""

@@ -2,7 +2,6 @@
 from abc import ABC, abstractmethod
 import json
 import logging
-import time
 from typing import Any, TypedDict
 
 from pipeline_common.contracts import chunk_id_for
@@ -64,13 +63,13 @@ class WorkerChunkTextService(WorkerService):
         """Run the chunking worker loop by polling queue messages."""
         while True:
             source_key = self._pop_queued_source_key()
-            if source_key is not None:
-                try:
-                    self.process_source_key(source_key)
-                except Exception:
-                    self.stage_queue.push_dlq_message(storage_key=source_key)
-                    logger.exception("Failed chunking source key '%s'; sent to DLQ", source_key)
-            time.sleep(self.poll_interval_seconds)
+            if source_key is None:
+                continue
+            try:
+                self.process_source_key(source_key)
+            except Exception:
+                self.stage_queue.push_dlq_message(storage_key=source_key)
+                logger.exception("Failed chunking source key '%s'; sent to DLQ", source_key)
 
     def process_source_key(self, source_key: str) -> None:
         """Chunk one processed document and publish per-chunk downstream work."""

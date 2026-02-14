@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 
 import json
 import logging
-import time
 from typing import Any, TypedDict
 
 from pipeline_common.contracts import doc_id_from_source_key, utc_now_iso
@@ -73,12 +72,12 @@ class WorkerParseDocumentService(WorkerService):
         """Run the parse worker loop by polling queue messages."""
         while True:
             source_key = self._pop_queued_source_key()
-            if source_key is not None:
-                try:
-                    self.process_source_key(source_key)
-                except Exception:
-                    logger.exception("Failed processing source key '%s'", source_key)
-            time.sleep(self.poll_interval_seconds)
+            if source_key is None:
+                continue
+            try:
+                self.process_source_key(source_key)
+            except Exception:
+                logger.exception("Failed processing source key '%s'", source_key)
 
     def process_source_key(self, source_key: str) -> None:
         """Parse a single raw document key and publish downstream work."""

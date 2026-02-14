@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 import hashlib
 import json
 import logging
-import time
 from typing import Any, TypedDict
 
 from pipeline_common.queue import StageQueue
@@ -65,13 +64,13 @@ class WorkerEmbedChunksService(WorkerService):
         """Run the embedding worker loop by polling queue messages."""
         while True:
             source_key = self._pop_queued_source_key()
-            if source_key is not None:
-                try:
-                    self.process_source_key(source_key)
-                except Exception:
-                    self.stage_queue.push_dlq_message(storage_key=source_key)
-                    logger.exception("Failed embedding source key '%s'; sent to DLQ", source_key)
-            time.sleep(self.poll_interval_seconds)
+            if source_key is None:
+                continue
+            try:
+                self.process_source_key(source_key)
+            except Exception:
+                self.stage_queue.push_dlq_message(storage_key=source_key)
+                logger.exception("Failed embedding source key '%s'; sent to DLQ", source_key)
 
     def deterministic_embedding(self, text: str) -> list[float]:
         """Generate deterministic pseudo-embedding values for text."""

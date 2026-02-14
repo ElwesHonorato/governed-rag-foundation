@@ -16,6 +16,8 @@ services:
       LLM_URL: ${LLM_URL:?LLM_URL is required}
       LLM_MODEL: ${LLM_MODEL:?LLM_MODEL is required}
       LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:?LLM_TIMEOUT_SECONDS is required}
+      EMBEDDING_DIM: ${EMBEDDING_DIM:-32}
+      WEAVIATE_QUERY_DEFAULTS_LIMIT: ${WEAVIATE_QUERY_DEFAULTS_LIMIT:-5}
 
 networks:
   default:

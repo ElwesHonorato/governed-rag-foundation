@@ -9,6 +9,8 @@ class Settings:
     llm_model: str = field(init=False)
     llm_timeout_seconds: int = field(init=False)
     weaviate_url: str = field(init=False)
+    embedding_dim: int = field(init=False)
+    retrieval_limit: int = field(init=False)
     broker_url: str = field(init=False)
     s3_endpoint: str = field(init=False)
     marquez_url: str = field(init=False)
@@ -24,6 +26,8 @@ class Settings:
         self.llm_model = self._required_env("LLM_MODEL")
         self.llm_timeout_seconds = llm_timeout
         self.weaviate_url = self._required_env("WEAVIATE_URL")
+        self.embedding_dim = self._required_int_env("EMBEDDING_DIM")
+        self.retrieval_limit = int(os.getenv("WEAVIATE_QUERY_DEFAULTS_LIMIT", "5"))
         self.broker_url = self._required_env("BROKER_URL")
         self.s3_endpoint = self._required_env("S3_ENDPOINT")
         self.marquez_url = self._required_env("MARQUEZ_URL")
@@ -43,3 +47,10 @@ class Settings:
         if not value:
             raise ValueError(f"{name} is not configured")
         return value.strip()
+
+    def _required_int_env(self, name: str) -> int:
+        raw_value = self._required_env(name)
+        try:
+            return int(raw_value)
+        except ValueError as exc:
+            raise ValueError(f"{name} must be an integer") from exc

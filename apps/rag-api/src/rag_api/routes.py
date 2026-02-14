@@ -3,11 +3,21 @@ from flask import Flask, jsonify, render_template, request
 
 from rag_api.config import Settings
 from rag_api.llm_client import OllamaClient
+from rag_api.retrieval_client import RetrievalClient
 from rag_api.services.prompt_service import PromptService
 
 
 def register_routes(*, app: Flask, settings: Settings, llm_client: OllamaClient) -> None:
-    prompt_service = PromptService(llm_client=llm_client, model=settings.llm_model)
+    retrieval_client = RetrievalClient(
+        weaviate_url=settings.weaviate_url,
+        embedding_dim=settings.embedding_dim,
+    )
+    prompt_service = PromptService(
+        llm_client=llm_client,
+        retrieval_client=retrieval_client,
+        model=settings.llm_model,
+        retrieval_limit=settings.retrieval_limit,
+    )
 
     @app.get("/")
     def root():

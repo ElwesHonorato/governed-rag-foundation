@@ -1,6 +1,7 @@
 const button = document.getElementById("send");
 const promptEl = document.getElementById("prompt");
 const resultEl = document.getElementById("result");
+const citationsEl = document.getElementById("citations");
 const messages = [];
 
 function renderTranscript() {
@@ -42,6 +43,18 @@ async function sendPrompt() {
       messages.push(data.assistant_message);
     } else if (typeof data.response === "string") {
       messages.push({ role: "assistant", content: data.response });
+    }
+
+    if (Array.isArray(data.citations) && data.citations.length > 0) {
+      citationsEl.textContent = data.citations
+        .map((citation, idx) => {
+          const source = citation.source_key || "unknown-source";
+          const quote = citation.quote || "";
+          return `${idx + 1}. ${source}\n"${quote}"`;
+        })
+        .join("\n\n");
+    } else {
+      citationsEl.textContent = "No citations returned.";
     }
     renderTranscript();
   } catch (err) {

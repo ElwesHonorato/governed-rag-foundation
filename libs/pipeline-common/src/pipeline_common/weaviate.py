@@ -1,7 +1,7 @@
 
 import json
 from typing import Any
-from urllib import request
+from urllib import error, request
 
 
 def _http_json(url: str, method: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -54,14 +54,22 @@ def _stable_uuid_from_chunk_id(chunk_id: str) -> str:
 def upsert_chunk(weaviate_url: str, *, chunk_id: str, vector: list[float], properties: dict[str, Any]) -> None:
     """Execute upsert chunk."""
     object_id = _stable_uuid_from_chunk_id(chunk_id)
-    url = f"{weaviate_url.rstrip('/')}/v1/objects/{object_id}"
+    base_url = weaviate_url.rstrip("/")
+    create_url = f"{base_url}/v1/objects"
+    update_url = f"{base_url}/v1/objects/{object_id}"
     payload = {
         "class": "DocumentChunk",
         "id": object_id,
         "vector": vector,
         "properties": properties,
     }
-    _http_json(url, "PUT", payload)
+    try:
+        _http_json(create_url, "POST", payload)
+        return
+    except error.HTTPError as exc:
+        if not _is_already_exists_error(exc):
+            raise
+    _http_json(update_url, "PUT", payload)
 
 
 def verify_query(weaviate_url: str, phrase: str) -> dict[str, Any]:
@@ -75,3 +83,14 @@ def verify_query(weaviate_url: str, phrase: str) -> dict[str, Any]:
         )
     }
     return _http_json(url, "POST", gql)
+
+
+def _is_already_exists_error(exc: error.HTTPError) -> bool:
+    """Return whether HTTP error indicates object already exists."""
+    if exc.code not in {409, 422}:
+        return False
+    try:
+        response_body = exc.read().decode("utf-8", errors="ignore").lower()
+    except Exception:
+        return False
+    return "already exists" in response_body

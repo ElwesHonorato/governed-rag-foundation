@@ -41,18 +41,14 @@ class QueueRuntimeSettings:
 
 
 @dataclass(frozen=True)
-class LineageRuntimeSettings:
+class LineageEmitterSettings:
     """Lineage runtime settings for workers."""
 
     lineage_url: str
-    namespace: str
-    timeout_seconds: float
 
     @classmethod
-    def from_env(cls) -> "LineageRuntimeSettings":
+    def from_env(cls) -> "LineageEmitterSettings":
         """Execute from env."""
         return cls(
             lineage_url=_optional_env("MARQUEZ_LINEAGE_URL", ""),
-            namespace=_optional_env("LINEAGE_NAMESPACE", "governed-rag"),
-            timeout_seconds=float(_optional_env("LINEAGE_TIMEOUT_SECONDS", "3")),
         )

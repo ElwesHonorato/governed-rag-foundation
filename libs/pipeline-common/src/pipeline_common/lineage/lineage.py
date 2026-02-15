@@ -1,26 +1,24 @@
 import json
 import logging
 import uuid
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 from urllib import error, request
 
-from pipeline_common.config import JobStageName, LineageDatasetNamespace
+from pipeline_common.config import JobStageName
 from pipeline_common.contracts import utc_now_iso
-from pipeline_common.settings import LineageRuntimeSettings
-from .constants import OPENLINEAGE_SCHEMA_URLS
+from pipeline_common.settings import LineageEmitterSettings
+from .constants import EventType, OpenLineageSchemaUrl
+from .contracts import LineageEmitterConfig
 
 logger = logging.getLogger(__name__)
-
-LineageConfig = dict[str, str | JobStageName | LineageDatasetNamespace]
 
 
 @dataclass(init=False)
 class LineageEmitter:
     """Best-effort OpenLineage emitter for Marquez."""
 
-    enabled: bool
     lineage_url: str
     namespace: str
     producer: str
@@ -33,23 +31,13 @@ class LineageEmitter:
 
     def __init__(
         self,
-        *,
-        lineage_settings: LineageRuntimeSettings,
-        lineage_config: LineageConfig,
+        lineage_settings: LineageEmitterSettings,
+        lineage_config: LineageEmitterConfig,
     ) -> None:
         """Build lineage emitter from runtime settings and lineage config."""
-        normalized_url = lineage_settings.lineage_url.strip()
-        self.enabled = bool(normalized_url)
-        self.lineage_url = normalized_url
-        self.namespace = lineage_settings.namespace
-        self.producer = self._parse_producer(lineage_config.get("producer"))
-        configured_dataset_namespace = self._parse_dataset_namespace(lineage_config.get("dataset_namespace"))
-        self.dataset_namespace = configured_dataset_namespace or None
-        self.timeout_seconds = lineage_settings.timeout_seconds
-        self.job_stage = self._parse_job_stage(lineage_config.get("job_stage"))
-        self.run_id = None
-        self.inputs = []
-        self.outputs = []
+        self._init_lineage_settings(lineage_settings)
+        self._init_lineage_config(lineage_config)
+        self._init_run_state()
 
     def generate_run_id(self) -> None:
         """Create a new lineage run id, store it, and reset input/output state."""
@@ -58,182 +46,136 @@ class LineageEmitter:
 
     def start_run(
         self,
-        *,
         inputs: Sequence[str],
         outputs: Sequence[str] = (),
         job_stage: str | JobStageName | None = None,
     ) -> None:
         """Create run id, register in/out datasets, and emit START event."""
+        if job_stage is not None:
+            self.job_stage = job_stage
         self.generate_run_id()
-        for path in inputs:
-            self.add_input(path)
-        for path in outputs:
-            self.add_output(path)
-        self.emit_start(job_stage=job_stage, run_id=self._resolve_run_id(None))
+        self._register_io(inputs=inputs, outputs=outputs)
+        self.emit_start()
 
-    def complete_run(
-        self,
-        *,
-        run_id: str | None = None,
-        inputs: Sequence[str] | None = None,
-        outputs: Sequence[str] | None = None,
-    ) -> None:
-        """Emit COMPLETE event, optionally overriding in/out datasets first."""
-        if inputs is not None or outputs is not None:
-            self.reset_io()
-            for path in inputs or ():
-                self.add_input(path)
-            for path in outputs or ():
-                self.add_output(path)
-        self.emit_complete(run_id=self._resolve_run_id(run_id))
+    def complete_run(self) -> None:
+        """Emit COMPLETE event for the current in-memory run state."""
+        self.emit_complete()
 
     def fail_run(
         self,
-        *,
-        run_id: str | None = None,
         error_message: str,
+        run_id: str | None = None,
     ) -> None:
         """Emit FAIL event for one run id."""
-        self.emit_fail(
-            run_id=self._resolve_run_id(run_id),
-            error_message=error_message,
-        )
-
-    def set_job_stage(self, job_stage: JobStageName) -> "LineageEmitter":
-        """Set default job stage and return emitter for fluent setup."""
-        self.job_stage = job_stage
-        return self
+        if run_id is not None:
+            self.run_id = run_id
+        self.emit_fail(error_message=error_message)
 
     def reset_io(self) -> None:
         """Clear current input/output lineage datasets for one run."""
+        self.run_id = None
         self.inputs.clear()
         self.outputs.clear()
 
     def add_input(self, path: str) -> None:
         """Add one OpenLineage input dataset descriptor from a path."""
-        self.inputs.append(self._dataset_from_path(path))
+        self.inputs.append({"namespace": self.dataset_namespace, "name": path})
 
     def add_output(self, path: str) -> None:
         """Add one OpenLineage output dataset descriptor from a path."""
-        self.outputs.append(self._dataset_from_path(path))
+        self.outputs.append({"namespace": self.dataset_namespace, "name": path})
 
-    def _dataset_from_path(self, path: str) -> dict[str, str]:
-        """Build an OpenLineage dataset descriptor from one path string."""
-        normalized_path = path.strip()
-        if self.dataset_namespace is not None:
-            return {
-                "namespace": self.dataset_namespace,
-                "name": self._dataset_name_from_path(normalized_path),
-            }
-        if "://" in normalized_path:
-            scheme, remainder = normalized_path.split("://", 1)
-            if "/" in remainder:
-                root, name = remainder.split("/", 1)
-                return {"namespace": f"{scheme}://{root}", "name": name}
-            return {"namespace": f"{scheme}://{remainder}", "name": ""}
-        return {"namespace": "path://", "name": normalized_path}
-
-    @staticmethod
-    def _dataset_name_from_path(path: str) -> str:
-        """Extract dataset name segment from a full path string."""
-        if "://" in path:
-            _, remainder = path.split("://", 1)
-            if "/" in remainder:
-                return remainder.split("/", 1)[1]
-            return ""
-        return path
-
-    def emit_start(
-        self,
-        *,
-        job_stage: str | JobStageName | None = None,
-        run_id: str,
-    ) -> None:
+    def emit_start(self) -> None:
         """Emit START run event."""
-        self._emit(
-            event_type="START",
-            job_stage=self._resolve_job_stage(job_stage),
-            run_id=run_id,
-            inputs=self.inputs,
-            outputs=self.outputs,
+        self.emit_event(
+            event_type=EventType.START,
             run_facets={},
         )
 
-    def emit_complete(
-        self,
-        *,
-        job_stage: str | JobStageName | None = None,
-        run_id: str,
-    ) -> None:
+    def emit_complete(self) -> None:
         """Emit COMPLETE run event."""
-        try:
-            self._emit(
-                event_type="COMPLETE",
-                job_stage=self._resolve_job_stage(job_stage),
-                run_id=run_id,
-                inputs=self.inputs,
-                outputs=self.outputs,
-                run_facets={},
-            )
-        finally:
-            self.reset_io()
+        self.emit_event(
+            event_type=EventType.COMPLETE,
+            run_facets={},
+        )
 
     def emit_fail(
         self,
-        *,
-        job_stage: str | JobStageName | None = None,
-        run_id: str,
         error_message: str,
     ) -> None:
         """Emit FAIL run event with error facet."""
-        try:
-            self._emit(
-                event_type="FAIL",
-                job_stage=self._resolve_job_stage(job_stage),
-                run_id=run_id,
-                inputs=self.inputs,
-                outputs=self.outputs,
-                run_facets={
-                    "errorMessage": {
-                        "_producer": self.producer,
-                        "_schemaURL": OPENLINEAGE_SCHEMA_URLS["error_message_run_facet"],
-                        "message": error_message,
-                        "programmingLanguage": "python",
-                    }
-                },
-            )
-        finally:
-            self.reset_io()
+        self.emit_event(
+            event_type=EventType.FAIL,
+            run_facets=self.build_error_message_facet(error_message),
+        )
 
-    def _emit(
+    def emit_event(
         self,
-        *,
-        event_type: str,
-        job_stage: str,
-        run_id: str,
-        inputs: list[dict[str, str]],
-        outputs: list[dict[str, str]],
-        run_facets: dict[str, Any],
+        event_type: EventType,
+        run_facets: Mapping[str, Any],
     ) -> None:
-        """Best-effort event sender."""
-        if not self.enabled:
-            return
+        """Best-effort event sender for one OpenLineage event."""
+        try:
+            payload = self.build_run_event_payload(
+                event_type=event_type,
+                run_facets=run_facets,
+            )
+            self._post(payload)
+        except OSError as exc:
+            logger.warning("Lineage emit failed: %s", exc)
 
-        payload = {
-            "eventType": event_type,
+    def build_run_event_payload(
+        self,
+        event_type: EventType,
+        run_facets: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        """Build one OpenLineage RunEvent payload without side effects."""
+        return {
+            "eventType": event_type.value,
             "eventTime": utc_now_iso(),
-            "run": {"runId": run_id, "facets": run_facets},
-            "job": {"namespace": self.namespace, "name": job_stage},
+            "run": {"runId": self.run_id, "facets": run_facets},
+            "job": {"namespace": self.namespace, "name": self.job_stage},
             "producer": self.producer,
-            "schemaURL": OPENLINEAGE_SCHEMA_URLS["run_event"],
-            "inputs": list(inputs),
-            "outputs": list(outputs),
+            "schemaURL": OpenLineageSchemaUrl.RUN_EVENT.value,
+            "inputs": self.inputs,
+            "outputs": self.outputs,
         }
-        self._post(payload)
+
+    def build_error_message_facet(self, error_message: str) -> dict[str, Any]:
+        """Build OpenLineage errorMessage run facet payload."""
+        return {
+            "errorMessage": {
+                "_producer": self.producer,
+                "_schemaURL": OpenLineageSchemaUrl.ERROR_MESSAGE_RUN_FACET.value,
+                "message": error_message,
+                "programmingLanguage": "python",
+            }
+        }
+
+    def _init_lineage_settings(self, lineage_settings: LineageEmitterSettings) -> None:
+        self.lineage_url = lineage_settings.lineage_url
+
+    def _init_lineage_config(self, lineage_config: LineageEmitterConfig) -> None:
+        self.namespace = lineage_config.namespace
+        self.producer = lineage_config.producer
+        self.dataset_namespace = lineage_config.dataset_namespace
+        self.job_stage = lineage_config.job_stage
+        self.timeout_seconds = lineage_config.timeout_seconds
+
+    def _init_run_state(self) -> None:
+        self.run_id = None
+        self.inputs = []
+        self.outputs = []
+
+    def _register_io(self, inputs: Sequence[str], outputs: Sequence[str]) -> None:
+        for path in inputs:
+            self.add_input(path)
+        for path in outputs:
+            self.add_output(path)
 
     def _post(self, payload: dict[str, Any]) -> None:
         """Send one event payload to Marquez."""
-        if not self.enabled:
+        if not self.lineage_url:
             return
         req = request.Request(
             url=self.lineage_url,
@@ -247,50 +189,5 @@ class LineageEmitter:
         except error.HTTPError as exc:
             body = exc.read().decode("utf-8", errors="replace")
             logger.warning("Lineage emit failed HTTP %s: %s", exc.code, body)
-        except (error.URLError, OSError, ValueError) as exc:
+        except (error.URLError, OSError) as exc:
             logger.warning("Lineage emit failed: %s", exc)
-
-    def _resolve_job_stage(self, explicit_job_stage: str | JobStageName | None) -> str:
-        """Resolve job stage from explicit value or configured emitter stage."""
-        resolved = explicit_job_stage if explicit_job_stage is not None else self.job_stage
-        if resolved is None:
-            raise ValueError("lineage job_stage is not configured")
-        if isinstance(resolved, JobStageName):
-            return resolved.value
-        return resolved
-
-    @staticmethod
-    def _parse_job_stage(raw_job_stage: str | JobStageName | None) -> JobStageName | None:
-        """Normalize job_stage into enum when possible."""
-        if raw_job_stage is None:
-            return None
-        if isinstance(raw_job_stage, JobStageName):
-            return raw_job_stage
-        return JobStageName(str(raw_job_stage))
-
-    @staticmethod
-    def _parse_dataset_namespace(
-        raw_dataset_namespace: str | LineageDatasetNamespace | None,
-    ) -> str:
-        """Normalize dataset namespace from config value."""
-        if raw_dataset_namespace is None:
-            return ""
-        if isinstance(raw_dataset_namespace, LineageDatasetNamespace):
-            return raw_dataset_namespace.value
-        return str(raw_dataset_namespace).strip()
-
-    @staticmethod
-    def _parse_producer(raw_producer: str | JobStageName | None) -> str:
-        """Normalize producer from config value."""
-        if raw_producer is None:
-            raise ValueError("lineage producer is not configured")
-        if isinstance(raw_producer, JobStageName):
-            return raw_producer.value
-        return str(raw_producer).strip()
-
-    def _resolve_run_id(self, explicit_run_id: str | None) -> str:
-        """Resolve run id from explicit value or the emitter current run state."""
-        resolved = explicit_run_id if explicit_run_id is not None else self.run_id
-        if resolved is None:
-            raise ValueError("lineage run_id is not configured")
-        return resolved

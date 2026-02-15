@@ -18,8 +18,8 @@ Best practices:
 from pipeline_common.queue import StageQueue
 from pipeline_common.lineage import LineageEmitter
 from pipeline_common.object_storage import ObjectStorageGateway, S3Client
-from pipeline_common.settings import LineageRuntimeSettings, QueueRuntimeSettings, S3StorageSettings
-from configs.constants import CHUNK_TEXT_PROCESSING_CONFIG
+from pipeline_common.settings import LineageEmitterSettings, QueueRuntimeSettings, S3StorageSettings
+from configs.constants import CHUNK_TEXT_LINEAGE_CONFIG, CHUNK_TEXT_PROCESSING_CONFIG
 from services.worker_chunk_text_service import WorkerChunkTextService
 
 
@@ -27,11 +27,11 @@ def run() -> None:
     """Initialize dependencies and start the worker service."""
     s3_settings = S3StorageSettings.from_env()
     queue_settings = QueueRuntimeSettings.from_env()
-    lineage_settings = LineageRuntimeSettings.from_env()
+    lineage_settings = LineageEmitterSettings.from_env()
     processing_config = CHUNK_TEXT_PROCESSING_CONFIG
     lineage = LineageEmitter(
         lineage_settings=lineage_settings,
-        lineage_config=processing_config["lineage"],
+        lineage_config=CHUNK_TEXT_LINEAGE_CONFIG,
     )
     stage_queue = StageQueue(queue_settings.broker_url, queue_config=processing_config["queue"])
     object_storage = ObjectStorageGateway(

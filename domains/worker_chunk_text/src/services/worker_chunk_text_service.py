@@ -99,10 +99,7 @@ class WorkerChunkTextService(WorkerService):
                     self._write_chunk_object(destination_key, chunk_record)
                     written += 1
                 self._enqueue_chunk_object(destination_key)
-            self.lineage.complete_run(
-                inputs=[s3_uri(self.storage_bucket, source_key)],
-                outputs=[s3_uri(self.storage_bucket, f"{self.chunks_prefix}{doc_id}/")],
-            )
+            self.lineage.complete_run()
             logger.info("Wrote %d chunk objects for doc_id '%s'", written, doc_id)
         except Exception as exc:
             self.lineage.fail_run(error_message=str(exc))

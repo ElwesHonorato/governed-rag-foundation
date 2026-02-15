@@ -28,20 +28,20 @@ This domain is the RAG system's memory for "what happened and when." It lets you
 
 ### Required worker settings
 - `MARQUEZ_LINEAGE_URL` must point to Marquez lineage endpoint, usually `http://marquez:5000/api/v1/lineage`.
-- `LINEAGE_NAMESPACE` controls job namespace (commonly `governed-rag`).
-- Each worker defines lineage config in its `*_PROCESSING_CONFIG["lineage"]` block:
+- Job namespace is defined per worker in `*_LINEAGE_CONFIG.namespace` (commonly `governed-rag`).
+- Each worker defines a typed lineage config object (`*_LINEAGE_CONFIG`) and passes it to `LineageEmitter`:
   - `job_stage`
   - `producer`
   - `dataset_namespace`
 
 ### UI usage
 - Open Marquez Web UI (usually `http://localhost:${MARQUEZ_WEB_PORT}`).
-- For jobs and runs, use namespace `governed-rag` (or your `LINEAGE_NAMESPACE`).
+- For jobs and runs, use the namespace configured in `*_LINEAGE_CONFIG.namespace`.
 - For datasets, use the configured worker lineage dataset namespace.
 
 Reason:
-- Job namespace comes from `LINEAGE_NAMESPACE`.
-- Dataset namespace comes from each worker `processing_config["lineage"]["dataset_namespace"]`.
+- Job namespace comes from each worker lineage config object (`*_LINEAGE_CONFIG.namespace`).
+- Dataset namespace comes from each worker lineage config object (`*_LINEAGE_CONFIG.dataset_namespace`).
 
 ### API usage
 - List namespaces:

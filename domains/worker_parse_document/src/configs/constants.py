@@ -1,3 +1,4 @@
+from pipeline_common.config import JobStageName
 from pipeline_common.queue.contracts import WORKER_STAGE_QUEUES
 
 
@@ -15,4 +16,8 @@ PARSE_DOCUMENT_PROCESSING_CONFIG = {
         "processed_prefix": "03_processed/",
     },
     "security": {"clearance": "internal"},
+    "lineage": {
+        "job_stage": JobStageName.WORKER_PARSE_DOCUMENT,
+        "producer": "https://github.com/ElwesHonorato/governed-rag-foundation",
+    },
 }

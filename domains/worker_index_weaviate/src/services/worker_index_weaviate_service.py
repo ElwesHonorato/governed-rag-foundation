@@ -4,6 +4,8 @@ import json
 import logging
 from typing import Any, TypedDict
 
+from pipeline_common.lineage import LineageEmitter
+from pipeline_common.lineage.paths import s3_uri
 from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway
 from pipeline_common.weaviate import upsert_chunk, verify_query
@@ -51,12 +53,14 @@ class WorkerIndexWeaviateService(WorkerService):
         *,
         stage_queue: StageQueue,
         object_storage: ObjectStorageGateway,
+        lineage: LineageEmitter,
         processing_config: IndexWeaviateProcessingConfig,
         weaviate_url: str,
     ) -> None:
         """Initialize indexing worker dependencies and runtime settings."""
         self.stage_queue = stage_queue
         self.object_storage = object_storage
+        self.lineage = lineage
         self.weaviate_url = weaviate_url
         self._initialize_runtime_config(processing_config)
 
@@ -80,17 +84,27 @@ class WorkerIndexWeaviateService(WorkerService):
         if not embeddings_key.endswith(self.embeddings_suffix):
             return
 
-        payload = self._read_embeddings_object(embeddings_key)
-        resolved_doc_id = str(payload.get("doc_id", doc_id))
-        resolved_chunk_id = str(payload.get("chunk_id", ""))
-        destination_key = self._indexed_key(resolved_doc_id, resolved_chunk_id)
-        if self._indexed_exists(destination_key):
-            self.stage_queue.push_dlq_message(embeddings_key=embeddings_key, doc_id=resolved_doc_id)
-            return
+        self.lineage.start_run(
+            inputs=[s3_uri(self.storage_bucket, embeddings_key)],
+        )
+        try:
+            payload = self._read_embeddings_object(embeddings_key)
+            resolved_doc_id = str(payload.get("doc_id", doc_id))
+            resolved_chunk_id = str(payload.get("chunk_id", ""))
+            destination_key = self._indexed_key(resolved_doc_id, resolved_chunk_id)
+            self.lineage.add_output(s3_uri(self.storage_bucket, destination_key))
+            if self._indexed_exists(destination_key):
+                self.stage_queue.push_dlq_message(embeddings_key=embeddings_key, doc_id=resolved_doc_id)
+                self.lineage.fail_run(error_message=f"Index status already exists: {destination_key}")
+                return
 
-        self._upsert_embeddings(payload)
-        self._write_indexed_object(destination_key, resolved_doc_id, resolved_chunk_id)
-        logger.info("Wrote indexed status '%s'", destination_key)
+            self._upsert_embeddings(payload)
+            self._write_indexed_object(destination_key, resolved_doc_id, resolved_chunk_id)
+            self.lineage.complete_run()
+            logger.info("Wrote indexed status '%s'", destination_key)
+        except Exception as exc:
+            self.lineage.fail_run(error_message=str(exc))
+            raise
 
     def _pop_queued_request(self) -> tuple[str, str] | None:
         """Pop one indexing request from queue when available."""

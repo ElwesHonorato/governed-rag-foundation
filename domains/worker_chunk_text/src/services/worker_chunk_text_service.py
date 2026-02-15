@@ -5,6 +5,8 @@ import logging
 from typing import Any, TypedDict
 
 from pipeline_common.contracts import chunk_id_for
+from pipeline_common.lineage import LineageEmitter
+from pipeline_common.lineage.paths import s3_uri
 from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway
 from pipeline_common.text import chunk_text
@@ -52,11 +54,13 @@ class WorkerChunkTextService(WorkerService):
         *,
         stage_queue: StageQueue,
         object_storage: ObjectStorageGateway,
+        lineage: LineageEmitter,
         processing_config: ChunkTextProcessingConfig,
     ) -> None:
         """Initialize chunking worker dependencies and runtime settings."""
         self.stage_queue = stage_queue
         self.object_storage = object_storage
+        self.lineage = lineage
         self._initialize_runtime_config(processing_config)
 
     def serve(self) -> None:
@@ -78,17 +82,31 @@ class WorkerChunkTextService(WorkerService):
         if not source_key.endswith(self.processed_suffix):
             return
 
-        processed = self._read_processed_object(source_key)
-        doc_id = str(processed["doc_id"])
-        chunk_records = self._build_chunk_records(processed, doc_id)
-        written = 0
-        for chunk_record in chunk_records:
-            destination_key = self._chunk_object_key(doc_id, str(chunk_record["chunk_id"]))
-            if not self._chunk_object_exists(destination_key):
-                self._write_chunk_object(destination_key, chunk_record)
-                written += 1
-            self._enqueue_chunk_object(destination_key)
-        logger.info("Wrote %d chunk objects for doc_id '%s'", written, doc_id)
+        doc_id = source_key.split("/")[-1].replace(self.processed_suffix, "")
+        destination_prefix = f"{self.chunks_prefix}{doc_id}/"
+        self.lineage.start_run(
+            inputs=[s3_uri(self.storage_bucket, source_key)],
+            outputs=[s3_uri(self.storage_bucket, destination_prefix)],
+        )
+        try:
+            processed = self._read_processed_object(source_key)
+            doc_id = str(processed["doc_id"])
+            chunk_records = self._build_chunk_records(processed, doc_id)
+            written = 0
+            for chunk_record in chunk_records:
+                destination_key = self._chunk_object_key(doc_id, str(chunk_record["chunk_id"]))
+                if not self._chunk_object_exists(destination_key):
+                    self._write_chunk_object(destination_key, chunk_record)
+                    written += 1
+                self._enqueue_chunk_object(destination_key)
+            self.lineage.complete_run(
+                inputs=[s3_uri(self.storage_bucket, source_key)],
+                outputs=[s3_uri(self.storage_bucket, f"{self.chunks_prefix}{doc_id}/")],
+            )
+            logger.info("Wrote %d chunk objects for doc_id '%s'", written, doc_id)
+        except Exception as exc:
+            self.lineage.fail_run(error_message=str(exc))
+            raise
 
     def _pop_queued_source_key(self) -> str | None:
         """Pop one processed object key from chunking queue when available."""

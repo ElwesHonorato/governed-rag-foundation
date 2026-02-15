@@ -16,8 +16,9 @@ Best practices:
 
 from pipeline_common.queue import StageQueue
 
+from pipeline_common.lineage import LineageEmitter
 from pipeline_common.object_storage import ObjectStorageGateway, S3Client
-from pipeline_common.settings import QueueRuntimeSettings, S3StorageSettings
+from pipeline_common.settings import LineageRuntimeSettings, QueueRuntimeSettings, S3StorageSettings
 from configs.constants import PARSE_DOCUMENT_PROCESSING_CONFIG
 from parsing.html import HtmlParser
 from parsing.registry import ParserRegistry
@@ -28,7 +29,12 @@ def run() -> None:
     """Initialize dependencies and start the worker service."""
     s3_settings = S3StorageSettings.from_env()
     queue_settings = QueueRuntimeSettings.from_env()
+    lineage_settings = LineageRuntimeSettings.from_env()
     processing_config = PARSE_DOCUMENT_PROCESSING_CONFIG
+    lineage = LineageEmitter(
+        lineage_settings=lineage_settings,
+        lineage_config=processing_config["lineage"],
+    )
     stage_queue = StageQueue(queue_settings.broker_url, queue_config=processing_config["queue"])
     parser_registry = ParserRegistry(parsers=[HtmlParser()])
     object_storage = ObjectStorageGateway(
@@ -42,6 +48,7 @@ def run() -> None:
     WorkerParseDocumentService(
         stage_queue=stage_queue,
         object_storage=object_storage,
+        lineage=lineage,
         processing_config=processing_config,
         parser_registry=parser_registry,
     ).serve()

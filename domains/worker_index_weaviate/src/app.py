@@ -16,9 +16,10 @@ Best practices:
 """
 
 from pipeline_common.config import _required_env
+from pipeline_common.lineage import LineageEmitter
 from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway, S3Client
-from pipeline_common.settings import QueueRuntimeSettings, S3StorageSettings
+from pipeline_common.settings import LineageRuntimeSettings, QueueRuntimeSettings, S3StorageSettings
 from pipeline_common.weaviate import ensure_schema
 from configs.constants import INDEX_WEAVIATE_PROCESSING_CONFIG
 from services.worker_index_weaviate_service import WorkerIndexWeaviateService
@@ -28,8 +29,13 @@ def run() -> None:
     """Initialize dependencies and start the worker service."""
     s3_settings = S3StorageSettings.from_env()
     queue_settings = QueueRuntimeSettings.from_env()
-    weaviate_url = _required_env("WEAVIATE_URL")
+    lineage_settings = LineageRuntimeSettings.from_env()
     processing_config = INDEX_WEAVIATE_PROCESSING_CONFIG
+    lineage = LineageEmitter(
+        lineage_settings=lineage_settings,
+        lineage_config=processing_config["lineage"],
+    )
+    weaviate_url = _required_env("WEAVIATE_URL")
     stage_queue = StageQueue(queue_settings.broker_url, queue_config=processing_config["queue"])
     object_storage = ObjectStorageGateway(
         S3Client(
@@ -43,6 +49,7 @@ def run() -> None:
     WorkerIndexWeaviateService(
         stage_queue=stage_queue,
         object_storage=object_storage,
+        lineage=lineage,
         processing_config=processing_config,
         weaviate_url=weaviate_url,
     ).serve()

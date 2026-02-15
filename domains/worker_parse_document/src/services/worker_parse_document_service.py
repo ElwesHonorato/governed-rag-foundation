@@ -5,6 +5,8 @@ import logging
 from typing import Any, TypedDict
 
 from pipeline_common.contracts import doc_id_from_source_key, utc_now_iso
+from pipeline_common.lineage import LineageEmitter
+from pipeline_common.lineage.paths import s3_uri
 from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway
 from parsing.registry import ParserRegistry
@@ -59,12 +61,14 @@ class WorkerParseDocumentService(WorkerService):
         *,
         stage_queue: StageQueue,
         object_storage: ObjectStorageGateway,
+        lineage: LineageEmitter,
         processing_config: DocumentProcessingConfig,
         parser_registry: ParserRegistry,
     ) -> None:
         """Initialize parse worker dependencies and runtime settings."""
         self.stage_queue = stage_queue
         self.object_storage = object_storage
+        self.lineage = lineage
         self.parser_registry = parser_registry
         self._initialize_runtime_config(processing_config)
 
@@ -86,28 +90,37 @@ class WorkerParseDocumentService(WorkerService):
 
         doc_id = doc_id_from_source_key(source_key)
         destination_key = self._processed_key(doc_id)
+        self.lineage.start_run(
+            inputs=[s3_uri(self.storage_bucket, source_key)],
+            outputs=[s3_uri(self.storage_bucket, destination_key)],
+        )
         if self._processed_exists(destination_key):
+            error_message = f"Processed document already exists: {destination_key}"
             self.stage_queue.push_dlq_message(
                 storage_key=source_key,
                 doc_id=doc_id,
-                error=f"Processed document already exists: {destination_key}",
+                error=error_message,
                 failed_at=utc_now_iso(),
             )
+            self.lineage.fail_run(error_message=error_message)
             return
 
         try:
             payload = self._process_object(source_key, doc_id)
         except Exception as exc:
+            error_message = str(exc)
             self.stage_queue.push_dlq_message(
                 storage_key=source_key,
                 doc_id=doc_id,
-                error=str(exc),
+                error=error_message,
                 failed_at=utc_now_iso(),
             )
+            self.lineage.fail_run(error_message=error_message)
             logger.exception("Failed parsing source key '%s'; sent to DLQ", source_key)
             return
         self._write_processed_object(destination_key, payload)
         self._enqueue_processed_object(destination_key)
+        self.lineage.complete_run()
         logger.info("Wrote processed document '%s'", destination_key)
 
     def _pop_queued_source_key(self) -> str | None:

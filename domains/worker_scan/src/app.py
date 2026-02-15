@@ -16,8 +16,13 @@ Best practices:
 
 from pipeline_common.queue import StageQueue
 
+from pipeline_common.lineage import LineageEmitter
 from pipeline_common.object_storage import ObjectStorageGateway, S3Client
-from pipeline_common.settings import QueueRuntimeSettings, S3StorageSettings
+from pipeline_common.settings import (
+    LineageRuntimeSettings,
+    QueueRuntimeSettings,
+    S3StorageSettings,
+)
 from configs.constants import SCAN_PROCESSING_CONFIG
 from services.scan_cycle_processor import StorageScanCycleProcessor
 from services.worker_scan_service import WorkerScanService
@@ -27,7 +32,12 @@ def run() -> None:
     """Initialize dependencies and start the worker service."""
     s3_settings = S3StorageSettings.from_env()
     queue_settings = QueueRuntimeSettings.from_env()
+    lineage_settings = LineageRuntimeSettings.from_env()
     processing_config = SCAN_PROCESSING_CONFIG
+    lineage = LineageEmitter(
+        lineage_settings=lineage_settings,
+        lineage_config=processing_config["lineage"],
+    )
     stage_queue = StageQueue(queue_settings.broker_url, queue_config=processing_config["queue"])
     object_storage = ObjectStorageGateway(
         S3Client(
@@ -41,6 +51,7 @@ def run() -> None:
     processor = StorageScanCycleProcessor(
         object_storage=object_storage,
         stage_queue=stage_queue,
+        lineage=lineage,
         processing_config=processing_config,
     )
     WorkerScanService(

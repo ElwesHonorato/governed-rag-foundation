@@ -6,6 +6,8 @@ from typing import TypedDict
 
 from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway
+from pipeline_common.lineage import LineageEmitter
+from pipeline_common.lineage.paths import s3_uri
 
 logger = logging.getLogger(__name__)
 
@@ -44,11 +46,13 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
         *,
         object_storage: ObjectStorageGateway,
         stage_queue: StageQueue,
+        lineage: LineageEmitter,
         processing_config: ScanProcessingConfig,
     ) -> None:
         """Initialize instance state and dependencies."""
         self.object_storage = object_storage
         self.stage_queue = stage_queue
+        self.lineage = lineage
         self._initialize_runtime_config(processing_config)
 
     def scan(self) -> int:
@@ -72,9 +76,18 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
             return False
 
         destination_key = self._destination_key(source_key)
-        self._copy_and_enqueue(source_key, destination_key)
-        self._delete_source(source_key)
-        return True
+        self.lineage.start_run(
+            inputs=[s3_uri(self.bucket, source_key)],
+            outputs=[s3_uri(self.bucket, destination_key)],
+        )
+        try:
+            self._copy_and_enqueue(source_key, destination_key)
+            self._delete_source(source_key)
+            self.lineage.complete_run()
+            return True
+        except Exception as exc:
+            self.lineage.fail_run(error_message=str(exc))
+            raise
 
     def _source_exists(self, source_key: str) -> bool:
         """Check whether the source object is still present."""

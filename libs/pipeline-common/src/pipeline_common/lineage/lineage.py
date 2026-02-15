@@ -6,14 +6,14 @@ from dataclasses import dataclass, field
 from typing import Any
 from urllib import error, request
 
-from pipeline_common.config import JobStageName
+from pipeline_common.config import JobStageName, LineageDatasetNamespace
 from pipeline_common.contracts import utc_now_iso
 from pipeline_common.settings import LineageRuntimeSettings
 from .constants import OPENLINEAGE_SCHEMA_URLS
 
 logger = logging.getLogger(__name__)
 
-LineageConfig = dict[str, str | JobStageName]
+LineageConfig = dict[str, str | JobStageName | LineageDatasetNamespace]
 
 
 @dataclass(init=False)
@@ -24,6 +24,7 @@ class LineageEmitter:
     lineage_url: str
     namespace: str
     producer: str
+    dataset_namespace: str | None
     timeout_seconds: float
     job_stage: JobStageName | None = None
     run_id: str | None = None
@@ -41,7 +42,9 @@ class LineageEmitter:
         self.enabled = bool(normalized_url)
         self.lineage_url = normalized_url
         self.namespace = lineage_settings.namespace
-        self.producer = str(lineage_config["producer"])
+        self.producer = self._parse_producer(lineage_config.get("producer"))
+        configured_dataset_namespace = self._parse_dataset_namespace(lineage_config.get("dataset_namespace"))
+        self.dataset_namespace = configured_dataset_namespace or None
         self.timeout_seconds = lineage_settings.timeout_seconds
         self.job_stage = self._parse_job_stage(lineage_config.get("job_stage"))
         self.run_id = None
@@ -114,10 +117,14 @@ class LineageEmitter:
         """Add one OpenLineage output dataset descriptor from a path."""
         self.outputs.append(self._dataset_from_path(path))
 
-    @staticmethod
-    def _dataset_from_path(path: str) -> dict[str, str]:
+    def _dataset_from_path(self, path: str) -> dict[str, str]:
         """Build an OpenLineage dataset descriptor from one path string."""
         normalized_path = path.strip()
+        if self.dataset_namespace is not None:
+            return {
+                "namespace": self.dataset_namespace,
+                "name": self._dataset_name_from_path(normalized_path),
+            }
         if "://" in normalized_path:
             scheme, remainder = normalized_path.split("://", 1)
             if "/" in remainder:
@@ -125,6 +132,16 @@ class LineageEmitter:
                 return {"namespace": f"{scheme}://{root}", "name": name}
             return {"namespace": f"{scheme}://{remainder}", "name": ""}
         return {"namespace": "path://", "name": normalized_path}
+
+    @staticmethod
+    def _dataset_name_from_path(path: str) -> str:
+        """Extract dataset name segment from a full path string."""
+        if "://" in path:
+            _, remainder = path.split("://", 1)
+            if "/" in remainder:
+                return remainder.split("/", 1)[1]
+            return ""
+        return path
 
     def emit_start(
         self,
@@ -250,6 +267,26 @@ class LineageEmitter:
         if isinstance(raw_job_stage, JobStageName):
             return raw_job_stage
         return JobStageName(str(raw_job_stage))
+
+    @staticmethod
+    def _parse_dataset_namespace(
+        raw_dataset_namespace: str | LineageDatasetNamespace | None,
+    ) -> str:
+        """Normalize dataset namespace from config value."""
+        if raw_dataset_namespace is None:
+            return ""
+        if isinstance(raw_dataset_namespace, LineageDatasetNamespace):
+            return raw_dataset_namespace.value
+        return str(raw_dataset_namespace).strip()
+
+    @staticmethod
+    def _parse_producer(raw_producer: str | JobStageName | None) -> str:
+        """Normalize producer from config value."""
+        if raw_producer is None:
+            raise ValueError("lineage producer is not configured")
+        if isinstance(raw_producer, JobStageName):
+            return raw_producer.value
+        return str(raw_producer).strip()
 
     def _resolve_run_id(self, explicit_run_id: str | None) -> str:
         """Resolve run id from explicit value or the emitter current run state."""

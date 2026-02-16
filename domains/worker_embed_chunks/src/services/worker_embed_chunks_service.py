@@ -6,7 +6,6 @@ import logging
 from typing import Any, TypedDict
 
 from pipeline_common.lineage import LineageEmitter
-from pipeline_common.lineage.paths import s3_uri
 from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway
 
@@ -92,16 +91,16 @@ class WorkerEmbedChunksService(WorkerService):
         if not source_key.endswith(self.chunks_suffix):
             return
 
-        self.lineage.start_run(
-            inputs=[s3_uri(self.storage_bucket, source_key)],
-        )
+        s3_namespace = f"s3://{self.storage_bucket}"
+        self.lineage.start_run()
+        self.lineage.add_input({"namespace": s3_namespace, "name": source_key})
         try:
             chunk_payload = self._read_chunks_object(source_key)
             embedding_payload = self._process_object(chunk_payload)
             doc_id = str(embedding_payload["doc_id"])
             chunk_id = str(embedding_payload["chunk_id"])
             destination_key = self._embedding_object_key(doc_id, chunk_id)
-            self.lineage.add_output(s3_uri(self.storage_bucket, destination_key))
+            self.lineage.add_output({"namespace": s3_namespace, "name": destination_key})
             if self._embeddings_exists(destination_key):
                 self.stage_queue.push_dlq_message(storage_key=source_key)
                 self.lineage.fail_run(error_message=f"Embeddings artifact already exists: {destination_key}")

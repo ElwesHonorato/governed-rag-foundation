@@ -1,9 +1,9 @@
 import json
 import logging
 import uuid
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, TypedDict
 from urllib import error, request
 
 from pipeline_common.config import JobStageName
@@ -15,6 +15,14 @@ from .contracts import LineageEmitterConfig
 logger = logging.getLogger(__name__)
 
 
+class OpenLineageDataset(TypedDict, total=False):
+    """Typed shape for one OpenLineage dataset descriptor."""
+
+    namespace: str
+    name: str
+    facets: Mapping[str, Any]
+
+
 @dataclass(init=False)
 class LineageEmitter:
     """Best-effort OpenLineage emitter for Marquez."""
@@ -22,12 +30,11 @@ class LineageEmitter:
     lineage_url: str
     namespace: str
     producer: str
-    dataset_namespace: str | None
     timeout_seconds: float
     job_stage: JobStageName | None = None
     run_id: str | None = None
-    inputs: list[dict[str, str]] = field(default_factory=list)
-    outputs: list[dict[str, str]] = field(default_factory=list)
+    inputs: list[OpenLineageDataset] = field(default_factory=list)
+    outputs: list[OpenLineageDataset] = field(default_factory=list)
 
     def __init__(
         self,
@@ -46,15 +53,12 @@ class LineageEmitter:
 
     def start_run(
         self,
-        inputs: Sequence[str],
-        outputs: Sequence[str] = (),
         job_stage: str | JobStageName | None = None,
     ) -> None:
-        """Create run id, register in/out datasets, and emit START event."""
+        """Create run id and emit START event."""
         if job_stage is not None:
             self.job_stage = job_stage
         self.generate_run_id()
-        self._register_io(inputs=inputs, outputs=outputs)
         self.emit_start()
 
     def complete_run(self) -> None:
@@ -77,13 +81,19 @@ class LineageEmitter:
         self.inputs.clear()
         self.outputs.clear()
 
-    def add_input(self, path: str) -> None:
-        """Add one OpenLineage input dataset descriptor from a path."""
-        self.inputs.append({"namespace": self.dataset_namespace, "name": path})
+    def add_input(
+        self,
+        dataset: OpenLineageDataset,
+    ) -> None:
+        """Add one OpenLineage input dataset descriptor."""
+        self.inputs.append(self._dataset(dataset))
 
-    def add_output(self, path: str) -> None:
-        """Add one OpenLineage output dataset descriptor from a path."""
-        self.outputs.append({"namespace": self.dataset_namespace, "name": path})
+    def add_output(
+        self,
+        dataset: OpenLineageDataset,
+    ) -> None:
+        """Add one OpenLineage output dataset descriptor."""
+        self.outputs.append(self._dataset(dataset))
 
     def emit_start(self) -> None:
         """Emit START run event."""
@@ -158,7 +168,6 @@ class LineageEmitter:
     def _init_lineage_config(self, lineage_config: LineageEmitterConfig) -> None:
         self.namespace = lineage_config.namespace
         self.producer = lineage_config.producer
-        self.dataset_namespace = lineage_config.dataset_namespace
         self.job_stage = lineage_config.job_stage
         self.timeout_seconds = lineage_config.timeout_seconds
 
@@ -167,11 +176,15 @@ class LineageEmitter:
         self.inputs = []
         self.outputs = []
 
-    def _register_io(self, inputs: Sequence[str], outputs: Sequence[str]) -> None:
-        for path in inputs:
-            self.add_input(path)
-        for path in outputs:
-            self.add_output(path)
+    def _dataset(self, dataset: OpenLineageDataset) -> OpenLineageDataset:
+        facets = dataset.get("facets")
+        dataset: OpenLineageDataset = {
+            "namespace": dataset.get("namespace","Namespace is missing"),
+            "name": dataset.get("name", "Name is missing"),
+        }
+        if facets:
+            dataset["facets"] = facets
+        return dataset
 
     def _post(self, payload: dict[str, Any]) -> None:
         """Send one event payload to Marquez."""

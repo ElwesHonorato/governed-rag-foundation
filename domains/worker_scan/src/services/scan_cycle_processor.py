@@ -7,7 +7,6 @@ from typing import TypedDict
 from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway
 from pipeline_common.lineage import LineageEmitter
-from pipeline_common.lineage.paths import s3_uri
 
 logger = logging.getLogger(__name__)
 
@@ -76,10 +75,10 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
             return False
 
         destination_key = self._destination_key(source_key)
-        self.lineage.start_run(
-            inputs=[s3_uri(self.bucket, source_key)],
-            outputs=[s3_uri(self.bucket, destination_key)],
-        )
+        s3_namespace = f"s3://{self.bucket}"
+        self.lineage.start_run()
+        self.lineage.add_input({"namespace": s3_namespace, "name": source_key})
+        self.lineage.add_output({"namespace": s3_namespace, "name": destination_key})
         try:
             self._copy_and_enqueue(source_key, destination_key)
             self._delete_source(source_key)

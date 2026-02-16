@@ -5,7 +5,6 @@ import logging
 from typing import Any, TypedDict
 
 from pipeline_common.lineage import LineageEmitter
-from pipeline_common.lineage.paths import s3_uri
 from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway
 from pipeline_common.weaviate import upsert_chunk, verify_query
@@ -84,15 +83,15 @@ class WorkerIndexWeaviateService(WorkerService):
         if not embeddings_key.endswith(self.embeddings_suffix):
             return
 
-        self.lineage.start_run(
-            inputs=[s3_uri(self.storage_bucket, embeddings_key)],
-        )
+        s3_namespace = f"s3://{self.storage_bucket}"
+        self.lineage.start_run()
+        self.lineage.add_input({"namespace": s3_namespace, "name": embeddings_key})
         try:
             payload = self._read_embeddings_object(embeddings_key)
             resolved_doc_id = str(payload.get("doc_id", doc_id))
             resolved_chunk_id = str(payload.get("chunk_id", ""))
             destination_key = self._indexed_key(resolved_doc_id, resolved_chunk_id)
-            self.lineage.add_output(s3_uri(self.storage_bucket, destination_key))
+            self.lineage.add_output({"namespace": s3_namespace, "name": destination_key})
             if self._indexed_exists(destination_key):
                 self.stage_queue.push_dlq_message(embeddings_key=embeddings_key, doc_id=resolved_doc_id)
                 self.lineage.fail_run(error_message=f"Index status already exists: {destination_key}")

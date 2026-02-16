@@ -1,4 +1,4 @@
-from pipeline_common.config import JobStageName, LineageDatasetNamespace
+from pipeline_common.config import JobStageName
 from pipeline_common.lineage import LineageEmitterConfig
 from pipeline_common.lineage.constants import LineageNamespace
 from pipeline_common.queue.contracts import WORKER_STAGE_QUEUES
@@ -8,7 +8,6 @@ SCAN_LINEAGE_CONFIG = LineageEmitterConfig(
     namespace=LineageNamespace.GOVERNED_RAG,
     job_stage=JobStageName.WORKER_SCAN,
     producer="https://github.com/ElwesHonorato/governed-rag-foundation",
-    dataset_namespace=LineageDatasetNamespace.GOVERNED_RAG_DATA,
     timeout_seconds=3.0,
 )
 

@@ -6,7 +6,6 @@ from typing import Any, TypedDict
 
 from pipeline_common.contracts import chunk_id_for
 from pipeline_common.lineage import LineageEmitter
-from pipeline_common.lineage.paths import s3_uri
 from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway
 from pipeline_common.text import chunk_text
@@ -84,10 +83,10 @@ class WorkerChunkTextService(WorkerService):
 
         doc_id = source_key.split("/")[-1].replace(self.processed_suffix, "")
         destination_prefix = f"{self.chunks_prefix}{doc_id}/"
-        self.lineage.start_run(
-            inputs=[s3_uri(self.storage_bucket, source_key)],
-            outputs=[s3_uri(self.storage_bucket, destination_prefix)],
-        )
+        s3_namespace = f"s3://{self.storage_bucket}"
+        self.lineage.start_run()
+        self.lineage.add_input({"namespace": s3_namespace, "name": source_key})
+        self.lineage.add_output({"namespace": s3_namespace, "name": destination_prefix})
         try:
             processed = self._read_processed_object(source_key)
             doc_id = str(processed["doc_id"])

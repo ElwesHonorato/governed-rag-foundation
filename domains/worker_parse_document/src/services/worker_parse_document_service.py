@@ -6,7 +6,6 @@ from typing import Any, TypedDict
 
 from pipeline_common.contracts import doc_id_from_source_key, utc_now_iso
 from pipeline_common.lineage import LineageEmitter
-from pipeline_common.lineage.paths import s3_uri
 from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway
 from parsing.registry import ParserRegistry
@@ -90,10 +89,10 @@ class WorkerParseDocumentService(WorkerService):
 
         doc_id = doc_id_from_source_key(source_key)
         destination_key = self._processed_key(doc_id)
-        self.lineage.start_run(
-            inputs=[s3_uri(self.storage_bucket, source_key)],
-            outputs=[s3_uri(self.storage_bucket, destination_key)],
-        )
+        s3_namespace = f"s3://{self.storage_bucket}"
+        self.lineage.start_run()
+        self.lineage.add_input({"namespace": s3_namespace, "name": source_key})
+        self.lineage.add_output({"namespace": s3_namespace, "name": destination_key})
         if self._processed_exists(destination_key):
             error_message = f"Processed document already exists: {destination_key}"
             self.stage_queue.push_dlq_message(

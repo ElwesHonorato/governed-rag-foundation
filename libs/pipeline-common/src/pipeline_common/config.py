@@ -10,10 +10,6 @@ class JobStageName(str, Enum):
     WORKER_INDEX_WEAVIATE = "worker_index_weaviate"
 
 
-class LineageDatasetNamespace(str, Enum):
-    GOVERNED_RAG_DATA = "governed-rag-data"
-
-
 def _required_env(name: str) -> str:
     """Internal helper for required env."""
     value = os.getenv(name)

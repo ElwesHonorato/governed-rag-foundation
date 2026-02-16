@@ -32,7 +32,6 @@ This domain is the RAG system's memory for "what happened and when." It lets you
 - Each worker defines a typed lineage config object (`*_LINEAGE_CONFIG`) and passes it to `LineageEmitter`:
   - `job_stage`
   - `producer`
-  - `dataset_namespace`
 
 ### UI usage
 - Open Marquez Web UI (usually `http://localhost:${MARQUEZ_WEB_PORT}`).
@@ -41,7 +40,27 @@ This domain is the RAG system's memory for "what happened and when." It lets you
 
 Reason:
 - Job namespace comes from each worker lineage config object (`*_LINEAGE_CONFIG.namespace`).
-- Dataset namespace comes from each worker lineage config object (`*_LINEAGE_CONFIG.dataset_namespace`).
+- Dataset namespace comes from each dataset entry in the run payload.
+  - Each dataset entry should provide explicit `namespace` and `name` (supports cross-namespace lineage in one run, such as S3 input to Postgres output).
+
+### Cross-namespace dataset example
+```python
+lineage.start_run()
+lineage.add_input({"namespace": "s3://rag-data", "name": "02_raw/html/"})
+lineage.add_output(
+    {
+        "namespace": "postgres://pg-prod:5432",
+        "name": "rag.parsed_documents",
+        "facets": {
+            "schema": {
+                "_producer": "https://github.com/ElwesHonorato/governed-rag-foundation",
+                "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/SchemaDatasetFacet.json",
+                "fields": [{"name": "doc_id", "type": "VARCHAR"}],
+            }
+        },
+    }
+)
+```
 
 ### API usage
 - List namespaces:

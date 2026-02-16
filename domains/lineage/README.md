@@ -29,9 +29,19 @@ This domain is the RAG system's memory for "what happened and when." It lets you
 ### Required worker settings
 - `MARQUEZ_LINEAGE_URL` must point to Marquez lineage endpoint, usually `http://marquez:5000/api/v1/lineage`.
 - Job namespace is defined per worker in `*_LINEAGE_CONFIG.namespace` (commonly `governed-rag`).
+- Dataset namespace should be defined once per worker in `*_LINEAGE_CONFIG.dataset_namespace` (for example `s3://rag-data`).
 - Each worker defines a typed lineage config object (`*_LINEAGE_CONFIG`) and passes it to `LineageEmitter`:
   - `job_stage`
   - `producer`
+
+### Important Marquez Dataset Namespace Bug
+- Do not use dataset namespaces containing `://` (for example `s3://rag-data`) when you need dataset-root lineage pages in Marquez UI.
+- In this stack, Marquez can return `500` for dataset lineage queries with such namespaces (`IllegalStateException: No match available`), even when ingestion succeeds.
+- Use a canonical plain namespace string instead (for example `rag-data`), and keep object keys in dataset `name`.
+- Safe pattern:
+  - `namespace`: `rag-data`
+  - `name`: `01_incoming/...`, `02_raw/...`, `03_processed/...`
+- If old history exists under `s3://...`, those dataset URLs may keep failing. Re-emit lineage under the canonical namespace.
 
 ### UI usage
 - Open Marquez Web UI (usually `http://localhost:${MARQUEZ_WEB_PORT}`).
@@ -40,8 +50,9 @@ This domain is the RAG system's memory for "what happened and when." It lets you
 
 Reason:
 - Job namespace comes from each worker lineage config object (`*_LINEAGE_CONFIG.namespace`).
-- Dataset namespace comes from each dataset entry in the run payload.
-  - Each dataset entry should provide explicit `namespace` and `name` (supports cross-namespace lineage in one run, such as S3 input to Postgres output).
+- Dataset namespace should come from one canonical worker config value (`*_LINEAGE_CONFIG.dataset_namespace`).
+  - Dataset entries may provide only `name` when they use the canonical namespace.
+  - Use explicit `namespace` only for intentional cross-namespace lineage (for example S3 input to Postgres output).
 
 ### Cross-namespace dataset example
 ```python

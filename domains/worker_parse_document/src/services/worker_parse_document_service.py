@@ -89,10 +89,19 @@ class WorkerParseDocumentService(WorkerService):
 
         doc_id = doc_id_from_source_key(source_key)
         destination_key = self._processed_key(doc_id)
-        s3_namespace = f"s3://{self.storage_bucket}"
-        self.lineage.start_run()
-        self.lineage.add_input({"namespace": s3_namespace, "name": source_key})
-        self.lineage.add_output({"namespace": s3_namespace, "name": destination_key})
+        self.lineage.start_run(
+            run_facets={
+                "governedRag": {
+                    "_producer": self.lineage.producer,
+                    "_schemaURL": "https://governed-rag.dev/schemas/facets/governedRagRunFacet.json",
+                    "raw_source_key": source_key,
+                    "processed_key": destination_key,
+                    "doc_id": doc_id,
+                }
+            }
+        )
+        self.lineage.add_input({"name": source_key})
+        self.lineage.add_output({"name": destination_key})
         if self._processed_exists(destination_key):
             error_message = f"Processed document already exists: {destination_key}"
             self.stage_queue.push_dlq_message(
@@ -118,8 +127,8 @@ class WorkerParseDocumentService(WorkerService):
             logger.exception("Failed parsing source key '%s'; sent to DLQ", source_key)
             return
         self._write_processed_object(destination_key, payload)
-        self._enqueue_processed_object(destination_key)
         self.lineage.complete_run()
+        self._enqueue_processed_object(destination_key)
         logger.info("Wrote processed document '%s'", destination_key)
 
     def _pop_queued_source_key(self) -> str | None:

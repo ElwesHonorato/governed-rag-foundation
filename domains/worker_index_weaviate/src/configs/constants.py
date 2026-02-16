@@ -7,6 +7,7 @@ INDEX_WEAVIATE_STORAGE_BUCKET = "rag-data"
 INDEX_WEAVIATE_LINEAGE_CONFIG = LineageEmitterConfig(
     namespace=LineageNamespace.GOVERNED_RAG,
     job_stage=JobStageName.WORKER_INDEX_WEAVIATE,
+    dataset_namespace=INDEX_WEAVIATE_STORAGE_BUCKET,
     producer="https://github.com/ElwesHonorato/governed-rag-foundation",
     timeout_seconds=3.0,
 )

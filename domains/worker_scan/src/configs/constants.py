@@ -7,6 +7,7 @@ SCAN_STORAGE_BUCKET = "rag-data"
 SCAN_LINEAGE_CONFIG = LineageEmitterConfig(
     namespace=LineageNamespace.GOVERNED_RAG,
     job_stage=JobStageName.WORKER_SCAN,
+    dataset_namespace=SCAN_STORAGE_BUCKET,
     producer="https://github.com/ElwesHonorato/governed-rag-foundation",
     timeout_seconds=3.0,
 )

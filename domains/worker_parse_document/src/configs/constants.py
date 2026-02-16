@@ -7,6 +7,7 @@ PARSE_DOCUMENT_STORAGE_BUCKET = "rag-data"
 PARSE_DOCUMENT_LINEAGE_CONFIG = LineageEmitterConfig(
     namespace=LineageNamespace.GOVERNED_RAG,
     job_stage=JobStageName.WORKER_PARSE_DOCUMENT,
+    dataset_namespace=PARSE_DOCUMENT_STORAGE_BUCKET,
     producer="https://github.com/ElwesHonorato/governed-rag-foundation",
     timeout_seconds=3.0,
 )

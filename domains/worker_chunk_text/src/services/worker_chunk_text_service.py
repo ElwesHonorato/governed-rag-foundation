@@ -83,22 +83,34 @@ class WorkerChunkTextService(WorkerService):
 
         doc_id = source_key.split("/")[-1].replace(self.processed_suffix, "")
         destination_prefix = f"{self.chunks_prefix}{doc_id}/"
-        s3_namespace = f"s3://{self.storage_bucket}"
-        self.lineage.start_run()
-        self.lineage.add_input({"namespace": s3_namespace, "name": source_key})
-        self.lineage.add_output({"namespace": s3_namespace, "name": destination_prefix})
+        self.lineage.start_run(
+            run_facets={
+                "governedRag": {
+                    "_producer": self.lineage.producer,
+                    "_schemaURL": "https://governed-rag.dev/schemas/facets/governedRagRunFacet.json",
+                    "processed_key": source_key,
+                    "chunks_prefix": destination_prefix,
+                    "doc_id": doc_id,
+                }
+            }
+        )
+        self.lineage.add_input({"name": source_key})
         try:
             processed = self._read_processed_object(source_key)
             doc_id = str(processed["doc_id"])
             chunk_records = self._build_chunk_records(processed, doc_id)
             written = 0
+            destination_keys: list[str] = []
             for chunk_record in chunk_records:
                 destination_key = self._chunk_object_key(doc_id, str(chunk_record["chunk_id"]))
+                destination_keys.append(destination_key)
+                self.lineage.add_output({"name": destination_key})
                 if not self._chunk_object_exists(destination_key):
                     self._write_chunk_object(destination_key, chunk_record)
                     written += 1
-                self._enqueue_chunk_object(destination_key)
             self.lineage.complete_run()
+            for destination_key in destination_keys:
+                self._enqueue_chunk_object(destination_key)
             logger.info("Wrote %d chunk objects for doc_id '%s'", written, doc_id)
         except Exception as exc:
             self.lineage.fail_run(error_message=str(exc))

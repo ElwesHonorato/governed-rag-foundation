@@ -11,4 +11,5 @@ class LineageEmitterConfig:
     namespace: str | LineageNamespace
     producer: str
     job_stage: JobStageName | None = None
+    dataset_namespace: str | None = None
     timeout_seconds: float = 3.0

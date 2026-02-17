@@ -1,0 +1,35 @@
+{
+  "eventType": "COMPLETE",
+  "eventTime": "2026-02-17T20:00:00Z",
+  "run": {
+    "runId": "11111111-1111-1111-1111-111111111111",
+    "facets": {
+      "governedRag": {
+        "_producer": "https://github.com/ElwesHonorato/governed-rag-foundation",
+        "_schemaURL": "https://governed-rag.dev/schemas/facets/governedRagRunFacet.json",
+        "origin_source_key": "01_incoming/pg1513-images.html",
+        "raw_source_key": "02_raw/pg1513-images.html",
+        "asset_id": "8785084d36681b83b733d6f7",
+        "doc_id": "908b7e47756d9b9454cb48d4"
+      }
+    }
+  },
+  "job": {
+    "namespace": "governed-rag",
+    "name": "worker_scan"
+  },
+  "producer": "https://github.com/ElwesHonorato/governed-rag-foundation",
+  "schemaURL": "https://openlineage.io/spec/1-0-5/OpenLineage.json#/definitions/RunEvent",
+  "inputs": [
+    {
+      "namespace": "rag-data",
+      "name": "01_incoming/pg1513-images.html"
+    }
+  ],
+  "outputs": [
+    {
+      "namespace": "rag-data",
+      "name": "02_raw/pg1513-images.html"
+    }
+  ]
+}

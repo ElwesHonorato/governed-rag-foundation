@@ -18,7 +18,7 @@
     "namespace": "governed-rag",
     "name": "worker_index_weaviate"
   },
-  "producer": "https://github.com/ElwesHonorato/governed-rag-foundation",
+  "producer": "https://github.com/OpenLineage/OpenLineage/tree/1.24.0",
   "schemaURL": "https://openlineage.io/spec/1-0-5/OpenLineage.json#/definitions/RunEvent",
   "inputs": [
     { "namespace": "rag-data", "name": "05_embeddings/a204e8b00fc95a95e854f4a0.part1/5d6fa2bd4c8f9fda94a1b948ae0c5a5db139bc6884acac22705d828b2d1a09bd.embedding.json" }

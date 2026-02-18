@@ -1,16 +1,16 @@
 {
-  "eventType": "START",
-  "eventTime": "2026-02-17T19:59:30Z",
+  "eventType": "COMPLETE",
+  "eventTime": "2026-02-17T22:01:00Z",
   "run": {
-    "runId": "11111111-1111-1111-1111-111111111111",
+    "runId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
     "facets": {
       "governedRag": {
         "_producer": "https://github.com/ElwesHonorato/governed-rag-foundation",
         "_schemaURL": "https://governed-rag.dev/schemas/facets/governedRagRunFacet.json",
-        "origin_source_key": "01_incoming/pg1513-images.html",
-        "raw_source_key": "02_raw/pg1513-images.html",
-        "asset_id": "8785084d36681b83b733d6f7",
-        "doc_id": "908b7e47756d9b9454cb48d4"
+        "origin_source_key": "01_incoming/test_file_01.htmal",
+        "raw_source_key": "02_raw/test_file_01.htmal",
+        "asset_id": "8629660d0ece85b2ca94754a",
+        "doc_id": "a204e8b00fc95a95e854f4a0"
       }
     }
   },
@@ -23,13 +23,13 @@
   "inputs": [
     {
       "namespace": "rag-data",
-      "name": "01_incoming/pg1513-images.html"
+      "name": "01_incoming/test_file_01.htmal"
     }
   ],
   "outputs": [
     {
       "namespace": "rag-data",
-      "name": "02_raw/pg1513-images.html"
+      "name": "02_raw/test_file_01.htmal"
     }
   ]
 }

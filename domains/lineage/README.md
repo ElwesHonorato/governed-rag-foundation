@@ -48,6 +48,13 @@ This domain is the RAG system's memory for "what happened and when." It lets you
 - For jobs and runs, use the namespace configured in `*_LINEAGE_CONFIG.namespace`.
 - For datasets, use the configured worker lineage dataset namespace.
 
+### Known fan-out lineage investigation
+- Investigation docs and replay payloads:
+  - `domains/lineage/docs/marquez_fanout_lineage_bug_investigation`
+- Focus: multi-run fan-out behavior where earlier chunk lineage may appear disconnected after later chunk runs.
+- Upstream issue opened after investigation:
+  - https://github.com/MarquezProject/marquez/issues/3093
+
 Reason:
 - Job namespace comes from each worker lineage config object (`*_LINEAGE_CONFIG.namespace`).
 - Dataset namespace should come from one canonical worker config value (`*_LINEAGE_CONFIG.dataset_namespace`).

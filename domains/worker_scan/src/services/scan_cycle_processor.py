@@ -4,8 +4,10 @@ from collections.abc import Sequence
 import logging
 from typing import TypedDict
 
+from pipeline_common.contracts import doc_id_from_source_key
 from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway
+from pipeline_common.lineage import LineageEmitter
 
 logger = logging.getLogger(__name__)
 
@@ -44,11 +46,13 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
         *,
         object_storage: ObjectStorageGateway,
         stage_queue: StageQueue,
+        lineage: LineageEmitter,
         processing_config: ScanProcessingConfig,
     ) -> None:
         """Initialize instance state and dependencies."""
         self.object_storage = object_storage
         self.stage_queue = stage_queue
+        self.lineage = lineage
         self._initialize_runtime_config(processing_config)
 
     def scan(self) -> int:
@@ -72,9 +76,30 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
             return False
 
         destination_key = self._destination_key(source_key)
-        self._copy_and_enqueue(source_key, destination_key)
-        self._delete_source(source_key)
-        return True
+        self.lineage.start_run(
+            run_facets={
+                "governedRag": {
+                    "_producer": self.lineage.producer,
+                    "_schemaURL": "https://governed-rag.dev/schemas/facets/governedRagRunFacet.json",
+                    "origin_source_key": source_key,
+                    "raw_source_key": destination_key,
+                    "asset_id": doc_id_from_source_key(source_key),
+                    "doc_id": doc_id_from_source_key(destination_key),
+                }
+            }
+        )
+        self.lineage.add_input({"name": source_key})
+        self.lineage.add_output({"name": destination_key})
+        try:
+            self._copy_source_to_destination(source_key, destination_key)
+            self.lineage.complete_run()
+            self._enqueue_parse_request(destination_key)
+            self._delete_source(source_key)
+            logger.info("Moved '%s' -> '%s'", source_key, destination_key)
+            return True
+        except Exception as exc:
+            self.lineage.fail_run(error_message=str(exc))
+            raise
 
     def _source_exists(self, source_key: str) -> bool:
         """Check whether the source object is still present."""
@@ -83,12 +108,6 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
     def _destination_exists(self, destination_key: str) -> bool:
         """Check whether the destination object already exists."""
         return self.object_storage.object_exists(self.bucket, destination_key)
-
-    def _copy_and_enqueue(self, source_key: str, destination_key: str) -> None:
-        """Copy source object to raw prefix and enqueue downstream parsing."""
-        self._copy_source_to_destination(source_key, destination_key)
-        self._enqueue_parse_request(destination_key)
-        logger.info("Moved '%s' -> '%s'", source_key, destination_key)
 
     def _delete_source(self, source_key: str) -> None:
         """Delete the source object after processing to avoid reprocessing."""

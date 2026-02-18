@@ -93,6 +93,10 @@ When finished:
 - rag-api: `http://localhost:8000`
 - vector-ui: `http://localhost:8010`
 
+## Lineage Guide
+
+- For lineage setup, namespace behavior, UI/API usage, and chunk-level troubleshooting, see `domains/lineage/README.md`.
+
 ## Python Dependencies (Poetry)
 
 Python projects in this repository are managed independently with Poetry (one `pyproject.toml` per app/lib/worker).

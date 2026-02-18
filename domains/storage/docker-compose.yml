@@ -9,7 +9,7 @@ services:
       - "${MINIO_API_PORT:?MINIO_API_PORT is required}:9000"
       - "${MINIO_CONSOLE_PORT:?MINIO_CONSOLE_PORT is required}:9001"
     volumes:
-      - ../../localdata/minio:/data
+      - ./localdata/minio:/data
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:9000/minio/health/live || exit 1"]
       interval: 10s

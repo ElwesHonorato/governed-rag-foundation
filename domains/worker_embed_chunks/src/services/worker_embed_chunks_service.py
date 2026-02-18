@@ -5,6 +5,7 @@ import json
 import logging
 from typing import Any, TypedDict
 
+from pipeline_common.lineage import LineageEmitter
 from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway
 
@@ -51,12 +52,14 @@ class WorkerEmbedChunksService(WorkerService):
         *,
         stage_queue: StageQueue,
         object_storage: ObjectStorageGateway,
+        lineage: LineageEmitter,
         processing_config: EmbedChunksProcessingConfig,
         dimension: int,
     ) -> None:
         """Initialize embedding worker dependencies and runtime settings."""
         self.stage_queue = stage_queue
         self.object_storage = object_storage
+        self.lineage = lineage
         self._initialize_runtime_config(processing_config)
         self.dimension = dimension
 
@@ -88,18 +91,47 @@ class WorkerEmbedChunksService(WorkerService):
         if not source_key.endswith(self.chunks_suffix):
             return
 
-        chunk_payload = self._read_chunks_object(source_key)
-        embedding_payload = self._process_object(chunk_payload)
-        doc_id = str(embedding_payload["doc_id"])
-        chunk_id = str(embedding_payload["chunk_id"])
-        destination_key = self._embedding_object_key(doc_id, chunk_id)
-        if self._embeddings_exists(destination_key):
-            self.stage_queue.push_dlq_message(storage_key=source_key)
-            return
+        self.lineage.start_run(
+            run_facets={
+                "governedRag": {
+                    "_producer": self.lineage.producer,
+                    "_schemaURL": "https://governed-rag.dev/schemas/facets/governedRagRunFacet.json",
+                    "chunk_key": source_key,
+                }
+            }
+        )
+        self.lineage.add_input({"name": source_key})
+        try:
+            chunk_payload = self._read_chunks_object(source_key)
+            embedding_payload = self._process_object(chunk_payload)
+            doc_id = str(embedding_payload["doc_id"])
+            chunk_id = str(embedding_payload["chunk_id"])
+            destination_key = self._embedding_object_key(doc_id, chunk_id)
+            self.lineage.set_run_facets(
+                {
+                    "governedRag": {
+                        "_producer": self.lineage.producer,
+                        "_schemaURL": "https://governed-rag.dev/schemas/facets/governedRagRunFacet.json",
+                        "chunk_key": source_key,
+                        "embeddings_key": destination_key,
+                        "doc_id": doc_id,
+                        "chunk_id": chunk_id,
+                    }
+                }
+            )
+            self.lineage.add_output({"name": destination_key})
+            if self._embeddings_exists(destination_key):
+                self.stage_queue.push_dlq_message(storage_key=source_key)
+                self.lineage.fail_run(error_message=f"Embeddings artifact already exists: {destination_key}")
+                return
 
-        self._write_embeddings_object(destination_key, embedding_payload)
-        self._enqueue_embeddings_object(destination_key, doc_id)
-        logger.info("Wrote embedding object '%s'", destination_key)
+            self._write_embeddings_object(destination_key, embedding_payload)
+            self.lineage.complete_run()
+            self._enqueue_embeddings_object(destination_key, doc_id)
+            logger.info("Wrote embedding object '%s'", destination_key)
+        except Exception as exc:
+            self.lineage.fail_run(error_message=str(exc))
+            raise
 
     def _pop_queued_source_key(self) -> str | None:
         """Pop one chunks key from embedding queue when available."""

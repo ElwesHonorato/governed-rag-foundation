@@ -38,3 +38,17 @@ class QueueRuntimeSettings:
             broker_url=_required_env("BROKER_URL"),
             queue_pop_timeout_seconds=_required_int("QUEUE_POP_TIMEOUT_SECONDS", 1),
         )
+
+
+@dataclass(frozen=True)
+class LineageEmitterSettings:
+    """Lineage runtime settings for workers."""
+
+    lineage_url: str
+
+    @classmethod
+    def from_env(cls) -> "LineageEmitterSettings":
+        """Execute from env."""
+        return cls(
+            lineage_url=_optional_env("MARQUEZ_LINEAGE_URL", ""),
+        )

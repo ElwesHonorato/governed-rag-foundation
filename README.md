@@ -13,7 +13,7 @@ Core infrastructure image tags are hardcoded in the domain compose files.
   - `storage` (MinIO)
   - `vector` (Weaviate)
   - `queue` (RabbitMQ broker)
-  - `lineage` (Marquez)
+  - `lineage` (DataHub quickstart)
   - `portainer` (Docker container UI)
   - `llm` (Ollama)
   - `app` (rag-api only)
@@ -86,8 +86,8 @@ When finished:
 - MinIO Console: `http://localhost:9001`
 - Weaviate: `http://localhost:8080`
 - RabbitMQ Management UI: `http://localhost:15672`
-- Marquez API: `http://localhost:5000`
-- Marquez UI: `http://localhost:3000`
+- DataHub GMS: value of `DATAHUB_GMS_URL`
+- DataHub OpenLineage endpoint: value of `DATAHUB_OPENLINEAGE_URL`
 - Portainer: `https://localhost:9443`
 - Ollama API: `http://localhost:11434`
 - rag-api: `http://localhost:8000`
@@ -95,7 +95,9 @@ When finished:
 
 ## Lineage Guide
 
-- For lineage setup, namespace behavior, UI/API usage, and chunk-level troubleshooting, see `domains/lineage/README.md`.
+- `./stack.sh up lineage` runs DataHub quickstart services from `domains/lineage/docker-compose.yml`.
+- Workers emit OpenLineage events to `DATAHUB_OPENLINEAGE_URL`.
+- Use `make lineage-help` for DataHub-oriented lineage search commands.
 
 ## Python Dependencies (Poetry)
 
@@ -133,8 +135,6 @@ poetry lock
   - Weaviate: `cr.weaviate.io/semitechnologies/weaviate:1.27.7`
   - RabbitMQ: `rabbitmq:3-management-alpine`
   - Postgres: `postgres:15-alpine`
-  - Marquez API: `marquezproject/marquez:latest`
-  - Marquez Web: `marquezproject/marquez-web:latest`
 - Start domains independently or as a full stack, depending on what you are developing.
 - `domains/llm` builds a custom Ollama image and bakes `LLM_MODEL` (default: `llama3.2:1b`) at build time.
 - To build with a different model:

@@ -42,8 +42,7 @@ The `llm` domain builds a custom Ollama image and bakes `LLM_MODEL` (defaults to
 
 - MinIO console: http://localhost:9001
 - Weaviate: http://localhost:8080
-- Marquez API: http://localhost:5000
-- Marquez UI: http://localhost:3000
+- DataHub GMS: http://localhost:${DATAHUB_MAPPED_GMS_PORT}
 - Portainer: https://localhost:9443
 - Ollama API: http://localhost:11434
 - rag-api: http://localhost:8000

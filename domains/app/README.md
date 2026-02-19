@@ -17,7 +17,7 @@ This domain is the main front door of the RAG system. If you ask a question, `ra
 - `WEAVIATE_URL` for retrieval.
 - `BROKER_URL` for queue integration points.
 - `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` for artifact access.
-- `MARQUEZ_URL`, `MARQUEZ_LINEAGE_URL` for lineage integration.
+- `DATAHUB_GMS_URL`, `DATAHUB_OPENLINEAGE_URL`, `DATAHUB_TOKEN` for lineage integration.
 - `LLM_URL`, `LLM_MODEL`, `LLM_TIMEOUT_SECONDS` for generation.
 - `EMBEDDING_DIM`, `WEAVIATE_QUERY_DEFAULTS_LIMIT` for retrieval behavior.
 

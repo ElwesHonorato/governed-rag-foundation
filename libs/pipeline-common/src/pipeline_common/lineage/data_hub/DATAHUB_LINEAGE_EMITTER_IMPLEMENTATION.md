@@ -1,26 +1,14 @@
 # DataHub Lineage Emitter Implementation Guide
 
 ## Goal
-Implement a DataHub emitter in `pipeline_common/lineage/data_hub` using the working model in `datahub_migration/minimal_datahub_test.py` while preserving the current worker-facing API used by `open_lineage/lineage.py`.
+Implement a DataHub emitter in `pipeline_common/lineage/data_hub` using the working model in `datahub_migration/minimal_datahub_test.py`.
 
 Reference implementation model:
 - `datahub_migration/minimal_datahub_test.py`
 
-## Required Public API Compatibility
-The DataHub emitter must preserve the current worker contract:
-1. `start_run(job_stage=None, run_facets=None)`
-2. `complete_run()`
-3. `fail_run(error_message, run_id=None)`
-4. `reset_io()`
-5. `set_run_facets(run_facets)`
-6. `add_input(dataset)`
-7. `add_output(dataset)`
-
-And these attributes must remain available:
-1. `producer`
-2. `run_id`
-3. `inputs`
-4. `outputs`
+## Scope Clarification
+This implementation does not need to preserve the legacy OpenLineage worker method contract.
+Primary objective: refactor the tested DataHub run-emission model into a reusable class that workers can adopt.
 
 ## Pattern to Follow From `minimal_datahub_test.py`
 The implementation model that currently works against local DataHub is:
@@ -79,11 +67,11 @@ Match the existing style in `open_lineage/lineage.py`:
 3. Validation errors raise `ValueError`.
 4. External emission failures are best-effort and logged as warnings.
 
-## Implementation Notes for Worker Compatibility
-1. Keep stateful input/output collection exactly like OpenLineage emitter.
-2. Build DPI on `complete_run` from current in-memory run state.
-3. Support optional `job_stage` override in `start_run`.
-4. Keep producer string available for worker facet construction.
+## Implementation Notes for Future Worker Adoption
+1. Provide a class-oriented API centered on explicit run specs and job identity.
+2. Keep DataHub concerns explicit: dataset upsert, DataFlow/DataJob template upsert, DPI aspect emission.
+3. Keep the class importable from worker domains without requiring CLI behavior.
+4. Keep CLI wrapper thin; business logic should live in class methods.
 
 ## Validation Strategy
 Use `datahub_migration/minimal_datahub_test.py` behavior as baseline acceptance:

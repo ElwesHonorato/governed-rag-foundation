@@ -52,3 +52,22 @@ class LineageEmitterSettings:
         return cls(
             lineage_url=_optional_env("MARQUEZ_LINEAGE_URL", ""),
         )
+
+
+@dataclass(frozen=True)
+class DataHubBootstrapSettings:
+    """DataHub bootstrap settings for flow/job template upserts."""
+
+    server: str
+    env: str
+    token: str | None = None
+
+    @classmethod
+    def from_env(cls) -> "DataHubBootstrapSettings":
+        """Execute from env."""
+        token = _optional_env("DATAHUB_TOKEN", "")
+        return cls(
+            server=_optional_env("DATAHUB_GMS_SERVER", "http://localhost:8081"),
+            env=_optional_env("DATAHUB_ENV", "PROD"),
+            token=token or None,
+        )

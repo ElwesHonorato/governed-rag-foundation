@@ -1,0 +1,9 @@
+flow_id: governed-rag
+lineage_contract:
+  - job: worker_chunk_text
+    inputs: [s3.rag-data.02_raw]
+    outputs: [s3.rag-data.04_chunks]
+
+  - job: worker_embed_chunks
+    inputs: [s3.rag-data.04_chunks]
+    outputs: [s3.rag-data.05_embeddings]

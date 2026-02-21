@@ -6,7 +6,6 @@ This directory defines static DataHub metadata as code: versioned, reviewable, r
 
 - `configs/`: environment-specific DataHub connection and environment label
 - `definitions/`: domains, groups, tags, glossary terms, datasets, and pipelines/jobs
-- `transforms/`: optional mapping rules for automatic metadata assignment patterns
 - `scripts/`: validate, plan, bootstrap, and apply entrypoints
 - `ci/github/workflows/`: example CI workflows for check/apply
 
@@ -37,7 +36,7 @@ export ENV=prod
 
 ## Workflow
 
-1. Edit YAML under `definitions/` and `transforms/`.
+1. Edit YAML under `definitions/`.
 2. Run `validate.py` locally.
 3. Review `plan.py` output in PR.
 4. Apply from trusted branch using `apply.py`.

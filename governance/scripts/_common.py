@@ -36,7 +36,6 @@ class GovernanceModel:
     terms: list[dict[str, Any]]
     datasets: list[dict[str, Any]]
     pipelines: list[dict[str, Any]]
-    mapping_rules: list[dict[str, Any]]
 
 
 def governance_root() -> Path:
@@ -78,8 +77,6 @@ def load_model() -> GovernanceModel:
     groups = _read_yaml(root / "definitions" / "groups.yaml").get("groups", [])
     tags = _read_yaml(root / "definitions" / "tags.yaml").get("tags", [])
     terms = _read_yaml(root / "definitions" / "glossary.yaml").get("terms", [])
-    rules = _read_yaml(root / "transforms" / "mapping_rules.yaml").get("rules", [])
-
     datasets: list[dict[str, Any]] = []
     for path in sorted((root / "definitions" / "datasets").glob("*.yaml")):
         datasets.extend(_read_yaml(path).get("datasets", []))
@@ -95,7 +92,6 @@ def load_model() -> GovernanceModel:
         terms=list(terms),
         datasets=datasets,
         pipelines=pipelines,
-        mapping_rules=list(rules),
     )
 
 

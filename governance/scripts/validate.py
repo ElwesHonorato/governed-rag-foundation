@@ -8,16 +8,6 @@ from collections import Counter
 from _common import ID_PATTERN, load_model
 
 
-def _matches_rule(dataset: dict, rule: dict) -> bool:
-    """Return true when a mapping rule applies to a dataset definition."""
-
-    match = rule.get("match", {})
-    platform_ok = match.get("dataset_platform") == dataset.get("platform")
-    prefix = match.get("dataset_name_prefix")
-    prefix_ok = isinstance(prefix, str) and str(dataset.get("name", "")).startswith(prefix)
-    return platform_ok and prefix_ok
-
-
 def main() -> int:
     """Run validation checks and return a shell-compatible status code."""
 
@@ -102,14 +92,6 @@ def main() -> int:
             for ds in contract.get("inputs", []) + contract.get("outputs", []):
                 if ds not in dataset_ids:
                     errors.append(f"lineage contract references unknown dataset '{ds}'")
-
-    # Rule coverage for S3 datasets.
-    s3_datasets = [d for d in model.datasets if d.get("platform") == "s3"]
-    for dataset in s3_datasets:
-        if not any(_matches_rule(dataset, rule) for rule in model.mapping_rules):
-            errors.append(
-                f"mapping rule coverage missing for s3 dataset '{dataset['id']}' ({dataset['name']})"
-            )
 
     if errors:
         print("Validation failed:")

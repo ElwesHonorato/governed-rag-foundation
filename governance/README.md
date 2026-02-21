@@ -4,7 +4,7 @@ This directory defines static DataHub metadata as code: versioned, reviewable, r
 
 ## Layout
 
-- `configs/`: environment-specific DataHub connection and environment label
+- `configs/`: environment-specific DataHub connection settings
 - `definitions/`: domains, groups, tags, glossary terms, datasets, and pipelines/jobs
 - `scripts/`: validate, plan, bootstrap, and apply entrypoints
 - `ci/github/workflows/`: example CI workflows for check/apply
@@ -20,10 +20,10 @@ export ENV=dev
 ```
 
 ```bash
-.venv/bin/python governance/scripts/validate.py
-.venv/bin/python governance/scripts/plan.py
-.venv/bin/python governance/scripts/bootstrap.py
-.venv/bin/python governance/scripts/apply.py
+PYTHONPATH=libs/pipeline-common/src .venv/bin/python governance/scripts/validate.py
+PYTHONPATH=libs/pipeline-common/src .venv/bin/python governance/scripts/plan.py
+PYTHONPATH=libs/pipeline-common/src .venv/bin/python governance/scripts/bootstrap.py
+PYTHONPATH=libs/pipeline-common/src .venv/bin/python governance/scripts/apply.py
 ```
 
 Use prod config:
@@ -31,7 +31,7 @@ Use prod config:
 ```bash
 export DATAHUB_TOKEN_PROD="..."
 export ENV=prod
-.venv/bin/python governance/scripts/apply.py
+PYTHONPATH=libs/pipeline-common/src .venv/bin/python governance/scripts/apply.py
 ```
 
 ## Workflow

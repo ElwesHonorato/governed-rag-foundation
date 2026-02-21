@@ -21,4 +21,4 @@ jobs:
       - name: Apply governance to PROD
         env:
           DATAHUB_TOKEN_PROD: ${{ secrets.DATAHUB_TOKEN_PROD }}
-        run: python governance/scripts/apply.py --env prod
+        run: PYTHONPATH=libs/pipeline-common/src python governance/scripts/apply.py --env prod

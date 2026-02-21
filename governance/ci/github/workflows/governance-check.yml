@@ -18,11 +18,11 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install pyyaml acryl-datahub requests
       - name: Validate definitions
-        run: python governance/scripts/validate.py
+        run: PYTHONPATH=libs/pipeline-common/src python governance/scripts/validate.py
       - name: Plan (read-only)
         env:
           DATAHUB_TOKEN: ${{ secrets.DATAHUB_TOKEN_DEV }}
-        run: python governance/scripts/plan.py --env dev | tee governance-plan.txt
+        run: PYTHONPATH=libs/pipeline-common/src python governance/scripts/plan.py --env dev | tee governance-plan.txt
       - name: Upload plan artifact
         uses: actions/upload-artifact@v4
         with:

@@ -23,6 +23,10 @@ class FlowJobManager:
         """Upsert flows and jobs without lineage contract edges."""
 
         for pipeline in pipelines:
+            for job in pipeline.get("jobs", []):
+                self.ctx.client.entities.upsert(self.build_datajob(pipeline, job, inlets=[], outlets=[]))
+                print(f"upserted job {job['id']}")
+
             flow_def = pipeline["flow"]
             flow = DataFlow(
                 platform=flow_def["platform"],
@@ -34,10 +38,6 @@ class FlowJobManager:
             )
             self.ctx.client.entities.upsert(flow)
             print(f"upserted flow {flow_def['id']}")
-
-            for job in pipeline.get("jobs", []):
-                self.ctx.client.entities.upsert(self.build_datajob(pipeline, job, inlets=[], outlets=[]))
-                print(f"upserted job {job['id']}")
 
     def build_datajob(self, pipeline: dict[str, Any], job: dict[str, Any], inlets: list[str], outlets: list[str]) -> Any:
         """Build one DataJob payload with optional inlets/outlets."""

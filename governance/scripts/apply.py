@@ -3,6 +3,9 @@
 
 from __future__ import annotations
 
+from datahub.ingestion.graph.client import DataHubGraph, DatahubClientConfig
+from datahub.sdk import DataHubClient
+
 from _common import load_env_config, load_model, parse_args, token_from_env
 from entities import (
     DatasetManager,
@@ -21,9 +24,6 @@ def run_apply(env_name: str, static_only: bool = False) -> int:
 
     env_cfg = load_env_config(env_name)
     model = load_model()
-
-    from datahub.ingestion.graph.client import DataHubGraph, DatahubClientConfig
-    from datahub.sdk import DataHubClient
 
     token = token_from_env(env_cfg.token_env)
     refs = resolve_refs(model, env_cfg.env)

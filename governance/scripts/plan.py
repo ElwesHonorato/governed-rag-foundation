@@ -6,6 +6,9 @@ from __future__ import annotations
 import argparse
 import os
 
+from datahub.ingestion.graph.client import DataHubGraph, DatahubClientConfig
+from datahub.metadata.urns import CorpGroupUrn, DataFlowUrn, DataJobUrn, DatasetUrn, DomainUrn, GlossaryTermUrn, TagUrn
+
 from _common import ALLOWED_ENVS, load_env_config, load_model, token_from_env
 
 
@@ -22,9 +25,6 @@ def main() -> int:
     args = parser.parse_args()
     env_cfg = load_env_config(args.env)
     model = load_model()
-
-    from datahub.ingestion.graph.client import DataHubGraph, DatahubClientConfig
-    from datahub.metadata.urns import CorpGroupUrn, DataFlowUrn, DataJobUrn, DatasetUrn, DomainUrn, GlossaryTermUrn, TagUrn
 
     def exists(graph: DataHubGraph | None, urn: str) -> bool | None:
         """Check whether a URN exists, returning `None` on unknown/error."""

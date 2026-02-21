@@ -5,6 +5,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from datahub.metadata.urns import DataFlowUrn
+from datahub.sdk import DataFlow, DataJob
+
 from entities.shared.context import GovernanceContext
 
 
@@ -18,8 +21,6 @@ class FlowJobManager:
 
     def apply(self, pipelines: list[dict[str, Any]]) -> None:
         """Upsert flows and jobs without lineage contract edges."""
-
-        from datahub.sdk import DataFlow
 
         for pipeline in pipelines:
             flow_def = pipeline["flow"]
@@ -40,9 +41,6 @@ class FlowJobManager:
 
     def build_datajob(self, pipeline: dict[str, Any], job: dict[str, Any], inlets: list[str], outlets: list[str]) -> Any:
         """Build one DataJob payload with optional inlets/outlets."""
-
-        from datahub.metadata.urns import DataFlowUrn
-        from datahub.sdk import DataJob
 
         flow_def = pipeline["flow"]
         flow_urn = str(

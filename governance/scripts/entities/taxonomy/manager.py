@@ -5,6 +5,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from datahub.emitter.mcp import MetadataChangeProposalWrapper
+from datahub.metadata.schema_classes import ChangeTypeClass, GlossaryTermInfoClass
+from datahub.sdk import Tag
+
 from entities.shared.context import GovernanceContext
 
 
@@ -25,8 +29,6 @@ class TaxonomyManager:
     def _apply_tags(self, tags: list[dict[str, Any]]) -> None:
         """Upsert tag entities using the DataHub SDK."""
 
-        from datahub.sdk import Tag
-
         for tag in tags:
             self.ctx.client.entities.upsert(
                 Tag(
@@ -39,9 +41,6 @@ class TaxonomyManager:
 
     def _apply_glossary_terms(self, terms: list[dict[str, Any]]) -> None:
         """Upsert glossary term entities via MCP emission."""
-
-        from datahub.emitter.mcp import MetadataChangeProposalWrapper
-        from datahub.metadata.schema_classes import ChangeTypeClass, GlossaryTermInfoClass
 
         for term in terms:
             aspect = GlossaryTermInfoClass(

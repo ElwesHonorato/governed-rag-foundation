@@ -5,6 +5,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from datahub.emitter.mcp import MetadataChangeProposalWrapper
+from datahub.metadata.schema_classes import ChangeTypeClass, DomainPropertiesClass
+
 from entities.shared.context import GovernanceContext
 
 
@@ -18,9 +21,6 @@ class DomainManager:
 
     def apply(self, domains: list[dict[str, Any]]) -> None:
         """Upsert all domain entities and parent relationships."""
-
-        from datahub.emitter.mcp import MetadataChangeProposalWrapper
-        from datahub.metadata.schema_classes import ChangeTypeClass, DomainPropertiesClass
 
         for domain in domains:
             parent_urn = self.ctx.refs.domain_urns.get(domain.get("parent", ""))

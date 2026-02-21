@@ -5,6 +5,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from datahub.emitter.mcp import MetadataChangeProposalWrapper
+from datahub.metadata.schema_classes import ChangeTypeClass, CorpGroupInfoClass
+
 from entities.shared.context import GovernanceContext
 
 
@@ -18,9 +21,6 @@ class GroupManager:
 
     def apply(self, groups: list[dict[str, Any]]) -> None:
         """Upsert all ownership groups."""
-
-        from datahub.emitter.mcp import MetadataChangeProposalWrapper
-        from datahub.metadata.schema_classes import ChangeTypeClass, CorpGroupInfoClass
 
         for group in groups:
             aspect = CorpGroupInfoClass(

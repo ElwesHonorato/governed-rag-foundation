@@ -5,6 +5,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from datahub.sdk import Dataset
+
 from entities.shared.context import GovernanceContext
 
 
@@ -18,8 +20,6 @@ class DatasetManager:
 
     def apply(self, datasets: list[dict[str, Any]]) -> None:
         """Upsert all datasets with domain, owners, tags, and terms."""
-
-        from datahub.sdk import Dataset
 
         for dataset in datasets:
             self.ctx.client.entities.upsert(

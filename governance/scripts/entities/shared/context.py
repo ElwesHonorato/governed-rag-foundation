@@ -6,6 +6,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from datahub.metadata.urns import CorpGroupUrn, DatasetUrn, DomainUrn, GlossaryTermUrn, TagUrn
+
 
 @dataclass(frozen=True)
 class ResolvedRefs:
@@ -30,8 +32,6 @@ class GovernanceContext:
 
 def resolve_refs(model: Any, env_label: str) -> ResolvedRefs:
     """Build all commonly-used URN mappings from loaded definitions."""
-
-    from datahub.metadata.urns import CorpGroupUrn, DatasetUrn, DomainUrn, GlossaryTermUrn, TagUrn
 
     return ResolvedRefs(
         domain_urns={d["id"]: str(DomainUrn(d["id"])) for d in model.domains},

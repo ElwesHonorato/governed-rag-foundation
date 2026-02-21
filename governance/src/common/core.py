@@ -47,20 +47,20 @@ class GovernanceState:
     governance_definitions_snapshot: GovernanceDefinitionSnapshot
 
 
-def _governance_dir() -> Path:
-    """Resolve the governance directory from this module location."""
-
-    return FileSystemHelper.find_dir_upwards(Path(__file__), n=2)
-
-
 class GovernanceStateLoader:
     """Load governance runtime state from local configuration definitions."""
 
     @classmethod
-    def _load_env_config(cls, env_name: str) -> EnvironmentSettings:
+    def _governance_dir(cls) -> Path:
+        """Resolve the governance directory from this module location."""
+
+        return FileSystemHelper.find_dir_upwards(Path(__file__), n=2)
+
+    @classmethod
+    def _load_env_settings(cls, env_name: str) -> EnvironmentSettings:
         """Load one environment config file from `governance/configs`."""
 
-        config_path = _governance_dir() / "configs" / f"{env_name}.yaml"
+        config_path = cls._governance_dir() / "configs" / f"{env_name}.yaml"
         data = FileReader(path=config_path).read()
         datahub_env_config = data.get("datahub", {})
         token_env_name = str(datahub_env_config["token_env"])
@@ -73,7 +73,7 @@ class GovernanceStateLoader:
     def load_definition_snapshot(cls) -> GovernanceDefinitionSnapshot:
         """Load all governance definitions from one folder tree into a snapshot."""
 
-        definitions_dir = _governance_dir() / "definitions"
+        definitions_dir = cls._governance_dir() / "definitions"
         discoverer = GovernanceDefinitionDiscoverer(
             definitions_root=definitions_dir,
             standalone_discovered_definitions=StandaloneDefinitions(),
@@ -93,7 +93,7 @@ class GovernanceStateLoader:
     def load(cls, env_name: str) -> GovernanceState:
         """Load environment settings and governance definitions for one environment."""
 
-        env_settings = cls._load_env_config(env_name)
+        env_settings = cls._load_env_settings(env_name)
         governance_definitions_snapshot = cls.load_definition_snapshot()
         return GovernanceState(
             env_settings=env_settings,

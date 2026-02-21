@@ -9,7 +9,7 @@ import os
 from datahub.ingestion.graph.client import DataHubGraph, DatahubClientConfig
 from datahub.metadata.urns import CorpGroupUrn, DataFlowUrn, DataJobUrn, DatasetUrn, DomainUrn, GlossaryTermUrn, TagUrn
 
-from _common import ALLOWED_ENVS, load_env_config, load_model, token_from_env
+from _common import ALLOWED_ENVS, load_env_config, load_model
 
 
 def main() -> int:
@@ -37,12 +37,11 @@ def main() -> int:
         except Exception:
             return None
 
-    token = token_from_env(env_cfg.token_env)
     graph: DataHubGraph | None = None
 
     if not args.offline:
         try:
-            graph = DataHubGraph(DatahubClientConfig(server=env_cfg.gms_server, token=token, timeout_sec=5))
+            graph = DataHubGraph(DatahubClientConfig(server=env_cfg.gms_server, token=env_cfg.token, timeout_sec=5))
         except Exception as exc:
             print(f"WARN: could not connect to DataHub for existence checks: {exc}")
 

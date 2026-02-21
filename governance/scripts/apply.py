@@ -6,7 +6,7 @@ from __future__ import annotations
 from datahub.ingestion.graph.client import DataHubGraph, DatahubClientConfig
 from datahub.sdk import DataHubClient
 
-from _common import load_env_config, load_model, parse_args, token_from_env
+from _common import load_env_config, load_model, parse_args
 from entities import (
     DatasetManager,
     DomainManager,
@@ -26,12 +26,11 @@ def run_apply(env_name: str, static_only: bool = False) -> int:
     model = load_model()
     env_label = env_name.upper()
 
-    token = token_from_env(env_cfg.token_env)
     refs = resolve_refs(model, env_label)
 
-    client = DataHubClient(server=env_cfg.gms_server, token=token)
+    client = DataHubClient(server=env_cfg.gms_server, token=env_cfg.token)
 
-    with DataHubGraph(DatahubClientConfig(server=env_cfg.gms_server, token=token)) as graph:
+    with DataHubGraph(DatahubClientConfig(server=env_cfg.gms_server, token=env_cfg.token)) as graph:
         ctx = GovernanceContext(env_label=env_label, client=client, graph=graph, refs=refs)
 
         # Order matters for dependencies.

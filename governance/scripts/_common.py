@@ -24,7 +24,7 @@ class EnvironmentConfig:
     """Runtime config for a target DataHub environment."""
 
     gms_server: str
-    token_env: str
+    token: str | None
 
 
 @dataclass(frozen=True)
@@ -232,9 +232,10 @@ def load_env_config(env_name: str) -> EnvironmentConfig:
     config_path = _governance_dir() / "configs" / f"{env_name}.yaml"
     data = FileReader(path=config_path).read()
     datahub_env_config = data.get("datahub", {})
+    token_env_name = str(datahub_env_config["token_env"])
     return EnvironmentConfig(
         gms_server=str(datahub_env_config["gms_server"]),
-        token_env=str(datahub_env_config["token_env"]),
+        token=os.getenv(token_env_name) or None,
     )
 
 
@@ -270,9 +271,3 @@ def parse_args(default_env: str = "dev") -> argparse.Namespace:
     parser.add_argument("--env", choices=list(ALLOWED_ENVS), default=env_from_var)
     return parser.parse_args()
 
-
-def token_from_env(token_env_name: str) -> str | None:
-    """Resolve an auth token from an environment variable name."""
-
-    token = os.getenv(token_env_name)
-    return token if token else None

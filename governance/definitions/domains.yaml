@@ -1,0 +1,19 @@
+domains:
+  - id: ai-platform
+    name: AI Platform
+    description: Root domain for AI systems
+
+  - id: rag-platform
+    parent: ai-platform
+    name: RAG Platform
+    description: Retrieval and generation platform
+
+  - id: rag-embeddings
+    parent: rag-platform
+    name: Embeddings
+    description: Chunking and embedding assets and jobs
+
+  - id: rag-indexing
+    parent: rag-platform
+    name: Indexing
+    description: Vector index assets and jobs

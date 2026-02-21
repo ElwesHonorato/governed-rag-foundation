@@ -1,0 +1,36 @@
+rules:
+  - match:
+      dataset_platform: s3
+      dataset_name_prefix: "rag-data/01_incoming"
+    set:
+      domain: rag-platform
+      owners: [search-platform]
+      tags: [internal, retention-30d]
+      terms: []
+
+  - match:
+      dataset_platform: s3
+      dataset_name_prefix: "rag-data/02_raw"
+    set:
+      domain: rag-platform
+      owners: [search-platform]
+      tags: [internal]
+      terms: []
+
+  - match:
+      dataset_platform: s3
+      dataset_name_prefix: "rag-data/04_chunks"
+    set:
+      domain: rag-embeddings
+      owners: [search-platform]
+      tags: [internal]
+      terms: [chunk]
+
+  - match:
+      dataset_platform: s3
+      dataset_name_prefix: "rag-data/05_embeddings"
+    set:
+      domain: rag-embeddings
+      owners: [ml-platform]
+      tags: [internal]
+      terms: [embedding]

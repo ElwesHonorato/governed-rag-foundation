@@ -1,0 +1,40 @@
+flow:
+  id: governed-rag
+  platform: custom
+  name: governed-rag
+  domain: rag-platform
+  owners: [search-platform]
+
+jobs:
+  - id: worker_scan
+    name: worker_scan
+    domain: rag-platform
+    owners: [search-platform]
+    custom_properties:
+      queue.produce: q.parse_document
+
+  - id: worker_chunk_text
+    name: worker_chunk_text
+    domain: rag-embeddings
+    owners: [search-platform]
+    custom_properties:
+      queue.consume: q.chunk_text
+      queue.produce: q.embed_chunks
+      queue.dlq: q.chunk_text.dlq
+
+  - id: worker_embed_chunks
+    name: worker_embed_chunks
+    domain: rag-embeddings
+    owners: [ml-platform]
+    custom_properties:
+      queue.consume: q.embed_chunks
+      queue.produce: q.index_weaviate
+
+lineage_contract:
+  - job: worker_chunk_text
+    inputs: [s3.rag-data.02_raw]
+    outputs: [s3.rag-data.04_chunks]
+
+  - job: worker_embed_chunks
+    inputs: [s3.rag-data.04_chunks]
+    outputs: [s3.rag-data.05_embeddings]

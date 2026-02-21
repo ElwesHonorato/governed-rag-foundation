@@ -1,0 +1,24 @@
+name: governance-apply
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "governance/**"
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pyyaml acryl-datahub requests
+      - name: Apply governance to PROD
+        env:
+          DATAHUB_TOKEN_PROD: ${{ secrets.DATAHUB_TOKEN_PROD }}
+        run: python governance/scripts/apply.py --env prod

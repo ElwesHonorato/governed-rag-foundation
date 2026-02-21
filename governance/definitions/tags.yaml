@@ -1,0 +1,9 @@
+tags:
+  - id: internal
+    name: internal
+
+  - id: pii
+    name: pii
+
+  - id: retention-30d
+    name: retention-30d

@@ -1,0 +1,32 @@
+datasets:
+  - id: s3.rag-data.01_incoming
+    platform: s3
+    name: rag-data/01_incoming
+    domain: rag-platform
+    owners: [search-platform]
+    tags: [internal, retention-30d]
+    terms: []
+
+  - id: s3.rag-data.02_raw
+    platform: s3
+    name: rag-data/02_raw
+    domain: rag-platform
+    owners: [search-platform]
+    tags: [internal]
+    terms: []
+
+  - id: s3.rag-data.04_chunks
+    platform: s3
+    name: rag-data/04_chunks
+    domain: rag-embeddings
+    owners: [search-platform]
+    tags: [internal]
+    terms: [chunk]
+
+  - id: s3.rag-data.05_embeddings
+    platform: s3
+    name: rag-data/05_embeddings
+    domain: rag-embeddings
+    owners: [ml-platform]
+    tags: [internal]
+    terms: [embedding]

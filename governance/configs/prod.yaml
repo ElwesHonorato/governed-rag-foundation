@@ -1,0 +1,4 @@
+datahub:
+  gms_server: "https://datahub.company.com"
+  token_env: "DATAHUB_TOKEN_PROD"
+env: "PROD"

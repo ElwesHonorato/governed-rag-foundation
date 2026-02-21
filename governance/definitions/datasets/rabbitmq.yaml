@@ -1,0 +1,16 @@
+datasets:
+  - id: rabbitmq.q.chunk_text
+    platform: rabbitmq
+    name: q.chunk_text
+    domain: rag-platform
+    owners: [search-platform]
+    tags: [internal]
+    terms: []
+
+  - id: rabbitmq.q.embed_chunks
+    platform: rabbitmq
+    name: q.embed_chunks
+    domain: rag-embeddings
+    owners: [search-platform]
+    tags: [internal]
+    terms: []

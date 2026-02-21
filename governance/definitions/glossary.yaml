@@ -1,0 +1,8 @@
+terms:
+  - id: chunk
+    name: Chunk
+    description: A text segment produced from a document
+
+  - id: embedding
+    name: Embedding
+    description: Vector representation of a chunk

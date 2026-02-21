@@ -1,0 +1,4 @@
+datahub:
+  gms_server: "http://localhost:8080"
+  token_env: "DATAHUB_TOKEN"
+env: "DEV"

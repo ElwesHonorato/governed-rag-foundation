@@ -1,0 +1,8 @@
+groups:
+  - id: search-platform
+    name: Search Platform
+    description: Owns RAG runtime and services
+
+  - id: ml-platform
+    name: ML Platform
+    description: Owns embedding models and evaluation

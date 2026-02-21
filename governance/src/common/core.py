@@ -9,9 +9,9 @@ import re
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
-import yaml
+from pipeline_common.helpers.file_reader import FileReader
 from pipeline_common.helpers.file_system_helper import FileSystemHelper
 
 
@@ -20,7 +20,7 @@ ALLOWED_ENVS = ("dev", "prod")
 
 
 @dataclass(frozen=True)
-class EnvironmentConfig:
+class EnvironmentSettings:
     """Runtime config for a target DataHub environment."""
 
     gms_server: str
@@ -28,7 +28,7 @@ class EnvironmentConfig:
 
 
 @dataclass(frozen=True)
-class GovernanceModel:
+class GovernanceDefinitionSnapshot:
     """In-memory representation of governance YAML definitions."""
 
     domains: list[dict[str, Any]]
@@ -37,6 +37,14 @@ class GovernanceModel:
     terms: list[dict[str, Any]]
     datasets: list[dict[str, Any]]
     pipelines: list[dict[str, Any]]
+
+
+@dataclass(frozen=True)
+class GovernanceState:
+    """Resolved governance runtime state for a selected environment."""
+
+    env_settings: EnvironmentSettings
+    governance_definitions_snapshot: GovernanceDefinitionSnapshot
 
 
 class DefinitionType(StrEnum):
@@ -76,30 +84,6 @@ def _governance_dir() -> Path:
     """Resolve the governance directory from this module location."""
 
     return FileSystemHelper.find_dir_upwards(Path(__file__), n=2)
-
-
-class FileReader:
-    """Read files from paths using extension-based readers."""
-
-    def __init__(self, path: Path) -> None:
-        self.path = path
-        self.default_reader: Callable[[Path], dict[str, Any]] = self._read_yaml
-        self.extension_readers: dict[str, Callable[[Path], dict[str, Any]]] = {
-            ".yaml": self._read_yaml,
-            ".yml": self._read_yaml,
-        }
-
-    def read(self) -> dict[str, Any]:
-        extension = self.path.suffix.lower()
-        reader = self.extension_readers.get(extension, self.default_reader)
-        return reader(self.path)
-
-    def _read_yaml(self, path: Path) -> dict[str, Any]:
-        with path.open("r", encoding="utf-8") as f:
-            data = yaml.safe_load(f) or {}
-        if not isinstance(data, dict):
-            raise ValueError(f"Expected top-level mapping in {path}")
-        return data
 
 
 class StandaloneDefinitions:
@@ -226,38 +210,52 @@ class GovernanceDefinitionDiscoverer:
         raise ValueError(f"Unable to classify governance YAML type for file: {path}. Expected keys: {valid}")
 
 
-def load_env_config(env_name: str) -> EnvironmentConfig:
-    """Load one environment config file from `governance/configs`."""
+class GovernanceStateLoader:
+    """Load governance runtime state from local configuration definitions."""
 
-    config_path = _governance_dir() / "configs" / f"{env_name}.yaml"
-    data = FileReader(path=config_path).read()
-    datahub_env_config = data.get("datahub", {})
-    token_env_name = str(datahub_env_config["token_env"])
-    return EnvironmentConfig(
-        gms_server=str(datahub_env_config["gms_server"]),
-        token=os.getenv(token_env_name) or None,
-    )
+    @classmethod
+    def _load_env_config(cls, env_name: str) -> EnvironmentSettings:
+        """Load one environment config file from `governance/configs`."""
 
+        config_path = _governance_dir() / "configs" / f"{env_name}.yaml"
+        data = FileReader(path=config_path).read()
+        datahub_env_config = data.get("datahub", {})
+        token_env_name = str(datahub_env_config["token_env"])
+        return EnvironmentSettings(
+            gms_server=str(datahub_env_config["gms_server"]),
+            token=os.getenv(token_env_name) or None,
+        )
 
-def load_model() -> GovernanceModel:
-    """Load all governance definitions from one folder tree into a model."""
+    @classmethod
+    def load_definition_snapshot(cls) -> GovernanceDefinitionSnapshot:
+        """Load all governance definitions from one folder tree into a snapshot."""
 
-    definitions_dir = _governance_dir() / "definitions"
-    discoverer = GovernanceDefinitionDiscoverer(
-        definitions_root=definitions_dir,
-        standalone_discovered_definitions=StandaloneDefinitions(),
-        relational_discovered_definitions=RelationalDefinitions(),
-    )
-    discoverer.load()
-    return GovernanceModel(
-        domains=discoverer.standalone_payloads.get(DefinitionType.DOMAINS, []),
-        groups=discoverer.standalone_payloads.get(DefinitionType.GROUPS, []),
-        tags=discoverer.standalone_payloads.get(DefinitionType.TAGS, []),
-        terms=discoverer.standalone_payloads.get(DefinitionType.TERMS, []),
-        datasets=discoverer.standalone_payloads.get(DefinitionType.DATASETS, []),
-        pipelines=discoverer.pipelines,
-    )
+        definitions_dir = _governance_dir() / "definitions"
+        discoverer = GovernanceDefinitionDiscoverer(
+            definitions_root=definitions_dir,
+            standalone_discovered_definitions=StandaloneDefinitions(),
+            relational_discovered_definitions=RelationalDefinitions(),
+        )
+        discoverer.load()
+        return GovernanceDefinitionSnapshot(
+            domains=discoverer.standalone_payloads.get(DefinitionType.DOMAINS, []),
+            groups=discoverer.standalone_payloads.get(DefinitionType.GROUPS, []),
+            tags=discoverer.standalone_payloads.get(DefinitionType.TAGS, []),
+            terms=discoverer.standalone_payloads.get(DefinitionType.TERMS, []),
+            datasets=discoverer.standalone_payloads.get(DefinitionType.DATASETS, []),
+            pipelines=discoverer.pipelines,
+        )
 
+    @classmethod
+    def load(cls, env_name: str) -> GovernanceState:
+        """Load environment settings and governance definitions for one environment."""
+
+        env_settings = cls._load_env_config(env_name)
+        governance_definitions_snapshot = cls.load_definition_snapshot()
+        return GovernanceState(
+            env_settings=env_settings,
+            governance_definitions_snapshot=governance_definitions_snapshot,
+        )
 
 def parse_args(default_env: str = "dev") -> argparse.Namespace:
     """Parse shared CLI args and resolve `--env` from `ENV` by default."""

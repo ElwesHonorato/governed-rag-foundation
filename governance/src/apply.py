@@ -6,7 +6,7 @@ from __future__ import annotations
 from datahub.ingestion.graph.client import DataHubGraph, DatahubClientConfig
 from datahub.sdk import DataHubClient
 
-from _common import load_env_config, load_model, parse_args
+from common import GovernanceStateLoader, parse_args
 from entities import (
     DatasetManager,
     DomainManager,
@@ -22,29 +22,30 @@ from entities import (
 def run_apply(env_name: str, static_only: bool = False) -> int:
     """Apply governance model to DataHub for one environment."""
 
-    env_cfg = load_env_config(env_name)
-    model = load_model()
+    state = GovernanceStateLoader.load(env_name)
     env_label = env_name.upper()
 
-    refs = resolve_refs(model, env_label)
+    refs = resolve_refs(state.governance_definitions_snapshot, env_label)
 
-    client = DataHubClient(server=env_cfg.gms_server, token=env_cfg.token)
+    client = DataHubClient(server=state.env_settings.gms_server, token=state.env_settings.token)
 
-    with DataHubGraph(DatahubClientConfig(server=env_cfg.gms_server, token=env_cfg.token)) as graph:
+    with DataHubGraph(
+        DatahubClientConfig(server=state.env_settings.gms_server, token=state.env_settings.token)
+    ) as graph:
         ctx = GovernanceContext(env_label=env_label, client=client, graph=graph, refs=refs)
 
         # Order matters for dependencies.
-        DomainManager(ctx).apply(model.domains)
-        GroupManager(ctx).apply(model.groups)
-        TaxonomyManager(ctx).apply(model.tags, model.terms)
+        DomainManager(ctx).apply(state.governance_definitions_snapshot.domains)
+        GroupManager(ctx).apply(state.governance_definitions_snapshot.groups)
+        TaxonomyManager(ctx).apply(state.governance_definitions_snapshot.tags, state.governance_definitions_snapshot.terms)
 
         if static_only:
             print("bootstrap complete")
             return 0
 
-        DatasetManager(ctx).apply(model.datasets)
-        FlowJobManager(ctx).apply(model.pipelines)
-        LineageContractManager(ctx).apply(model.pipelines)
+        DatasetManager(ctx).apply(state.governance_definitions_snapshot.datasets)
+        FlowJobManager(ctx).apply(state.governance_definitions_snapshot.pipelines)
+        LineageContractManager(ctx).apply(state.governance_definitions_snapshot.pipelines)
 
     print("apply complete")
     return 0

@@ -9,7 +9,7 @@ import os
 from datahub.ingestion.graph.client import DataHubGraph, DatahubClientConfig
 from datahub.metadata.urns import CorpGroupUrn, DataFlowUrn, DataJobUrn, DatasetUrn, DomainUrn, GlossaryTermUrn, TagUrn
 
-from _common import ALLOWED_ENVS, load_env_config, load_model
+from common import ALLOWED_ENVS, GovernanceStateLoader
 
 
 def main() -> int:
@@ -23,9 +23,8 @@ def main() -> int:
     parser.add_argument("--env", choices=list(ALLOWED_ENVS), default=env_from_var)
     parser.add_argument("--offline", action="store_true", help="Skip DataHub existence checks")
     args = parser.parse_args()
-    env_cfg = load_env_config(args.env)
+    state = GovernanceStateLoader.load(args.env)
     env_label = args.env.upper()
-    model = load_model()
 
     def exists(graph: DataHubGraph | None, urn: str) -> bool | None:
         """Check whether a URN exists, returning `None` on unknown/error."""
@@ -41,7 +40,13 @@ def main() -> int:
 
     if not args.offline:
         try:
-            graph = DataHubGraph(DatahubClientConfig(server=env_cfg.gms_server, token=env_cfg.token, timeout_sec=5))
+            graph = DataHubGraph(
+                DatahubClientConfig(
+                    server=state.env_settings.gms_server,
+                    token=state.env_settings.token,
+                    timeout_sec=5,
+                )
+            )
         except Exception as exc:
             print(f"WARN: could not connect to DataHub for existence checks: {exc}")
 
@@ -53,35 +58,35 @@ def main() -> int:
             return "upsert"
         return "update" if result else "create"
 
-    print(f"Plan for env={env_label} server={env_cfg.gms_server}")
+    print(f"Plan for env={env_label} server={state.env_settings.gms_server}")
 
     print("\nDomains")
-    for domain in model.domains:
+    for domain in state.governance_definitions_snapshot.domains:
         urn = str(DomainUrn(domain["id"]))
         print(f"- would {action_for(urn)} domain {domain['id']} ({urn})")
 
     print("\nGroups")
-    for group in model.groups:
+    for group in state.governance_definitions_snapshot.groups:
         urn = str(CorpGroupUrn(group["id"]))
         print(f"- would {action_for(urn)} group {group['id']} ({urn})")
 
     print("\nTags")
-    for tag in model.tags:
+    for tag in state.governance_definitions_snapshot.tags:
         urn = str(TagUrn(tag["name"]))
         print(f"- would {action_for(urn)} tag {tag['name']} ({urn})")
 
     print("\nGlossary Terms")
-    for term in model.terms:
+    for term in state.governance_definitions_snapshot.terms:
         urn = str(GlossaryTermUrn(term["id"]))
         print(f"- would {action_for(urn)} term {term['id']} ({urn})")
 
     print("\nDatasets")
-    for dataset in model.datasets:
+    for dataset in state.governance_definitions_snapshot.datasets:
         urn = str(DatasetUrn(platform=dataset["platform"], name=dataset["name"], env=env_label))
         print(f"- would {action_for(urn)} dataset {dataset['id']} ({urn})")
 
     print("\nFlows + Jobs + Lineage Contract")
-    for pipeline in model.pipelines:
+    for pipeline in state.governance_definitions_snapshot.pipelines:
         flow = pipeline["flow"]
         flow_urn = DataFlowUrn(orchestrator=flow["platform"], flow_id=flow["name"], cluster=env_label)
         print(f"- would {action_for(str(flow_urn))} flow {flow['id']} ({flow_urn})")

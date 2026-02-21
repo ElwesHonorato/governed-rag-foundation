@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from src._common import parse_args
+from src.common import parse_args
 from src.apply import run_apply
 
 

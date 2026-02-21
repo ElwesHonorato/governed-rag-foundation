@@ -5,13 +5,13 @@ from __future__ import annotations
 
 from collections import Counter
 
-from _common import ID_PATTERN, load_model
+from common import GovernanceStateLoader, ID_PATTERN
 
 
 def main() -> int:
     """Run validation checks and return a shell-compatible status code."""
 
-    model = load_model()
+    model = GovernanceStateLoader.load_definition_snapshot()
     errors: list[str] = []
 
     domains = {d["id"] for d in model.domains}

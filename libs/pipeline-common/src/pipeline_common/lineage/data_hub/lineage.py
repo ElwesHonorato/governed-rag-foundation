@@ -46,6 +46,10 @@ class DataHubLineageClient:
         self.client = DataHubClient(server=self.server, token=self.token)
         self.inputs: list[str] = []
         self.outputs: list[str] = []
+        self._active_run: RunSpec | None = None
+        self._active_datajob_urn: str | None = None
+        self._active_external_url: str | None = None
+        self._active_actor_urn: str = "urn:li:corpuser:datahub"
 
     def gql_scroll(self, graphql_endpoint: str, urn: str, direction: str, count: int = 200) -> list[str]:
         """Query lineage traversal for one entity and return connected URNs."""
@@ -71,6 +75,32 @@ class DataHubLineageClient:
         """Clear in-memory inputs and outputs for the next run."""
         self.inputs.clear()
         self.outputs.clear()
+
+    def start_run(
+        self,
+        *,
+        attempt: int = 1,
+        datajob_urn: str | None = None,
+        external_url: str | None = None,
+        actor_urn: str = "urn:li:corpuser:datahub",
+    ) -> RunSpec:
+        """Start one run by resetting IO, creating run metadata, and emitting STARTED."""
+        if self._active_run is not None:
+            raise ValueError("A run is already active; call complete_run() before start_run().")
+        self.reset_io()
+        run = self.create_run_spec(job_version=self.resolve_job_version(), attempt=attempt)
+        self.emit_dpi_event(
+            datajob_urn=datajob_urn or self.job_urn,
+            run=run,
+            status=DataProcessRunStatusClass.STARTED,
+            external_url=external_url,
+            actor_urn=actor_urn,
+        )
+        self._active_run = run
+        self._active_datajob_urn = datajob_urn or self.job_urn
+        self._active_external_url = external_url
+        self._active_actor_urn = actor_urn
+        return run
 
     def add_input(self, *, name: str, platform: str, env: str | None = None) -> DatasetUrn:
         """Build one input DatasetUrn and append it to current in-memory run state."""
@@ -172,32 +202,29 @@ class DataHubLineageClient:
         )
         return self._dpi_urn(run.run_id)
 
-    def push_run(
-        self,
-        *,
-        attempt: int = 1,
-        external_url: str | None = None,
-        actor_urn: str = "urn:li:corpuser:datahub",
-    ) -> str:
-        """Create one run from current IO, upsert datasets, and emit START/COMPLETE events."""
-        job_version = self.resolve_job_version()
-        run = self.create_run_spec(job_version=job_version, attempt=attempt)
-        self.upsert_datasets(run.inputs + run.outputs)
-        self.emit_dpi_event(
-            datajob_urn=self.job_urn,
-            run=run,
-            status=DataProcessRunStatusClass.STARTED,
-            external_url=external_url,
-            actor_urn=actor_urn,
+    def complete_run(self) -> str:
+        """Complete one existing run id using the current IO state."""
+        if self._active_run is None:
+            raise ValueError("No active run; call start_run() before complete_run().")
+        run = self._active_run
+        completed_run = self.build_run_spec(
+            run_id=run.run_id,
+            attempt=run.attempt,
+            job_version=run.job_version,
         )
+        self.upsert_datasets(completed_run.inputs + completed_run.outputs)
         self.emit_dpi_event(
-            datajob_urn=self.job_urn,
-            run=run,
+            datajob_urn=self._active_datajob_urn or self.job_urn,
+            run=completed_run,
             status=DataProcessRunStatusClass.COMPLETE,
-            external_url=external_url,
-            actor_urn=actor_urn,
+            external_url=self._active_external_url,
+            actor_urn=self._active_actor_urn,
         )
-        return self._dpi_urn(run.run_id)
+        self._active_run = None
+        self._active_datajob_urn = None
+        self._active_external_url = None
+        self._active_actor_urn = "urn:li:corpuser:datahub"
+        return self._dpi_urn(completed_run.run_id)
 
     def resolve_job_version(self) -> str:
         """Resolve job version from runtime metadata with sensible fallbacks."""

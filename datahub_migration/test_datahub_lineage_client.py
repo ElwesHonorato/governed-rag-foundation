@@ -33,34 +33,18 @@ def main() -> int:
         "env": bootstrap_settings.env,
         "datasets": {
             "worker_parser": {
-                "output": "03_processed/fanout_case_beta_source_document.json",
+                "output": "03_processed/fanout_case_delta_20260219_source_document.json",
             },
             "worker_chunk": {
-                "output1": "04_chunks/fanout_case_beta_branch_a.chunk.json",
-                "output2": "04_chunks/fanout_case_beta_branch_b.chunk.json",
+                "output1": "04_chunks/fanout_case_delta_20260219_branch_a.chunk.json",
+                "output2": "04_chunks/fanout_case_delta_20260219_branch_b.chunk.json",
             },
             "worker_embed": {
-                "output1": "05_embeddings/fanout_case_beta_branch_a.embedding.json",
-                "output2": "05_embeddings/fanout_case_beta_branch_b.embedding.json",
+                "output1": "05_embeddings/fanout_case_delta_20260219_branch_a.embedding.json",
+                "output2": "05_embeddings/fanout_case_delta_20260219_branch_b.embedding.json",
             },
         },
     }
-
-    # -------------------------------------------------------------------------
-    # Client Initialization
-    # -------------------------------------------------------------------------
-    parser_client = DataHubLineageClient(
-        stage=DataHubStageFlowConfig.WORKER_PARSE_DOCUMENT,
-        settings=DataHubBootstrapSettings.from_env(),
-    )
-    chunk_client = DataHubLineageClient(
-        stage=DataHubStageFlowConfig.WORKER_CHUNK_TEXT,
-        settings=DataHubBootstrapSettings.from_env(),
-    )
-    embed_client = DataHubLineageClient(
-        stage=DataHubStageFlowConfig.WORKER_EMBED_CHUNKS,
-        settings=DataHubBootstrapSettings.from_env(),
-    )
 
     # -------------------------------------------------------------------------
     # Bootstrap DataHub Entities
@@ -86,47 +70,57 @@ def main() -> int:
     flow_builder = DataHubDataFlowBuilder(DataHubStageFlowConfig, DataHubBootstrapSettings.from_env())
     flow_builder.upsert_all()
 
-    print(f"   DataFlow URN: {parser_client.flow_urn}")
-    print(f"   Parser Job URN: {parser_client.job_urn}")
-    print(f"   Chunk Job URN: {chunk_client.job_urn}")
-    print(f"   Embed Job URN: {embed_client.job_urn}")
-
     # -------------------------------------------------------------------------
     # Ordered push execution by worker (finish one worker before next)
     # -------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
+    # Client Initialization
+    # -------------------------------------------------------------------------
+    parser_client = DataHubLineageClient(
+        stage=DataHubStageFlowConfig.WORKER_PARSE_DOCUMENT,
+        settings=DataHubBootstrapSettings.from_env(),
+    )
+    chunk_client = DataHubLineageClient(
+        stage=DataHubStageFlowConfig.WORKER_CHUNK_TEXT,
+        settings=DataHubBootstrapSettings.from_env(),
+    )
+    embed_client = DataHubLineageClient(
+        stage=DataHubStageFlowConfig.WORKER_EMBED_CHUNKS,
+        settings=DataHubBootstrapSettings.from_env(),
+    )
 
     print("2) Emitting DataProcessInstance events in exact push order...")
     emitted_dp_is: set[str] = set()
 
     print("   Worker: worker_parser")
-    parser_client.reset_io()
-    parser_client.add_input(platform=config["platform"], name="02_raw/fanout_case_beta_source_document.raw.json")
+    parser_client.start_run()
+    parser_client.add_input(platform=config["platform"], name="02_raw/fanout_case_delta_20260219_source_document.raw.json")
     parser_client.add_output(platform=config["platform"], name=config["datasets"]["worker_parser"]["output"])
-    parser_dpi_urn = parser_client.push_run()
+    parser_dpi_urn = parser_client.complete_run()
     print(f"   worker_parser COMPLETE -> {parser_dpi_urn}")
     emitted_dp_is.add(parser_dpi_urn)
 
     print("   Worker: worker_chunk")
-    chunk_client.reset_io()
+    chunk_client.start_run()
     chunk_client.add_input(platform=config["platform"], name=config["datasets"]["worker_parser"]["output"])
     chunk_client.add_output(platform=config["platform"], name=config["datasets"]["worker_chunk"]["output1"])
     chunk_client.add_output(platform=config["platform"], name=config["datasets"]["worker_chunk"]["output2"])
-    chunk_dpi_urn = chunk_client.push_run()
+    chunk_dpi_urn = chunk_client.complete_run()
     print(f"   worker_chunk COMPLETE -> {chunk_dpi_urn}")
     emitted_dp_is.add(chunk_dpi_urn)
 
     print("   Worker: worker_embed")
-    embed_client.reset_io()
+    embed_client.start_run()
     embed_client.add_input(platform=config["platform"], name=config["datasets"]["worker_chunk"]["output1"])
     embed_client.add_output(platform=config["platform"], name=config["datasets"]["worker_embed"]["output1"])
-    embed_a_dpi_urn = embed_client.push_run()
+    embed_a_dpi_urn = embed_client.complete_run()
     print(f"   worker_embed-branch-a COMPLETE -> {embed_a_dpi_urn}")
     emitted_dp_is.add(embed_a_dpi_urn)
 
-    embed_client.reset_io()
+    embed_client.start_run()
     embed_client.add_input(platform=config["platform"], name=config["datasets"]["worker_chunk"]["output2"])
     embed_client.add_output(platform=config["platform"], name=config["datasets"]["worker_embed"]["output2"])
-    embed_b_dpi_urn = embed_client.push_run()
+    embed_b_dpi_urn = embed_client.complete_run()
     print(f"   worker_embed-branch-b COMPLETE -> {embed_b_dpi_urn}")
     emitted_dp_is.add(embed_b_dpi_urn)
 

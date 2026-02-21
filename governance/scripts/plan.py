@@ -24,6 +24,7 @@ def main() -> int:
     parser.add_argument("--offline", action="store_true", help="Skip DataHub existence checks")
     args = parser.parse_args()
     env_cfg = load_env_config(args.env)
+    env_label = args.env.upper()
     model = load_model()
 
     def exists(graph: DataHubGraph | None, urn: str) -> bool | None:
@@ -53,7 +54,7 @@ def main() -> int:
             return "upsert"
         return "update" if result else "create"
 
-    print(f"Plan for env={env_cfg.env} server={env_cfg.gms_server}")
+    print(f"Plan for env={env_label} server={env_cfg.gms_server}")
 
     print("\nDomains")
     for domain in model.domains:
@@ -77,13 +78,13 @@ def main() -> int:
 
     print("\nDatasets")
     for dataset in model.datasets:
-        urn = str(DatasetUrn(platform=dataset["platform"], name=dataset["name"], env=env_cfg.env))
+        urn = str(DatasetUrn(platform=dataset["platform"], name=dataset["name"], env=env_label))
         print(f"- would {action_for(urn)} dataset {dataset['id']} ({urn})")
 
     print("\nFlows + Jobs + Lineage Contract")
     for pipeline in model.pipelines:
         flow = pipeline["flow"]
-        flow_urn = DataFlowUrn(orchestrator=flow["platform"], flow_id=flow["name"], cluster=env_cfg.env)
+        flow_urn = DataFlowUrn(orchestrator=flow["platform"], flow_id=flow["name"], cluster=env_label)
         print(f"- would {action_for(str(flow_urn))} flow {flow['id']} ({flow_urn})")
 
         contracts = {c["job"]: c for c in pipeline.get("lineage_contract", [])}

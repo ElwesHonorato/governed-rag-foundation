@@ -24,14 +24,15 @@ def run_apply(env_name: str, static_only: bool = False) -> int:
 
     env_cfg = load_env_config(env_name)
     model = load_model()
+    env_label = env_name.upper()
 
     token = token_from_env(env_cfg.token_env)
-    refs = resolve_refs(model, env_cfg.env)
+    refs = resolve_refs(model, env_label)
 
     client = DataHubClient(server=env_cfg.gms_server, token=token)
 
     with DataHubGraph(DatahubClientConfig(server=env_cfg.gms_server, token=token)) as graph:
-        ctx = GovernanceContext(env_label=env_cfg.env, client=client, graph=graph, refs=refs)
+        ctx = GovernanceContext(env_label=env_label, client=client, graph=graph, refs=refs)
 
         # Order matters for dependencies.
         DomainManager(ctx).apply(model.domains)

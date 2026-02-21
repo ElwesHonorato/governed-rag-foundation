@@ -9,13 +9,34 @@ import re
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import yaml
+from pipeline_common.helpers.file_system_helper import FileSystemHelper
 
 
 ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 ALLOWED_ENVS = ("dev", "prod")
+
+
+@dataclass(frozen=True)
+class EnvironmentConfig:
+    """Runtime config for a target DataHub environment."""
+
+    gms_server: str
+    token_env: str
+
+
+@dataclass(frozen=True)
+class GovernanceModel:
+    """In-memory representation of governance YAML definitions."""
+
+    domains: list[dict[str, Any]]
+    groups: list[dict[str, Any]]
+    tags: list[dict[str, Any]]
+    terms: list[dict[str, Any]]
+    datasets: list[dict[str, Any]]
+    pipelines: list[dict[str, Any]]
 
 
 class DefinitionType(StrEnum):
@@ -51,138 +72,72 @@ class DefinitionType(StrEnum):
         return tuple(definition_type for definition_type in cls if definition_type.standalone_key is not None)
 
 
-@dataclass(frozen=True)
-class EnvironmentConfig:
-    """Runtime config for a target DataHub environment."""
+def _governance_dir() -> Path:
+    """Resolve the governance directory from this module location."""
 
-    gms_server: str
-    token_env: str
-    env: str
+    return FileSystemHelper.find_dir_upwards(Path(__file__), n=1)
 
 
-@dataclass(frozen=True)
-class GovernanceModel:
-    """In-memory representation of governance YAML definitions."""
+class FileReader:
+    """Read files from paths using extension-based readers."""
 
-    domains: list[dict[str, Any]]
-    groups: list[dict[str, Any]]
-    tags: list[dict[str, Any]]
-    terms: list[dict[str, Any]]
-    datasets: list[dict[str, Any]]
-    pipelines: list[dict[str, Any]]
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        self.default_reader: Callable[[Path], dict[str, Any]] = self._read_yaml
+        self.extension_readers: dict[str, Callable[[Path], dict[str, Any]]] = {
+            ".yaml": self._read_yaml,
+            ".yml": self._read_yaml,
+        }
+
+    def read(self) -> dict[str, Any]:
+        extension = self.path.suffix.lower()
+        reader = self.extension_readers.get(extension, self.default_reader)
+        return reader(self.path)
+
+    def _read_yaml(self, path: Path) -> dict[str, Any]:
+        with path.open("r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+        if not isinstance(data, dict):
+            raise ValueError(f"Expected top-level mapping in {path}")
+        return data
 
 
-class GovernanceYamlLoader:
-    """Encapsulate governance YAML discovery, classification, and loading.
+class StandaloneDefinitions:
+    """Store and aggregate discovered standalone definitions."""
 
-    Example object output from ``load_model()``::
-        GovernanceModel(
-            domains=[{"id": "rag-platform", "name": "RAG Platform"}],
-            groups=[{"id": "search-platform", "name": "Search Platform"}],
-            tags=[{"id": "pii"}],
-            terms=[{"id": "customer_id"}],
-            datasets=[{"id": "s3://rag-data:02_raw/pg100-images.html"}],
-            pipelines=[{
-                "flow": {"id": "governed-rag", "name": "governed-rag", "platform": "custom"},
-                "jobs": [{"id": "worker_chunk_text", "name": "worker_chunk_text"}],
-                "lineage_contract": [{"job": "worker_chunk_text", "inputs": [], "outputs": []}],
-            }],
-        )
-    """
+    def __init__(self) -> None:
+        self.by_type: dict[DefinitionType, dict[Path, dict[str, Any]]] = {}
 
-    def __init__(self, definitions_root: Path, definition_type: DefinitionType | None = None) -> None:
-        """Initialize loader with a definitions root and optional type filter."""
+    def add(self, definition_type: DefinitionType, path: Path, data: dict[str, Any]) -> None:
+        self.by_type.setdefault(definition_type, {})[path] = data
 
-        self.definitions_root = definitions_root
-        self.definition_type = definition_type
-        self.standalone_discovered_definitions: dict[DefinitionType, dict[Path, dict[str, Any]]] = {}
-        self.relational_discovered_definitions: dict[DefinitionType, dict[Path, dict[str, Any]]] = {}
-
-    def load_model(self) -> GovernanceModel:
-        """Load all governance definitions into a typed model."""
-
-        self._discover_definition_files()
-        list_payloads = self._build_standalone_payloads()
-
-        return GovernanceModel(
-            domains=list_payloads.get(DefinitionType.DOMAINS, []),
-            groups=list_payloads.get(DefinitionType.GROUPS, []),
-            tags=list_payloads.get(DefinitionType.TAGS, []),
-            terms=list_payloads.get(DefinitionType.TERMS, []),
-            datasets=list_payloads.get(DefinitionType.DATASETS, []),
-            pipelines=self._build_pipelines(),
-        )
-
-    def _discover_definition_files(self) -> None:
-        """Discover YAML files and partition by standalone vs relational definitions.
-
-        Example dictionary outputs::
-            self.standalone_discovered_definitions = {
-                DefinitionType.DATASETS: {
-                    Path("governance/definitions/400_datasets/420_s3.yaml"): {"datasets": [...]}
-                }
-            }
-            self.relational_discovered_definitions = {
-                DefinitionType.FLOW: {
-                    Path("governance/definitions/500_flow/500_governed-rag.yaml"): {"flow": {...}}
-                },
-                DefinitionType.JOBS: {
-                    Path("governance/definitions/600_jobs/600_governed-rag.yaml"): {"flow_id": "governed-rag", "jobs": [...]}
-                },
-            }
-        """
-
-        self.standalone_discovered_definitions = {}
-        self.relational_discovered_definitions = {}
-
-        for path in sorted(self.definitions_root.rglob("*.yaml")):
-            data = self._read_yaml(path)
-            definition_type = self._resolve_definition_type(path, data)
-            if self.definition_type is not None and definition_type != self.definition_type:
-                continue
-            if definition_type.standalone_key is None:
-                self.relational_discovered_definitions.setdefault(definition_type, {})[path] = data
-            else:
-                self.standalone_discovered_definitions.setdefault(definition_type, {})[path] = data
-
-    def _build_standalone_payloads(self) -> dict[DefinitionType, list[dict[str, Any]]]:
-        """Build aggregated payloads for standalone definition types.
-
-        Example dictionary output::
-            {
-                DefinitionType.DOMAINS: [{"id": "rag-platform", "name": "RAG Platform"}],
-                DefinitionType.DATASETS: [{"id": "s3://rag-data:02_raw/pg100-images.html"}],
-            }
-        """
-
+    def build_payloads(self) -> dict[DefinitionType, list[dict[str, Any]]]:
         return {
             definition_type: self._items_for_standalone_type(definition_type)
-            for definition_type in self.standalone_discovered_definitions
+            for definition_type in self.by_type
         }
 
     def _items_for_standalone_type(self, definition_type: DefinitionType) -> list[dict[str, Any]]:
-        """Aggregate list items for one standalone definition type."""
-
         key = definition_type.standalone_key
         standalone_entities_definitions: list[dict[str, Any]] = []
-        standalone_type_payloads = self.standalone_discovered_definitions.get(definition_type, {})
+        standalone_type_payloads = self.by_type.get(definition_type, {})
         for payload in standalone_type_payloads.values():
             standalone_entities_definitions.extend(payload.get(key, []))
         return standalone_entities_definitions
 
-    def _build_pipelines(self) -> list[dict[str, Any]]:
-        """Build canonical pipeline list payloads from flow, jobs, and lineage files.
 
-        Example list output::
-            [{
-                "flow": {"id": "governed-rag", "name": "governed-rag", "platform": "custom"},
-                "jobs": [{"id": "worker_chunk_text", "name": "worker_chunk_text"}],
-                "lineage_contract": [{"job": "worker_chunk_text", "inputs": [], "outputs": []}],
-            }]
-        """
+class RelationalDefinitions:
+    """Store discovered relational definitions and build pipelines."""
 
+    def __init__(self) -> None:
+        self.by_type: dict[DefinitionType, dict[Path, dict[str, Any]]] = {}
+
+    def add(self, definition_type: DefinitionType, path: Path, data: dict[str, Any]) -> None:
+        self.by_type.setdefault(definition_type, {})[path] = data
+
+    def build_pipelines(self) -> list[dict[str, Any]]:
         flow_by_id: dict[str, dict[str, Any]] = {}
-        for path, data in self.relational_discovered_definitions.get(DefinitionType.FLOW, {}).items():
+        for path, data in self.by_type.get(DefinitionType.FLOW, {}).items():
             raw_flows = data.get("flows", data.get("flow"))
             if isinstance(raw_flows, dict):
                 flows = [raw_flows]
@@ -197,7 +152,7 @@ class GovernanceYamlLoader:
                 flow_by_id[str(flow["id"])] = flow
 
         jobs_by_flow_id: dict[str, list[dict[str, Any]]] = {}
-        for path, data in self.relational_discovered_definitions.get(DefinitionType.JOBS, {}).items():
+        for path, data in self.by_type.get(DefinitionType.JOBS, {}).items():
             flow_id = data.get("flow_id")
             if not isinstance(flow_id, str) or not flow_id:
                 raise ValueError(f"Jobs file {path} must define non-empty flow_id")
@@ -207,7 +162,7 @@ class GovernanceYamlLoader:
             jobs_by_flow_id.setdefault(flow_id, []).extend(jobs)
 
         contracts_by_flow_id: dict[str, list[dict[str, Any]]] = {}
-        for path, data in self.relational_discovered_definitions.get(DefinitionType.LINEAGE_CONTRACT, {}).items():
+        for path, data in self.by_type.get(DefinitionType.LINEAGE_CONTRACT, {}).items():
             flow_id = data.get("flow_id")
             if not isinstance(flow_id, str) or not flow_id:
                 raise ValueError(f"Lineage contract file {path} must define non-empty flow_id")
@@ -227,59 +182,80 @@ class GovernanceYamlLoader:
             )
         return pipelines
 
-    def _read_yaml(self, path: Path) -> dict[str, Any]:
-        """Read one YAML file and enforce a mapping top-level object."""
 
-        with path.open("r", encoding="utf-8") as f:
-            data = yaml.safe_load(f) or {}
-        if not isinstance(data, dict):
-            raise ValueError(f"Expected top-level mapping in {path}")
-        return data
+class GovernanceDefinitionDiscoverer:
+    """Discover governance YAML and partition into standalone/relational classes."""
+
+    def __init__(
+        self,
+        definitions_root: Path,
+        standalone_discovered_definitions: StandaloneDefinitions,
+        relational_discovered_definitions: RelationalDefinitions,
+        definition_type: DefinitionType | None = None,
+    ) -> None:
+        self.definitions_root = definitions_root
+        self.definition_type = definition_type
+        self.standalone_discovered_definitions = standalone_discovered_definitions
+        self.relational_discovered_definitions = relational_discovered_definitions
+        self.standalone_payloads: dict[DefinitionType, list[dict[str, Any]]] = {}
+        self.pipelines: list[dict[str, Any]] = []
+
+    def load(self) -> None:
+        definition_paths = sorted(self.definitions_root.rglob("*.yaml"))
+
+        for path in definition_paths:
+            data = FileReader(path=path).read()
+            definition_type = self._resolve_definition_type(path, data)
+            if self.definition_type is not None and definition_type != self.definition_type:
+                continue
+            if definition_type.standalone_key is None:
+                self.relational_discovered_definitions.add(definition_type, path, data)
+            else:
+                self.standalone_discovered_definitions.add(definition_type, path, data)
+
+        self.standalone_payloads = self.standalone_discovered_definitions.build_payloads()
+        self.pipelines = self.relational_discovered_definitions.build_pipelines()
 
     def _resolve_definition_type(self, path: Path, data: dict[str, Any]) -> DefinitionType:
-        """Resolve the governance definition type represented by one YAML file."""
-
         for key in data:
             try:
                 return DefinitionType[key.upper()]
             except KeyError:
                 continue
-
         valid = ", ".join(t.value for t in DefinitionType)
         raise ValueError(f"Unable to classify governance YAML type for file: {path}. Expected keys: {valid}")
-
-
-def governance_root() -> Path:
-    """Return the root directory for governance assets."""
-
-    return Path(__file__).resolve().parent.parent
 
 
 def load_env_config(env_name: str) -> EnvironmentConfig:
     """Load one environment config file from `governance/configs`."""
 
-    config_path = governance_root() / "configs" / f"{env_name}.yaml"
-    if not config_path.exists():
-        raise FileNotFoundError(f"Missing config file: {config_path}")
-    with config_path.open("r", encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
-    if not isinstance(data, dict):
-        raise ValueError(f"Expected top-level mapping in {config_path}")
-    dh = data.get("datahub", {})
+    config_path = _governance_dir() / "configs" / f"{env_name}.yaml"
+    data = FileReader(path=config_path).read()
+    datahub_env_config = data.get("datahub", {})
     return EnvironmentConfig(
-        gms_server=str(dh["gms_server"]),
-        token_env=str(dh["token_env"]),
-        env=str(data["env"]),
+        gms_server=str(datahub_env_config["gms_server"]),
+        token_env=str(datahub_env_config["token_env"]),
     )
 
 
-def load_model(definitions_root: str | Path | None = None) -> GovernanceModel:
+def load_model() -> GovernanceModel:
     """Load all governance definitions from one folder tree into a model."""
 
-    root = Path(definitions_root) if definitions_root is not None else governance_root() / "definitions"
-    if not root.exists():
-        raise FileNotFoundError(f"Missing definitions directory: {root}")
-    return GovernanceYamlLoader(root).load_model()
+    definitions_dir = _governance_dir() / "definitions"
+    discoverer = GovernanceDefinitionDiscoverer(
+        definitions_root=definitions_dir,
+        standalone_discovered_definitions=StandaloneDefinitions(),
+        relational_discovered_definitions=RelationalDefinitions(),
+    )
+    discoverer.load()
+    return GovernanceModel(
+        domains=discoverer.standalone_payloads.get(DefinitionType.DOMAINS, []),
+        groups=discoverer.standalone_payloads.get(DefinitionType.GROUPS, []),
+        tags=discoverer.standalone_payloads.get(DefinitionType.TAGS, []),
+        terms=discoverer.standalone_payloads.get(DefinitionType.TERMS, []),
+        datasets=discoverer.standalone_payloads.get(DefinitionType.DATASETS, []),
+        pipelines=discoverer.pipelines,
+    )
 
 
 def parse_args(default_env: str = "dev") -> argparse.Namespace:

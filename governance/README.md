@@ -6,7 +6,7 @@ This directory defines static DataHub metadata as code: versioned, reviewable, r
 
 - `configs/`: environment-specific DataHub connection settings
 - `definitions/`: domains, groups, tags, glossary terms, datasets, and pipelines/jobs
-- `scripts/`: validate, plan, bootstrap, and apply entrypoints
+- `src/`: validate, plan, bootstrap, and apply entrypoints
 - `ci/github/workflows/`: example CI workflows for check/apply
 
 ## Usage
@@ -20,10 +20,10 @@ export ENV=dev
 ```
 
 ```bash
-PYTHONPATH=libs/pipeline-common/src .venv/bin/python governance/scripts/validate.py
-PYTHONPATH=libs/pipeline-common/src .venv/bin/python governance/scripts/plan.py
-PYTHONPATH=libs/pipeline-common/src .venv/bin/python governance/scripts/bootstrap.py
-PYTHONPATH=libs/pipeline-common/src .venv/bin/python governance/scripts/apply.py
+PYTHONPATH=libs/pipeline-common/src .venv/bin/python governance/src/validate.py
+PYTHONPATH=libs/pipeline-common/src .venv/bin/python governance/src/plan.py
+PYTHONPATH=libs/pipeline-common/src .venv/bin/python governance/bootstrap.py
+PYTHONPATH=libs/pipeline-common/src .venv/bin/python governance/src/apply.py
 ```
 
 Use prod config:
@@ -31,7 +31,7 @@ Use prod config:
 ```bash
 export DATAHUB_TOKEN_PROD="..."
 export ENV=prod
-PYTHONPATH=libs/pipeline-common/src .venv/bin/python governance/scripts/apply.py
+PYTHONPATH=libs/pipeline-common/src .venv/bin/python governance/src/apply.py
 ```
 
 ## Workflow

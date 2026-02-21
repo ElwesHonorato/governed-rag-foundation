@@ -75,7 +75,7 @@ class DefinitionType(StrEnum):
 def _governance_dir() -> Path:
     """Resolve the governance directory from this module location."""
 
-    return FileSystemHelper.find_dir_upwards(Path(__file__), n=1)
+    return FileSystemHelper.find_dir_upwards(Path(__file__), n=2)
 
 
 class FileReader:
@@ -270,4 +270,3 @@ def parse_args(default_env: str = "dev") -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--env", choices=list(ALLOWED_ENVS), default=env_from_var)
     return parser.parse_args()
-

@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 
-from _common import parse_args
-from apply import run_apply
+from src._common import parse_args
+from src.apply import run_apply
 
 
 def main() -> int:

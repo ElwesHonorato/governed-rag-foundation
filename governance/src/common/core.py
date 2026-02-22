@@ -311,21 +311,11 @@ class RelationalDefinitions:
     def _index_lineage_contract_definitions(
         self,
         flow_id: str,
-        contracts: list[Any],
+        contracts: list[Mapping[str, Any]],
     ) -> None:
-        """Index validated contract definitions for one flow.
-
-        Input structure:
-        - flow_id: parent flow id
-        - contracts: list[Any] expected as list[dict]
-        - uses `self.contracts_by_flow_id`: mutable {flow_id: [contract_def, ...]}
-
-        Output structure:
-        - None (mutates `self.contracts_by_flow_id`)
-        """
+        """Add validated lineage contract definitions to the flow's contract list."""
         for contract in contracts:
-            flow_contracts = self.contracts_by_flow_id.setdefault(flow_id, [])
-            flow_contracts.append(contract)
+            self.contracts_by_flow_id.setdefault(flow_id, []).append(contract)
 
     def _assert_known_flow_id(self, flow_id: str, path: Path) -> None:
         """Ensure flow_id exists in known flow ids.

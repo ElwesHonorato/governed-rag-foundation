@@ -164,6 +164,8 @@ class RelationalDefinitions:
     def __init__(self) -> None:
         self.files_by_definition_type: dict[DefinitionType, dict[Path, dict[str, Any]]] = {}
         self.flow_by_id: dict[str, tuple[Path, dict[str, Any]]] = {}
+        self.jobs_by_flow_id: dict[str, list[dict[str, Any]]] = {}
+        self.contracts_by_flow_id: dict[str, list[dict[str, Any]]] = {}
 
     def add(self, definition_type: DefinitionType, path: Path, data: dict[str, Any]) -> None:
         """Register one relational YAML payload by type and source path.
@@ -194,9 +196,9 @@ class RelationalDefinitions:
           }
         """
         self._collect_flows_by_id()
-        jobs_by_flow_id = self._collect_jobs_by_flow_id(set(self.flow_by_id))
-        contracts_by_flow_id = self._collect_contracts_by_flow_id(set(self.flow_by_id))
-        return self._assemble_pipelines(self.flow_by_id, jobs_by_flow_id, contracts_by_flow_id)
+        self._collect_jobs_by_flow_id()
+        self._collect_contracts_by_flow_id()
+        return self._assemble_pipelines()
 
     def _collect_flows_by_id(self) -> None:
         """Collect all flows and index them by `flow.id`.
@@ -209,57 +211,40 @@ class RelationalDefinitions:
         Output structure:
         - None (mutates `self.flow_by_id` as {flow_id: (source_path, flow_definition)})
         """
-        self.flow_by_id = {}
         for path, data in self._iter_definition_files(DefinitionType.FLOW):
-            self._index_flows(path, data, self.flow_by_id)
+            self._index_flows(path, data)
 
-    def _collect_jobs_by_flow_id(self, known_flow_ids: set[str]) -> dict[str, list[dict[str, Any]]]:
+    def _collect_jobs_by_flow_id(self) -> None:
         """Collect jobs grouped by `flow_id` with referential checks.
 
         Input structure:
-        - known_flow_ids: set[str] of valid flow ids
         - JOBS file shape:
           {"flow_id": "<flow-id>", "jobs": [{...}, ...]}
 
         Output structure:
-        - dict[str, list[dict[str, Any]]] as {flow_id: [job_definition, ...]}
+        - None (mutates `self.jobs_by_flow_id` as {flow_id: [job_definition, ...]})
         """
-        jobs_by_flow_id: dict[str, list[dict[str, Any]]] = {}
-        job_ids_by_flow_id: dict[str, set[str]] = {}
-
         for path, data in self._iter_definition_files(DefinitionType.JOBS):
             self._index_jobs(
                 path=path,
                 data=data,
-                known_flow_ids=known_flow_ids,
-                jobs_by_flow_id=jobs_by_flow_id,
-                job_ids_by_flow_id=job_ids_by_flow_id,
             )
-        return jobs_by_flow_id
 
-    def _collect_contracts_by_flow_id(self, known_flow_ids: set[str]) -> dict[str, list[dict[str, Any]]]:
+    def _collect_contracts_by_flow_id(self) -> None:
         """Collect lineage contracts grouped by `flow_id` with referential checks.
 
         Input structure:
-        - known_flow_ids: set[str] of valid flow ids
         - LINEAGE_CONTRACT file shape:
           {"flow_id": "<flow-id>", "lineage_contract": [{...}, ...]}
 
         Output structure:
-        - dict[str, list[dict[str, Any]]] as {flow_id: [contract_definition, ...]}
+        - None (mutates `self.contracts_by_flow_id` as {flow_id: [contract_definition, ...]})
         """
-        contracts_by_flow_id: dict[str, list[dict[str, Any]]] = {}
-        contract_jobs_by_flow_id: dict[str, set[str]] = {}
-
         for path, data in self._iter_definition_files(DefinitionType.LINEAGE_CONTRACT):
             self._index_lineage_contracts(
                 path=path,
                 data=data,
-                known_flow_ids=known_flow_ids,
-                contracts_by_flow_id=contracts_by_flow_id,
-                contract_jobs_by_flow_id=contract_jobs_by_flow_id,
             )
-        return contracts_by_flow_id
 
     def _iter_definition_files(self, definition_type: DefinitionType) -> list[tuple[Path, dict[str, Any]]]:
         """Return all stored files for a given relational definition type.
@@ -276,71 +261,63 @@ class RelationalDefinitions:
         self,
         path: Path,
         data: dict[str, Any],
-        flow_by_id: dict[str, tuple[Path, dict[str, Any]]],
     ) -> None:
         """Index all flows from a single flow file.
 
         Input structure:
         - path/data: one FLOW file payload
-        - flow_by_id: mutable {flow_id: (source_path, flow_def)}
+        - uses `self.flow_by_id`: mutable {flow_id: (source_path, flow_def)}
 
         Output structure:
-        - None (mutates `flow_by_id`)
+        - None (mutates `self.flow_by_id`)
         """
         flows = data.get("flows", [])
         for flow in flows:
             flow_id = flow.get("id")
-            if flow_id in flow_by_id:
-                original_path = flow_by_id[flow_id][0]
+            if flow_id in self.flow_by_id:
+                original_path = self.flow_by_id[flow_id][0]
                 raise ValueError(
                     f"Duplicate flow id '{flow_id}' found in {original_path} and {path}"
                 )
-            flow_by_id[flow_id] = (path, flow)
+            self.flow_by_id[flow_id] = (path, flow)
 
     def _index_jobs(
         self,
         path: Path,
         data: dict[str, Any],
-        known_flow_ids: set[str],
-        jobs_by_flow_id: dict[str, list[dict[str, Any]]],
-        job_ids_by_flow_id: dict[str, set[str]],
     ) -> None:
         """Index all jobs from one jobs file into grouped job indexes.
 
         Input structure:
         - data shape: {"flow_id": str, "jobs": list[dict]}
-        - known_flow_ids: set of valid flow ids
-        - jobs_by_flow_id: mutable {flow_id: [job_def, ...]}
-        - job_ids_by_flow_id: mutable {flow_id: {job_id, ...}}
+        - uses `self.jobs_by_flow_id`: mutable {flow_id: [job_def, ...]}
 
         Output structure:
-        - None (mutates `jobs_by_flow_id` and `job_ids_by_flow_id`)
+        - None (mutates `jobs_by_flow_id`)
         """
+        known_flow_ids = set(self.flow_by_id)
         flow_id = data.get("flow_id")
         if not isinstance(flow_id, str) or not flow_id:
             raise ValueError(f"Jobs file {path} must define non-empty flow_id")
         self._assert_known_flow_id(flow_id, known_flow_ids, path, "Jobs file")
         jobs = data.get("jobs", [])
-        self._index_job_definitions(flow_id, path, jobs, jobs_by_flow_id, job_ids_by_flow_id)
+        self._index_job_definitions(flow_id, path, jobs)
 
     def _index_job_definitions(
         self,
         flow_id: str,
         path: Path,
         jobs: list[Any],
-        jobs_by_flow_id: dict[str, list[dict[str, Any]]],
-        job_ids_by_flow_id: dict[str, set[str]],
     ) -> None:
         """Index validated job definitions for one flow.
 
         Input structure:
         - flow_id: parent flow id
         - jobs: list[Any] expected as list[dict]
-        - jobs_by_flow_id: mutable {flow_id: [job_def, ...]}
-        - job_ids_by_flow_id: mutable {flow_id: {job_id, ...}}
+        - uses `self.jobs_by_flow_id`: mutable {flow_id: [job_def, ...]}
 
         Output structure:
-        - None (mutates both indexes)
+        - None (mutates `self.jobs_by_flow_id`)
         """
         for job in jobs:
             if not isinstance(job, dict):
@@ -348,34 +325,26 @@ class RelationalDefinitions:
             job_id = job.get("id")
             if not isinstance(job_id, str) or not job_id:
                 raise ValueError(f"Jobs file {path} must define jobs[].id")
-            self._assert_unique_scoped_id(
-                item_id=job_id,
-                scope_id=flow_id,
-                seen_ids_by_scope=job_ids_by_flow_id,
-                item_kind="job",
-                scope_kind="flow_id",
-            )
-            jobs_by_flow_id.setdefault(flow_id, []).append(job)
+            flow_jobs = self.jobs_by_flow_id.setdefault(flow_id, [])
+            if any(existing_job.get("id") == job_id for existing_job in flow_jobs):
+                raise ValueError(f"Duplicate job '{job_id}' found for flow_id '{flow_id}'")
+            flow_jobs.append(job)
 
     def _index_lineage_contracts(
         self,
         path: Path,
         data: dict[str, Any],
-        known_flow_ids: set[str],
-        contracts_by_flow_id: dict[str, list[dict[str, Any]]],
-        contract_jobs_by_flow_id: dict[str, set[str]],
     ) -> None:
         """Index all lineage contracts from one contract file into grouped indexes.
 
         Input structure:
         - data shape: {"flow_id": str, "lineage_contract": list[dict]}
-        - known_flow_ids: set of valid flow ids
-        - contracts_by_flow_id: mutable {flow_id: [contract_def, ...]}
-        - contract_jobs_by_flow_id: mutable {flow_id: {job_id, ...}}
+        - uses `self.contracts_by_flow_id`: mutable {flow_id: [contract_def, ...]}
 
         Output structure:
-        - None (mutates both indexes)
+        - None (mutates `contracts_by_flow_id`)
         """
+        known_flow_ids = set(self.flow_by_id)
         flow_id = data.get("flow_id")
         if not isinstance(flow_id, str) or not flow_id:
             raise ValueError(f"Lineage contract file {path} must define non-empty flow_id")
@@ -385,8 +354,6 @@ class RelationalDefinitions:
             flow_id=flow_id,
             path=path,
             contracts=contracts,
-            contracts_by_flow_id=contracts_by_flow_id,
-            contract_jobs_by_flow_id=contract_jobs_by_flow_id,
         )
 
     def _index_lineage_contract_definitions(
@@ -394,19 +361,16 @@ class RelationalDefinitions:
         flow_id: str,
         path: Path,
         contracts: list[Any],
-        contracts_by_flow_id: dict[str, list[dict[str, Any]]],
-        contract_jobs_by_flow_id: dict[str, set[str]],
     ) -> None:
         """Index validated contract definitions for one flow.
 
         Input structure:
         - flow_id: parent flow id
         - contracts: list[Any] expected as list[dict]
-        - contracts_by_flow_id: mutable {flow_id: [contract_def, ...]}
-        - contract_jobs_by_flow_id: mutable {flow_id: {job_id, ...}}
+        - uses `self.contracts_by_flow_id`: mutable {flow_id: [contract_def, ...]}
 
         Output structure:
-        - None (mutates both indexes)
+        - None (mutates `self.contracts_by_flow_id`)
         """
         for contract in contracts:
             if not isinstance(contract, dict):
@@ -414,14 +378,10 @@ class RelationalDefinitions:
             job_id = contract.get("job")
             if not isinstance(job_id, str) or not job_id:
                 raise ValueError(f"Lineage contract file {path} must define lineage_contract[].job")
-            self._assert_unique_scoped_id(
-                item_id=job_id,
-                scope_id=flow_id,
-                seen_ids_by_scope=contract_jobs_by_flow_id,
-                item_kind="lineage contract for job",
-                scope_kind="flow_id",
-            )
-            contracts_by_flow_id.setdefault(flow_id, []).append(contract)
+            flow_contracts = self.contracts_by_flow_id.setdefault(flow_id, [])
+            if any(existing_contract.get("job") == job_id for existing_contract in flow_contracts):
+                raise ValueError(f"Duplicate lineage contract for job '{job_id}' found for flow_id '{flow_id}'")
+            flow_contracts.append(contract)
 
     @staticmethod
     def _assert_known_flow_id(flow_id: str, known_flow_ids: set[str], path: Path, file_label: str) -> None:
@@ -462,33 +422,28 @@ class RelationalDefinitions:
             raise ValueError(f"Duplicate {item_kind} '{item_id}' found for {scope_kind} '{scope_id}'")
         scoped_seen_ids.add(item_id)
 
-    @staticmethod
-    def _assemble_pipelines(
-        flow_by_id: dict[str, tuple[Path, dict[str, Any]]],
-        jobs_by_flow_id: dict[str, list[dict[str, Any]]],
-        contracts_by_flow_id: dict[str, list[dict[str, Any]]],
-    ) -> list[dict[str, Any]]:
+    def _assemble_pipelines(self) -> list[dict[str, Any]]:
         """Assemble deterministic pipeline list from indexed relational definitions.
 
         Input structure:
-        - flow_by_id: {flow_id: (source_path, flow_def)}
-        - jobs_by_flow_id: {flow_id: [job_def, ...]}
-        - contracts_by_flow_id: {flow_id: [contract_def, ...]}
+        - self.flow_by_id: {flow_id: (source_path, flow_def)}
+        - self.jobs_by_flow_id: {flow_id: [job_def, ...]}
+        - self.contracts_by_flow_id: {flow_id: [contract_def, ...]}
 
         Output structure:
         - list[dict[str, Any]] sorted by flow_id, with each item:
           {"flow": dict, "jobs": list[dict], "lineage_contract": list[dict]}
         """
         pipelines: list[dict[str, Any]] = []
-        for flow_id in sorted(flow_by_id):
-            flow_jobs = sorted(jobs_by_flow_id.get(flow_id, []), key=lambda job: str(job.get("id", "")))
+        for flow_id in sorted(self.flow_by_id):
+            flow_jobs = sorted(self.jobs_by_flow_id.get(flow_id, []), key=lambda job: str(job.get("id", "")))
             flow_contracts = sorted(
-                contracts_by_flow_id.get(flow_id, []),
+                self.contracts_by_flow_id.get(flow_id, []),
                 key=lambda contract: str(contract.get("job", "")),
             )
             pipelines.append(
                 {
-                    "flow": flow_by_id[flow_id][1],
+                    "flow": self.flow_by_id[flow_id][1],
                     "jobs": flow_jobs,
                     "lineage_contract": flow_contracts,
                 }

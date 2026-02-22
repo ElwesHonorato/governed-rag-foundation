@@ -271,15 +271,6 @@ class RelationalDefinitions:
             target_by_flow_id=self.jobs_by_flow_id,
         )
 
-    def _index_job_definitions(
-        self,
-        flow_id: str,
-        jobs: list[Mapping[str, Any]],
-    ) -> None:
-        """Add validated job definitions to the flow's job list."""
-        for job in jobs:
-            self.jobs_by_flow_id.setdefault(flow_id, []).append(job)
-
     def _index_lineage_contracts(
         self,
         path: Path,
@@ -304,17 +295,17 @@ class RelationalDefinitions:
         flow_id = data.get("flow_id")
         self._assert_known_flow_id(flow_id, path)
         items = data.get(items_key, [])
-        for item in items:
-            target_by_flow_id.setdefault(flow_id, []).append(item)
+        self._append_flow_items(flow_id, items, target_by_flow_id)
 
-    def _index_lineage_contract_definitions(
+    def _append_flow_items(
         self,
         flow_id: str,
-        contracts: list[Mapping[str, Any]],
+        items: list[Mapping[str, Any]],
+        target_by_flow_id: dict[str, list[dict[str, Any]]],
     ) -> None:
-        """Add validated lineage contract definitions to the flow's contract list."""
-        for contract in contracts:
-            self.contracts_by_flow_id.setdefault(flow_id, []).append(contract)
+        """Append items to the list bucket associated with one flow id."""
+        for item in items:
+            target_by_flow_id.setdefault(flow_id, []).append(item)
 
     def _assert_known_flow_id(self, flow_id: str, path: Path) -> None:
         """Ensure flow_id exists in known flow ids.

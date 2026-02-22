@@ -358,11 +358,8 @@ class RelationalDefinitions:
         """
         pipelines: list[dict[str, Any]] = []
         for flow_id in sorted(self.flow_by_id):
-            flow_jobs = sorted(self.jobs_by_flow_id.get(flow_id, []), key=lambda job: str(job.get("id", "")))
-            flow_contracts = sorted(
-                self.contracts_by_flow_id.get(flow_id, []),
-                key=lambda contract: str(contract.get("job", "")),
-            )
+            flow_jobs = self.jobs_by_flow_id.get(flow_id, [])
+            flow_contracts = self.contracts_by_flow_id.get(flow_id, [])
             pipelines.append(
                 {
                     "flow": self.flow_by_id[flow_id][1],

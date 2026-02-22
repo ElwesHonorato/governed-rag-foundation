@@ -9,7 +9,7 @@ import re
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Mapping
 
 from pipeline_common.helpers.file_reader import FileReader
 from pipeline_common.helpers.file_system_helper import FileSystemHelper
@@ -280,21 +280,11 @@ class RelationalDefinitions:
     def _index_job_definitions(
         self,
         flow_id: str,
-        jobs: list[Any],
+        jobs: list[Mapping[str, Any]],
     ) -> None:
-        """Index validated job definitions for one flow.
-
-        Input structure:
-        - flow_id: parent flow id
-        - jobs: list[Any] expected as list[dict]
-        - uses `self.jobs_by_flow_id`: mutable {flow_id: [job_def, ...]}
-
-        Output structure:
-        - None (mutates `self.jobs_by_flow_id`)
-        """
+        """Add validated job definitions to the flow's job list."""
         for job in jobs:
-            flow_jobs = self.jobs_by_flow_id.setdefault(flow_id, [])
-            flow_jobs.append(job)
+            self.jobs_by_flow_id.setdefault(flow_id, []).append(job)
 
     def _index_lineage_contracts(
         self,

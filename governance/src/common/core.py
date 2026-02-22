@@ -263,19 +263,13 @@ class RelationalDefinitions:
         path: Path,
         data: dict[str, Any],
     ) -> None:
-        """Index all jobs from one jobs file into grouped job indexes.
-
-        Input structure:
-        - data shape: {"flow_id": str, "jobs": list[dict]}
-        - uses `self.jobs_by_flow_id`: mutable {flow_id: [job_def, ...]}
-
-        Output structure:
-        - None (mutates `jobs_by_flow_id`)
-        """
-        flow_id = data.get("flow_id")
-        self._assert_known_flow_id(flow_id, path)
-        jobs = data.get("jobs", [])
-        self._index_job_definitions(flow_id, jobs)
+        """Index all jobs from one jobs file into grouped job indexes."""
+        self._index_items_by_flow(
+            path=path,
+            data=data,
+            items_key="jobs",
+            target_by_flow_id=self.jobs_by_flow_id,
+        )
 
     def _index_job_definitions(
         self,
@@ -291,22 +285,27 @@ class RelationalDefinitions:
         path: Path,
         data: dict[str, Any],
     ) -> None:
-        """Index all lineage contracts from one contract file into grouped indexes.
+        """Index all lineage contracts from one contract file into grouped indexes."""
+        self._index_items_by_flow(
+            path=path,
+            data=data,
+            items_key="lineage_contract",
+            target_by_flow_id=self.contracts_by_flow_id,
+        )
 
-        Input structure:
-        - data shape: {"flow_id": str, "lineage_contract": list[dict]}
-        - uses `self.contracts_by_flow_id`: mutable {flow_id: [contract_def, ...]}
-
-        Output structure:
-        - None (mutates `contracts_by_flow_id`)
-        """
+    def _index_items_by_flow(
+        self,
+        path: Path,
+        data: Mapping[str, Any],
+        items_key: str,
+        target_by_flow_id: dict[str, list[dict[str, Any]]],
+    ) -> None:
+        """Index one list field from a relational file into a flow-grouped target."""
         flow_id = data.get("flow_id")
         self._assert_known_flow_id(flow_id, path)
-        contracts = data.get("lineage_contract", [])
-        self._index_lineage_contract_definitions(
-            flow_id=flow_id,
-            contracts=contracts,
-        )
+        items = data.get(items_key, [])
+        for item in items:
+            target_by_flow_id.setdefault(flow_id, []).append(item)
 
     def _index_lineage_contract_definitions(
         self,

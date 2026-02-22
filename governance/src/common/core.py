@@ -138,21 +138,21 @@ class StandaloneDefinitions:
     """Store and aggregate discovered standalone definitions."""
 
     def __init__(self) -> None:
-        self.by_type: dict[DefinitionType, dict[Path, dict[str, Any]]] = {}
+        self.files_by_definition_type: dict[DefinitionType, dict[Path, dict[str, Any]]] = {}
 
     def add(self, definition_type: DefinitionType, path: Path, data: dict[str, Any]) -> None:
-        self.by_type.setdefault(definition_type, {})[path] = data
+        self.files_by_definition_type.setdefault(definition_type, {})[path] = data
 
     def build_payloads(self) -> dict[DefinitionType, list[dict[str, Any]]]:
         return {
             definition_type: self._items_for_standalone_type(definition_type)
-            for definition_type in self.by_type
+            for definition_type in self.files_by_definition_type
         }
 
     def _items_for_standalone_type(self, definition_type: DefinitionType) -> list[dict[str, Any]]:
         key = definition_type.standalone_key
         standalone_entities_definitions: list[dict[str, Any]] = []
-        standalone_type_payloads = self.by_type.get(definition_type, {})
+        standalone_type_payloads = self.files_by_definition_type.get(definition_type, {})
         for payload in standalone_type_payloads.values():
             standalone_entities_definitions.extend(payload.get(key, []))
         return standalone_entities_definitions
@@ -162,7 +162,7 @@ class RelationalDefinitions:
     """Store discovered relational definitions and build pipelines."""
 
     def __init__(self) -> None:
-        self.by_type: dict[DefinitionType, dict[Path, dict[str, Any]]] = {}
+        self.files_by_definition_type: dict[DefinitionType, dict[Path, dict[str, Any]]] = {}
 
     def add(self, definition_type: DefinitionType, path: Path, data: dict[str, Any]) -> None:
         """Register one relational YAML payload by type and source path.
@@ -173,15 +173,15 @@ class RelationalDefinitions:
         - data: parsed YAML mapping for that file
 
         Output structure:
-        - None (mutates internal store `self.by_type`)
+        - None (mutates internal store `self.files_by_definition_type`)
         """
-        self.by_type.setdefault(definition_type, {})[path] = data
+        self.files_by_definition_type.setdefault(definition_type, {})[path] = data
 
     def build_pipelines(self) -> list[dict[str, Any]]:
         """Build normalized pipeline payloads from relational definition files.
 
         Input structure:
-        - Uses `self.by_type` internal mapping:
+        - Uses `self.files_by_definition_type` internal mapping:
           {DefinitionType: {Path: dict[str, Any]}}
 
         Output structure:
@@ -201,7 +201,7 @@ class RelationalDefinitions:
         """Collect all flows and index them by `flow.id`.
 
         Input structure:
-        - FLOW files in `self.by_type[DefinitionType.FLOW]`
+        - FLOW files in `self.files_by_definition_type[DefinitionType.FLOW]`
         - each file can contain:
           {"flow": {...}} or {"flows": [{...}, ...]}
 
@@ -271,7 +271,7 @@ class RelationalDefinitions:
         Output structure:
         - list[tuple[Path, dict[str, Any]]]
         """
-        return list(self.by_type.get(definition_type, {}).items())
+        return list(self.files_by_definition_type.get(definition_type, {}).items())
 
     @staticmethod
     def _required_string(value: Any, error_message: str) -> str:

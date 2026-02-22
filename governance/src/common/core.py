@@ -9,7 +9,7 @@ import re
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from pipeline_common.helpers.file_reader import FileReader
 from pipeline_common.helpers.file_system_helper import FileSystemHelper
@@ -195,56 +195,33 @@ class RelationalDefinitions:
             "lineage_contract": list[dict[str, Any]],
           }
         """
-        self._collect_flows_by_id()
-        self._collect_jobs_by_flow_id()
-        self._collect_contracts_by_flow_id()
+        self._index_relational_definitions()
         return self._assemble_pipelines()
 
-    def _collect_flows_by_id(self) -> None:
-        """Collect all flows and index them by `flow.id`.
+    def _index_relational_definitions(self) -> None:
+        """Collect all relational definitions and index them by flow context.
 
         Input structure:
-        - FLOW files in `self.files_by_definition_type[DefinitionType.FLOW]`
-        - each file must contain:
-          {"flows": [{...}, ...]}
+        - Uses `self.files_by_definition_type` for FLOW/JOBS/LINEAGE_CONTRACT files.
 
         Output structure:
-        - None (mutates `self.flow_by_id` as {flow_id: (source_path, flow_definition)})
+        - None (mutates `self.flow_by_id`, `self.jobs_by_flow_id`, and `self.contracts_by_flow_id`)
         """
-        for path, data in self._iter_definition_files(DefinitionType.FLOW):
-            self._index_flows(path, data)
+        collectors: dict[DefinitionType, Callable[[Path, dict[str, Any]], None]] = {
+            DefinitionType.FLOW: self._index_flows,
+            DefinitionType.JOBS: self._index_jobs,
+            DefinitionType.LINEAGE_CONTRACT: self._index_lineage_contracts,
+        }
+        for definition_type, indexer in collectors.items():
+            self._apply_indexer(definition_type, indexer)
 
-    def _collect_jobs_by_flow_id(self) -> None:
-        """Collect jobs grouped by `flow_id` with referential checks.
-
-        Input structure:
-        - JOBS file shape:
-          {"flow_id": "<flow-id>", "jobs": [{...}, ...]}
-
-        Output structure:
-        - None (mutates `self.jobs_by_flow_id` as {flow_id: [job_definition, ...]})
-        """
-        for path, data in self._iter_definition_files(DefinitionType.JOBS):
-            self._index_jobs(
-                path=path,
-                data=data,
-            )
-
-    def _collect_contracts_by_flow_id(self) -> None:
-        """Collect lineage contracts grouped by `flow_id` with referential checks.
-
-        Input structure:
-        - LINEAGE_CONTRACT file shape:
-          {"flow_id": "<flow-id>", "lineage_contract": [{...}, ...]}
-
-        Output structure:
-        - None (mutates `self.contracts_by_flow_id` as {flow_id: [contract_definition, ...]})
-        """
-        for path, data in self._iter_definition_files(DefinitionType.LINEAGE_CONTRACT):
-            self._index_lineage_contracts(
-                path=path,
-                data=data,
-            )
+    def _apply_indexer(
+        self,
+        definition_type: DefinitionType,
+        indexer: Callable[[Path, dict[str, Any]], None],
+    ) -> None:
+        for path, data in self._iter_definition_files(definition_type):
+            indexer(path, data)
 
     def _iter_definition_files(self, definition_type: DefinitionType) -> list[tuple[Path, dict[str, Any]]]:
         """Return all stored files for a given relational definition type.
@@ -295,18 +272,14 @@ class RelationalDefinitions:
         Output structure:
         - None (mutates `jobs_by_flow_id`)
         """
-        known_flow_ids = set(self.flow_by_id)
         flow_id = data.get("flow_id")
-        if not isinstance(flow_id, str) or not flow_id:
-            raise ValueError(f"Jobs file {path} must define non-empty flow_id")
-        self._assert_known_flow_id(flow_id, known_flow_ids, path, "Jobs file")
+        self._assert_known_flow_id(flow_id, path)
         jobs = data.get("jobs", [])
-        self._index_job_definitions(flow_id, path, jobs)
+        self._index_job_definitions(flow_id, jobs)
 
     def _index_job_definitions(
         self,
         flow_id: str,
-        path: Path,
         jobs: list[Any],
     ) -> None:
         """Index validated job definitions for one flow.
@@ -320,14 +293,7 @@ class RelationalDefinitions:
         - None (mutates `self.jobs_by_flow_id`)
         """
         for job in jobs:
-            if not isinstance(job, dict):
-                raise ValueError(f"Jobs file {path} must define job objects")
-            job_id = job.get("id")
-            if not isinstance(job_id, str) or not job_id:
-                raise ValueError(f"Jobs file {path} must define jobs[].id")
             flow_jobs = self.jobs_by_flow_id.setdefault(flow_id, [])
-            if any(existing_job.get("id") == job_id for existing_job in flow_jobs):
-                raise ValueError(f"Duplicate job '{job_id}' found for flow_id '{flow_id}'")
             flow_jobs.append(job)
 
     def _index_lineage_contracts(
@@ -344,22 +310,17 @@ class RelationalDefinitions:
         Output structure:
         - None (mutates `contracts_by_flow_id`)
         """
-        known_flow_ids = set(self.flow_by_id)
         flow_id = data.get("flow_id")
-        if not isinstance(flow_id, str) or not flow_id:
-            raise ValueError(f"Lineage contract file {path} must define non-empty flow_id")
-        self._assert_known_flow_id(flow_id, known_flow_ids, path, "Lineage contract file")
+        self._assert_known_flow_id(flow_id, path)
         contracts = data.get("lineage_contract", [])
         self._index_lineage_contract_definitions(
             flow_id=flow_id,
-            path=path,
             contracts=contracts,
         )
 
     def _index_lineage_contract_definitions(
         self,
         flow_id: str,
-        path: Path,
         contracts: list[Any],
     ) -> None:
         """Index validated contract definitions for one flow.
@@ -373,30 +334,21 @@ class RelationalDefinitions:
         - None (mutates `self.contracts_by_flow_id`)
         """
         for contract in contracts:
-            if not isinstance(contract, dict):
-                raise ValueError(f"Lineage contract file {path} must define lineage_contract objects")
-            job_id = contract.get("job")
-            if not isinstance(job_id, str) or not job_id:
-                raise ValueError(f"Lineage contract file {path} must define lineage_contract[].job")
             flow_contracts = self.contracts_by_flow_id.setdefault(flow_id, [])
-            if any(existing_contract.get("job") == job_id for existing_contract in flow_contracts):
-                raise ValueError(f"Duplicate lineage contract for job '{job_id}' found for flow_id '{flow_id}'")
             flow_contracts.append(contract)
 
-    @staticmethod
-    def _assert_known_flow_id(flow_id: str, known_flow_ids: set[str], path: Path, file_label: str) -> None:
+    def _assert_known_flow_id(self, flow_id: str, path: Path) -> None:
         """Ensure flow_id exists in known flow ids.
 
         Input structure:
         - flow_id: str
-        - known_flow_ids: set[str]
-        - path/file_label: context for error message
+        - path: source file path for error context
 
         Output structure:
         - None (raises ValueError on missing reference)
         """
-        if flow_id not in known_flow_ids:
-            raise ValueError(f"{file_label} {path} references unknown flow_id '{flow_id}'")
+        if flow_id not in self.flow_by_id:
+            raise ValueError(f"File {path} references unknown flow_id '{flow_id}'")
 
     @staticmethod
     def _assert_unique_scoped_id(

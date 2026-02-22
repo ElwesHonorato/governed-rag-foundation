@@ -248,7 +248,11 @@ class RelationalDefinitions:
         Output structure:
         - None (mutates `self.flow_by_id`)
         """
-        flows = data.get("flows", [])
+        raw_flows = data.get("flows", data.get("flow", []))
+        if isinstance(raw_flows, dict):
+            flows = [raw_flows]
+        else:
+            flows = raw_flows
         for flow in flows:
             flow_id = flow.get("id")
             if flow_id in self.flow_by_id:

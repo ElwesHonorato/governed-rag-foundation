@@ -47,6 +47,7 @@ class TaxonomyManager:
                 id=term["id"],
                 name=term["name"],
                 definition=term.get("description"),
+                termSource="INTERNAL",
             )
             self.ctx.graph.emit(
                 MetadataChangeProposalWrapper(

@@ -15,24 +15,16 @@ Best practices:
 - Keep startup dependencies explicit so runtime behavior is predictable.
 """
 
-from pipeline_common.object_storage import ObjectStorageGateway, S3Client
-from pipeline_common.settings import S3StorageSettings
+from pipeline_common.startup import build_object_storage, load_storage_settings
 from configs.constants import MANIFEST_PROCESSING_CONFIG
 from services.worker_manifest_service import WorkerManifestService
 
 
 def run() -> None:
     """Initialize dependencies and start the worker service."""
-    s3_settings = S3StorageSettings.from_env()
+    s3_settings = load_storage_settings()
     processing_config = MANIFEST_PROCESSING_CONFIG
-    object_storage = ObjectStorageGateway(
-        S3Client(
-            endpoint_url=s3_settings.s3_endpoint,
-            access_key=s3_settings.s3_access_key,
-            secret_key=s3_settings.s3_secret_key,
-            region_name=s3_settings.aws_region,
-        )
-    )
+    object_storage = build_object_storage(s3_settings)
     WorkerManifestService(
         object_storage=object_storage,
         processing_config=processing_config,

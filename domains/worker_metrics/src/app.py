@@ -16,25 +16,17 @@ Best practices:
 """
 
 from pipeline_common.observability import Counters
-from pipeline_common.object_storage import ObjectStorageGateway, S3Client
-from pipeline_common.settings import S3StorageSettings
+from pipeline_common.startup import build_object_storage, load_storage_settings
 from configs.constants import METRICS_PROCESSING_CONFIG
 from services.worker_metrics_service import WorkerMetricsService
 
 
 def run() -> None:
     """Initialize dependencies and start the worker service."""
-    s3_settings = S3StorageSettings.from_env()
+    s3_settings = load_storage_settings()
     processing_config = METRICS_PROCESSING_CONFIG
     counters = Counters().for_worker("worker_metrics")
-    object_storage = ObjectStorageGateway(
-        S3Client(
-            endpoint_url=s3_settings.s3_endpoint,
-            access_key=s3_settings.s3_access_key,
-            secret_key=s3_settings.s3_secret_key,
-            region_name=s3_settings.aws_region,
-        )
-    )
+    object_storage = build_object_storage(s3_settings)
     WorkerMetricsService(
         counters=counters,
         object_storage=object_storage,

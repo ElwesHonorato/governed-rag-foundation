@@ -17,34 +17,27 @@ Best practices:
 
 import os
 
-from pipeline_common.lineage import LineageEmitter
 from pipeline_common.queue import StageQueue
-from pipeline_common.object_storage import ObjectStorageGateway, S3Client
-from pipeline_common.settings import LineageEmitterSettings, QueueRuntimeSettings, S3StorageSettings
+from pipeline_common.startup import (
+    build_lineage_emitter,
+    build_object_storage,
+    load_worker_runtime_settings,
+)
 from configs.constants import EMBED_CHUNKS_LINEAGE_CONFIG, EMBED_CHUNKS_PROCESSING_CONFIG
 from services.worker_embed_chunks_service import WorkerEmbedChunksService
 
 
 def run() -> None:
     """Initialize dependencies and start the worker service."""
-    s3_settings = S3StorageSettings.from_env()
-    queue_settings = QueueRuntimeSettings.from_env()
-    lineage_settings = LineageEmitterSettings.from_env()
+    s3_settings, queue_settings, lineage_settings = load_worker_runtime_settings()
     processing_config = EMBED_CHUNKS_PROCESSING_CONFIG
-    lineage = LineageEmitter(
+    lineage = build_lineage_emitter(
         lineage_settings=lineage_settings,
         lineage_config=EMBED_CHUNKS_LINEAGE_CONFIG,
     )
     stage_queue = StageQueue(queue_settings.broker_url, queue_config=processing_config["queue"])
     dimension = int(os.getenv("EMBEDDING_DIM", "32"))
-    object_storage = ObjectStorageGateway(
-        S3Client(
-            endpoint_url=s3_settings.s3_endpoint,
-            access_key=s3_settings.s3_access_key,
-            secret_key=s3_settings.s3_secret_key,
-            region_name=s3_settings.aws_region,
-        )
-    )
+    object_storage = build_object_storage(s3_settings)
     WorkerEmbedChunksService(
         stage_queue=stage_queue,
         object_storage=object_storage,

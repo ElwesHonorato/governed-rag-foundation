@@ -16,7 +16,7 @@ PIPELINE_COMMON_SRC = REPO_ROOT / "libs" / "pipeline-common" / "src"
 if str(PIPELINE_COMMON_SRC) not in sys.path:
     sys.path.insert(0, str(PIPELINE_COMMON_SRC))
 
-from pipeline_common.lineage.data_hub import DataHubDataFlowBuilder, DataHubLineageClient
+from pipeline_common.lineage.data_hub import DataHubLineageClient
 from pipeline_common.lineage.data_hub.constants import DataHubStageFlowConfig
 from pipeline_common.settings import DataHubBootstrapSettings
 
@@ -47,28 +47,9 @@ def main() -> int:
     }
 
     # -------------------------------------------------------------------------
-    # Bootstrap DataHub Entities
+    # Static templates precondition
     # -------------------------------------------------------------------------
-    """
-    Bootstrap DataHub template entities required for lineage fanout testing.
-
-    This section creates the DataFlow and DataJob hierarchy used by the
-    reproduction script before emitting any DataProcessInstance runs.
-
-    Because this script is designed to be **self-contained and repeatable**,
-    it performs idempotent upserts on every execution. This differs from
-    production architecture, where static metadata creation should occur
-    during deployment rather than at runtime.
-
-    The returned URNs are later used to:
-
-    - attach DataProcessInstance runs to their parent DataJobs
-    - verify lineage traversal across fanout/fanin scenarios
-    - reproduce the Marquez job-lineage mismatch using DataHub semantics
-    """
-    print("1) Upserting DataFlow + DataJobs (static templates)...")
-    flow_builder = DataHubDataFlowBuilder(DataHubStageFlowConfig, DataHubBootstrapSettings.from_env())
-    flow_builder.upsert_all()
+    print("1) Assuming DataFlow + DataJobs templates already upserted by governance apply.")
 
     # -------------------------------------------------------------------------
     # Ordered push execution by worker (finish one worker before next)

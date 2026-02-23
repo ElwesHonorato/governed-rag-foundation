@@ -12,7 +12,7 @@ from .core import (
     GovernanceStateLoader,
     RelationalDefinitions,
     StandaloneDefinitions,
-    parse_args,
+    resolve_env,
 )
 
 __all__ = [
@@ -27,5 +27,5 @@ __all__ = [
     "GovernanceStateLoader",
     "RelationalDefinitions",
     "StandaloneDefinitions",
-    "parse_args",
+    "resolve_env",
 ]

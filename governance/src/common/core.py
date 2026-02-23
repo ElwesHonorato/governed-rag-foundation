@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import argparse
 import os
 import re
 from dataclasses import dataclass
@@ -417,14 +416,12 @@ class GovernanceDefinitionDiscoverer:
         raise ValueError(f"Unable to classify governance YAML type for file: {path}. Expected keys: {valid}")
 
 
-def parse_args(default_env: str = "dev") -> argparse.Namespace:
-    """Parse shared CLI args and resolve `--env` from `ENV` by default."""
+def resolve_env(default_env: str = "dev") -> str:
+    """Resolve environment from `ENV` and validate it."""
 
     env_from_var = os.getenv("ENV", default_env).strip().lower()
     if env_from_var not in ALLOWED_ENVS:
         raise SystemExit(
             f"Invalid ENV='{os.getenv('ENV')}'. Allowed values: {', '.join(ALLOWED_ENVS)}"
         )
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--env", choices=list(ALLOWED_ENVS), default=env_from_var)
-    return parser.parse_args()
+    return env_from_var

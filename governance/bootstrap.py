@@ -3,15 +3,14 @@
 
 from __future__ import annotations
 
-from src.common import parse_args
-from src.apply import run_apply
+from src.common import resolve_env
+from src.apply import run_bootstrap
 
 
 def main() -> int:
     """CLI entrypoint that applies only static governance entities."""
 
-    args = parse_args()
-    return run_apply(args.env, static_only=True)
+    return run_bootstrap(resolve_env())
 
 
 if __name__ == "__main__":

@@ -61,6 +61,8 @@ class StageQueue:
 
     def _publish(self, queue_name: str, payload: dict[str, Any]) -> None:
         """Internal helper for publish."""
+        if not queue_name:
+            return
         if not self._enabled:
             return
         body = json.dumps(payload, sort_keys=True)
@@ -71,6 +73,8 @@ class StageQueue:
 
     def _consume(self, queue_name: str, timeout_seconds: int) -> dict[str, Any] | None:
         """Internal helper for consume."""
+        if not queue_name:
+            return None
         if not self._enabled:
             return None
         deadline = time.monotonic() + timeout_seconds
@@ -152,15 +156,29 @@ class StageQueue:
     ) -> None:
         """Internal helper for initialize stage contract."""
         self._load_stage_runtime_config(queue_config)
+        if not self.stage_queues:
+            self._bind_direct_queue_config(queue_config)
+            return
         stage_queue_contract = self._resolve_stage_contract()
         self._bind_stage_queue_names(stage_queue_contract)
         self._bind_stage_message_contracts(stage_queue_contract)
 
     def _load_stage_runtime_config(self, queue_config: dict[str, Any]) -> None:
         """Load stage identity, contract map, and timeout from config payload."""
-        self.stage = str(queue_config["stage"])
-        self.stage_queues = queue_config["stage_queues"]
-        self.timeout_seconds = int(queue_config["queue_pop_timeout_seconds"])
+        self.stage = str(queue_config.get("stage", ""))
+        self.stage_queues = queue_config.get("stage_queues", {})
+        self.timeout_seconds = int(
+            queue_config.get("queue_pop_timeout_seconds", queue_config.get("pop_timeout_seconds", 1))
+        )
+
+    def _bind_direct_queue_config(self, queue_config: dict[str, Any]) -> None:
+        """Bind queue names/contracts from direct runtime config without stage contracts."""
+        self.consume = str(queue_config.get("consume", ""))
+        self.produce = str(queue_config.get("produce", ""))
+        self.dlq = str(queue_config.get("dlq", ""))
+        self.consume_contract = dict
+        self.produce_contract = dict
+        self.dlq_contract = dict
 
     def _resolve_stage_contract(self) -> WorkerStageQueueContract:
         """Return queue contract for configured stage or raise on unknown stage."""

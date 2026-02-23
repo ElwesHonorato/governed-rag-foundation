@@ -15,10 +15,10 @@ from entities.shared.context import GovernanceContext
 class TaxonomyManager:
     """Apply taxonomy entities: tags and glossary terms."""
 
-    def __init__(self, ctx: GovernanceContext) -> None:
+    def __init__(self, governance_def_ctx: GovernanceContext) -> None:
         """Store shared governance execution context."""
 
-        self.ctx = ctx
+        self.governance_def_ctx = governance_def_ctx
 
     def apply(self, tags: list[dict[str, Any]], terms: list[dict[str, Any]]) -> None:
         """Upsert tags and glossary terms."""
@@ -30,7 +30,7 @@ class TaxonomyManager:
         """Upsert tag entities using the DataHub SDK."""
 
         for tag in tags:
-            self.ctx.client.entities.upsert(
+            self.governance_def_ctx.client.entities.upsert(
                 Tag(
                     name=tag["name"],
                     display_name=tag.get("name"),
@@ -49,9 +49,9 @@ class TaxonomyManager:
                 definition=term.get("description"),
                 termSource="INTERNAL",
             )
-            self.ctx.graph.emit(
+            self.governance_def_ctx.graph.emit(
                 MetadataChangeProposalWrapper(
-                    entityUrn=self.ctx.refs.term_urns[term["id"]],
+                    entityUrn=self.governance_def_ctx.refs.term_urns[term["id"]],
                     entityType="glossaryTerm",
                     aspectName="glossaryTermInfo",
                     aspect=aspect,

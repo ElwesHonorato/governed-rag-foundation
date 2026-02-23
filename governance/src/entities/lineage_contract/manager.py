@@ -12,11 +12,11 @@ from entities.shared.context import GovernanceContext
 class LineageContractManager:
     """Apply lineage contract edges to existing jobs."""
 
-    def __init__(self, ctx: GovernanceContext) -> None:
+    def __init__(self, governance_def_ctx: GovernanceContext) -> None:
         """Store context and helper manager for DataJob construction."""
 
-        self.ctx = ctx
-        self._flow_job_manager = FlowJobManager(ctx)
+        self.governance_def_ctx = governance_def_ctx
+        self._flow_job_manager = FlowJobManager(governance_def_ctx)
 
     def apply(self, pipelines: list[dict[str, Any]]) -> None:
         """Upsert DataJob inlets/outlets for each lineage contract entry."""
@@ -28,10 +28,10 @@ class LineageContractManager:
                 if contract is None:
                     continue
 
-                inlets = [self.ctx.refs.dataset_urns[ds_id] for ds_id in contract.get("inputs", [])]
-                outlets = [self.ctx.refs.dataset_urns[ds_id] for ds_id in contract.get("outputs", [])]
+                inlets = [self.governance_def_ctx.refs.dataset_urns[ds_id] for ds_id in contract.get("inputs", [])]
+                outlets = [self.governance_def_ctx.refs.dataset_urns[ds_id] for ds_id in contract.get("outputs", [])]
 
-                self.ctx.client.entities.upsert(
+                self.governance_def_ctx.client.entities.upsert(
                     self._flow_job_manager.build_datajob(
                         pipeline,
                         job,

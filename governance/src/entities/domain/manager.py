@@ -14,24 +14,24 @@ from entities.shared.context import GovernanceContext
 class DomainManager:
     """Apply domain definitions to DataHub."""
 
-    def __init__(self, ctx: GovernanceContext) -> None:
+    def __init__(self, governance_def_ctx: GovernanceContext) -> None:
         """Store shared governance execution context."""
 
-        self.ctx = ctx
+        self.governance_def_ctx = governance_def_ctx
 
     def apply(self, domains: list[dict[str, Any]]) -> None:
         """Upsert all domain entities and parent relationships."""
 
         for domain in domains:
-            parent_urn = self.ctx.refs.domain_urns.get(domain.get("parent", ""))
+            parent_urn = self.governance_def_ctx.refs.domain_urns.get(domain.get("parent", ""))
             aspect = DomainPropertiesClass(
                 name=domain["name"],
                 description=domain.get("description"),
                 parentDomain=parent_urn,
             )
-            self.ctx.graph.emit(
+            self.governance_def_ctx.graph.emit(
                 MetadataChangeProposalWrapper(
-                    entityUrn=self.ctx.refs.domain_urns[domain["id"]],
+                    entityUrn=self.governance_def_ctx.refs.domain_urns[domain["id"]],
                     entityType="domain",
                     aspectName="domainProperties",
                     aspect=aspect,

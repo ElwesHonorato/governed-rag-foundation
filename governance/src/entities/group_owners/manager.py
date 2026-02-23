@@ -15,10 +15,10 @@ from entities.shared.context import GovernanceContext
 class GroupManager:
     """Apply owner-group definitions to DataHub."""
 
-    def __init__(self, ctx: GovernanceContext) -> None:
+    def __init__(self, governance_def_ctx: GovernanceContext) -> None:
         """Store shared governance execution context."""
 
-        self.ctx = ctx
+        self.governance_def_ctx = governance_def_ctx
 
     def apply(self, groups: list[dict[str, Any]]) -> None:
         """Upsert all ownership groups."""
@@ -34,9 +34,9 @@ class GroupManager:
                 members=members,
                 groups=nested_groups,
             )
-            self.ctx.graph.emit(
+            self.governance_def_ctx.graph.emit(
                 MetadataChangeProposalWrapper(
-                    entityUrn=self.ctx.refs.group_urns[group["id"]],
+                    entityUrn=self.governance_def_ctx.refs.group_urns[group["id"]],
                     entityType="corpGroup",
                     aspectName="corpGroupInfo",
                     aspect=aspect,
@@ -65,5 +65,5 @@ class GroupManager:
             if value.startswith("urn:li:corpGroup:"):
                 group_urns.append(value)
             else:
-                group_urns.append(self.ctx.refs.group_urns.get(value, str(CorpGroupUrn(value))))
+                group_urns.append(self.governance_def_ctx.refs.group_urns.get(value, str(CorpGroupUrn(value))))
         return group_urns

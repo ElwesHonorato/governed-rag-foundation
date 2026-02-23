@@ -2,7 +2,6 @@
 
 from .core import (
     ALLOWED_ENVS,
-    ID_PATTERN,
     DefinitionType,
     EnvironmentSettings,
     GovernanceDefinitionSnapshot,
@@ -17,7 +16,6 @@ from .core import (
 
 __all__ = [
     "ALLOWED_ENVS",
-    "ID_PATTERN",
     "DefinitionType",
     "EnvironmentSettings",
     "GovernanceDefinitionSnapshot",

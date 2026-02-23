@@ -24,13 +24,13 @@ class ResolvedRefs:
 class GovernanceContext:
     """Execution context shared by all governance entity managers."""
 
-    env_label: str
+    env: str
     client: Any
     graph: Any
     refs: ResolvedRefs
 
 
-def resolve_refs(model: Any, env_label: str) -> ResolvedRefs:
+def resolve_refs(model: Any, env: str) -> ResolvedRefs:
     """Build all commonly-used URN mappings from loaded definitions."""
 
     return ResolvedRefs(
@@ -39,6 +39,6 @@ def resolve_refs(model: Any, env_label: str) -> ResolvedRefs:
         tag_urns={t["id"]: str(TagUrn(t["name"])) for t in model.tags},
         term_urns={t["id"]: str(GlossaryTermUrn(t["id"])) for t in model.terms},
         dataset_urns={
-            d["id"]: str(DatasetUrn(platform=d["platform"], name=d["name"], env=env_label)) for d in model.datasets
+            d["id"]: str(DatasetUrn(platform=d["platform"], name=d["name"], env=env)) for d in model.datasets
         },
     )

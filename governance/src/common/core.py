@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import os
-import re
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -14,8 +13,7 @@ from pipeline_common.helpers.file_reader import FileReader
 from pipeline_common.helpers.file_system_helper import FileSystemHelper
 
 
-ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
-ALLOWED_ENVS = ("dev", "prod")
+ALLOWED_ENVS = ("DEV", "PROD")
 
 
 @dataclass(frozen=True)
@@ -59,7 +57,7 @@ class GovernanceStateLoader:
     def _load_env_settings(cls, env_name: str) -> EnvironmentSettings:
         """Load one environment config file from `governance/configs`."""
 
-        config_path = cls._governance_dir() / "configs" / f"{env_name}.yaml"
+        config_path = cls._governance_dir() / "configs" / f"{env_name.lower()}.yaml"
         data = FileReader(path=config_path).read()
         datahub_env_config = data.get("datahub", {})
         token_env_name = str(datahub_env_config["token_env"])
@@ -92,7 +90,13 @@ class GovernanceStateLoader:
     def load(cls, env_name: str) -> GovernanceState:
         """Load environment settings and governance definitions for one environment."""
 
-        env_settings = cls._load_env_settings(env_name)
+        env_label = env_name.strip().upper()
+        if env_label not in ALLOWED_ENVS:
+            raise SystemExit(
+                f"Invalid env '{env_name}'. Allowed values: {', '.join(ALLOWED_ENVS)}"
+            )
+
+        env_settings = cls._load_env_settings(env_label)
         governance_definitions_snapshot = cls.load_definition_snapshot()
         return GovernanceState(
             env_settings=env_settings,
@@ -416,10 +420,10 @@ class GovernanceDefinitionDiscoverer:
         raise ValueError(f"Unable to classify governance YAML type for file: {path}. Expected keys: {valid}")
 
 
-def resolve_env(default_env: str = "dev") -> str:
+def resolve_env(default_env: str = "DEV") -> str:
     """Resolve environment from `ENV` and validate it."""
 
-    env_from_var = os.getenv("ENV", default_env).strip().lower()
+    env_from_var = os.getenv("ENV", default_env).strip().upper()
     if env_from_var not in ALLOWED_ENVS:
         raise SystemExit(
             f"Invalid ENV='{os.getenv('ENV')}'. Allowed values: {', '.join(ALLOWED_ENVS)}"

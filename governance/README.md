@@ -6,7 +6,7 @@ This directory defines static DataHub metadata as code: versioned, reviewable, r
 
 - `configs/`: environment-specific DataHub connection settings
 - `definitions/`: domains, groups, tags, glossary terms, datasets, and pipelines/jobs
-- `src/`: validate, plan, bootstrap, and apply entrypoints
+- `src/`: apply entrypoints
 - `ci/github/workflows/`: example CI workflows for check/apply
 
 ## Usage
@@ -20,8 +20,6 @@ export ENV=dev
 ```
 
 ```bash
-PYTHONPATH=libs/pipeline-common/src .venv/bin/python governance/src/validate.py
-PYTHONPATH=libs/pipeline-common/src .venv/bin/python governance/src/plan.py
 PYTHONPATH=libs/pipeline-common/src .venv/bin/python governance/bootstrap.py
 PYTHONPATH=libs/pipeline-common/src .venv/bin/python governance/src/apply.py
 ```
@@ -37,9 +35,7 @@ PYTHONPATH=libs/pipeline-common/src .venv/bin/python governance/src/apply.py
 ## Workflow
 
 1. Edit YAML under `definitions/`.
-2. Run `validate.py` locally.
-3. Review `plan.py` output in PR.
-4. Apply from trusted branch using `apply.py`.
+2. Apply from trusted branch using `apply.py`.
 
 ## Idempotency
 

@@ -378,13 +378,19 @@ Reason:
 
 ---
 
-## Definition of Done (MVP)
-- Validate + Plan + Apply commands
-- Domains, tags, terms, datasets, flows/jobs, lineage edges supported
-- Scoped reads using `managed-by:governance-code`
-- Deprecation flow implemented behind flag
-- CI pipeline: plan on PR, apply on merge with approval gate
-- Idempotent apply
+## Definition of Done (Current State)
+- `governance/bootstrap.py` applies static governance entities only: domains, groups, tags, glossary terms.
+- `governance/src/apply.py` applies full governance entities: domains, groups, tags, glossary terms, datasets, flows/jobs, and lineage contract edges.
+- Environment selection for bootstrap/apply is resolved from `ENV` and validated against allowed values (`dev`, `prod`).
+- CI apply workflow runs `governance/src/apply.py` with `ENV=prod` on pushes to `main` that touch `governance/**`.
+- Governance definitions are loaded from YAML and assembled deterministically into a snapshot before apply.
+- Re-running apply with unchanged definitions is expected to be idempotent via upsert semantics.
+
+Not currently implemented:
+- Dedicated `validate` command.
+- Dedicated `plan` command and plan artifact output in CI.
+- Scoped reads/writes enforced via `managed-by:governance-code`.
+- Deprecation workflow behind explicit flags.
 
 ---
 

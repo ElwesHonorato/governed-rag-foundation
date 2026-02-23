@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""Bootstrap static governance entities in DataHub."""
+"""Apply governance entities in DataHub."""
 
 from __future__ import annotations
 
 from src.common import resolve_env
-from src.apply import run_bootstrap
+from src.apply import GovernanceApplier
 
 
 def main() -> int:
-    """CLI entrypoint that applies only static governance entities."""
+    """CLI entrypoint for governance apply."""
 
-    return run_bootstrap(resolve_env())
+    return GovernanceApplier(resolve_env()).apply()
 
 
 if __name__ == "__main__":

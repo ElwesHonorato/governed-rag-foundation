@@ -28,10 +28,10 @@ class DatasetManager:
                     name=dataset["name"],
                     env=self.governance_def_ctx.env,
                     description=dataset.get("description"),
-                    domain=self.governance_def_ctx.refs.domain_urns[dataset["domain"]],
-                    owners=[self.governance_def_ctx.refs.group_urns[group_id] for group_id in dataset.get("owners", [])],
-                    tags=[self.governance_def_ctx.refs.tag_urns[tag_id] for tag_id in dataset.get("tags", [])],
-                    terms=[self.governance_def_ctx.refs.term_urns[term_id] for term_id in dataset.get("terms", [])],
+                    domain=self.governance_def_ctx.domain_urns[dataset["domain"]],
+                    owners=[self.governance_def_ctx.group_urns[group_id] for group_id in dataset.get("owners", [])],
+                    tags=[self.governance_def_ctx.tag_urns[tag_id] for tag_id in dataset.get("tags", [])],
+                    terms=[self.governance_def_ctx.term_urns[term_id] for term_id in dataset.get("terms", [])],
                 )
             )
             print(f"upserted dataset {dataset['id']}")

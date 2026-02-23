@@ -32,8 +32,8 @@ class LineageContractManager:
                 if contract is None:
                     continue
 
-                inlets = [self.governance_def_ctx.refs.dataset_urns[ds_id] for ds_id in contract.get("inputs", [])]
-                outlets = [self.governance_def_ctx.refs.dataset_urns[ds_id] for ds_id in contract.get("outputs", [])]
+                inlets = [self.governance_def_ctx.dataset_urns[ds_id] for ds_id in contract.get("inputs", [])]
+                outlets = [self.governance_def_ctx.dataset_urns[ds_id] for ds_id in contract.get("outputs", [])]
 
                 self.governance_def_ctx.client.entities.upsert(
                     self._flow_job_manager.build_datajob(

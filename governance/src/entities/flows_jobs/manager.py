@@ -33,8 +33,8 @@ class FlowJobManager:
                 name=flow_def["name"],
                 env=self.governance_def_ctx.env,
                 description=flow_def.get("description"),
-                domain=self.governance_def_ctx.refs.domain_urns[flow_def["domain"]],
-                owners=[self.governance_def_ctx.refs.group_urns[group_id] for group_id in flow_def.get("owners", [])],
+                domain=self.governance_def_ctx.domain_urns[flow_def["domain"]],
+                owners=[self.governance_def_ctx.group_urns[group_id] for group_id in flow_def.get("owners", [])],
             )
             self.governance_def_ctx.client.entities.upsert(flow)
             print(f"upserted flow {flow_def['id']}")
@@ -56,8 +56,8 @@ class FlowJobManager:
             flow_urn=flow_urn,
             description=job.get("description"),
             custom_properties=job.get("custom_properties", {}),
-            domain=self.governance_def_ctx.refs.domain_urns[job["domain"]],
-            owners=[self.governance_def_ctx.refs.group_urns[group_id] for group_id in job.get("owners", [])],
+            domain=self.governance_def_ctx.domain_urns[job["domain"]],
+            owners=[self.governance_def_ctx.group_urns[group_id] for group_id in job.get("owners", [])],
             inlets=inlets,
             outlets=outlets,
         )

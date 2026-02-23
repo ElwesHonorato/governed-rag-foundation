@@ -51,7 +51,7 @@ class TaxonomyManager:
             )
             self.governance_def_ctx.graph.emit(
                 MetadataChangeProposalWrapper(
-                    entityUrn=self.governance_def_ctx.refs.term_urns[term["id"]],
+                    entityUrn=self.governance_def_ctx.term_urns[term["id"]],
                     entityType="glossaryTerm",
                     aspectName="glossaryTermInfo",
                     aspect=aspect,

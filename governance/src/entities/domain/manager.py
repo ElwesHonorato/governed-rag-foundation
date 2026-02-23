@@ -23,7 +23,7 @@ class DomainManager:
         """Upsert all domain entities and parent relationships."""
 
         for domain in domains:
-            parent_urn = self.governance_def_ctx.refs.domain_urns.get(domain.get("parent", ""))
+            parent_urn = self.governance_def_ctx.domain_urns.get(domain.get("parent", ""))
             aspect = DomainPropertiesClass(
                 name=domain["name"],
                 description=domain.get("description"),
@@ -31,7 +31,7 @@ class DomainManager:
             )
             self.governance_def_ctx.graph.emit(
                 MetadataChangeProposalWrapper(
-                    entityUrn=self.governance_def_ctx.refs.domain_urns[domain["id"]],
+                    entityUrn=self.governance_def_ctx.domain_urns[domain["id"]],
                     entityType="domain",
                     aspectName="domainProperties",
                     aspect=aspect,

@@ -36,7 +36,7 @@ class GroupManager:
             )
             self.governance_def_ctx.graph.emit(
                 MetadataChangeProposalWrapper(
-                    entityUrn=self.governance_def_ctx.refs.group_urns[group["id"]],
+                    entityUrn=self.governance_def_ctx.group_urns[group["id"]],
                     entityType="corpGroup",
                     aspectName="corpGroupInfo",
                     aspect=aspect,
@@ -65,5 +65,5 @@ class GroupManager:
             if value.startswith("urn:li:corpGroup:"):
                 group_urns.append(value)
             else:
-                group_urns.append(self.governance_def_ctx.refs.group_urns.get(value, str(CorpGroupUrn(value))))
+                group_urns.append(self.governance_def_ctx.group_urns.get(value, str(CorpGroupUrn(value))))
         return group_urns

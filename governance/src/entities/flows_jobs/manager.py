@@ -8,13 +8,13 @@ from typing import Any
 from datahub.metadata.urns import DataFlowUrn
 from datahub.sdk import DataFlow, DataJob
 
-from entities.shared.context import GovernanceContext
+from entities.shared.context import FlowJobManagerContext
 
 
 class FlowJobManager:
     """Apply flow and job template entities."""
 
-    def __init__(self, governance_def_ctx: GovernanceContext) -> None:
+    def __init__(self, governance_def_ctx: FlowJobManagerContext) -> None:
         """Store shared governance execution context."""
 
         self.governance_def_ctx = governance_def_ctx

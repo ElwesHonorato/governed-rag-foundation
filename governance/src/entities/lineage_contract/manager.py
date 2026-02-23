@@ -6,17 +6,21 @@ from __future__ import annotations
 from typing import Any
 
 from entities.flows_jobs.manager import FlowJobManager
-from entities.shared.context import GovernanceContext
+from entities.shared.context import LineageContractManagerContext
 
 
 class LineageContractManager:
     """Apply lineage contract edges to existing jobs."""
 
-    def __init__(self, governance_def_ctx: GovernanceContext) -> None:
-        """Store context and helper manager for DataJob construction."""
+    def __init__(
+        self,
+        governance_def_ctx: LineageContractManagerContext,
+        flow_job_manager: FlowJobManager,
+    ) -> None:
+        """Store lineage context and flow/job builder helper."""
 
         self.governance_def_ctx = governance_def_ctx
-        self._flow_job_manager = FlowJobManager(governance_def_ctx)
+        self._flow_job_manager = flow_job_manager
 
     def apply(self, pipelines: list[dict[str, Any]]) -> None:
         """Upsert DataJob inlets/outlets for each lineage contract entry."""

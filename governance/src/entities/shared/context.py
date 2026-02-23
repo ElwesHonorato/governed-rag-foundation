@@ -21,13 +21,58 @@ class ResolvedRefs:
 
 
 @dataclass(frozen=True)
-class GovernanceContext:
-    """Execution context shared by all governance entity managers."""
+class DomainManagerContext:
+    """Context required by the domain manager."""
 
-    env: str
+    graph: Any
+    domain_urns: dict[str, str]
+
+
+@dataclass(frozen=True)
+class GroupManagerContext:
+    """Context required by the group manager."""
+
+    graph: Any
+    group_urns: dict[str, str]
+
+
+@dataclass(frozen=True)
+class TaxonomyManagerContext:
+    """Context required by the taxonomy manager."""
+
     client: Any
     graph: Any
-    refs: ResolvedRefs
+    term_urns: dict[str, str]
+
+
+@dataclass(frozen=True)
+class DatasetManagerContext:
+    """Context required by the dataset manager."""
+
+    client: Any
+    env: str
+    domain_urns: dict[str, str]
+    group_urns: dict[str, str]
+    tag_urns: dict[str, str]
+    term_urns: dict[str, str]
+
+
+@dataclass(frozen=True)
+class FlowJobManagerContext:
+    """Context required by the flow/job manager."""
+
+    client: Any
+    env: str
+    domain_urns: dict[str, str]
+    group_urns: dict[str, str]
+
+
+@dataclass(frozen=True)
+class LineageContractManagerContext:
+    """Context required by the lineage-contract manager."""
+
+    client: Any
+    dataset_urns: dict[str, str]
 
 
 def resolve_refs(model: Any, env: str) -> ResolvedRefs:

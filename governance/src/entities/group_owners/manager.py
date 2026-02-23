@@ -9,13 +9,13 @@ from datahub.emitter.mcp import MetadataChangeProposalWrapper
 from datahub.metadata.urns import CorpGroupUrn, CorpUserUrn
 from datahub.metadata.schema_classes import ChangeTypeClass, CorpGroupInfoClass
 
-from entities.shared.context import GovernanceContext
+from entities.shared.context import GroupManagerContext
 
 
 class GroupManager:
     """Apply owner-group definitions to DataHub."""
 
-    def __init__(self, governance_def_ctx: GovernanceContext) -> None:
+    def __init__(self, governance_def_ctx: GroupManagerContext) -> None:
         """Store shared governance execution context."""
 
         self.governance_def_ctx = governance_def_ctx

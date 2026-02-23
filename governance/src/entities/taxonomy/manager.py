@@ -9,13 +9,13 @@ from datahub.emitter.mcp import MetadataChangeProposalWrapper
 from datahub.metadata.schema_classes import ChangeTypeClass, GlossaryTermInfoClass
 from datahub.sdk import Tag
 
-from entities.shared.context import GovernanceContext
+from entities.shared.context import TaxonomyManagerContext
 
 
 class TaxonomyManager:
     """Apply taxonomy entities: tags and glossary terms."""
 
-    def __init__(self, governance_def_ctx: GovernanceContext) -> None:
+    def __init__(self, governance_def_ctx: TaxonomyManagerContext) -> None:
         """Store shared governance execution context."""
 
         self.governance_def_ctx = governance_def_ctx

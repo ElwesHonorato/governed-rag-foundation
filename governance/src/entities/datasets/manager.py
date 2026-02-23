@@ -7,13 +7,13 @@ from typing import Any
 
 from datahub.sdk import Dataset
 
-from entities.shared.context import GovernanceContext
+from entities.shared.context import DatasetManagerContext
 
 
 class DatasetManager:
     """Apply dataset definitions and metadata assignments."""
 
-    def __init__(self, governance_def_ctx: GovernanceContext) -> None:
+    def __init__(self, governance_def_ctx: DatasetManagerContext) -> None:
         """Store shared governance execution context."""
 
         self.governance_def_ctx = governance_def_ctx

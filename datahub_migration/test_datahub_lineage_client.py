@@ -18,7 +18,7 @@ if str(PIPELINE_COMMON_SRC) not in sys.path:
 
 from pipeline_common.lineage.data_hub import DataHubLineageClient
 from pipeline_common.lineage.data_hub.contracts import DataHubLineageRuntimeConfig
-from pipeline_common.lineage.contracts import DataHubFlowConfig
+from pipeline_common.lineage.pipeline import DataHubPipelineJobs
 from pipeline_common.settings import DataHubBootstrapSettings
 
 
@@ -63,14 +63,7 @@ def main() -> int:
             server=bootstrap_settings.server,
             env=bootstrap_settings.env,
             token=bootstrap_settings.token,
-            stage=DataHubFlowConfig(
-                flow_id="governed-rag",
-                job_id="worker_parse_document",
-                flow_platform="custom",
-                flow_name="governed-rag",
-                flow_instance=bootstrap_settings.env,
-                job_name="worker_parse_document",
-            ),
+            data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_parse_document"),
         ),
     )
     chunk_client = DataHubLineageClient(
@@ -78,14 +71,7 @@ def main() -> int:
             server=bootstrap_settings.server,
             env=bootstrap_settings.env,
             token=bootstrap_settings.token,
-            stage=DataHubFlowConfig(
-                flow_id="governed-rag",
-                job_id="worker_chunk_text",
-                flow_platform="custom",
-                flow_name="governed-rag",
-                flow_instance=bootstrap_settings.env,
-                job_name="worker_chunk_text",
-            ),
+            data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_chunk_text"),
         ),
     )
     embed_client = DataHubLineageClient(
@@ -93,14 +79,7 @@ def main() -> int:
             server=bootstrap_settings.server,
             env=bootstrap_settings.env,
             token=bootstrap_settings.token,
-            stage=DataHubFlowConfig(
-                flow_id="governed-rag",
-                job_id="worker_embed_chunks",
-                flow_platform="custom",
-                flow_name="governed-rag",
-                flow_instance=bootstrap_settings.env,
-                job_name="worker_embed_chunks",
-            ),
+            data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_embed_chunks"),
         ),
     )
 

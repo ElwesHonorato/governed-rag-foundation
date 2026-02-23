@@ -24,7 +24,7 @@ from datahub.metadata.schema_classes import (
 from datahub.metadata.urns import DatasetUrn
 from datahub.sdk import DataHubClient, DataFlow, DataJob, Dataset
 
-from pipeline_common.lineage.contracts import DataHubFlowConfig
+from pipeline_common.lineage.contracts import DataHubDataJobKey, ResolvedDataHubFlowConfig
 
 from .contracts import DataHubLineageRuntimeConfig, RunSpec
 
@@ -43,7 +43,9 @@ class DataHubLineageClient:
         self.env = client_config.env
         self.client = DataHubClient(server=self.server, token=self.token)
         self.graph = DataHubGraph(DatahubClientConfig(server=self.server, token=self.token))
-        self.stage_config = self._resolve_stage_config(stage=client_config.stage)
+        self.input_flow_urn = self._build_flow_urn_from_key(client_config.data_job_key)
+        self.input_job_urn = self._build_job_urn_from_key(client_config.data_job_key)
+        self.stage_config = self._resolve_stage_config(data_job_key=client_config.data_job_key)
         self.inputs: list[str] = []
         self.outputs: list[str] = []
         self._active_run: RunSpec | None = None
@@ -311,32 +313,33 @@ class DataHubLineageClient:
     def _resolve_stage_config(
         self,
         *,
-        stage: DataHubFlowConfig,
-    ) -> DataHubFlowConfig:
-        """Build flow/job config from runtime ids and DataHub job custom properties."""
-
-        base_config = DataHubFlowConfig(
-            flow_id=stage.flow_id,
-            job_id=stage.job_id,
-            flow_platform=stage.flow_platform,
-            flow_name=stage.flow_name,
-            flow_instance=self.env,
-            job_name=stage.job_name,
-            custom_properties={},
-        )
-        job_info = self._get_datajob_info(base_config.job_urn(self.env))
+        data_job_key: DataHubDataJobKey,
+    ) -> ResolvedDataHubFlowConfig:
+        """Resolve flow/job config using deterministic naming and DataHub custom properties."""
+        job_info = self._get_datajob_info(self.input_job_urn)
         custom_properties = {}
         if job_info is not None and isinstance(job_info.customProperties, dict):
             custom_properties = {str(k): str(v) for k, v in job_info.customProperties.items()}
-        return DataHubFlowConfig(
-            flow_id=stage.flow_id,
-            job_id=stage.job_id,
-            flow_platform=stage.flow_platform,
-            flow_name=stage.flow_name,
+        return ResolvedDataHubFlowConfig(
+            flow_id=data_job_key.flow_id,
+            job_id=data_job_key.job_id,
+            flow_platform=data_job_key.flow_platform,
+            flow_name=data_job_key.flow_id,
             flow_instance=self.env,
-            job_name=stage.job_name,
+            job_name=data_job_key.job_id,
             custom_properties=custom_properties,
         )
+
+    def _build_flow_urn_from_key(self, data_job_key: DataHubDataJobKey) -> str:
+        """Build deterministic DataFlow URN from input key and runtime env."""
+        return (
+            f"urn:li:dataFlow:({data_job_key.flow_platform},"
+            f"{self.env}.{data_job_key.flow_id},{self.env})"
+        )
+
+    def _build_job_urn_from_key(self, data_job_key: DataHubDataJobKey) -> str:
+        """Build deterministic DataJob URN from input key and runtime env."""
+        return f"urn:li:dataJob:({self._build_flow_urn_from_key(data_job_key)},{data_job_key.job_id})"
 
     def _get_datajob_info(self, job_urn: str) -> DataJobInfoClass | None:
         """Read DataJobInfo aspect for one job URN from DataHub."""

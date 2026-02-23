@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from pipeline_common.config import JobStageName
-from pipeline_common.lineage.contracts import DataHubFlowConfig
+from pipeline_common.lineage.contracts import DataHubDataJobKey
 
 
 @dataclass(frozen=True)
@@ -32,6 +32,6 @@ class DataHubLineageRuntimeConfig:
     """Typed DataHub client configuration for one worker stage."""
 
     server: str
-    stage: DataHubFlowConfig
+    data_job_key: DataHubDataJobKey
     token: str | None = None
     env: str = "PROD"

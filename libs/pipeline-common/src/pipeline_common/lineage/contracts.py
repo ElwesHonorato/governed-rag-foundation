@@ -4,7 +4,18 @@ from .open_lineage.contracts import LineageEmitterConfig
 
 
 @dataclass(frozen=True)
-class DataHubFlowConfig:
+class DataHubDataJobKey:
+    """Input key used to locate one DataHub DataJob."""
+
+    flow_id: str
+    job_id: str
+    flow_platform: str
+
+
+@dataclass(frozen=True)
+class ResolvedDataHubFlowConfig:
+    """Resolved flow/job metadata loaded from DataHub for one job key."""
+
     flow_id: str
     job_id: str
     flow_platform: str
@@ -41,4 +52,4 @@ class DataHubFlowConfig:
         return self.custom_properties.get("queue.dlq")
 
 
-__all__ = ["LineageEmitterConfig", "DataHubFlowConfig"]
+__all__ = ["LineageEmitterConfig", "DataHubDataJobKey", "ResolvedDataHubFlowConfig"]

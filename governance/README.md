@@ -20,7 +20,6 @@ export ENV=dev
 ```
 
 ```bash
-PYTHONPATH=libs/pipeline-common/src .venv/bin/python governance/bootstrap.py
 PYTHONPATH=libs/pipeline-common/src .venv/bin/python governance/src/apply.py
 ```
 

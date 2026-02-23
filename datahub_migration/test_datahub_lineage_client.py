@@ -8,6 +8,7 @@ using the reusable class in pipeline_common.lineage.data_hub.lineage.
 from __future__ import annotations
 
 import sys
+import time
 from pathlib import Path
 
 # Make local pipeline-common package importable when run from repo root.
@@ -22,11 +23,31 @@ from pipeline_common.lineage.pipeline import DataHubPipelineJobs
 from pipeline_common.settings import DataHubBootstrapSettings
 
 
+def wait_for_lineage_contains(
+    *,
+    client: DataHubLineageClient,
+    graphql_endpoint: str,
+    root_urn: str,
+    direction: str,
+    expected_urn: str,
+    max_attempts: int = 12,
+    sleep_seconds: float = 1.0,
+) -> bool:
+    """Retry lineage traversal until expected URN appears or attempts are exhausted."""
+    for _ in range(max_attempts):
+        connected = client.gql_scroll(graphql_endpoint, root_urn, direction)
+        if expected_urn in connected:
+            return True
+        time.sleep(sleep_seconds)
+    return False
+
+
 def main() -> int:
     # -------------------------------------------------------------------------
     # Configuration
     # -------------------------------------------------------------------------
     bootstrap_settings = DataHubBootstrapSettings.from_env()
+    run_suffix = str(time.time_ns())
     config = {
         "server": bootstrap_settings.server,
         "graphql": f"{bootstrap_settings.server}/api/graphql",
@@ -34,15 +55,16 @@ def main() -> int:
         "env": bootstrap_settings.env,
         "datasets": {
             "worker_parser": {
-                "output": "03_processed/fanout_case_delta_20260219_source_document.json",
+                "input": f"02_raw/clean_lineage_{run_suffix}_source_document.raw.json",
+                "output": f"03_processed/clean_lineage_{run_suffix}_source_document.json",
             },
             "worker_chunk": {
-                "output1": "04_chunks/fanout_case_delta_20260219_branch_a.chunk.json",
-                "output2": "04_chunks/fanout_case_delta_20260219_branch_b.chunk.json",
+                "output1": f"04_chunks/clean_lineage_{run_suffix}_branch_a.chunk.json",
+                "output2": f"04_chunks/clean_lineage_{run_suffix}_branch_b.chunk.json",
             },
             "worker_embed": {
-                "output1": "05_embeddings/fanout_case_delta_20260219_branch_a.embedding.json",
-                "output2": "05_embeddings/fanout_case_delta_20260219_branch_b.embedding.json",
+                "output1": f"05_embeddings/clean_lineage_{run_suffix}_branch_a.embedding.json",
+                "output2": f"05_embeddings/clean_lineage_{run_suffix}_branch_b.embedding.json",
             },
         },
     }
@@ -60,25 +82,31 @@ def main() -> int:
     # -------------------------------------------------------------------------
     parser_client = DataHubLineageClient(
         client_config=DataHubLineageRuntimeConfig(
-            server=bootstrap_settings.server,
-            env=bootstrap_settings.env,
-            token=bootstrap_settings.token,
+            bootstrap_settings={
+                "server": bootstrap_settings.server,
+                "env": bootstrap_settings.env,
+                "token": bootstrap_settings.token,
+            },
             data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_parse_document"),
         ),
     )
     chunk_client = DataHubLineageClient(
         client_config=DataHubLineageRuntimeConfig(
-            server=bootstrap_settings.server,
-            env=bootstrap_settings.env,
-            token=bootstrap_settings.token,
+            bootstrap_settings={
+                "server": bootstrap_settings.server,
+                "env": bootstrap_settings.env,
+                "token": bootstrap_settings.token,
+            },
             data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_chunk_text"),
         ),
     )
     embed_client = DataHubLineageClient(
         client_config=DataHubLineageRuntimeConfig(
-            server=bootstrap_settings.server,
-            env=bootstrap_settings.env,
-            token=bootstrap_settings.token,
+            bootstrap_settings={
+                "server": bootstrap_settings.server,
+                "env": bootstrap_settings.env,
+                "token": bootstrap_settings.token,
+            },
             data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_embed_chunks"),
         ),
     )
@@ -88,7 +116,7 @@ def main() -> int:
 
     print("   Worker: worker_parser")
     parser_client.start_run()
-    parser_client.add_input(platform=config["platform"], name="02_raw/fanout_case_delta_20260219_source_document.raw.json")
+    parser_client.add_input(platform=config["platform"], name=config["datasets"]["worker_parser"]["input"])
     parser_client.add_output(platform=config["platform"], name=config["datasets"]["worker_parser"]["output"])
     parser_dpi_urn = parser_client.complete_run()
     print(f"   worker_parser COMPLETE -> {parser_dpi_urn}")
@@ -151,14 +179,38 @@ def main() -> int:
         )
     )
 
-    down1 = parser_client.gql_scroll(config["graphql"], chunk_output1_urn, "DOWNSTREAM")
-    down2 = parser_client.gql_scroll(config["graphql"], chunk_output2_urn, "DOWNSTREAM")
-    embed_job_urn = embed_client.job_urn
-    embed_upstream = parser_client.gql_scroll(config["graphql"], embed_job_urn, "UPSTREAM")
-    print("   chunk_output1 downstream contains embed_output1:", embed_output1_urn in down1)
-    print("   chunk_output2 downstream contains embed_output2:", embed_output2_urn in down2)
-    print("   embed job upstream contains chunk_output1:", chunk_output1_urn in embed_upstream)
-    print("   embed job upstream contains chunk_output2:", chunk_output2_urn in embed_upstream)
+    down1_ok = wait_for_lineage_contains(
+        client=parser_client,
+        graphql_endpoint=config["graphql"],
+        root_urn=chunk_output1_urn,
+        direction="DOWNSTREAM",
+        expected_urn=embed_output1_urn,
+    )
+    down2_ok = wait_for_lineage_contains(
+        client=parser_client,
+        graphql_endpoint=config["graphql"],
+        root_urn=chunk_output2_urn,
+        direction="DOWNSTREAM",
+        expected_urn=embed_output2_urn,
+    )
+    dpi_upstream_a_ok = wait_for_lineage_contains(
+        client=parser_client,
+        graphql_endpoint=config["graphql"],
+        root_urn=embed_a_dpi_urn,
+        direction="UPSTREAM",
+        expected_urn=chunk_output1_urn,
+    )
+    dpi_upstream_b_ok = wait_for_lineage_contains(
+        client=parser_client,
+        graphql_endpoint=config["graphql"],
+        root_urn=embed_b_dpi_urn,
+        direction="UPSTREAM",
+        expected_urn=chunk_output2_urn,
+    )
+    print("   chunk_output1 downstream contains embed_output1:", down1_ok)
+    print("   chunk_output2 downstream contains embed_output2:", down2_ok)
+    print("   embed DPI A upstream contains chunk_output1:", dpi_upstream_a_ok)
+    print("   embed DPI B upstream contains chunk_output2:", dpi_upstream_b_ok)
 
     print("\nDone.")
     return 0

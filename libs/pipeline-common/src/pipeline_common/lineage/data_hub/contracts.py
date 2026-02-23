@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any
 
 from pipeline_common.config import JobStageName
 from pipeline_common.lineage.contracts import DataHubDataJobKey
@@ -31,7 +32,5 @@ class RunSpec:
 class DataHubLineageRuntimeConfig:
     """Typed DataHub client configuration for one worker stage."""
 
-    server: str
+    bootstrap_settings: dict[str, Any]
     data_job_key: DataHubDataJobKey
-    token: str | None = None
-    env: str = "PROD"

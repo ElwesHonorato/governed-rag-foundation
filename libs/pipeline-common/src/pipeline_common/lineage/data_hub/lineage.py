@@ -38,11 +38,21 @@ class DataHubLineageClient:
         client_config: DataHubLineageRuntimeConfig,
     ) -> None:
         """Initialize DataHub client wrapper for lineage operations."""
-        self.server = client_config.server
-        self.token = client_config.token
-        self.env = client_config.env
+        bootstrap_settings = client_config.bootstrap_settings
+        self.server = str(bootstrap_settings["server"])
+        self.env = str(bootstrap_settings["env"])
+        token_value = bootstrap_settings.get("token")
+        self.token = str(token_value) if token_value else None
         self.client = DataHubClient(server=self.server, token=self.token)
-        self.graph = DataHubGraph(DatahubClientConfig(server=self.server, token=self.token))
+        graph_timeout_sec = float(os.getenv("DATAHUB_TIMEOUT_SEC", "3"))
+        self.graph = DataHubGraph(
+            DatahubClientConfig(
+                server=self.server,
+                token=self.token,
+                timeout_sec=graph_timeout_sec,
+                retry_max_times=1,
+            )
+        )
         self.input_flow_urn = self._build_flow_urn_from_key(client_config.data_job_key)
         self.input_job_urn = self._build_job_urn_from_key(client_config.data_job_key)
         self.stage_config = self._resolve_stage_config(data_job_key=client_config.data_job_key)

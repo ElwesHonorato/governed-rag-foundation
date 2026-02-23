@@ -7,7 +7,8 @@ This domain is the pipeline starter. It watches incoming documents, moves valid 
 ### Stage responsibility
 - Reads from `01_incoming/`.
 - Moves accepted files to `02_raw/`.
-- Enqueues parse jobs to `q.parse_document`.
+- Emits DataHub DPI events for scan runs.
+- Enqueues parse jobs to the DataHub-configured `queue.produce` value for `worker_scan`.
 
 ### File selection behavior
 - Only processes keys matching configured extensions (default `.html`).
@@ -16,8 +17,9 @@ This domain is the pipeline starter. It watches incoming documents, moves valid 
 ### Runtime dependencies
 - `BROKER_URL` for queue publishing.
 - `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` for object storage operations.
-- Config constants in `domains/worker_scan/src/configs/constants.py`.
+- `DATAHUB_GMS_SERVER`, `DATAHUB_ENV` (and optional `DATAHUB_TOKEN`) for DataHub runtime metadata.
+- Processing config and queue routing are read from DataHub job `custom_properties` (source: `governance/definitions/600_jobs/600_governed-rag.yaml`).
 
 ### Operational notes
 - Service container: `pipeline-worker-scan`.
-- Queue contract stage: `scan`.
+- Queue names are resolved from DataHub job custom properties (`queue.produce`, `queue.dlq`) for `worker_scan`.

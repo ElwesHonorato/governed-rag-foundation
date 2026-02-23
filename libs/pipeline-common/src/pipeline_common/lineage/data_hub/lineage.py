@@ -238,6 +238,13 @@ class DataHubLineageClient:
         self._active_actor_urn = "urn:li:corpuser:datahub"
         return self._dpi_urn(completed_run.run_id)
 
+    def abort_run(self) -> None:
+        """Drop active in-memory run state without emitting completion."""
+        self._active_run = None
+        self._active_datajob_urn = None
+        self._active_external_url = None
+        self._active_actor_urn = "urn:li:corpuser:datahub"
+
     def resolve_job_version(self) -> str:
         """Resolve job version from runtime metadata with sensible fallbacks."""
         if value := os.getenv("DATAHUB_JOB_VERSION"):

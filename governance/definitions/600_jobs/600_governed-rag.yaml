@@ -5,6 +5,12 @@ jobs:
     domain: rag-platform
     owners: [search-platform]
     custom_properties:
+      scan.poll_interval_seconds: "30"
+      scan.storage.bucket: rag-data
+      scan.storage.incoming_prefix: 01_incoming/
+      scan.storage.raw_prefix: 02_raw/
+      scan.filters.extensions: .html
+      queue.pop_timeout_seconds: "1"
       queue.produce: q.parse_document
       queue.dlq: q.scan.dlq
 

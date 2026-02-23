@@ -1,6 +1,6 @@
 """Shared governance script helpers."""
 
-from .core import (
+from .governance_definitions_state import (
     ALLOWED_ENVS,
     DefinitionType,
     EnvironmentSettings,

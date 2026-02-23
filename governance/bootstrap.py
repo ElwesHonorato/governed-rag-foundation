@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 
-from src.common import resolve_env
-from src.apply import GovernanceApplier
+from src.state_loader import resolve_env
+from src.orchestration.governance_applier import GovernanceApplier
 
 
 def main() -> int:

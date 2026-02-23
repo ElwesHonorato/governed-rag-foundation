@@ -1,7 +1,7 @@
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 
 from pipeline_common.config import JobStageName
-from pipeline_common.lineage.data_hub.constants import DataHubStageFlowConfig
+from pipeline_common.lineage.contracts import DataHubFlowConfig
 
 
 @dataclass(frozen=True)
@@ -28,14 +28,10 @@ class RunSpec:
 
 
 @dataclass(frozen=True)
-class ClientConfig:
+class DataHubLineageRuntimeConfig:
     """Typed DataHub client configuration for one worker stage."""
 
     server: str
-    stage: DataHubStageFlowConfig
+    stage: DataHubFlowConfig
     token: str | None = None
     env: str = "PROD"
-
-    def with_server_env(self, *, server: str, env: str) -> "ClientConfig":
-        """Return a copy overriding runtime server/environment values."""
-        return replace(self, server=server, env=env)

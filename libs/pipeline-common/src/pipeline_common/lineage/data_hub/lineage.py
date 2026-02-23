@@ -14,6 +14,7 @@ from datahub.metadata.com.linkedin.pegasus2avro.dataprocess import (
 from datahub.metadata.schema_classes import (
     AuditStampClass,
     ChangeTypeClass,
+    DataJobInfoClass,
     DataProcessInstancePropertiesClass,
     DataProcessInstanceRelationshipsClass,
     DataProcessInstanceRunEventClass,
@@ -23,10 +24,9 @@ from datahub.metadata.schema_classes import (
 from datahub.metadata.urns import DatasetUrn
 from datahub.sdk import DataHubClient, DataFlow, DataJob, Dataset
 
-from pipeline_common.lineage.data_hub.constants import DataHubStageFlowConfig
-from pipeline_common.settings import DataHubBootstrapSettings
+from pipeline_common.lineage.contracts import DataHubFlowConfig
 
-from .contracts import RunSpec
+from .contracts import DataHubLineageRuntimeConfig, RunSpec
 
 
 class DataHubLineageClient:
@@ -34,16 +34,16 @@ class DataHubLineageClient:
 
     def __init__(
         self,
-        stage: DataHubStageFlowConfig,
-        settings: DataHubBootstrapSettings,
+        *,
+        client_config: DataHubLineageRuntimeConfig,
     ) -> None:
         """Initialize DataHub client wrapper for lineage operations."""
-        self.server = settings.server
-        self.stage = stage
-        self.stage_config = stage.value
-        self.token = settings.token
-        self.env = settings.env
+        self.server = client_config.server
+        self.token = client_config.token
+        self.env = client_config.env
         self.client = DataHubClient(server=self.server, token=self.token)
+        self.graph = DataHubGraph(DatahubClientConfig(server=self.server, token=self.token))
+        self.stage_config = self._resolve_stage_config(stage=client_config.stage)
         self.inputs: list[str] = []
         self.outputs: list[str] = []
         self._active_run: RunSpec | None = None
@@ -126,7 +126,7 @@ class DataHubLineageClient:
 
     def create_run_spec(self, *, job_version: str, attempt: int = 1) -> RunSpec:
         """Build RunSpec from current IO state with an auto-generated run id."""
-        run_id = f"{int(time.time() * 1000)}-{self.stage.job_name}-{uuid.uuid4()}"
+        run_id = f"{int(time.time() * 1000)}-{self.stage_config.job_name}-{uuid.uuid4()}"
         return self.build_run_spec(run_id=run_id, attempt=attempt, job_version=job_version)
 
     def upsert_flow_and_job(
@@ -157,7 +157,7 @@ class DataHubLineageClient:
         flow_description: str = "pipeline for run-level lineage testing",
         job_description: str = "job for run-level lineage testing",
     ) -> tuple[DataFlow, DataJob]:
-        """Upsert DataFlow/DataJob using this client's stage as the source of truth."""
+        """Upsert DataFlow/DataJob using this client's resolved runtime config."""
         return self.upsert_flow_and_job(
             flow_platform=self.stage_config.flow_platform,
             flow_name=self.stage_config.flow_name,
@@ -308,6 +308,45 @@ class DataHubLineageClient:
             )
         )
 
+    def _resolve_stage_config(
+        self,
+        *,
+        stage: DataHubFlowConfig,
+    ) -> DataHubFlowConfig:
+        """Build flow/job config from runtime ids and DataHub job custom properties."""
+
+        base_config = DataHubFlowConfig(
+            flow_id=stage.flow_id,
+            job_id=stage.job_id,
+            flow_platform=stage.flow_platform,
+            flow_name=stage.flow_name,
+            flow_instance=self.env,
+            job_name=stage.job_name,
+            custom_properties={},
+        )
+        job_info = self._get_datajob_info(base_config.job_urn(self.env))
+        custom_properties = {}
+        if job_info is not None and isinstance(job_info.customProperties, dict):
+            custom_properties = {str(k): str(v) for k, v in job_info.customProperties.items()}
+        return DataHubFlowConfig(
+            flow_id=stage.flow_id,
+            job_id=stage.job_id,
+            flow_platform=stage.flow_platform,
+            flow_name=stage.flow_name,
+            flow_instance=self.env,
+            job_name=stage.job_name,
+            custom_properties=custom_properties,
+        )
+
+    def _get_datajob_info(self, job_urn: str) -> DataJobInfoClass | None:
+        """Read DataJobInfo aspect for one job URN from DataHub."""
+
+        try:
+            with self.graph:
+                return self.graph.get_aspect(job_urn, DataJobInfoClass)
+        except Exception:
+            return None
+
     def _build_flow(
         self,
         *,
@@ -440,7 +479,6 @@ class DataHubLineageClient:
 
     def _emit_mcps(self, *, mcps: list[MetadataChangeProposalWrapper]) -> None:
         """Emit MCPs to DataHub graph client in order."""
-        graph = DataHubGraph(DatahubClientConfig(server=self.server, token=self.token))
-        with graph:
+        with self.graph:
             for mcp in mcps:
-                graph.emit(mcp)
+                self.graph.emit(mcp)

@@ -6,6 +6,16 @@ jobs:
     owners: [search-platform]
     custom_properties:
       queue.produce: q.parse_document
+      queue.dlq: q.scan.dlq
+
+  - id: worker_parse_document
+    name: worker_parse_document
+    domain: rag-platform
+    owners: [search-platform]
+    custom_properties:
+      queue.consume: q.parse_document
+      queue.produce: q.chunk_text
+      queue.dlq: q.parse_document.dlq
 
   - id: worker_chunk_text
     name: worker_chunk_text
@@ -23,3 +33,12 @@ jobs:
     custom_properties:
       queue.consume: q.embed_chunks
       queue.produce: q.index_weaviate
+      queue.dlq: q.embed_chunks.dlq
+
+  - id: worker_index_weaviate
+    name: worker_index_weaviate
+    domain: rag-indexing
+    owners: [search-platform]
+    custom_properties:
+      queue.consume: q.index_weaviate
+      queue.dlq: q.index_weaviate.dlq

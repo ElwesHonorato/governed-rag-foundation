@@ -15,6 +15,14 @@ datasets:
     tags: [internal]
     terms: []
 
+  - id: s3.rag-data.03_processed
+    platform: s3
+    name: rag-data/03_processed
+    domain: rag-platform
+    owners: [search-platform]
+    tags: [internal]
+    terms: []
+
   - id: s3.rag-data.04_chunks
     platform: s3
     name: rag-data/04_chunks
@@ -30,3 +38,11 @@ datasets:
     owners: [ml-platform]
     tags: [internal]
     terms: [embedding]
+
+  - id: s3.rag-data.06_indexes
+    platform: s3
+    name: rag-data/06_indexes
+    domain: rag-indexing
+    owners: [search-platform]
+    tags: [internal]
+    terms: []

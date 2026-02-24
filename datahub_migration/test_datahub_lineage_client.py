@@ -101,7 +101,7 @@ def main() -> int:
     emitted_dp_is: set[str] = set()
 
     print("   Worker: worker_parser")
-    parser_client.start_run()
+    parser_client.start_run(attempt=1, datajob_urn=None, external_url=None, actor_urn="urn:li:corpuser:datahub")
     parser_client.add_input(platform=config["platform"], name=config["datasets"]["worker_parser"]["input"])
     parser_client.add_output(platform=config["platform"], name=config["datasets"]["worker_parser"]["output"])
     parser_dpi_urn = parser_client.complete_run()
@@ -109,7 +109,7 @@ def main() -> int:
     emitted_dp_is.add(parser_dpi_urn)
 
     print("   Worker: worker_chunk")
-    chunk_client.start_run()
+    chunk_client.start_run(attempt=1, datajob_urn=None, external_url=None, actor_urn="urn:li:corpuser:datahub")
     chunk_client.add_input(platform=config["platform"], name=config["datasets"]["worker_parser"]["output"])
     chunk_client.add_output(platform=config["platform"], name=config["datasets"]["worker_chunk"]["output1"])
     chunk_client.add_output(platform=config["platform"], name=config["datasets"]["worker_chunk"]["output2"])
@@ -118,14 +118,14 @@ def main() -> int:
     emitted_dp_is.add(chunk_dpi_urn)
 
     print("   Worker: worker_embed")
-    embed_client.start_run()
+    embed_client.start_run(attempt=1, datajob_urn=None, external_url=None, actor_urn="urn:li:corpuser:datahub")
     embed_client.add_input(platform=config["platform"], name=config["datasets"]["worker_chunk"]["output1"])
     embed_client.add_output(platform=config["platform"], name=config["datasets"]["worker_embed"]["output1"])
     embed_a_dpi_urn = embed_client.complete_run()
     print(f"   worker_embed-branch-a COMPLETE -> {embed_a_dpi_urn}")
     emitted_dp_is.add(embed_a_dpi_urn)
 
-    embed_client.start_run()
+    embed_client.start_run(attempt=1, datajob_urn=None, external_url=None, actor_urn="urn:li:corpuser:datahub")
     embed_client.add_input(platform=config["platform"], name=config["datasets"]["worker_chunk"]["output2"])
     embed_client.add_output(platform=config["platform"], name=config["datasets"]["worker_embed"]["output2"])
     embed_b_dpi_urn = embed_client.complete_run()

@@ -302,8 +302,7 @@ class DataHubRunTimeLineage:
     def job_urn(self) -> str:
         return self.static_lineage.job_urn
 
-    def dataset_urn(self, *, platform: str, name: str, env: str | None = None) -> DatasetUrn:
-        _ = env
+    def dataset_urn(self, *, platform: str, name: str) -> DatasetUrn:
         return DataHubUrnFactory.dataset_urn(platform=platform, name=name, env=self.env)
 
     def reset_io(self) -> None:
@@ -313,10 +312,10 @@ class DataHubRunTimeLineage:
     def start_run(
         self,
         *,
-        attempt: int = 1,
-        datajob_urn: str | None = None,
-        external_url: str | None = None,
-        actor_urn: str = DEFAULT_ACTOR_URN,
+        attempt: int,
+        datajob_urn: str | None,
+        external_url: str | None,
+        actor_urn: str,
     ) -> RunSpec:
         if self._active_context is not None:
             raise ValueError("A run is already active; call complete_run() before start_run().")
@@ -342,13 +341,13 @@ class DataHubRunTimeLineage:
             raise
         return run
 
-    def add_input(self, *, name: str, platform: str, env: str | None = None) -> DatasetUrn:
-        dataset = self.dataset_urn(platform=platform, name=name, env=env)
+    def add_input(self, *, name: str, platform: str) -> DatasetUrn:
+        dataset = self.dataset_urn(platform=platform, name=name)
         self.inputs.append(str(dataset))
         return dataset
 
-    def add_output(self, *, name: str, platform: str, env: str | None = None) -> DatasetUrn:
-        dataset = self.dataset_urn(platform=platform, name=name, env=env)
+    def add_output(self, *, name: str, platform: str) -> DatasetUrn:
+        dataset = self.dataset_urn(platform=platform, name=name)
         self.outputs.append(str(dataset))
         return dataset
 
@@ -361,7 +360,7 @@ class DataHubRunTimeLineage:
             outputs=list(self.outputs),
         )
 
-    def create_run_spec(self, *, job_version: str, attempt: int = 1) -> RunSpec:
+    def create_run_spec(self, *, job_version: str, attempt: int) -> RunSpec:
         run_id = f"{int(time.time() * 1000)}-{self.stage_config.job_name}-{uuid.uuid4()}"
         return self.build_run_spec(run_id=run_id, attempt=attempt, job_version=job_version)
 
@@ -370,8 +369,8 @@ class DataHubRunTimeLineage:
         *,
         datajob_urn: str,
         run: RunSpec,
-        external_url: str | None = None,
-        actor_urn: str = DEFAULT_ACTOR_URN,
+        external_url: str | None,
+        actor_urn: str,
     ) -> str:
         self._emit_run_status(
             datajob_urn=datajob_urn,
@@ -409,7 +408,7 @@ class DataHubRunTimeLineage:
         self._clear_active_run()
         return self._dpi_urn(completed_run.run_id)
 
-    def fail_run(self, error_message: str | None = None) -> str:
+    def fail_run(self, error_message: str | None) -> str:
         _ = error_message
         if self._active_context is None:
             raise ValueError("No active run; call start_run() before fail_run().")
@@ -454,8 +453,8 @@ class DataHubRunTimeLineage:
         datajob_urn: str,
         run: RunSpec,
         status: DataProcessRunStatusClass,
-        external_url: str | None = None,
-        actor_urn: str = DEFAULT_ACTOR_URN,
+        external_url: str | None,
+        actor_urn: str,
     ) -> str:
         dpi_urn = self._dpi_urn(run.run_id)
         mcps = DataProcessInstanceMcpBuilder(

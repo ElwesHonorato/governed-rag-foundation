@@ -76,7 +76,7 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
             return False
 
         destination_key = self._destination_key(source_key)
-        self.lineage.start_run()
+        self.lineage.start_run(attempt=1, datajob_urn=None, external_url=None, actor_urn="urn:li:corpuser:datahub")
         self.lineage.add_input(name=f"{self.bucket}/{source_key}", platform="s3")
         self.lineage.add_output(name=f"{self.bucket}/{destination_key}", platform="s3")
         try:

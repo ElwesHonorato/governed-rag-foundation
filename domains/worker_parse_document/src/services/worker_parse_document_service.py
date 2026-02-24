@@ -89,7 +89,7 @@ class WorkerParseDocumentService(WorkerService):
 
         doc_id = doc_id_from_source_key(source_key)
         destination_key = self._processed_key(doc_id)
-        self.lineage.start_run()
+        self.lineage.start_run(attempt=1, datajob_urn=None, external_url=None, actor_urn="urn:li:corpuser:datahub")
         self.lineage.add_input(name=f"{self.storage_bucket}/{source_key}", platform="s3")
         self.lineage.add_output(name=f"{self.storage_bucket}/{destination_key}", platform="s3")
         if self._processed_exists(destination_key):

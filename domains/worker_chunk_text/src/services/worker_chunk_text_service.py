@@ -83,7 +83,7 @@ class WorkerChunkTextService(WorkerService):
 
         doc_id = source_key.split("/")[-1].replace(self.processed_suffix, "")
         destination_prefix = f"{self.chunks_prefix}{doc_id}/"
-        self.lineage.start_run()
+        self.lineage.start_run(attempt=1, datajob_urn=None, external_url=None, actor_urn="urn:li:corpuser:datahub")
         self.lineage.add_input(name=f"{self.storage_bucket}/{source_key}", platform="s3")
         try:
             processed = self._read_processed_object(source_key)

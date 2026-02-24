@@ -91,7 +91,7 @@ class WorkerEmbedChunksService(WorkerService):
         if not source_key.endswith(self.chunks_suffix):
             return
 
-        self.lineage.start_run()
+        self.lineage.start_run(attempt=1, datajob_urn=None, external_url=None, actor_urn="urn:li:corpuser:datahub")
         self.lineage.add_input(name=f"{self.storage_bucket}/{source_key}", platform="s3")
         try:
             chunk_payload = self._read_chunks_object(source_key)

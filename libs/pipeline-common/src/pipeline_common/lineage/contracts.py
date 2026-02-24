@@ -19,9 +19,7 @@ class ResolvedDataHubFlowConfig:
     flow_id: str
     job_id: str
     flow_platform: str
-    flow_name: str
     flow_instance: str
-    job_name: str
     custom_properties: dict[str, str] = field(default_factory=dict)
 
     def flow_urn(self, flow_instance: str | None = None) -> str:
@@ -29,7 +27,7 @@ class ResolvedDataHubFlowConfig:
         instance = flow_instance or self.flow_instance
         return DataHubUrnFactory.flow_urn(
             flow_platform=self.flow_platform,
-            flow_name=self.flow_name,
+            flow_id=self.flow_id,
             flow_instance=instance,
         )
 
@@ -38,9 +36,9 @@ class ResolvedDataHubFlowConfig:
         instance = flow_instance or self.flow_instance
         return DataHubUrnFactory.job_urn(
             flow_platform=self.flow_platform,
-            flow_name=self.flow_name,
+            flow_id=self.flow_id,
             flow_instance=instance,
-            job_name=self.job_name,
+            job_id=self.job_id,
         )
 
     @property

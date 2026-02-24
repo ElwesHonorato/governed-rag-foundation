@@ -251,16 +251,16 @@ class DataHubStaticLineage:
     def _build_input_flow_urn(self) -> str:
         return DataHubUrnFactory.flow_urn(
             flow_platform=self.data_job_key.flow_platform,
-            flow_name=self.data_job_key.flow_id,
+            flow_id=self.data_job_key.flow_id,
             flow_instance=self.env,
         )
 
     def _build_input_job_urn(self) -> str:
         return DataHubUrnFactory.job_urn(
             flow_platform=self.data_job_key.flow_platform,
-            flow_name=self.data_job_key.flow_id,
+            flow_id=self.data_job_key.flow_id,
             flow_instance=self.env,
-            job_name=self.data_job_key.job_id,
+            job_id=self.data_job_key.job_id,
         )
 
     def _resolve_stage_config(self) -> ResolvedDataHubFlowConfig:
@@ -272,9 +272,7 @@ class DataHubStaticLineage:
             flow_id=self.data_job_key.flow_id,
             job_id=self.data_job_key.job_id,
             flow_platform=self.data_job_key.flow_platform,
-            flow_name=self.data_job_key.flow_id,
             flow_instance=self.env,
-            job_name=self.data_job_key.job_id,
             custom_properties=custom_properties,
         )
 
@@ -361,7 +359,7 @@ class DataHubRunTimeLineage:
         )
 
     def create_run_spec(self, *, job_version: str, attempt: int) -> RunSpec:
-        run_id = f"{int(time.time() * 1000)}-{self.stage_config.job_name}-{uuid.uuid4()}"
+        run_id = f"{int(time.time() * 1000)}-{self.stage_config.job_id}-{uuid.uuid4()}"
         return self.build_run_spec(run_id=run_id, attempt=attempt, job_version=job_version)
 
     def emit_dpi(

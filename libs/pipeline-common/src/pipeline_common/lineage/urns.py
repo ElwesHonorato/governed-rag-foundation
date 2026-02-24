@@ -5,21 +5,21 @@ class DataHubUrnFactory:
     """Centralized builders for DataHub URN values."""
 
     @staticmethod
-    def flow_urn(*, flow_platform: str, flow_name: str, flow_instance: str) -> str:
+    def flow_urn(*, flow_platform: str, flow_id: str, flow_instance: str) -> str:
         return DataFlowUrn(
             orchestrator=flow_platform,
-            flow_id=f"{flow_instance}.{flow_name}",
+            flow_id=f"{flow_instance}.{flow_id}",
             cluster=flow_instance,
         ).urn()
 
     @staticmethod
-    def job_urn(*, flow_platform: str, flow_name: str, flow_instance: str, job_name: str) -> str:
+    def job_urn(*, flow_platform: str, flow_id: str, flow_instance: str, job_id: str) -> str:
         flow_urn = DataHubUrnFactory.flow_urn(
             flow_platform=flow_platform,
-            flow_name=flow_name,
+            flow_id=flow_id,
             flow_instance=flow_instance,
         )
-        return DataJobUrn(flow=flow_urn, job_id=job_name).urn()
+        return DataJobUrn(flow=flow_urn, job_id=job_id).urn()
 
     @staticmethod
     def dataset_urn(*, platform: str, name: str, env: str) -> DatasetUrn:

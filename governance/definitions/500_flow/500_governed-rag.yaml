@@ -1,6 +1,5 @@
 flow:
   id: governed-rag
   platform: custom
-  name: governed-rag
   domain: rag-platform
   owners: [search-platform]

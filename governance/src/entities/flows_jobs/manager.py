@@ -30,7 +30,7 @@ class FlowJobManager:
             flow_def = pipeline["flow"]
             flow = DataFlow(
                 platform=flow_def["platform"],
-                name=flow_def["name"],
+                name=flow_def["id"],
                 env=self.governance_def_ctx.env,
                 description=flow_def.get("description"),
                 domain=self.governance_def_ctx.domain_urns[flow_def["domain"]],
@@ -46,13 +46,13 @@ class FlowJobManager:
         flow_urn = str(
             DataFlowUrn(
                 orchestrator=flow_def["platform"],
-                flow_id=flow_def["name"],
+                flow_id=flow_def["id"],
                 cluster=self.governance_def_ctx.env,
             )
         )
 
         return DataJob(
-            name=job["name"],
+            name=job["id"],
             flow_urn=flow_urn,
             description=job.get("description"),
             custom_properties=job.get("custom_properties", {}),

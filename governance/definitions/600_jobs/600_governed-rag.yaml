@@ -1,7 +1,6 @@
 flow_id: governed-rag
 jobs:
   - id: worker_scan
-    name: worker_scan
     domain: rag-platform
     owners: [search-platform]
     custom_properties:
@@ -16,7 +15,6 @@ jobs:
       queue.dlq: q.scan.dlq
 
   - id: worker_parse_document
-    name: worker_parse_document
     domain: rag-platform
     owners: [search-platform]
     custom_properties:
@@ -25,7 +23,6 @@ jobs:
       queue.dlq: q.parse_document.dlq
 
   - id: worker_chunk_text
-    name: worker_chunk_text
     domain: rag-embeddings
     owners: [search-platform]
     custom_properties:
@@ -34,7 +31,6 @@ jobs:
       queue.dlq: q.chunk_text.dlq
 
   - id: worker_embed_chunks
-    name: worker_embed_chunks
     domain: rag-embeddings
     owners: [ml-platform]
     custom_properties:
@@ -43,7 +39,6 @@ jobs:
       queue.dlq: q.embed_chunks.dlq
 
   - id: worker_index_weaviate
-    name: worker_index_weaviate
     domain: rag-indexing
     owners: [search-platform]
     custom_properties:

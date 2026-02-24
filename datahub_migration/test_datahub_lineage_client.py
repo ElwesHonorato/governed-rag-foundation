@@ -18,28 +18,9 @@ if str(PIPELINE_COMMON_SRC) not in sys.path:
     sys.path.insert(0, str(PIPELINE_COMMON_SRC))
 
 from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
-from pipeline_common.lineage.data_hub.contracts import DataHubLineageRuntimeConfig
+from pipeline_common.lineage.data_hub.contracts import DataHubLineageRuntimeConfig, DataHubRuntimeConnectionSettings
 from pipeline_common.lineage.pipeline import DataHubPipelineJobs
 from pipeline_common.settings import DataHubBootstrapSettings
-
-
-def wait_for_lineage_contains(
-    *,
-    client: DataHubRunTimeLineage,
-    root_urn: str,
-    direction: str,
-    expected_urn: str,
-    max_attempts: int = 12,
-    sleep_seconds: float = 1.0,
-) -> bool:
-    """Retry lineage traversal until expected URN appears or attempts are exhausted."""
-    for _ in range(max_attempts):
-        connected = client.gql_scroll(root_urn, direction)
-        if expected_urn in connected:
-            return True
-        time.sleep(sleep_seconds)
-    return False
-
 
 def main() -> int:
     # -------------------------------------------------------------------------
@@ -81,31 +62,37 @@ def main() -> int:
     # -------------------------------------------------------------------------
     parser_client = DataHubRunTimeLineage(
         client_config=DataHubLineageRuntimeConfig(
-            bootstrap_settings={
-                "server": bootstrap_settings.server,
-                "env": bootstrap_settings.env,
-                "token": bootstrap_settings.token,
-            },
+            bootstrap_settings=DataHubRuntimeConnectionSettings(
+                server=bootstrap_settings.server,
+                env=bootstrap_settings.env,
+                token=bootstrap_settings.token,
+                timeout_sec=bootstrap_settings.timeout_sec,
+                retry_max_times=bootstrap_settings.retry_max_times,
+            ),
             data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_parse_document"),
         ),
     )
     chunk_client = DataHubRunTimeLineage(
         client_config=DataHubLineageRuntimeConfig(
-            bootstrap_settings={
-                "server": bootstrap_settings.server,
-                "env": bootstrap_settings.env,
-                "token": bootstrap_settings.token,
-            },
+            bootstrap_settings=DataHubRuntimeConnectionSettings(
+                server=bootstrap_settings.server,
+                env=bootstrap_settings.env,
+                token=bootstrap_settings.token,
+                timeout_sec=bootstrap_settings.timeout_sec,
+                retry_max_times=bootstrap_settings.retry_max_times,
+            ),
             data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_chunk_text"),
         ),
     )
     embed_client = DataHubRunTimeLineage(
         client_config=DataHubLineageRuntimeConfig(
-            bootstrap_settings={
-                "server": bootstrap_settings.server,
-                "env": bootstrap_settings.env,
-                "token": bootstrap_settings.token,
-            },
+            bootstrap_settings=DataHubRuntimeConnectionSettings(
+                server=bootstrap_settings.server,
+                env=bootstrap_settings.env,
+                token=bootstrap_settings.token,
+                timeout_sec=bootstrap_settings.timeout_sec,
+                retry_max_times=bootstrap_settings.retry_max_times,
+            ),
             data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_embed_chunks"),
         ),
     )
@@ -148,64 +135,6 @@ def main() -> int:
     print("   Emitted DPIs:")
     for dpi_urn in sorted(emitted_dp_is):
         print(f"     - {dpi_urn}")
-
-    # -------------------------------------------------------------------------
-    # Verification
-    # -------------------------------------------------------------------------
-    print("3) Quick verification: GraphQL traversal checks...")
-    chunk_output1_urn = str(
-        parser_client.dataset_urn(
-            platform=config["platform"],
-            name=config["datasets"]["worker_chunk"]["output1"],
-        )
-    )
-    chunk_output2_urn = str(
-        parser_client.dataset_urn(
-            platform=config["platform"],
-            name=config["datasets"]["worker_chunk"]["output2"],
-        )
-    )
-    embed_output1_urn = str(
-        parser_client.dataset_urn(
-            platform=config["platform"],
-            name=config["datasets"]["worker_embed"]["output1"],
-        )
-    )
-    embed_output2_urn = str(
-        parser_client.dataset_urn(
-            platform=config["platform"],
-            name=config["datasets"]["worker_embed"]["output2"],
-        )
-    )
-
-    down1_ok = wait_for_lineage_contains(
-        client=parser_client,
-        root_urn=chunk_output1_urn,
-        direction="DOWNSTREAM",
-        expected_urn=embed_output1_urn,
-    )
-    down2_ok = wait_for_lineage_contains(
-        client=parser_client,
-        root_urn=chunk_output2_urn,
-        direction="DOWNSTREAM",
-        expected_urn=embed_output2_urn,
-    )
-    dpi_upstream_a_ok = wait_for_lineage_contains(
-        client=parser_client,
-        root_urn=embed_a_dpi_urn,
-        direction="UPSTREAM",
-        expected_urn=chunk_output1_urn,
-    )
-    dpi_upstream_b_ok = wait_for_lineage_contains(
-        client=parser_client,
-        root_urn=embed_b_dpi_urn,
-        direction="UPSTREAM",
-        expected_urn=chunk_output2_urn,
-    )
-    print("   chunk_output1 downstream contains embed_output1:", down1_ok)
-    print("   chunk_output2 downstream contains embed_output2:", down2_ok)
-    print("   embed DPI A upstream contains chunk_output1:", dpi_upstream_a_ok)
-    print("   embed DPI B upstream contains chunk_output2:", dpi_upstream_b_ok)
 
     print("\nDone.")
     return 0

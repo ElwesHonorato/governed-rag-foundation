@@ -47,6 +47,8 @@ class DataHubBootstrapSettings:
     server: str
     env: str
     token: str | None = None
+    timeout_sec: float = 3.0
+    retry_max_times: int = 1
 
     @classmethod
     def from_env(cls) -> "DataHubBootstrapSettings":
@@ -59,4 +61,6 @@ class DataHubBootstrapSettings:
             server=server,
             env=_optional_env("DATAHUB_ENV", "PROD"),
             token=token or None,
+            timeout_sec=float(_optional_env("DATAHUB_TIMEOUT_SEC", "3")),
+            retry_max_times=_required_int("DATAHUB_RETRY_MAX_TIMES", 1),
         )

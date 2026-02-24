@@ -30,16 +30,14 @@ from datahub.metadata.schema_classes import (
     EdgeClass,
 )
 from datahub.metadata.urns import DatasetUrn
-from datahub.sdk import DataHubClient as DataHubSdkClient
 
 from pipeline_common.lineage.contracts import DataHubDataJobKey, ResolvedDataHubFlowConfig
 from pipeline_common.lineage.urns import DataHubUrnFactory
 
-from .contracts import DataHubLineageRuntimeConfig, RunSpec
+from .contracts import DataHubLineageRuntimeConfig, DataHubRuntimeConnectionSettings, RunSpec
 
 logger = logging.getLogger(__name__)
 DEFAULT_ACTOR_URN = "urn:li:corpuser:datahub"
-
 
 @dataclass(frozen=True)
 class ActiveRunContext:
@@ -189,44 +187,30 @@ class DataProcessInstanceMcpBuilder:
         ]
 
 
-class DataHubClient:
-    """Client responsible for low-level interactions with DataHub."""
+class DataHubGraphClient:
+    """Handle aspect reads and MCP writes via DataHub graph client."""
 
-    def __init__(self, *, bootstrap_settings: dict[str, object]) -> None:
-        self.server = str(bootstrap_settings["server"])
-        self.env = str(bootstrap_settings["env"])
-        token_value = bootstrap_settings.get("token")
-        self.token = str(token_value) if token_value else None
-        self.client = DataHubSdkClient(server=self.server, token=self.token)
-        graph_timeout_sec = float(os.getenv("DATAHUB_TIMEOUT_SEC", "3"))
+    def __init__(self, *, connection_settings: DataHubRuntimeConnectionSettings) -> None:
+        """Initialize graph client from runtime connection settings."""
         self.graph = DataHubGraph(
             DatahubClientConfig(
-                server=self.server,
-                token=self.token,
-                timeout_sec=graph_timeout_sec,
-                retry_max_times=1,
+                server=connection_settings.server,
+                token=connection_settings.token,
+                timeout_sec=connection_settings.timeout_sec,
+                retry_max_times=connection_settings.retry_max_times,
             )
         )
 
-    def dataset_urn(self, *, platform: str, name: str, env: str | None = None) -> DatasetUrn:
-        """Build DatasetUrn with this runtime env as fallback."""
-        return DataHubUrnFactory.dataset_urn(platform=platform, name=name, env=env or self.env)
-
-    def gql_scroll(self, urn: str, direction: str, count: int = 200) -> list[str]:
-        """Query lineage traversal for one entity and return connected URNs."""
-        normalized_direction = direction.strip().lower()
-        if normalized_direction not in {"upstream", "downstream"}:
-            raise ValueError("direction must be either 'UPSTREAM'/'upstream' or 'DOWNSTREAM'/'downstream'")
-        results = self.client.lineage.get_lineage(
-            source_urn=urn,
-            direction=normalized_direction,
-            max_hops=1,
-            count=count,
-        )
-        return [result.urn for result in results]
-
     def get_datajob_info(self, job_urn: str) -> DataJobInfoClass | None:
-        """Read DataJobInfo aspect for one job URN from DataHub."""
+        """Fetch the `DataJobInfo` aspect for a DataJob URN.
+
+        Args:
+            job_urn: DataJob URN to query.
+
+        Returns:
+            `DataJobInfoClass` when available; otherwise `None` on missing data
+            or recoverable read errors.
+        """
         try:
             with self.graph:
                 return self.graph.get_aspect(job_urn, DataJobInfoClass)
@@ -235,17 +219,22 @@ class DataHubClient:
             return None
 
     def emit_mcps(self, *, mcps: list[MetadataChangeProposalWrapper]) -> None:
-        """Emit MCPs to DataHub graph client in order."""
+        """Emit MCPs to DataHub Graph in the provided order.
+
+        Args:
+            mcps: Ordered metadata change proposals to emit.
+        """
         with self.graph:
             for mcp in mcps:
                 self.graph.emit(mcp)
 
+
 class DataHubStaticLineage:
     """Retrieve static DataJob details specified by governance definitions."""
 
-    def __init__(self, *, client: DataHubClient, data_job_key: DataHubDataJobKey) -> None:
-        self.client = client
-        self.env = client.env
+    def __init__(self, *, graph_client: DataHubGraphClient, env: str, data_job_key: DataHubDataJobKey) -> None:
+        self.graph_client = graph_client
+        self.env = env
         self.data_job_key = data_job_key
         self.input_flow_urn = self._build_input_flow_urn()
         self.input_job_urn = self._build_input_job_urn()
@@ -275,7 +264,7 @@ class DataHubStaticLineage:
         )
 
     def _resolve_stage_config(self) -> ResolvedDataHubFlowConfig:
-        job_info = self.client.get_datajob_info(self.input_job_urn)
+        job_info = self.graph_client.get_datajob_info(self.input_job_urn)
         custom_properties: dict[str, str] = {}
         if job_info is not None and isinstance(job_info.customProperties, dict):
             custom_properties = {str(k): str(v) for k, v in job_info.customProperties.items()}
@@ -293,10 +282,14 @@ class DataHubRunTimeLineage:
     """Push DataProcessInstance lineage inputs/outputs and run events."""
 
     def __init__(self, *, client_config: DataHubLineageRuntimeConfig) -> None:
-        self.client = DataHubClient(bootstrap_settings=client_config.bootstrap_settings)
-        self.static_lineage = DataHubStaticLineage(client=self.client, data_job_key=client_config.data_job_key)
+        self.graph_client = DataHubGraphClient(connection_settings=client_config.bootstrap_settings)
+        self.env = client_config.bootstrap_settings.env
+        self.static_lineage = DataHubStaticLineage(
+            graph_client=self.graph_client,
+            env=self.env,
+            data_job_key=client_config.data_job_key,
+        )
         self.stage_config = self.static_lineage.stage_config
-        self.env = self.client.env
         self.inputs: list[str] = []
         self.outputs: list[str] = []
         self._active_context: ActiveRunContext | None = None
@@ -310,10 +303,8 @@ class DataHubRunTimeLineage:
         return self.static_lineage.job_urn
 
     def dataset_urn(self, *, platform: str, name: str, env: str | None = None) -> DatasetUrn:
-        return self.client.dataset_urn(platform=platform, name=name, env=env)
-
-    def gql_scroll(self, urn: str, direction: str, count: int = 200) -> list[str]:
-        return self.client.gql_scroll(urn, direction, count)
+        _ = env
+        return DataHubUrnFactory.dataset_urn(platform=platform, name=name, env=self.env)
 
     def reset_io(self) -> None:
         self.inputs.clear()
@@ -476,7 +467,7 @@ class DataHubRunTimeLineage:
             actor_urn=actor_urn,
             external_url=external_url,
         ).build()
-        self.client.emit_mcps(mcps=mcps)
+        self.graph_client.emit_mcps(mcps=mcps)
         return dpi_urn
 
     def _emit_run_status(

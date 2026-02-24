@@ -1,9 +1,9 @@
 from .api import MarquezApiClient
 from .contracts import DataHubDataJobKey, ResolvedDataHubFlowConfig
-from .data_hub import DataHubClient, DataHubRunTimeLineage, DataHubStaticLineage
+from .data_hub import DataHubGraphClient, DataHubRunTimeLineage, DataHubStaticLineage
 
 __all__ = [
-    "DataHubClient",
+    "DataHubGraphClient",
     "DataHubRunTimeLineage",
     "DataHubStaticLineage",
     "DataHubDataJobKey",

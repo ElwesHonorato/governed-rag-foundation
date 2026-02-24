@@ -4,6 +4,7 @@ jobs:
     domain: rag-platform
     owners: [search-platform]
     custom_properties:
+      job.version: "0.0.1"
       queue.poll_interval_seconds: "30"
       scan.poll_interval_seconds: "30"
       scan.storage.bucket: rag-data
@@ -18,6 +19,7 @@ jobs:
     domain: rag-platform
     owners: [search-platform]
     custom_properties:
+      job.version: "0.0.1"
       queue.consume: q.parse_document
       queue.produce: q.chunk_text
       queue.dlq: q.parse_document.dlq
@@ -26,6 +28,7 @@ jobs:
     domain: rag-embeddings
     owners: [search-platform]
     custom_properties:
+      job.version: "0.0.1"
       queue.consume: q.chunk_text
       queue.produce: q.embed_chunks
       queue.dlq: q.chunk_text.dlq
@@ -34,6 +37,7 @@ jobs:
     domain: rag-embeddings
     owners: [ml-platform]
     custom_properties:
+      job.version: "0.0.1"
       queue.consume: q.embed_chunks
       queue.produce: q.index_weaviate
       queue.dlq: q.embed_chunks.dlq
@@ -42,5 +46,6 @@ jobs:
     domain: rag-indexing
     owners: [search-platform]
     custom_properties:
+      job.version: "0.0.1"
       queue.consume: q.index_weaviate
       queue.dlq: q.index_weaviate.dlq

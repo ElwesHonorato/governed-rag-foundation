@@ -298,19 +298,23 @@ class DataHubRunTimeLineage:
         self.reset_io()
         run = self.create_run_spec(job_version=self.resolve_job_version(), attempt=attempt)
         active_datajob_urn = datajob_urn or self.job_urn
-        self._emit_run_status(
-            datajob_urn=active_datajob_urn,
-            run=run,
-            status=DataProcessRunStatusClass.STARTED,
-            external_url=external_url,
-            actor_urn=actor_urn,
-        )
         self._active_context = ActiveRunContext(
             run=run,
             datajob_urn=active_datajob_urn,
             external_url=external_url,
             actor_urn=actor_urn,
         )
+        try:
+            self._emit_run_status(
+                datajob_urn=active_datajob_urn,
+                run=run,
+                status=DataProcessRunStatusClass.STARTED,
+                external_url=external_url,
+                actor_urn=actor_urn,
+            )
+        except Exception:
+            self._clear_active_run()
+            raise
         return run
 
     def add_input(self, *, name: str, platform: str, env: str | None = None) -> DatasetUrn:
@@ -478,7 +482,3 @@ class DataHubRunTimeLineage:
 
     def _clear_active_run(self) -> None:
         self._active_context = None
-
-
-class DataHubLineageClient(DataHubRunTimeLineage):
-    """Backward-compatible alias for DataHubRunTimeLineage."""

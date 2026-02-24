@@ -1,9 +1,8 @@
 from .contracts import RunSpec
-from .lineage import DataHubClient, DataHubLineageClient, DataHubRunTimeLineage, DataHubStaticLineage
+from .lineage import DataHubClient, DataHubRunTimeLineage, DataHubStaticLineage
 
 __all__ = [
     "DataHubClient",
-    "DataHubLineageClient",
     "DataHubRunTimeLineage",
     "DataHubStaticLineage",
     "RunSpec",

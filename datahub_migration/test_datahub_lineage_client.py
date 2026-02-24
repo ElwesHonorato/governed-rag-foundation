@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise DataHubLineageClient with a fanout run scenario.
+"""Exercise DataHubRunTimeLineage with a fanout run scenario.
 
 This mirrors the output style and flow of minimal_datahub_test.py while
 using the reusable class in pipeline_common.lineage.data_hub.lineage.
@@ -17,7 +17,7 @@ PIPELINE_COMMON_SRC = REPO_ROOT / "libs" / "pipeline-common" / "src"
 if str(PIPELINE_COMMON_SRC) not in sys.path:
     sys.path.insert(0, str(PIPELINE_COMMON_SRC))
 
-from pipeline_common.lineage.data_hub import DataHubLineageClient
+from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
 from pipeline_common.lineage.data_hub.contracts import DataHubLineageRuntimeConfig
 from pipeline_common.lineage.pipeline import DataHubPipelineJobs
 from pipeline_common.settings import DataHubBootstrapSettings
@@ -25,7 +25,7 @@ from pipeline_common.settings import DataHubBootstrapSettings
 
 def wait_for_lineage_contains(
     *,
-    client: DataHubLineageClient,
+    client: DataHubRunTimeLineage,
     root_urn: str,
     direction: str,
     expected_urn: str,
@@ -79,7 +79,7 @@ def main() -> int:
     # -------------------------------------------------------------------------
     # Client Initialization
     # -------------------------------------------------------------------------
-    parser_client = DataHubLineageClient(
+    parser_client = DataHubRunTimeLineage(
         client_config=DataHubLineageRuntimeConfig(
             bootstrap_settings={
                 "server": bootstrap_settings.server,
@@ -89,7 +89,7 @@ def main() -> int:
             data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_parse_document"),
         ),
     )
-    chunk_client = DataHubLineageClient(
+    chunk_client = DataHubRunTimeLineage(
         client_config=DataHubLineageRuntimeConfig(
             bootstrap_settings={
                 "server": bootstrap_settings.server,
@@ -99,7 +99,7 @@ def main() -> int:
             data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_chunk_text"),
         ),
     )
-    embed_client = DataHubLineageClient(
+    embed_client = DataHubRunTimeLineage(
         client_config=DataHubLineageRuntimeConfig(
             bootstrap_settings={
                 "server": bootstrap_settings.server,

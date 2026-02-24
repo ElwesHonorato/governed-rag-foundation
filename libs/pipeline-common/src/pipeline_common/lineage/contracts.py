@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 
 from .open_lineage.contracts import LineageEmitterConfig
+from .urns import DataHubUrnFactory
 
 
 @dataclass(frozen=True)
@@ -27,14 +28,21 @@ class ResolvedDataHubFlowConfig:
     def flow_urn(self, flow_instance: str | None = None) -> str:
         """Build deterministic DataFlow URN from naming convention."""
         instance = flow_instance or self.flow_instance
-        return (
-            f"urn:li:dataFlow:({self.flow_platform},"
-            f"{instance}.{self.flow_name},{instance})"
+        return DataHubUrnFactory.flow_urn(
+            flow_platform=self.flow_platform,
+            flow_name=self.flow_name,
+            flow_instance=instance,
         )
 
     def job_urn(self, flow_instance: str | None = None) -> str:
         """Build deterministic DataJob URN from naming convention."""
-        return f"urn:li:dataJob:({self.flow_urn(flow_instance)},{self.job_name})"
+        instance = flow_instance or self.flow_instance
+        return DataHubUrnFactory.job_urn(
+            flow_platform=self.flow_platform,
+            flow_name=self.flow_name,
+            flow_instance=instance,
+            job_name=self.job_name,
+        )
 
     @property
     def queue_consume(self) -> str | None:

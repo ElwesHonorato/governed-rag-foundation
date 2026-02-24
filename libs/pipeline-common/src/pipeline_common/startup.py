@@ -8,7 +8,7 @@ from typing import Any, Mapping
 
 from pipeline_common.lineage.contracts import DataHubDataJobKey
 from pipeline_common.lineage import LineageEmitter, LineageEmitterConfig
-from pipeline_common.lineage.data_hub import DataHubLineageClient
+from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
 from pipeline_common.lineage.data_hub.contracts import DataHubLineageRuntimeConfig
 from pipeline_common.object_storage import ObjectStorageGateway, S3Client
 from pipeline_common.queue import StageQueue
@@ -47,9 +47,9 @@ def build_datahub_lineage_client(
     *,
     datahub_settings: DataHubBootstrapSettings,
     data_job_key: DataHubDataJobKey,
-) -> DataHubLineageClient:
+) -> DataHubRunTimeLineage:
     """Build DataHub lineage client for one worker."""
-    return DataHubLineageClient(
+    return DataHubRunTimeLineage(
         client_config=DataHubLineageRuntimeConfig(
             bootstrap_settings={
                 "server": datahub_settings.server,

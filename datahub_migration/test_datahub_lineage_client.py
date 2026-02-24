@@ -26,7 +26,6 @@ from pipeline_common.settings import DataHubBootstrapSettings
 def wait_for_lineage_contains(
     *,
     client: DataHubLineageClient,
-    graphql_endpoint: str,
     root_urn: str,
     direction: str,
     expected_urn: str,
@@ -35,7 +34,7 @@ def wait_for_lineage_contains(
 ) -> bool:
     """Retry lineage traversal until expected URN appears or attempts are exhausted."""
     for _ in range(max_attempts):
-        connected = client.gql_scroll(graphql_endpoint, root_urn, direction)
+        connected = client.gql_scroll(root_urn, direction)
         if expected_urn in connected:
             return True
         time.sleep(sleep_seconds)
@@ -181,28 +180,24 @@ def main() -> int:
 
     down1_ok = wait_for_lineage_contains(
         client=parser_client,
-        graphql_endpoint=config["graphql"],
         root_urn=chunk_output1_urn,
         direction="DOWNSTREAM",
         expected_urn=embed_output1_urn,
     )
     down2_ok = wait_for_lineage_contains(
         client=parser_client,
-        graphql_endpoint=config["graphql"],
         root_urn=chunk_output2_urn,
         direction="DOWNSTREAM",
         expected_urn=embed_output2_urn,
     )
     dpi_upstream_a_ok = wait_for_lineage_contains(
         client=parser_client,
-        graphql_endpoint=config["graphql"],
         root_urn=embed_a_dpi_urn,
         direction="UPSTREAM",
         expected_urn=chunk_output1_urn,
     )
     dpi_upstream_b_ok = wait_for_lineage_contains(
         client=parser_client,
-        graphql_endpoint=config["graphql"],
         root_urn=embed_b_dpi_urn,
         direction="UPSTREAM",
         expected_urn=chunk_output2_urn,

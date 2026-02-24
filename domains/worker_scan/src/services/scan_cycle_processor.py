@@ -5,7 +5,7 @@ import logging
 from typing import TypedDict
 
 from pipeline_common.contracts import doc_id_from_source_key
-from pipeline_common.lineage.data_hub import DataHubLineageClient
+from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
 from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway
 
@@ -46,7 +46,7 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
         *,
         object_storage: ObjectStorageGateway,
         stage_queue: StageQueue,
-        lineage: DataHubLineageClient,
+        lineage: DataHubRunTimeLineage,
         processing_config: ScanProcessingConfig,
     ) -> None:
         """Initialize instance state and dependencies."""

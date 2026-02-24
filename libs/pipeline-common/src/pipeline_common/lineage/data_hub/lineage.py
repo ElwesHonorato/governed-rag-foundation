@@ -229,7 +229,7 @@ class DataHubGraphClient:
                 self.graph.emit(mcp)
 
 
-class DataHubStaticLineage:
+class DataHubJobMetadataResolver:
     """Retrieve static DataJob details specified by governance definitions."""
 
     def __init__(self, *, graph_client: DataHubGraphClient, env: str, data_job_key: DataHubDataJobKey) -> None:
@@ -282,7 +282,7 @@ class DataHubRunTimeLineage:
     def __init__(self, *, client_config: DataHubLineageRuntimeConfig) -> None:
         self.graph_client = DataHubGraphClient(connection_settings=client_config.bootstrap_settings)
         self.env = client_config.bootstrap_settings.env
-        self.static_lineage = DataHubStaticLineage(
+        self.static_lineage = DataHubJobMetadataResolver(
             graph_client=self.graph_client,
             env=self.env,
             data_job_key=client_config.data_job_key,

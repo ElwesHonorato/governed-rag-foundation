@@ -64,7 +64,7 @@ Suggested helpers inside `lineage.py`:
 6. `_run_event(status, ...)`
 
 ## Separation of Responsibilities
-Match the existing style in `open_lineage/lineage.py`:
+Keep a clean runtime-lineage separation:
 1. Public methods manage workflow/state transitions.
 2. Private helpers perform validation, normalization, and external I/O.
 3. Validation errors raise `ValueError`.

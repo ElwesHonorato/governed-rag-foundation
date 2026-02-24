@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 
-from .open_lineage.contracts import LineageEmitterConfig
 from .urns import DataHubUrnFactory
 
 
@@ -60,4 +59,4 @@ class ResolvedDataHubFlowConfig:
         return self.custom_properties.get("queue.dlq")
 
 
-__all__ = ["LineageEmitterConfig", "DataHubDataJobKey", "ResolvedDataHubFlowConfig"]
+__all__ = ["DataHubDataJobKey", "ResolvedDataHubFlowConfig"]

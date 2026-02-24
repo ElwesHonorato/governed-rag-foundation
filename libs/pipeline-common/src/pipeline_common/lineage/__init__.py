@@ -1,3 +1,13 @@
-from .open_lineage import LineageEmitter, LineageEmitterConfig, MarquezApiClient
+from .api import MarquezApiClient
+from .contracts import DataHubDataJobKey, ResolvedDataHubFlowConfig
+from .data_hub import DataHubClient, DataHubLineageClient, DataHubRunTimeLineage, DataHubStaticLineage
 
-__all__ = ["LineageEmitter", "LineageEmitterConfig", "MarquezApiClient"]
+__all__ = [
+    "DataHubClient",
+    "DataHubLineageClient",
+    "DataHubRunTimeLineage",
+    "DataHubStaticLineage",
+    "DataHubDataJobKey",
+    "ResolvedDataHubFlowConfig",
+    "MarquezApiClient",
+]

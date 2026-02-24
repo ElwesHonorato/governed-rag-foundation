@@ -1,4 +1,4 @@
-from .contracts import LineageEmitterConfig, RunSpec
+from .contracts import RunSpec
 from .lineage import DataHubClient, DataHubLineageClient, DataHubRunTimeLineage, DataHubStaticLineage
 
 __all__ = [
@@ -7,5 +7,4 @@ __all__ = [
     "DataHubRunTimeLineage",
     "DataHubStaticLineage",
     "RunSpec",
-    "LineageEmitterConfig",
 ]

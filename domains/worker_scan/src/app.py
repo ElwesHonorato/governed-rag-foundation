@@ -35,7 +35,7 @@ def run() -> None:
         data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_scan"),
     )
 
-    raw_config = expand_dot_properties(lineage_client.stage_config.custom_properties)
+    raw_config = expand_dot_properties(lineage_client.resolved_job_config.custom_properties)
     scan_config, queue_config = _extract_scan_and_queue_config(raw_config)
     extensions = parse_csv_list(scan_config["filters"]["extensions"])
 

@@ -238,15 +238,15 @@ class DataHubJobMetadataResolver:
         self.data_job_key = data_job_key
         self.input_flow_urn = self._build_input_flow_urn()
         self.input_job_urn = self._build_input_job_urn()
-        self.stage_config = self._resolve_stage_config()
+        self.resolved_job_config = self._resolve_stage_config()
 
     @property
     def flow_urn(self) -> str:
-        return self.stage_config.flow_urn(self.env)
+        return self.resolved_job_config.flow_urn(self.env)
 
     @property
     def job_urn(self) -> str:
-        return self.stage_config.job_urn(self.env)
+        return self.resolved_job_config.job_urn(self.env)
 
     def _build_input_flow_urn(self) -> str:
         return DataHubUrnFactory.flow_urn(
@@ -282,23 +282,23 @@ class DataHubRunTimeLineage:
     def __init__(self, *, client_config: DataHubLineageRuntimeConfig) -> None:
         self.graph_client = DataHubGraphClient(connection_settings=client_config.bootstrap_settings)
         self.env = client_config.bootstrap_settings.env
-        self.static_lineage = DataHubJobMetadataResolver(
+        self.job_metadata_resolver = DataHubJobMetadataResolver(
             graph_client=self.graph_client,
             env=self.env,
             data_job_key=client_config.data_job_key,
         )
-        self.stage_config = self.static_lineage.stage_config
+        self.resolved_job_config = self.job_metadata_resolver.resolved_job_config
         self.inputs: list[str] = []
         self.outputs: list[str] = []
         self._active_context: ActiveRunContext | None = None
 
     @property
     def flow_urn(self) -> str:
-        return self.static_lineage.flow_urn
+        return self.job_metadata_resolver.flow_urn
 
     @property
     def job_urn(self) -> str:
-        return self.static_lineage.job_urn
+        return self.job_metadata_resolver.job_urn
 
     def dataset_urn(self, *, platform: str, name: str) -> DatasetUrn:
         return DataHubUrnFactory.dataset_urn(platform=platform, name=name, env=self.env)
@@ -359,7 +359,7 @@ class DataHubRunTimeLineage:
         )
 
     def create_run_spec(self, *, job_version: str, attempt: int) -> RunSpec:
-        run_id = f"{int(time.time() * 1000)}-{self.stage_config.job_id}-{uuid.uuid4()}"
+        run_id = f"{int(time.time() * 1000)}-{self.resolved_job_config.job_id}-{uuid.uuid4()}"
         return self.build_run_spec(run_id=run_id, attempt=attempt, job_version=job_version)
 
     def emit_dpi(

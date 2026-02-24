@@ -18,9 +18,9 @@ class DataHubRuntimeConnectionSettings:
 
     server: str
     env: str
-    token: str | None = None
-    timeout_sec: float = 3.0
-    retry_max_times: int = 1
+    token: str | None
+    timeout_sec: float
+    retry_max_times: int
 
 
 @dataclass(frozen=True)

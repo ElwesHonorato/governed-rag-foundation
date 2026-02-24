@@ -1,3 +1,10 @@
+"""Runtime DataHub lineage emission helpers.
+
+This module provides runtime-only DataHub lineage primitives used by workers
+to emit DataProcessInstance events and resolve stage runtime config from
+DataHub metadata.
+"""
+
 import logging
 import os
 import subprocess
@@ -43,9 +50,34 @@ class ActiveRunContext:
 
 
 class DataProcessInstanceMcpBuilder:
-    """Build DataProcessInstance aspects and MCPs from one run payload."""
+    """Build DataProcessInstance aspects and MCP payloads.
 
-    def build(
+    MCP means Metadata Change Proposal in DataHub: one emitted metadata change
+    for one entity URN/aspect pair. This is different from the AI ecosystem
+    acronym MCP (Model Context Protocol).
+
+    This builder converts one runtime run payload into the set of ordered MCPs
+    required to upsert DataProcessInstance properties, relationships, IO edges,
+    and one run-event status update.
+
+    Emitted MCPs (ordered):
+    1. `DataProcessInstancePropertiesClass`: run metadata and custom properties.
+    2. `dataProcessInstanceRelationships`: link to parent DataJob template URN.
+    3. `dataProcessInstanceInput`: input dataset lineage edges.
+    4. `dataProcessInstanceOutput`: output dataset lineage edges.
+    5. `dataProcessInstanceRunEvent`: timestamped lifecycle status event.
+
+    Args:
+        dpi_urn: DataProcessInstance URN for the current run.
+        datajob_urn: Parent DataJob template URN.
+        run: Runtime run payload containing run id, io sets, and metadata.
+        now_ms: Event timestamp in milliseconds.
+        status: Run status to emit for this event.
+        actor_urn: Actor URN written into the audit stamp.
+        external_url: Optional external URL attached to run properties.
+    """
+
+    def __init__(
         self,
         *,
         dpi_urn: str,
@@ -55,102 +87,105 @@ class DataProcessInstanceMcpBuilder:
         status: DataProcessRunStatusClass,
         actor_urn: str,
         external_url: str | None,
-    ) -> list[MetadataChangeProposalWrapper]:
-        properties = self._build_properties(run=run, now_ms=now_ms, actor_urn=actor_urn, external_url=external_url)
-        relationships = self._build_relationships(datajob_urn=datajob_urn)
-        dpi_input, dpi_output = self._build_io(run=run)
-        run_event = self._build_run_event(run=run, now_ms=now_ms, status=status)
-        return self._build_mcps(
-            dpi_urn=dpi_urn,
-            properties=properties,
-            relationships=relationships,
-            dpi_input=dpi_input,
-            dpi_output=dpi_output,
-            run_event=run_event,
-        )
+    ) -> None:
+        """Initialize builder context for one DataProcessInstance event."""
+        self.dpi_urn = dpi_urn
+        self.datajob_urn = datajob_urn
+        self.run = run
+        self.now_ms = now_ms
+        self.status = status
+        self.actor_urn = actor_urn
+        self.external_url = external_url
+        self.dpi_properties_aspect: DataProcessInstancePropertiesClass | None = None
+        self.dpi_relationships_aspect: DataProcessInstanceRelationshipsClass | None = None
+        self.dpi_input_aspect: DataProcessInstanceInput | None = None
+        self.dpi_output_aspect: DataProcessInstanceOutput | None = None
+        self.dpi_run_event_aspect: DataProcessInstanceRunEventClass | None = None
 
-    def _build_properties(
-        self,
-        *,
-        run: RunSpec,
-        now_ms: int,
-        actor_urn: str,
-        external_url: str | None,
-    ) -> DataProcessInstancePropertiesClass:
+    def build(self) -> list[MetadataChangeProposalWrapper]:
+        """Build ordered DataProcessInstance MCPs for one run status transition.
+
+        Returns:
+            Ordered list of MetadataChangeProposalWrapper objects for one event.
+        """
+        self.dpi_properties_aspect = self._build_dpi_properties_aspect()
+        self.dpi_relationships_aspect = self._build_dpi_relationships_aspect()
+        self.dpi_input_aspect = self._build_dpi_input_aspect()
+        self.dpi_output_aspect = self._build_dpi_output_aspect()
+        self.dpi_run_event_aspect = self._build_dpi_run_event_aspect()
+        return self._build_dpi_mcp_batch()
+
+    def _build_dpi_properties_aspect(self) -> DataProcessInstancePropertiesClass:
+        """Build `DataProcessInstancePropertiesClass` aspect payload."""
         return DataProcessInstancePropertiesClass(
-            name=run.run_id,
-            created=AuditStampClass(time=now_ms, actor=actor_urn),
+            name=self.run.run_id,
+            created=AuditStampClass(time=self.now_ms, actor=self.actor_urn),
             type="BATCH_SCHEDULED",
-            externalUrl=external_url,
+            externalUrl=self.external_url,
             customProperties={
-                "job_version": run.job_version,
-                "attempt": str(run.attempt),
+                "job_version": self.run.job_version,
+                "attempt": str(self.run.attempt),
             },
         )
 
-    def _build_relationships(self, *, datajob_urn: str) -> DataProcessInstanceRelationshipsClass:
-        return DataProcessInstanceRelationshipsClass(upstreamInstances=[], parentTemplate=datajob_urn)
+    def _build_dpi_relationships_aspect(self) -> DataProcessInstanceRelationshipsClass:
+        """Build `DataProcessInstanceRelationshipsClass` aspect payload."""
+        return DataProcessInstanceRelationshipsClass(upstreamInstances=[], parentTemplate=self.datajob_urn)
 
-    def _build_io(self, *, run: RunSpec) -> tuple[DataProcessInstanceInput, DataProcessInstanceOutput]:
-        dpi_in = DataProcessInstanceInput(
+    def _build_dpi_input_aspect(self) -> DataProcessInstanceInput:
+        """Build `DataProcessInstanceInput` aspect payload."""
+        return DataProcessInstanceInput(
             inputs=[],
-            inputEdges=[EdgeClass(destinationUrn=urn) for urn in run.inputs],
+            inputEdges=[EdgeClass(destinationUrn=urn) for urn in self.run.inputs],
         )
-        dpi_out = DataProcessInstanceOutput(
+
+    def _build_dpi_output_aspect(self) -> DataProcessInstanceOutput:
+        """Build `DataProcessInstanceOutput` aspect payload."""
+        return DataProcessInstanceOutput(
             outputs=[],
-            outputEdges=[EdgeClass(destinationUrn=urn) for urn in run.outputs],
+            outputEdges=[EdgeClass(destinationUrn=urn) for urn in self.run.outputs],
         )
-        return dpi_in, dpi_out
 
-    def _build_run_event(
-        self, *, run: RunSpec, now_ms: int, status: DataProcessRunStatusClass
-    ) -> DataProcessInstanceRunEventClass:
+    def _build_dpi_run_event_aspect(self) -> DataProcessInstanceRunEventClass:
+        """Build `DataProcessInstanceRunEventClass` aspect payload."""
         return DataProcessInstanceRunEventClass(
-            timestampMillis=now_ms,
-            status=status,
-            attempt=run.attempt,
+            timestampMillis=self.now_ms,
+            status=self.status,
+            attempt=self.run.attempt,
         )
 
-    def _build_mcps(
-        self,
-        *,
-        dpi_urn: str,
-        properties: DataProcessInstancePropertiesClass,
-        relationships: DataProcessInstanceRelationshipsClass,
-        dpi_input: DataProcessInstanceInput,
-        dpi_output: DataProcessInstanceOutput,
-        run_event: DataProcessInstanceRunEventClass,
-    ) -> list[MetadataChangeProposalWrapper]:
+    def _build_dpi_mcp_batch(self) -> list[MetadataChangeProposalWrapper]:
+        """Wrap built aspects into ordered `MetadataChangeProposalWrapper` MCPs."""
+        aspect_params: list[dict[str, object]] = [
+            {"aspect": self.dpi_properties_aspect},
+            {
+                "entityType": "dataProcessInstance",
+                "aspectName": "dataProcessInstanceRelationships",
+                "aspect": self.dpi_relationships_aspect,
+            },
+            {
+                "entityType": "dataProcessInstance",
+                "aspectName": "dataProcessInstanceInput",
+                "aspect": self.dpi_input_aspect,
+            },
+            {
+                "entityType": "dataProcessInstance",
+                "aspectName": "dataProcessInstanceOutput",
+                "aspect": self.dpi_output_aspect,
+            },
+            {
+                "entityType": "dataProcessInstance",
+                "aspectName": "dataProcessInstanceRunEvent",
+                "aspect": self.dpi_run_event_aspect,
+            },
+        ]
         return [
-            MetadataChangeProposalWrapper(entityUrn=dpi_urn, aspect=properties, changeType=ChangeTypeClass.UPSERT),
             MetadataChangeProposalWrapper(
-                entityUrn=dpi_urn,
-                entityType="dataProcessInstance",
-                aspectName="dataProcessInstanceRelationships",
-                aspect=relationships,
+                entityUrn=self.dpi_urn,
                 changeType=ChangeTypeClass.UPSERT,
-            ),
-            MetadataChangeProposalWrapper(
-                entityUrn=dpi_urn,
-                entityType="dataProcessInstance",
-                aspectName="dataProcessInstanceInput",
-                aspect=dpi_input,
-                changeType=ChangeTypeClass.UPSERT,
-            ),
-            MetadataChangeProposalWrapper(
-                entityUrn=dpi_urn,
-                entityType="dataProcessInstance",
-                aspectName="dataProcessInstanceOutput",
-                aspect=dpi_output,
-                changeType=ChangeTypeClass.UPSERT,
-            ),
-            MetadataChangeProposalWrapper(
-                entityUrn=dpi_urn,
-                entityType="dataProcessInstance",
-                aspectName="dataProcessInstanceRunEvent",
-                aspect=run_event,
-                changeType=ChangeTypeClass.UPSERT,
-            ),
+                **params,
+            )
+            for params in aspect_params
         ]
 
 
@@ -265,7 +300,6 @@ class DataHubRunTimeLineage:
         self.inputs: list[str] = []
         self.outputs: list[str] = []
         self._active_context: ActiveRunContext | None = None
-        self._dpi_builder = DataProcessInstanceMcpBuilder()
 
     @property
     def flow_urn(self) -> str:
@@ -433,7 +467,7 @@ class DataHubRunTimeLineage:
         actor_urn: str = DEFAULT_ACTOR_URN,
     ) -> str:
         dpi_urn = self._dpi_urn(run.run_id)
-        mcps = self._dpi_builder.build(
+        mcps = DataProcessInstanceMcpBuilder(
             dpi_urn=dpi_urn,
             datajob_urn=datajob_urn,
             run=run,
@@ -441,7 +475,7 @@ class DataHubRunTimeLineage:
             status=status,
             actor_urn=actor_urn,
             external_url=external_url,
-        )
+        ).build()
         self.client.emit_mcps(mcps=mcps)
         return dpi_urn
 

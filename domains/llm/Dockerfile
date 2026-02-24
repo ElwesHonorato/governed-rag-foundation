@@ -1,4 +1,4 @@
-FROM ollama/ollama:latest
+FROM ollama/ollama@sha256:006ad593108a705eafc8ea8496a30765222bdab17b1a1b0bbe3d50ff2e70fbf4
 
 ARG LLM_MODEL
 

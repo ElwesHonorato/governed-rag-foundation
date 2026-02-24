@@ -5,7 +5,7 @@ This domain is the artifact backbone of the RAG pipeline. Every worker reads and
 ## Deep Dive
 
 ### What runs here
-- `minio` (`minio/minio:latest`)
+- `minio` (`minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e`)
 
 ### How it contributes to RAG
 - Stores stage artifacts in object storage, including:

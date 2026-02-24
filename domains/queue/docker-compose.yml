@@ -1,6 +1,6 @@
 services:
   rabbitmq:
-    image: rabbitmq:3-management-alpine
+    image: rabbitmq@sha256:606d8c0d6b3c18d1da9afc53bc7cdb2a8d5486df91b5a9830e9e07626c9ae281
     hostname: rabbitmq
     ports:
       - "${RABBITMQ_PORT:?RABBITMQ_PORT is required}:5672"

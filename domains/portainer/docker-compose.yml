@@ -1,6 +1,6 @@
 services:
   portainer:
-    image: portainer/portainer-ce:latest
+    image: portainer/portainer-ce@sha256:9012a4256c4632f2c6162da361a4d4db9d6d04800e0db0137de96e31656ab876
     ports:
       - "${PORTAINER_HTTPS_PORT:-9443}:9443"
       - "${PORTAINER_HTTP_PORT:-9002}:9000"

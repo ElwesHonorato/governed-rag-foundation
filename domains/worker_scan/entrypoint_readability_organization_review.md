@@ -47,7 +47,7 @@ Best practices:
 
 from typing import Any
 
-from pipeline_common.lineage.data_hub import DataHubLineageClient
+from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
 from pipeline_common.lineage.data_hub.contracts import DataHubLineageRuntimeConfig
 from pipeline_common.lineage.pipeline import DataHubPipelineJobs
 from pipeline_common.object_storage import ObjectStorageGateway, S3Client
@@ -107,9 +107,9 @@ def _load_runtime_settings() -> tuple[S3StorageSettings, QueueRuntimeSettings, D
     )
 
 
-def _build_lineage_client(datahub_settings: DataHubBootstrapSettings) -> DataHubLineageClient:
+def _build_lineage_client(datahub_settings: DataHubBootstrapSettings) -> DataHubRunTimeLineage:
     """Build DataHub lineage client for worker_scan."""
-    return DataHubLineageClient(
+    return DataHubRunTimeLineage(
         client_config=DataHubLineageRuntimeConfig(
             bootstrap_settings={
                 "server": datahub_settings.server,

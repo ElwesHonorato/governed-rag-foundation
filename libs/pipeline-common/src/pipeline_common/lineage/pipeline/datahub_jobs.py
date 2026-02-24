@@ -1,3 +1,14 @@
+"""Runtime DataHub job key registry.
+
+This module is intentionally limited to runtime bootstrap identifiers
+(flow_id/job_id/platform) so workers can resolve their DataHub job key
+without a runtime dependency on the governance repository.
+
+Ownership note:
+- Governance remains the source of truth for static topology mutations.
+- Runtime lineage must not mutate static DataHub entities.
+"""
+
 from enum import Enum
 
 from pipeline_common.lineage.contracts import DataHubDataJobKey

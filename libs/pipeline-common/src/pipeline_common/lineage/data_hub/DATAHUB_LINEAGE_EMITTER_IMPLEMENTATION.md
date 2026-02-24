@@ -3,6 +3,11 @@
 ## Goal
 Implement a DataHub emitter in `pipeline_common/lineage/data_hub` using the working model in `datahub_migration/minimal_datahub_test.py`.
 
+Boundary rule for this package:
+- `pipeline_common/lineage` is runtime-lineage only.
+- No static topology mutation (DataFlow/DataJob/Domain/static lineage edges) should be performed here.
+- Governance-owned static mutations are handled outside runtime lineage.
+
 Reference implementation model:
 - `datahub_migration/minimal_datahub_test.py`
 
@@ -12,15 +17,14 @@ Primary objective: refactor the tested DataHub run-emission model into a reusabl
 
 ## Pattern to Follow From `minimal_datahub_test.py`
 The implementation model that currently works against local DataHub is:
-1. Upsert datasets before run/lineage updates.
-2. Upsert static templates (`DataFlow`, `DataJob`).
-3. Emit one `DataProcessInstance` per run via MCPs.
-4. Attach per-run inputs/outputs on DPI aspects.
-5. Emit run events (`STARTED`, `COMPLETE`; `FAILED` on failure path).
+1. Resolve runtime job identity and runtime config from DataHub metadata.
+2. Emit one `DataProcessInstance` per run via MCPs.
+3. Attach per-run inputs/outputs on DPI aspects.
+4. Emit run events (`STARTED`, `COMPLETE`; `FAILED` on failure path).
 
 ## DataHub Entity Mapping
 Use these mappings in `data_hub/lineage.py`:
-1. Emitter runtime job identity -> `DataFlow` + `DataJob`.
+1. Emitter runtime job identity -> existing `DataJob` template resolved from runtime key.
 2. One call to `start_run`/`complete_run` -> one `DataProcessInstance` URN.
 3. `add_input` / `add_output` datasets -> `DataProcessInstanceInput` / `DataProcessInstanceOutput` edges.
 4. `complete_run` -> `DataProcessInstanceRunEvent(status=COMPLETE)`.
@@ -34,7 +38,7 @@ These are required with the currently installed SDK and must be implemented exac
    - `DataProcessInstanceInput`
    - `DataProcessInstanceOutput`
    Do not pass raw dicts as MCP aspects.
-4. Dataset lineage mutation can fail if dataset entities do not exist; upsert first.
+4. Runtime lineage should not create static entities; missing static entities are a governance/setup issue.
 
 ## Run ID Rules
 Follow the proven uniqueness pattern from the test:
@@ -55,10 +59,9 @@ Suggested helpers inside `lineage.py`:
 1. `_init_lineage_settings(...)`
 2. `_init_lineage_config(...)`
 3. `_init_run_state()`
-4. `_ensure_datasets_exist(...)`
-5. `_ensure_flow_and_job(...)`
-6. `_emit_dpi_aspects(...)`
-7. `_run_event(status, ...)`
+4. `_resolve_runtime_config(...)`
+5. `_emit_dpi_aspects(...)`
+6. `_run_event(status, ...)`
 
 ## Separation of Responsibilities
 Match the existing style in `open_lineage/lineage.py`:
@@ -69,7 +72,7 @@ Match the existing style in `open_lineage/lineage.py`:
 
 ## Implementation Notes for Future Worker Adoption
 1. Provide a class-oriented API centered on explicit run specs and job identity.
-2. Keep DataHub concerns explicit: dataset upsert, DataFlow/DataJob template upsert, DPI aspect emission.
+2. Keep DataHub concerns explicit: runtime config resolution + DPI aspect emission.
 3. Keep the class importable from worker domains without requiring CLI behavior.
 4. Keep CLI wrapper thin; business logic should live in class methods.
 

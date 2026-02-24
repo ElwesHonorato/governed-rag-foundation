@@ -33,7 +33,7 @@ from datahub.metadata.urns import DatasetUrn
 from pipeline_common.lineage.contracts import DataHubDataJobKey, DatasetPlatform, ResolvedDataHubFlowConfig
 from pipeline_common.lineage.urns import DataHubUrnFactory
 
-from .contracts import DataHubLineageRuntimeConfig, DataHubRuntimeConnectionSettings, RunSpec
+from .contracts import CustomProperties, DataHubLineageRuntimeConfig, DataHubRuntimeConnectionSettings, RunSpec
 
 logger = logging.getLogger(__name__)
 DEFAULT_ACTOR_URN = "urn:li:corpuser:datahub"
@@ -110,9 +110,7 @@ class DataProcessInstanceMcpBuilder:
             name=self.run.run_id,
             created=AuditStampClass(time=self.now_ms, actor=DEFAULT_ACTOR_URN),
             type="BATCH_SCHEDULED",
-            customProperties={
-                "job_version": self.run.job_version,
-            },
+            customProperties=self.run.custom_properties.dump(),
         )
 
     def _build_dpi_relationships_aspect(self) -> DataProcessInstanceRelationshipsClass:
@@ -179,7 +177,7 @@ class DataProcessInstanceMcpBuilder:
 class DataHubGraphClient:
     """Handle aspect reads and MCP writes via DataHub graph client."""
 
-    def __init__(self, *, connection_settings: DataHubRuntimeConnectionSettings) -> None:
+    def __init__(self, connection_settings: DataHubRuntimeConnectionSettings) -> None:
         """Initialize graph client from runtime connection settings."""
         self.graph = DataHubGraph(
             DatahubClientConfig(
@@ -207,7 +205,7 @@ class DataHubGraphClient:
             logger.warning("Could not read DataJobInfo for %s: %s", job_urn, exc)
             return None
 
-    def emit_mcps(self, *, mcps: list[MetadataChangeProposalWrapper]) -> None:
+    def emit_mcps(self, mcps: list[MetadataChangeProposalWrapper]) -> None:
         """Emit MCPs to DataHub Graph in the provided order.
 
         Args:
@@ -221,7 +219,7 @@ class DataHubGraphClient:
 class DataHubJobMetadataResolver:
     """Retrieve static DataJob details specified by governance definitions."""
 
-    def __init__(self, *, graph_client: DataHubGraphClient, env: str, data_job_key: DataHubDataJobKey) -> None:
+    def __init__(self, graph_client: DataHubGraphClient, env: str, data_job_key: DataHubDataJobKey) -> None:
         self.graph_client = graph_client
         self.env = env
         self.data_job_key = data_job_key
@@ -259,7 +257,7 @@ class DataHubJobMetadataResolver:
 class DataHubRunTimeLineage:
     """Push DataProcessInstance lineage inputs/outputs and run events."""
 
-    def __init__(self, *, client_config: DataHubLineageRuntimeConfig) -> None:
+    def __init__(self, client_config: DataHubLineageRuntimeConfig) -> None:
         self.graph_client = DataHubGraphClient(connection_settings=client_config.connection_settings)
         env = client_config.connection_settings.env
         resolver = DataHubJobMetadataResolver(
@@ -272,21 +270,24 @@ class DataHubRunTimeLineage:
         self.job_version = self._resolve_job_version()
         self._active_context: ActiveRunContext | None = None
 
-    def dataset_urn(self, *, platform: DatasetPlatform, name: str) -> DatasetUrn:
+    def _dataset_urn(self, platform: DatasetPlatform, name: str) -> DatasetUrn:
         return DataHubUrnFactory.dataset_urn(
             platform=platform.platform,
             name=name,
             env=self.resolved_job_config.flow_instance,
         )
 
-    def reset_run_state(self) -> None:
+    def _dpi_urn(self, run_id: str) -> str:
+        return DataHubUrnFactory.data_process_instance_urn(run_id=run_id)
+
+    def _reset_run_state(self) -> None:
         self._clear_active_run()
 
     def start_run(self) -> RunSpec:
-        self.reset_run_state()
+        self._reset_run_state()
         run = RunSpec(
             run_id=self._generate_run_id(),
-            job_version=self.job_version,
+            custom_properties=CustomProperties(job_version=self.job_version),
             inputs=[],
             outputs=[],
         )
@@ -295,85 +296,37 @@ class DataHubRunTimeLineage:
             datajob_urn=self.datajob_urn,
         )
         try:
-            self._emit_run_status(
-                datajob_urn=self.datajob_urn,
-                run=run,
-                status=DataProcessRunStatusClass.STARTED,
-            )
+            self._emit_dpi_event(status=DataProcessRunStatusClass.STARTED)
         except Exception:
             self._clear_active_run()
             raise
         return run
 
-    def add_input(self, *, name: str, platform: DatasetPlatform) -> DatasetUrn:
-        dataset = self.dataset_urn(platform=platform, name=name)
+    def add_input(self, name: str, platform: DatasetPlatform) -> DatasetUrn:
+        dataset = self._dataset_urn(platform=platform, name=name)
         self._active_context.run.inputs.append(str(dataset))
         return dataset
 
-    def add_output(self, *, name: str, platform: DatasetPlatform) -> DatasetUrn:
-        dataset = self.dataset_urn(platform=platform, name=name)
+    def add_output(self, name: str, platform: DatasetPlatform) -> DatasetUrn:
+        dataset = self._dataset_urn(platform=platform, name=name)
         self._active_context.run.outputs.append(str(dataset))
         return dataset
 
     def _generate_run_id(self) -> str:
         return f"{int(time.time() * 1000)}-{self.resolved_job_config.job_id}-{uuid.uuid4()}"
 
-    def emit_dpi(
-        self,
-        *,
-        datajob_urn: str,
-        run: RunSpec,
-    ) -> str:
-        self._emit_run_status(
-            datajob_urn=datajob_urn,
-            run=run,
-            status=DataProcessRunStatusClass.STARTED,
-        )
-        self._emit_run_status(
-            datajob_urn=datajob_urn,
-            run=run,
-            status=DataProcessRunStatusClass.COMPLETE,
-        )
-        return self._dpi_urn(run.run_id)
-
     def complete_run(self) -> str:
-        if self._active_context is None:
-            raise ValueError("No active run; call start_run() before complete_run().")
-        context = self._active_context
-        run = context.run
-        completed_run = RunSpec(
-            run_id=run.run_id,
-            job_version=run.job_version,
-            inputs=list(run.inputs),
-            outputs=list(run.outputs),
-        )
-        self._emit_run_status(
-            datajob_urn=context.datajob_urn,
-            run=completed_run,
-            status=DataProcessRunStatusClass.COMPLETE,
-        )
+        self._emit_dpi_event(status=DataProcessRunStatusClass.COMPLETE)
+        run_id = self._active_context.run.run_id
         self._clear_active_run()
-        return self._dpi_urn(completed_run.run_id)
+        return self._dpi_urn(run_id)
 
     def fail_run(self, error_message: str | None) -> str:
-        _ = error_message
-        if self._active_context is None:
-            raise ValueError("No active run; call start_run() before fail_run().")
-        context = self._active_context
-        run = context.run
-        failed_run = RunSpec(
-            run_id=run.run_id,
-            job_version=run.job_version,
-            inputs=list(run.inputs),
-            outputs=list(run.outputs),
-        )
-        self._emit_run_status(
-            datajob_urn=context.datajob_urn,
-            run=failed_run,
-            status=DataProcessRunStatusClass.FAILURE,
-        )
+        self._active_context.run.custom_properties.error_message = error_message
+        self._emit_dpi_event(status=DataProcessRunStatusClass.FAILURE)
+        run_id = self._active_context.run.run_id
         self._clear_active_run()
-        return self._dpi_urn(failed_run.run_id)
+        return self._dpi_urn(run_id)
 
     def abort_run(self) -> None:
         self._clear_active_run()
@@ -383,39 +336,19 @@ class DataHubRunTimeLineage:
             return str(value)
         return "unknown"
 
-    def emit_dpi_event(
-        self,
-        *,
-        datajob_urn: str,
-        run: RunSpec,
-        status: DataProcessRunStatusClass,
-    ) -> str:
-        dpi_urn = self._dpi_urn(run.run_id)
+    def _emit_dpi_event(self, status: DataProcessRunStatusClass) -> str:
+        if self._active_context is None:
+            raise ValueError("No active run context available for emitting DPI event.")
+        dpi_urn = self._dpi_urn(self._active_context.run.run_id)
         mcps = DataProcessInstanceMcpBuilder(
             dpi_urn=dpi_urn,
-            datajob_urn=datajob_urn,
-            run=run,
+            datajob_urn=self._active_context.datajob_urn,
+            run=self._active_context.run,
             now_ms=self._now_ms(),
             status=status,
         ).build()
         self.graph_client.emit_mcps(mcps=mcps)
         return dpi_urn
-
-    def _emit_run_status(
-        self,
-        *,
-        datajob_urn: str,
-        run: RunSpec,
-        status: DataProcessRunStatusClass,
-    ) -> str:
-        return self.emit_dpi_event(
-            datajob_urn=datajob_urn,
-            run=run,
-            status=status,
-        )
-
-    def _dpi_urn(self, run_id: str) -> str:
-        return DataHubUrnFactory.data_process_instance_urn(run_id=run_id)
 
     def _now_ms(self) -> int:
         return int(time.time() * 1000)

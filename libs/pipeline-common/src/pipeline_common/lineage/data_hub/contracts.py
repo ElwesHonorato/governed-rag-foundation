@@ -3,10 +3,22 @@ from dataclasses import dataclass
 from pipeline_common.lineage.contracts import DataHubDataJobKey
 
 
-@dataclass(frozen=True)
+@dataclass
+class CustomProperties:
+    job_version: str
+    error_message: str | None = None
+
+    def dump(self) -> dict[str, str]:
+        data = {"job_version": self.job_version}
+        if self.error_message:
+            data["error_message"] = self.error_message
+        return data
+
+
+@dataclass
 class RunSpec:
     run_id: str
-    job_version: str
+    custom_properties: CustomProperties
     inputs: list[str]
     outputs: list[str]
 

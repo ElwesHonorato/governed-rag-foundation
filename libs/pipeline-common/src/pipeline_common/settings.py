@@ -41,20 +41,6 @@ class QueueRuntimeSettings:
 
 
 @dataclass(frozen=True)
-class LineageEmitterSettings:
-    """Lineage runtime settings for workers."""
-
-    lineage_url: str
-
-    @classmethod
-    def from_env(cls) -> "LineageEmitterSettings":
-        """Execute from env."""
-        return cls(
-            lineage_url=_optional_env("MARQUEZ_LINEAGE_URL", ""),
-        )
-
-
-@dataclass(frozen=True)
 class DataHubBootstrapSettings:
     """DataHub bootstrap settings for flow/job template upserts."""
 
@@ -66,8 +52,11 @@ class DataHubBootstrapSettings:
     def from_env(cls) -> "DataHubBootstrapSettings":
         """Execute from env."""
         token = _optional_env("DATAHUB_TOKEN", "")
+        server = _optional_env("DATAHUB_GMS_SERVER", "")
+        if not server:
+            server = _optional_env("DATAHUB_GMS_URL", "http://localhost:8081")
         return cls(
-            server=_optional_env("DATAHUB_GMS_SERVER", "http://localhost:8081"),
+            server=server,
             env=_optional_env("DATAHUB_ENV", "PROD"),
             token=token or None,
         )

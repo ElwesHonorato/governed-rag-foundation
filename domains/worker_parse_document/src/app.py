@@ -14,13 +14,14 @@ Best practices:
 - Keep startup deterministic and free of hidden global side effects.
 """
 
+from pipeline_common.lineage.pipeline import DataHubPipelineJobs
 from pipeline_common.queue import StageQueue
 from pipeline_common.startup import (
-    build_lineage_emitter,
+    build_datahub_lineage_client,
     build_object_storage,
-    load_worker_runtime_settings,
+    load_runtime_settings,
 )
-from configs.constants import PARSE_DOCUMENT_LINEAGE_CONFIG, PARSE_DOCUMENT_PROCESSING_CONFIG
+from configs.constants import PARSE_DOCUMENT_PROCESSING_CONFIG
 from parsing.html import HtmlParser
 from parsing.registry import ParserRegistry
 from services.worker_parse_document_service import WorkerParseDocumentService
@@ -28,11 +29,11 @@ from services.worker_parse_document_service import WorkerParseDocumentService
 
 def run() -> None:
     """Initialize dependencies and start the worker service."""
-    s3_settings, queue_settings, lineage_settings = load_worker_runtime_settings()
+    s3_settings, queue_settings, datahub_settings = load_runtime_settings()
     processing_config = PARSE_DOCUMENT_PROCESSING_CONFIG
-    lineage = build_lineage_emitter(
-        lineage_settings=lineage_settings,
-        lineage_config=PARSE_DOCUMENT_LINEAGE_CONFIG,
+    lineage = build_datahub_lineage_client(
+        datahub_settings=datahub_settings,
+        data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_parse_document"),
     )
     stage_queue = StageQueue(queue_settings.broker_url, queue_config=processing_config["queue"])
     parser_registry = ParserRegistry(parsers=[HtmlParser()])

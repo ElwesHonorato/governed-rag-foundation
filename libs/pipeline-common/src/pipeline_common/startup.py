@@ -7,14 +7,12 @@ reusing common bootstrapping patterns across workers.
 from typing import Any, Mapping
 
 from pipeline_common.lineage.contracts import DataHubDataJobKey
-from pipeline_common.lineage import LineageEmitter, LineageEmitterConfig
 from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
 from pipeline_common.lineage.data_hub.contracts import DataHubLineageRuntimeConfig
 from pipeline_common.object_storage import ObjectStorageGateway, S3Client
 from pipeline_common.queue import StageQueue
 from pipeline_common.settings import (
     DataHubBootstrapSettings,
-    LineageEmitterSettings,
     QueueRuntimeSettings,
     S3StorageSettings,
 )
@@ -34,15 +32,6 @@ def load_storage_settings() -> S3StorageSettings:
     return S3StorageSettings.from_env()
 
 
-def load_worker_runtime_settings() -> tuple[S3StorageSettings, QueueRuntimeSettings, LineageEmitterSettings]:
-    """Load environment-backed runtime settings for workers using LineageEmitter."""
-    return (
-        S3StorageSettings.from_env(),
-        QueueRuntimeSettings.from_env(),
-        LineageEmitterSettings.from_env(),
-    )
-
-
 def build_datahub_lineage_client(
     *,
     datahub_settings: DataHubBootstrapSettings,
@@ -58,18 +47,6 @@ def build_datahub_lineage_client(
             },
             data_job_key=data_job_key,
         )
-    )
-
-
-def build_lineage_emitter(
-    *,
-    lineage_settings: LineageEmitterSettings,
-    lineage_config: LineageEmitterConfig,
-) -> LineageEmitter:
-    """Build lineage emitter for one worker."""
-    return LineageEmitter(
-        lineage_settings=lineage_settings,
-        lineage_config=lineage_config,
     )
 
 

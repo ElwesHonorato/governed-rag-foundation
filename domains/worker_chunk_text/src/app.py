@@ -15,23 +15,24 @@ Best practices:
 - Ensure queue contract and service wiring stay aligned when stages evolve.
 """
 
+from pipeline_common.lineage.pipeline import DataHubPipelineJobs
 from pipeline_common.queue import StageQueue
 from pipeline_common.startup import (
-    build_lineage_emitter,
+    build_datahub_lineage_client,
     build_object_storage,
-    load_worker_runtime_settings,
+    load_runtime_settings,
 )
-from configs.constants import CHUNK_TEXT_LINEAGE_CONFIG, CHUNK_TEXT_PROCESSING_CONFIG
+from configs.constants import CHUNK_TEXT_PROCESSING_CONFIG
 from services.worker_chunk_text_service import WorkerChunkTextService
 
 
 def run() -> None:
     """Initialize dependencies and start the worker service."""
-    s3_settings, queue_settings, lineage_settings = load_worker_runtime_settings()
+    s3_settings, queue_settings, datahub_settings = load_runtime_settings()
     processing_config = CHUNK_TEXT_PROCESSING_CONFIG
-    lineage = build_lineage_emitter(
-        lineage_settings=lineage_settings,
-        lineage_config=CHUNK_TEXT_LINEAGE_CONFIG,
+    lineage = build_datahub_lineage_client(
+        datahub_settings=datahub_settings,
+        data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_chunk_text"),
     )
     stage_queue = StageQueue(queue_settings.broker_url, queue_config=processing_config["queue"])
     object_storage = build_object_storage(s3_settings)

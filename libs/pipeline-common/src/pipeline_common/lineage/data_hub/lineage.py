@@ -380,6 +380,27 @@ class DataHubRunTimeLineage:
         self._clear_active_run()
         return self._dpi_urn(completed_run.run_id)
 
+    def fail_run(self, error_message: str | None = None) -> str:
+        _ = error_message
+        if self._active_context is None:
+            raise ValueError("No active run; call start_run() before fail_run().")
+        context = self._active_context
+        run = context.run
+        failed_run = self.build_run_spec(
+            run_id=run.run_id,
+            attempt=run.attempt,
+            job_version=run.job_version,
+        )
+        self._emit_run_status(
+            datajob_urn=context.datajob_urn,
+            run=failed_run,
+            status=DataProcessRunStatusClass.FAILURE,
+            external_url=context.external_url,
+            actor_urn=context.actor_urn,
+        )
+        self._clear_active_run()
+        return self._dpi_urn(failed_run.run_id)
+
     def abort_run(self) -> None:
         self._clear_active_run()
 

@@ -5,7 +5,7 @@ import json
 import logging
 from typing import Any, TypedDict
 
-from pipeline_common.lineage import LineageEmitter
+from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
 from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway
 
@@ -52,7 +52,7 @@ class WorkerEmbedChunksService(WorkerService):
         *,
         stage_queue: StageQueue,
         object_storage: ObjectStorageGateway,
-        lineage: LineageEmitter,
+        lineage: DataHubRunTimeLineage,
         processing_config: EmbedChunksProcessingConfig,
         dimension: int,
     ) -> None:
@@ -91,35 +91,15 @@ class WorkerEmbedChunksService(WorkerService):
         if not source_key.endswith(self.chunks_suffix):
             return
 
-        self.lineage.start_run(
-            run_facets={
-                "governedRag": {
-                    "_producer": self.lineage.producer,
-                    "_schemaURL": "https://governed-rag.dev/schemas/facets/governedRagRunFacet.json",
-                    "chunk_key": source_key,
-                }
-            }
-        )
-        self.lineage.add_input({"name": source_key})
+        self.lineage.start_run()
+        self.lineage.add_input(name=f"{self.storage_bucket}/{source_key}", platform="s3")
         try:
             chunk_payload = self._read_chunks_object(source_key)
             embedding_payload = self._process_object(chunk_payload)
             doc_id = str(embedding_payload["doc_id"])
             chunk_id = str(embedding_payload["chunk_id"])
             destination_key = self._embedding_object_key(doc_id, chunk_id)
-            self.lineage.set_run_facets(
-                {
-                    "governedRag": {
-                        "_producer": self.lineage.producer,
-                        "_schemaURL": "https://governed-rag.dev/schemas/facets/governedRagRunFacet.json",
-                        "chunk_key": source_key,
-                        "embeddings_key": destination_key,
-                        "doc_id": doc_id,
-                        "chunk_id": chunk_id,
-                    }
-                }
-            )
-            self.lineage.add_output({"name": destination_key})
+            self.lineage.add_output(name=f"{self.storage_bucket}/{destination_key}", platform="s3")
             if self._embeddings_exists(destination_key):
                 self.stage_queue.push_dlq_message(storage_key=source_key)
                 self.lineage.fail_run(error_message=f"Embeddings artifact already exists: {destination_key}")

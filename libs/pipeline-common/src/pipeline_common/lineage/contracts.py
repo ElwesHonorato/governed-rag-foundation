@@ -1,6 +1,20 @@
+from enum import Enum
 from dataclasses import dataclass, field
 
 from .urns import DataHubUrnFactory
+
+
+class DatasetPlatform(str, Enum):
+    S3 = "s3"
+    POSTGRES = "postgres"
+    RABBITMQ = "rabbitmq"
+    WEAVIATE = "weaviate"
+    MYSQL = "mysql"
+    KAFKA = "kafka"
+
+    @property
+    def platform(self) -> str:
+        return self.value
 
 
 @dataclass(frozen=True)
@@ -57,4 +71,4 @@ class ResolvedDataHubFlowConfig:
         return self.custom_properties.get("queue.dlq")
 
 
-__all__ = ["DataHubDataJobKey", "ResolvedDataHubFlowConfig"]
+__all__ = ["DatasetPlatform", "DataHubDataJobKey", "ResolvedDataHubFlowConfig"]

@@ -7,7 +7,6 @@ DataHub metadata.
 
 import logging
 import os
-import subprocess
 import time
 import uuid
 from dataclasses import dataclass
@@ -31,7 +30,7 @@ from datahub.metadata.schema_classes import (
 )
 from datahub.metadata.urns import DatasetUrn
 
-from pipeline_common.lineage.contracts import DataHubDataJobKey, ResolvedDataHubFlowConfig
+from pipeline_common.lineage.contracts import DataHubDataJobKey, DatasetPlatform, ResolvedDataHubFlowConfig
 from pipeline_common.lineage.urns import DataHubUrnFactory
 
 from .contracts import DataHubLineageRuntimeConfig, DataHubRuntimeConnectionSettings, RunSpec
@@ -43,8 +42,6 @@ DEFAULT_ACTOR_URN = "urn:li:corpuser:datahub"
 class ActiveRunContext:
     run: RunSpec
     datajob_urn: str
-    external_url: str | None
-    actor_urn: str
 
 
 class DataProcessInstanceMcpBuilder:
@@ -71,8 +68,6 @@ class DataProcessInstanceMcpBuilder:
         run: Runtime run payload containing run id, io sets, and metadata.
         now_ms: Event timestamp in milliseconds.
         status: Run status to emit for this event.
-        actor_urn: Actor URN written into the audit stamp.
-        external_url: Optional external URL attached to run properties.
     """
 
     def __init__(
@@ -83,8 +78,6 @@ class DataProcessInstanceMcpBuilder:
         run: RunSpec,
         now_ms: int,
         status: DataProcessRunStatusClass,
-        actor_urn: str,
-        external_url: str | None,
     ) -> None:
         """Initialize builder context for one DataProcessInstance event."""
         self.dpi_urn = dpi_urn
@@ -92,8 +85,6 @@ class DataProcessInstanceMcpBuilder:
         self.run = run
         self.now_ms = now_ms
         self.status = status
-        self.actor_urn = actor_urn
-        self.external_url = external_url
         self.dpi_properties_aspect: DataProcessInstancePropertiesClass | None = None
         self.dpi_relationships_aspect: DataProcessInstanceRelationshipsClass | None = None
         self.dpi_input_aspect: DataProcessInstanceInput | None = None
@@ -117,12 +108,10 @@ class DataProcessInstanceMcpBuilder:
         """Build `DataProcessInstancePropertiesClass` aspect payload."""
         return DataProcessInstancePropertiesClass(
             name=self.run.run_id,
-            created=AuditStampClass(time=self.now_ms, actor=self.actor_urn),
+            created=AuditStampClass(time=self.now_ms, actor=DEFAULT_ACTOR_URN),
             type="BATCH_SCHEDULED",
-            externalUrl=self.external_url,
             customProperties={
                 "job_version": self.run.job_version,
-                "attempt": str(self.run.attempt),
             },
         )
 
@@ -149,7 +138,7 @@ class DataProcessInstanceMcpBuilder:
         return DataProcessInstanceRunEventClass(
             timestampMillis=self.now_ms,
             status=self.status,
-            attempt=self.run.attempt,
+            attempt=1,
         )
 
     def _build_dpi_mcp_batch(self) -> list[MetadataChangeProposalWrapper]:
@@ -236,24 +225,12 @@ class DataHubJobMetadataResolver:
         self.graph_client = graph_client
         self.env = env
         self.data_job_key = data_job_key
-        self.input_flow_urn = self._build_input_flow_urn()
-        self.input_job_urn = self._build_input_job_urn()
-        self.resolved_job_config = self._resolve_stage_config()
+        self.resolved_job_config = self._resolve_job_config()
 
-    @property
-    def flow_urn(self) -> str:
-        return self.resolved_job_config.flow_urn(self.env)
-
-    @property
-    def job_urn(self) -> str:
-        return self.resolved_job_config.job_urn(self.env)
-
-    def _build_input_flow_urn(self) -> str:
-        return DataHubUrnFactory.flow_urn(
-            flow_platform=self.data_job_key.flow_platform,
-            flow_id=self.data_job_key.flow_id,
-            flow_instance=self.env,
-        )
+    def _resolve_job_config(self) -> ResolvedDataHubFlowConfig:
+        input_job_urn = self._build_input_job_urn()
+        custom_properties = self._resolve_datajob_custom_properties(input_job_urn)
+        return self._build_resolved_job_config(custom_properties)
 
     def _build_input_job_urn(self) -> str:
         return DataHubUrnFactory.job_urn(
@@ -263,11 +240,14 @@ class DataHubJobMetadataResolver:
             job_id=self.data_job_key.job_id,
         )
 
-    def _resolve_stage_config(self) -> ResolvedDataHubFlowConfig:
-        job_info = self.graph_client.get_datajob_info(self.input_job_urn)
-        custom_properties: dict[str, str] = {}
-        if job_info is not None and isinstance(job_info.customProperties, dict):
-            custom_properties = {str(k): str(v) for k, v in job_info.customProperties.items()}
+    def _resolve_datajob_custom_properties(self, input_job_urn: str) -> dict[str, str]:
+        job_info = self.graph_client.get_datajob_info(input_job_urn)
+        if job_info is None or not isinstance(job_info.customProperties, dict):
+            return {}
+        custom_properties: dict[str, str] = {str(k): str(v) for k, v in job_info.customProperties.items()}
+        return custom_properties
+
+    def _build_resolved_job_config(self, custom_properties: dict[str, str]) -> ResolvedDataHubFlowConfig:
         return ResolvedDataHubFlowConfig(
             flow_id=self.data_job_key.flow_id,
             job_id=self.data_job_key.job_id,
@@ -280,109 +260,79 @@ class DataHubRunTimeLineage:
     """Push DataProcessInstance lineage inputs/outputs and run events."""
 
     def __init__(self, *, client_config: DataHubLineageRuntimeConfig) -> None:
-        self.graph_client = DataHubGraphClient(connection_settings=client_config.bootstrap_settings)
-        self.env = client_config.bootstrap_settings.env
-        self.job_metadata_resolver = DataHubJobMetadataResolver(
+        self.graph_client = DataHubGraphClient(connection_settings=client_config.connection_settings)
+        env = client_config.connection_settings.env
+        resolver = DataHubJobMetadataResolver(
             graph_client=self.graph_client,
-            env=self.env,
+            env=env,
             data_job_key=client_config.data_job_key,
         )
-        self.resolved_job_config = self.job_metadata_resolver.resolved_job_config
-        self.inputs: list[str] = []
-        self.outputs: list[str] = []
+        self.resolved_job_config = resolver.resolved_job_config
+        self.datajob_urn = self.resolved_job_config.job_urn()
+        self.job_version = self._resolve_job_version()
         self._active_context: ActiveRunContext | None = None
 
-    @property
-    def flow_urn(self) -> str:
-        return self.job_metadata_resolver.flow_urn
+    def dataset_urn(self, *, platform: DatasetPlatform, name: str) -> DatasetUrn:
+        return DataHubUrnFactory.dataset_urn(
+            platform=platform.platform,
+            name=name,
+            env=self.resolved_job_config.flow_instance,
+        )
 
-    @property
-    def job_urn(self) -> str:
-        return self.job_metadata_resolver.job_urn
+    def reset_run_state(self) -> None:
+        self._clear_active_run()
 
-    def dataset_urn(self, *, platform: str, name: str) -> DatasetUrn:
-        return DataHubUrnFactory.dataset_urn(platform=platform, name=name, env=self.env)
-
-    def reset_io(self) -> None:
-        self.inputs.clear()
-        self.outputs.clear()
-
-    def start_run(
-        self,
-        *,
-        attempt: int,
-        datajob_urn: str | None,
-        external_url: str | None,
-        actor_urn: str,
-    ) -> RunSpec:
-        if self._active_context is not None:
-            raise ValueError("A run is already active; call complete_run() before start_run().")
-        self.reset_io()
-        run = self.create_run_spec(job_version=self.resolve_job_version(), attempt=attempt)
-        active_datajob_urn = datajob_urn or self.job_urn
+    def start_run(self) -> RunSpec:
+        self.reset_run_state()
+        run = RunSpec(
+            run_id=self._generate_run_id(),
+            job_version=self.job_version,
+            inputs=[],
+            outputs=[],
+        )
         self._active_context = ActiveRunContext(
             run=run,
-            datajob_urn=active_datajob_urn,
-            external_url=external_url,
-            actor_urn=actor_urn,
+            datajob_urn=self.datajob_urn,
         )
         try:
             self._emit_run_status(
-                datajob_urn=active_datajob_urn,
+                datajob_urn=self.datajob_urn,
                 run=run,
                 status=DataProcessRunStatusClass.STARTED,
-                external_url=external_url,
-                actor_urn=actor_urn,
             )
         except Exception:
             self._clear_active_run()
             raise
         return run
 
-    def add_input(self, *, name: str, platform: str) -> DatasetUrn:
+    def add_input(self, *, name: str, platform: DatasetPlatform) -> DatasetUrn:
         dataset = self.dataset_urn(platform=platform, name=name)
-        self.inputs.append(str(dataset))
+        self._active_context.run.inputs.append(str(dataset))
         return dataset
 
-    def add_output(self, *, name: str, platform: str) -> DatasetUrn:
+    def add_output(self, *, name: str, platform: DatasetPlatform) -> DatasetUrn:
         dataset = self.dataset_urn(platform=platform, name=name)
-        self.outputs.append(str(dataset))
+        self._active_context.run.outputs.append(str(dataset))
         return dataset
 
-    def build_run_spec(self, *, run_id: str, attempt: int, job_version: str) -> RunSpec:
-        return RunSpec(
-            run_id=run_id,
-            attempt=attempt,
-            job_version=job_version,
-            inputs=list(self.inputs),
-            outputs=list(self.outputs),
-        )
-
-    def create_run_spec(self, *, job_version: str, attempt: int) -> RunSpec:
-        run_id = f"{int(time.time() * 1000)}-{self.resolved_job_config.job_id}-{uuid.uuid4()}"
-        return self.build_run_spec(run_id=run_id, attempt=attempt, job_version=job_version)
+    def _generate_run_id(self) -> str:
+        return f"{int(time.time() * 1000)}-{self.resolved_job_config.job_id}-{uuid.uuid4()}"
 
     def emit_dpi(
         self,
         *,
         datajob_urn: str,
         run: RunSpec,
-        external_url: str | None,
-        actor_urn: str,
     ) -> str:
         self._emit_run_status(
             datajob_urn=datajob_urn,
             run=run,
             status=DataProcessRunStatusClass.STARTED,
-            external_url=external_url,
-            actor_urn=actor_urn,
         )
         self._emit_run_status(
             datajob_urn=datajob_urn,
             run=run,
             status=DataProcessRunStatusClass.COMPLETE,
-            external_url=external_url,
-            actor_urn=actor_urn,
         )
         return self._dpi_urn(run.run_id)
 
@@ -391,17 +341,16 @@ class DataHubRunTimeLineage:
             raise ValueError("No active run; call start_run() before complete_run().")
         context = self._active_context
         run = context.run
-        completed_run = self.build_run_spec(
+        completed_run = RunSpec(
             run_id=run.run_id,
-            attempt=run.attempt,
             job_version=run.job_version,
+            inputs=list(run.inputs),
+            outputs=list(run.outputs),
         )
         self._emit_run_status(
             datajob_urn=context.datajob_urn,
             run=completed_run,
             status=DataProcessRunStatusClass.COMPLETE,
-            external_url=context.external_url,
-            actor_urn=context.actor_urn,
         )
         self._clear_active_run()
         return self._dpi_urn(completed_run.run_id)
@@ -412,17 +361,16 @@ class DataHubRunTimeLineage:
             raise ValueError("No active run; call start_run() before fail_run().")
         context = self._active_context
         run = context.run
-        failed_run = self.build_run_spec(
+        failed_run = RunSpec(
             run_id=run.run_id,
-            attempt=run.attempt,
             job_version=run.job_version,
+            inputs=list(run.inputs),
+            outputs=list(run.outputs),
         )
         self._emit_run_status(
             datajob_urn=context.datajob_urn,
             run=failed_run,
             status=DataProcessRunStatusClass.FAILURE,
-            external_url=context.external_url,
-            actor_urn=context.actor_urn,
         )
         self._clear_active_run()
         return self._dpi_urn(failed_run.run_id)
@@ -430,19 +378,9 @@ class DataHubRunTimeLineage:
     def abort_run(self) -> None:
         self._clear_active_run()
 
-    def resolve_job_version(self) -> str:
-        if value := os.getenv("DATAHUB_JOB_VERSION"):
-            return value
-        if value := os.getenv("GIT_SHA"):
-            return f"git:{value}"
-        if value := os.getenv("APP_VERSION"):
-            return f"app:{value}"
-        if value := os.getenv("IMAGE_DIGEST"):
-            return f"image:{value}"
-        if value := os.getenv("IMAGE_TAG"):
-            return f"image:{value}"
-        if value := self._local_git_sha():
-            return f"git:{value}"
+    def _resolve_job_version(self) -> str:
+        if value := self.resolved_job_config.custom_properties.get("job.version"):
+            return str(value)
         return "unknown"
 
     def emit_dpi_event(
@@ -451,8 +389,6 @@ class DataHubRunTimeLineage:
         datajob_urn: str,
         run: RunSpec,
         status: DataProcessRunStatusClass,
-        external_url: str | None,
-        actor_urn: str,
     ) -> str:
         dpi_urn = self._dpi_urn(run.run_id)
         mcps = DataProcessInstanceMcpBuilder(
@@ -461,8 +397,6 @@ class DataHubRunTimeLineage:
             run=run,
             now_ms=self._now_ms(),
             status=status,
-            actor_urn=actor_urn,
-            external_url=external_url,
         ).build()
         self.graph_client.emit_mcps(mcps=mcps)
         return dpi_urn
@@ -473,15 +407,11 @@ class DataHubRunTimeLineage:
         datajob_urn: str,
         run: RunSpec,
         status: DataProcessRunStatusClass,
-        external_url: str | None,
-        actor_urn: str,
     ) -> str:
         return self.emit_dpi_event(
             datajob_urn=datajob_urn,
             run=run,
             status=status,
-            external_url=external_url,
-            actor_urn=actor_urn,
         )
 
     def _dpi_urn(self, run_id: str) -> str:
@@ -489,18 +419,6 @@ class DataHubRunTimeLineage:
 
     def _now_ms(self) -> int:
         return int(time.time() * 1000)
-
-    def _local_git_sha(self) -> str | None:
-        result = subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if result.returncode != 0:
-            return None
-        value = result.stdout.strip()
-        return value or None
 
     def _clear_active_run(self) -> None:
         self._active_context = None

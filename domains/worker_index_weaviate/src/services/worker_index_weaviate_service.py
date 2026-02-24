@@ -4,6 +4,7 @@ import json
 import logging
 from typing import Any, TypedDict
 
+from pipeline_common.lineage import DatasetPlatform
 from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
 from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway
@@ -83,14 +84,14 @@ class WorkerIndexWeaviateService(WorkerService):
         if not embeddings_key.endswith(self.embeddings_suffix):
             return
 
-        self.lineage.start_run(attempt=1, datajob_urn=None, external_url=None, actor_urn="urn:li:corpuser:datahub")
-        self.lineage.add_input(name=f"{self.storage_bucket}/{embeddings_key}", platform="s3")
+        self.lineage.start_run()
+        self.lineage.add_input(name=f"{self.storage_bucket}/{embeddings_key}", platform=DatasetPlatform.S3)
         try:
             payload = self._read_embeddings_object(embeddings_key)
             resolved_doc_id = str(payload.get("doc_id", doc_id))
             resolved_chunk_id = str(payload.get("chunk_id", ""))
             destination_key = self._indexed_key(resolved_doc_id, resolved_chunk_id)
-            self.lineage.add_output(name=f"{self.storage_bucket}/{destination_key}", platform="s3")
+            self.lineage.add_output(name=f"{self.storage_bucket}/{destination_key}", platform=DatasetPlatform.S3)
             if self._indexed_exists(destination_key):
                 self.stage_queue.push_dlq_message(embeddings_key=embeddings_key, doc_id=resolved_doc_id)
                 self.lineage.fail_run(error_message=f"Index status already exists: {destination_key}")

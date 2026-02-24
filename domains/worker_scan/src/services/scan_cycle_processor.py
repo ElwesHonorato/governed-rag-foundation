@@ -5,6 +5,7 @@ import logging
 from typing import TypedDict
 
 from pipeline_common.contracts import doc_id_from_source_key
+from pipeline_common.lineage import DatasetPlatform
 from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
 from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway
@@ -76,9 +77,9 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
             return False
 
         destination_key = self._destination_key(source_key)
-        self.lineage.start_run(attempt=1, datajob_urn=None, external_url=None, actor_urn="urn:li:corpuser:datahub")
-        self.lineage.add_input(name=f"{self.bucket}/{source_key}", platform="s3")
-        self.lineage.add_output(name=f"{self.bucket}/{destination_key}", platform="s3")
+        self.lineage.start_run()
+        self.lineage.add_input(name=f"{self.bucket}/{source_key}", platform=DatasetPlatform.S3)
+        self.lineage.add_output(name=f"{self.bucket}/{destination_key}", platform=DatasetPlatform.S3)
         try:
             self._copy_source_to_destination(source_key, destination_key)
             self.lineage.complete_run()

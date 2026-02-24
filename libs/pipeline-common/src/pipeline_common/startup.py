@@ -40,7 +40,7 @@ def build_datahub_lineage_client(
     """Build DataHub lineage client for one worker."""
     return DataHubRunTimeLineage(
         client_config=DataHubLineageRuntimeConfig(
-            bootstrap_settings=DataHubRuntimeConnectionSettings(
+            connection_settings=DataHubRuntimeConnectionSettings(
                 server=datahub_settings.server,
                 env=datahub_settings.env,
                 token=datahub_settings.token,

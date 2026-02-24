@@ -62,7 +62,6 @@ def gql_scroll(endpoint: str, urn: str, direction: str) -> list[str]:
 @dataclass(frozen=True)
 class RunSpec:
     run_id: str
-    attempt: int
     job_version: str
     inputs: list[str]
     outputs: list[str]
@@ -160,7 +159,6 @@ def emit_dpi(
         externalUrl=external_url,
         customProperties={
             "job_version": run.job_version,
-            "attempt": str(run.attempt),
         },
     )
 
@@ -182,13 +180,13 @@ def emit_dpi(
     started = DataProcessInstanceRunEventClass(
         timestampMillis=now_ms,
         status=DataProcessRunStatusClass.STARTED,
-        attempt=run.attempt,
+        attempt=1,
     )
 
     completed = DataProcessInstanceRunEventClass(
         timestampMillis=now_ms + 1,
         status=DataProcessRunStatusClass.COMPLETE,
-        attempt=run.attempt,
+        attempt=1,
     )
 
     mcps = [
@@ -309,21 +307,18 @@ def main() -> int:
     ts_ms = int(time.time() * 1000)
     run_chunk = RunSpec(
         run_id=f"{ts_ms}-chunk-fanout-{uuid.uuid4()}",
-        attempt=1,
         job_version="git:fanout-beta-chunk",
         inputs=[str(inp)],
         outputs=[str(out1), str(out2)],
     )
     run_a = RunSpec(
         run_id=f"{ts_ms}-a-{uuid.uuid4()}",
-        attempt=1,
         job_version="git:fanout-beta-embed-a",
         inputs=[str(out1)],
         outputs=[str(map1)],
     )
     run_b = RunSpec(
         run_id=f"{ts_ms}-b-{uuid.uuid4()}",
-        attempt=1,
         job_version="git:fanout-beta-embed-b",
         inputs=[str(out2)],
         outputs=[str(map2)],

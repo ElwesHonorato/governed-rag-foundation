@@ -18,4 +18,4 @@ This domain emits pipeline throughput counters. It is the lightweight observabil
 
 ### Operational notes
 - Service container: `pipeline-worker-metrics`.
-- Polling interval configured in `domains/worker_metrics/src/configs/constants.py`.
+- Polling interval configured in DataHub job `custom_properties`.

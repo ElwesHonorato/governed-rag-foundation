@@ -23,6 +23,8 @@ class DataHubPipelineJobs(Enum):
         "worker_chunk_text": DataHubDataJobKey("governed-rag", "worker_chunk_text", "custom"),
         "worker_embed_chunks": DataHubDataJobKey("governed-rag", "worker_embed_chunks", "custom"),
         "worker_index_weaviate": DataHubDataJobKey("governed-rag", "worker_index_weaviate", "custom"),
+        "worker_manifest": DataHubDataJobKey("governed-rag", "worker_manifest", "custom"),
+        "worker_metrics": DataHubDataJobKey("governed-rag", "worker_metrics", "custom"),
     }
 
     @property

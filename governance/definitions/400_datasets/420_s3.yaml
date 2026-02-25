@@ -46,3 +46,11 @@ datasets:
     owners: [search-platform]
     tags: [internal]
     terms: []
+
+  - id: s3.rag-data.07_metadata_manifest
+    platform: s3
+    name: rag-data/07_metadata/manifest
+    domain: rag-platform
+    owners: [search-platform]
+    tags: [internal]
+    terms: []

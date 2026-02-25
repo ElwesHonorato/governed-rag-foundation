@@ -21,4 +21,4 @@ This domain creates per-document status snapshots. It gives you a clear view of 
 
 ### Operational notes
 - Service container: `pipeline-worker-manifest`.
-- Polling interval configured in `domains/worker_manifest/src/configs/constants.py`.
+- Polling interval configured in DataHub job `custom_properties`.

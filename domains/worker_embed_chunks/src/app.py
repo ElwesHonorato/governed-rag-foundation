@@ -1,4 +1,3 @@
-
 """worker_embed_chunks entrypoint.
 
 Purpose:
@@ -18,34 +17,48 @@ Best practices:
 import os
 
 from pipeline_common.lineage.pipeline import DataHubPipelineJobs
-from pipeline_common.queue import StageQueue
 from pipeline_common.startup import (
     build_datahub_lineage_client,
     build_object_storage,
+    build_stage_queue,
+    expand_dot_properties,
     load_runtime_settings,
 )
-from configs.constants import EMBED_CHUNKS_PROCESSING_CONFIG
 from services.worker_embed_chunks_service import WorkerEmbedChunksService
 
 
 def run() -> None:
     """Initialize dependencies and start the worker service."""
     s3_settings, queue_settings, datahub_settings = load_runtime_settings()
-    processing_config = EMBED_CHUNKS_PROCESSING_CONFIG
     lineage = build_datahub_lineage_client(
         datahub_settings=datahub_settings,
         data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_embed_chunks"),
     )
-    stage_queue = StageQueue(queue_settings.broker_url, queue_config=processing_config["queue"])
-    dimension = int(os.getenv("EMBEDDING_DIM", "32"))
+    raw_config = expand_dot_properties(lineage.resolved_job_config.custom_properties)
+    embed_config, queue_config = _extract_embed_and_queue_config(raw_config)
+
+    stage_queue = build_stage_queue(
+        broker_url=queue_settings.broker_url,
+        queue_config=queue_config,
+    )
+    dimension = int(embed_config.get("dimension", os.getenv("EMBEDDING_DIM", "32")))
     object_storage = build_object_storage(s3_settings)
     WorkerEmbedChunksService(
         stage_queue=stage_queue,
         object_storage=object_storage,
         lineage=lineage,
-        processing_config=processing_config,
+        processing_config={
+            "poll_interval_seconds": int(embed_config["poll_interval_seconds"]),
+            "queue": queue_config,
+            "storage": embed_config["storage"],
+        },
         dimension=dimension,
     ).serve()
+
+
+def _extract_embed_and_queue_config(expanded_config: dict) -> tuple[dict, dict]:
+    """Return embed and queue config sections from expanded properties."""
+    return expanded_config["embed"], expanded_config["queue"]
 
 
 if __name__ == "__main__":

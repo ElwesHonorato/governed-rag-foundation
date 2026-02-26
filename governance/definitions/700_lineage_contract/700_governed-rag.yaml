@@ -1,0 +1,29 @@
+flow_id: governed-rag
+lineage_contract:
+  - job: worker_scan
+    inputs: [s3.rag-data.01_incoming]
+    outputs: [s3.rag-data.02_raw]
+
+  - job: worker_parse_document
+    inputs: [s3.rag-data.02_raw]
+    outputs: [s3.rag-data.03_processed]
+
+  - job: worker_chunk_text
+    inputs: [s3.rag-data.03_processed]
+    outputs: [s3.rag-data.04_chunks]
+
+  - job: worker_embed_chunks
+    inputs: [s3.rag-data.04_chunks]
+    outputs: [s3.rag-data.05_embeddings]
+
+  - job: worker_index_weaviate
+    inputs: [s3.rag-data.05_embeddings]
+    outputs: [s3.rag-data.06_indexes]
+
+  - job: worker_manifest
+    inputs: [s3.rag-data.06_indexes]
+    outputs: [s3.rag-data.07_metadata_manifest]
+
+  - job: worker_metrics
+    inputs: [s3.rag-data.06_indexes]
+    outputs: []

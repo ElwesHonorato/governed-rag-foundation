@@ -5,7 +5,7 @@ This domain is the pipeline traffic controller. It decouples stages so each work
 ## Deep Dive
 
 ### What runs here
-- `rabbitmq` (`rabbitmq:3-management-alpine`)
+- `rabbitmq` (`rabbitmq@sha256:606d8c0d6b3c18d1da9afc53bc7cdb2a8d5486df91b5a9830e9e07626c9ae281`)
 
 ### How it contributes to RAG
 - Carries stage-to-stage work messages:

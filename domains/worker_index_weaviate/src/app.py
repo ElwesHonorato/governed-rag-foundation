@@ -1,4 +1,3 @@
-
 """worker_index_weaviate entrypoint.
 
 Purpose:
@@ -16,43 +15,51 @@ Best practices:
 """
 
 from pipeline_common.config import _required_env
-from pipeline_common.lineage import LineageEmitter
-from pipeline_common.queue import StageQueue
-from pipeline_common.object_storage import ObjectStorageGateway, S3Client
-from pipeline_common.settings import LineageEmitterSettings, QueueRuntimeSettings, S3StorageSettings
+from pipeline_common.lineage.pipeline import DataHubPipelineJobs
+from pipeline_common.startup import (
+    build_datahub_lineage_client,
+    build_object_storage,
+    build_stage_queue,
+    expand_dot_properties,
+    load_runtime_settings,
+)
 from pipeline_common.weaviate import ensure_schema
-from configs.constants import INDEX_WEAVIATE_LINEAGE_CONFIG, INDEX_WEAVIATE_PROCESSING_CONFIG
 from services.worker_index_weaviate_service import WorkerIndexWeaviateService
 
 
 def run() -> None:
     """Initialize dependencies and start the worker service."""
-    s3_settings = S3StorageSettings.from_env()
-    queue_settings = QueueRuntimeSettings.from_env()
-    lineage_settings = LineageEmitterSettings.from_env()
-    processing_config = INDEX_WEAVIATE_PROCESSING_CONFIG
-    lineage = LineageEmitter(
-        lineage_settings=lineage_settings,
-        lineage_config=INDEX_WEAVIATE_LINEAGE_CONFIG,
+    s3_settings, queue_settings, datahub_settings = load_runtime_settings()
+    lineage = build_datahub_lineage_client(
+        datahub_settings=datahub_settings,
+        data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_index_weaviate"),
     )
+    raw_config = expand_dot_properties(lineage.resolved_job_config.custom_properties)
+    index_config, queue_config = _extract_index_and_queue_config(raw_config)
+
     weaviate_url = _required_env("WEAVIATE_URL")
-    stage_queue = StageQueue(queue_settings.broker_url, queue_config=processing_config["queue"])
-    object_storage = ObjectStorageGateway(
-        S3Client(
-            endpoint_url=s3_settings.s3_endpoint,
-            access_key=s3_settings.s3_access_key,
-            secret_key=s3_settings.s3_secret_key,
-            region_name=s3_settings.aws_region,
-        )
+    stage_queue = build_stage_queue(
+        broker_url=queue_settings.broker_url,
+        queue_config=queue_config,
     )
+    object_storage = build_object_storage(s3_settings)
     ensure_schema(weaviate_url)
     WorkerIndexWeaviateService(
         stage_queue=stage_queue,
         object_storage=object_storage,
         lineage=lineage,
-        processing_config=processing_config,
+        processing_config={
+            "poll_interval_seconds": int(index_config["poll_interval_seconds"]),
+            "queue": queue_config,
+            "storage": index_config["storage"],
+        },
         weaviate_url=weaviate_url,
     ).serve()
+
+
+def _extract_index_and_queue_config(expanded_config: dict) -> tuple[dict, dict]:
+    """Return index and queue config sections from expanded properties."""
+    return expanded_config["index"], expanded_config["queue"]
 
 
 if __name__ == "__main__":

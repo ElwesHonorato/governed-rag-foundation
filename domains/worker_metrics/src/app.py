@@ -1,4 +1,3 @@
-
 """worker_metrics entrypoint.
 
 Purpose:
@@ -15,30 +14,37 @@ Best practices:
 - Keep startup deterministic and avoid hidden mutable globals.
 """
 
+from pipeline_common.lineage.pipeline import DataHubPipelineJobs
 from pipeline_common.observability import Counters
-from pipeline_common.object_storage import ObjectStorageGateway, S3Client
-from pipeline_common.settings import S3StorageSettings
-from configs.constants import METRICS_PROCESSING_CONFIG
+from pipeline_common.startup import (
+    build_datahub_lineage_client,
+    build_object_storage,
+    expand_dot_properties,
+    load_runtime_settings,
+)
 from services.worker_metrics_service import WorkerMetricsService
 
 
 def run() -> None:
     """Initialize dependencies and start the worker service."""
-    s3_settings = S3StorageSettings.from_env()
-    processing_config = METRICS_PROCESSING_CONFIG
-    counters = Counters().for_worker("worker_metrics")
-    object_storage = ObjectStorageGateway(
-        S3Client(
-            endpoint_url=s3_settings.s3_endpoint,
-            access_key=s3_settings.s3_access_key,
-            secret_key=s3_settings.s3_secret_key,
-            region_name=s3_settings.aws_region,
-        )
+    s3_settings, _, datahub_settings = load_runtime_settings()
+    lineage = build_datahub_lineage_client(
+        datahub_settings=datahub_settings,
+        data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_metrics"),
     )
+    raw_config = expand_dot_properties(lineage.resolved_job_config.custom_properties)
+    metrics_config = raw_config["metrics"]
+
+    counters = Counters().for_worker("worker_metrics")
+    object_storage = build_object_storage(s3_settings)
     WorkerMetricsService(
         counters=counters,
         object_storage=object_storage,
-        processing_config=processing_config,
+        lineage=lineage,
+        processing_config={
+            "poll_interval_seconds": int(metrics_config["poll_interval_seconds"]),
+            "storage": metrics_config["storage"],
+        },
     ).serve()
 
 

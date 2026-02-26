@@ -5,7 +5,8 @@ import logging
 from typing import Any, TypedDict
 
 from pipeline_common.contracts import chunk_id_for
-from pipeline_common.lineage import LineageEmitter
+from pipeline_common.lineage import DatasetPlatform
+from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
 from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway
 from pipeline_common.text import chunk_text
@@ -53,7 +54,7 @@ class WorkerChunkTextService(WorkerService):
         *,
         stage_queue: StageQueue,
         object_storage: ObjectStorageGateway,
-        lineage: LineageEmitter,
+        lineage: DataHubRunTimeLineage,
         processing_config: ChunkTextProcessingConfig,
     ) -> None:
         """Initialize chunking worker dependencies and runtime settings."""
@@ -83,18 +84,8 @@ class WorkerChunkTextService(WorkerService):
 
         doc_id = source_key.split("/")[-1].replace(self.processed_suffix, "")
         destination_prefix = f"{self.chunks_prefix}{doc_id}/"
-        self.lineage.start_run(
-            run_facets={
-                "governedRag": {
-                    "_producer": self.lineage.producer,
-                    "_schemaURL": "https://governed-rag.dev/schemas/facets/governedRagRunFacet.json",
-                    "processed_key": source_key,
-                    "chunks_prefix": destination_prefix,
-                    "doc_id": doc_id,
-                }
-            }
-        )
-        self.lineage.add_input({"name": source_key})
+        self.lineage.start_run()
+        self.lineage.add_input(name=f"{self.storage_bucket}/{source_key}", platform=DatasetPlatform.S3)
         try:
             processed = self._read_processed_object(source_key)
             doc_id = str(processed["doc_id"])
@@ -104,7 +95,7 @@ class WorkerChunkTextService(WorkerService):
             for chunk_record in chunk_records:
                 destination_key = self._chunk_object_key(doc_id, str(chunk_record["chunk_id"]))
                 destination_keys.append(destination_key)
-                self.lineage.add_output({"name": destination_key})
+                self.lineage.add_output(name=f"{self.storage_bucket}/{destination_key}", platform=DatasetPlatform.S3)
                 if not self._chunk_object_exists(destination_key):
                     self._write_chunk_object(destination_key, chunk_record)
                     written += 1

@@ -14,12 +14,14 @@ Best practices:
 - Keep startup deterministic and free of hidden global side effects.
 """
 
-from pipeline_common.queue import StageQueue
-
-from pipeline_common.lineage import LineageEmitter
-from pipeline_common.object_storage import ObjectStorageGateway, S3Client
-from pipeline_common.settings import LineageEmitterSettings, QueueRuntimeSettings, S3StorageSettings
-from configs.constants import PARSE_DOCUMENT_LINEAGE_CONFIG, PARSE_DOCUMENT_PROCESSING_CONFIG
+from pipeline_common.lineage.pipeline import DataHubPipelineJobs
+from pipeline_common.startup import (
+    build_datahub_lineage_client,
+    build_object_storage,
+    build_stage_queue,
+    expand_dot_properties,
+    load_runtime_settings,
+)
 from parsing.html import HtmlParser
 from parsing.registry import ParserRegistry
 from services.worker_parse_document_service import WorkerParseDocumentService
@@ -27,31 +29,37 @@ from services.worker_parse_document_service import WorkerParseDocumentService
 
 def run() -> None:
     """Initialize dependencies and start the worker service."""
-    s3_settings = S3StorageSettings.from_env()
-    queue_settings = QueueRuntimeSettings.from_env()
-    lineage_settings = LineageEmitterSettings.from_env()
-    processing_config = PARSE_DOCUMENT_PROCESSING_CONFIG
-    lineage = LineageEmitter(
-        lineage_settings=lineage_settings,
-        lineage_config=PARSE_DOCUMENT_LINEAGE_CONFIG,
+    s3_settings, queue_settings, datahub_settings = load_runtime_settings()
+    lineage = build_datahub_lineage_client(
+        datahub_settings=datahub_settings,
+        data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_parse_document"),
     )
-    stage_queue = StageQueue(queue_settings.broker_url, queue_config=processing_config["queue"])
+    raw_config = expand_dot_properties(lineage.resolved_job_config.custom_properties)
+    parse_config, queue_config = _extract_parse_and_queue_config(raw_config)
+
+    stage_queue = build_stage_queue(
+        broker_url=queue_settings.broker_url,
+        queue_config=queue_config,
+    )
     parser_registry = ParserRegistry(parsers=[HtmlParser()])
-    object_storage = ObjectStorageGateway(
-        S3Client(
-            endpoint_url=s3_settings.s3_endpoint,
-            access_key=s3_settings.s3_access_key,
-            secret_key=s3_settings.s3_secret_key,
-            region_name=s3_settings.aws_region,
-        )
-    )
+    object_storage = build_object_storage(s3_settings)
     WorkerParseDocumentService(
         stage_queue=stage_queue,
         object_storage=object_storage,
         lineage=lineage,
-        processing_config=processing_config,
+        processing_config={
+            "poll_interval_seconds": int(parse_config["poll_interval_seconds"]),
+            "queue": queue_config,
+            "storage": parse_config["storage"],
+            "security": parse_config["security"],
+        },
         parser_registry=parser_registry,
     ).serve()
+
+
+def _extract_parse_and_queue_config(expanded_config: dict) -> tuple[dict, dict]:
+    """Return parse and queue config sections from expanded properties."""
+    return expanded_config["parse"], expanded_config["queue"]
 
 
 if __name__ == "__main__":

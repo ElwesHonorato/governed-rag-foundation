@@ -1,4 +1,3 @@
-
 """worker_manifest entrypoint.
 
 Purpose:
@@ -15,27 +14,34 @@ Best practices:
 - Keep startup dependencies explicit so runtime behavior is predictable.
 """
 
-from pipeline_common.object_storage import ObjectStorageGateway, S3Client
-from pipeline_common.settings import S3StorageSettings
-from configs.constants import MANIFEST_PROCESSING_CONFIG
+from pipeline_common.lineage.pipeline import DataHubPipelineJobs
+from pipeline_common.startup import (
+    build_datahub_lineage_client,
+    build_object_storage,
+    expand_dot_properties,
+    load_runtime_settings,
+)
 from services.worker_manifest_service import WorkerManifestService
 
 
 def run() -> None:
     """Initialize dependencies and start the worker service."""
-    s3_settings = S3StorageSettings.from_env()
-    processing_config = MANIFEST_PROCESSING_CONFIG
-    object_storage = ObjectStorageGateway(
-        S3Client(
-            endpoint_url=s3_settings.s3_endpoint,
-            access_key=s3_settings.s3_access_key,
-            secret_key=s3_settings.s3_secret_key,
-            region_name=s3_settings.aws_region,
-        )
+    s3_settings, _, datahub_settings = load_runtime_settings()
+    lineage = build_datahub_lineage_client(
+        datahub_settings=datahub_settings,
+        data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_manifest"),
     )
+    raw_config = expand_dot_properties(lineage.resolved_job_config.custom_properties)
+    manifest_config = raw_config["manifest"]
+
+    object_storage = build_object_storage(s3_settings)
     WorkerManifestService(
         object_storage=object_storage,
-        processing_config=processing_config,
+        lineage=lineage,
+        processing_config={
+            "poll_interval_seconds": int(manifest_config["poll_interval_seconds"]),
+            "storage": manifest_config["storage"],
+        },
     ).serve()
 
 

@@ -5,9 +5,10 @@ import logging
 from typing import TypedDict
 
 from pipeline_common.contracts import doc_id_from_source_key
+from pipeline_common.lineage import DatasetPlatform
+from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
 from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway
-from pipeline_common.lineage import LineageEmitter
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
         *,
         object_storage: ObjectStorageGateway,
         stage_queue: StageQueue,
-        lineage: LineageEmitter,
+        lineage: DataHubRunTimeLineage,
         processing_config: ScanProcessingConfig,
     ) -> None:
         """Initialize instance state and dependencies."""
@@ -76,29 +77,24 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
             return False
 
         destination_key = self._destination_key(source_key)
-        self.lineage.start_run(
-            run_facets={
-                "governedRag": {
-                    "_producer": self.lineage.producer,
-                    "_schemaURL": "https://governed-rag.dev/schemas/facets/governedRagRunFacet.json",
-                    "origin_source_key": source_key,
-                    "raw_source_key": destination_key,
-                    "asset_id": doc_id_from_source_key(source_key),
-                    "doc_id": doc_id_from_source_key(destination_key),
-                }
-            }
-        )
-        self.lineage.add_input({"name": source_key})
-        self.lineage.add_output({"name": destination_key})
+        self.lineage.start_run()
+        self.lineage.add_input(name=f"{self.bucket}/{source_key}", platform=DatasetPlatform.S3)
+        self.lineage.add_output(name=f"{self.bucket}/{destination_key}", platform=DatasetPlatform.S3)
         try:
             self._copy_source_to_destination(source_key, destination_key)
             self.lineage.complete_run()
             self._enqueue_parse_request(destination_key)
             self._delete_source(source_key)
-            logger.info("Moved '%s' -> '%s'", source_key, destination_key)
+            logger.info(
+                "Moved '%s' -> '%s' (source_doc_id=%s, dest_doc_id=%s)",
+                source_key,
+                destination_key,
+                doc_id_from_source_key(source_key),
+                doc_id_from_source_key(destination_key),
+            )
             return True
-        except Exception as exc:
-            self.lineage.fail_run(error_message=str(exc))
+        except Exception:
+            self.lineage.abort_run()
             raise
 
     def _source_exists(self, source_key: str) -> bool:

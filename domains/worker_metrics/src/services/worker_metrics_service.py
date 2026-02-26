@@ -1,10 +1,14 @@
-
 from abc import ABC, abstractmethod
+import logging
 import time
 from typing import TypedDict
 
+from pipeline_common.lineage import DatasetPlatform
+from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
 from pipeline_common.observability import Counters
 from pipeline_common.object_storage import ObjectStorageGateway
+
+logger = logging.getLogger(__name__)
 
 
 class WorkerService(ABC):
@@ -39,11 +43,13 @@ class WorkerMetricsService(WorkerService):
         *,
         counters: Counters,
         object_storage: ObjectStorageGateway,
+        lineage: DataHubRunTimeLineage,
         processing_config: MetricsProcessingConfig,
     ) -> None:
         """Initialize instance state and dependencies."""
         self.counters = counters
         self.object_storage = object_storage
+        self.lineage = lineage
         self._initialize_runtime_config(processing_config)
 
     @staticmethod
@@ -59,18 +65,40 @@ class WorkerMetricsService(WorkerService):
     def serve(self) -> None:
         """Run the worker loop indefinitely."""
         while True:
-            processed = self.object_storage.list_keys(self.storage_bucket, self.processed_prefix)
-            chunks = self.object_storage.list_keys(self.storage_bucket, self.chunks_prefix)
-            embeddings = self.object_storage.list_keys(self.storage_bucket, self.embeddings_prefix)
-            indexed = self.object_storage.list_keys(self.storage_bucket, self.indexes_prefix)
-
-            self.counters.files_processed = self._count_suffix(processed, ".json")
-            self.counters.chunks_created = self._count_suffixes(chunks, (".chunk.json", ".chunks.json"))
-            self.counters.embedding_artifacts = self._count_suffixes(
-                embeddings, (".embedding.json", ".embeddings.json")
+            self.lineage.start_run()
+            self.lineage.add_input(
+                name=f"{self.storage_bucket}/{self.processed_prefix}",
+                platform=DatasetPlatform.S3,
             )
-            self.counters.index_upserts = self._count_suffix(indexed, ".indexed.json")
-            self.counters.emit()
+            self.lineage.add_input(
+                name=f"{self.storage_bucket}/{self.chunks_prefix}",
+                platform=DatasetPlatform.S3,
+            )
+            self.lineage.add_input(
+                name=f"{self.storage_bucket}/{self.embeddings_prefix}",
+                platform=DatasetPlatform.S3,
+            )
+            self.lineage.add_input(
+                name=f"{self.storage_bucket}/{self.indexes_prefix}",
+                platform=DatasetPlatform.S3,
+            )
+            try:
+                processed = self.object_storage.list_keys(self.storage_bucket, self.processed_prefix)
+                chunks = self.object_storage.list_keys(self.storage_bucket, self.chunks_prefix)
+                embeddings = self.object_storage.list_keys(self.storage_bucket, self.embeddings_prefix)
+                indexed = self.object_storage.list_keys(self.storage_bucket, self.indexes_prefix)
+
+                self.counters.files_processed = self._count_suffix(processed, ".json")
+                self.counters.chunks_created = self._count_suffixes(chunks, (".chunk.json", ".chunks.json"))
+                self.counters.embedding_artifacts = self._count_suffixes(
+                    embeddings, (".embedding.json", ".embeddings.json")
+                )
+                self.counters.index_upserts = self._count_suffix(indexed, ".indexed.json")
+                self.counters.emit()
+                self.lineage.complete_run()
+            except Exception as exc:
+                self.lineage.fail_run(error_message=str(exc))
+                logger.exception("Failed collecting pipeline metrics")
             time.sleep(self.poll_interval_seconds)
 
     def _initialize_runtime_config(self, processing_config: MetricsProcessingConfig) -> None:

@@ -5,7 +5,8 @@ import logging
 from typing import Any, TypedDict
 
 from pipeline_common.contracts import doc_id_from_source_key, utc_now_iso
-from pipeline_common.lineage import LineageEmitter
+from pipeline_common.lineage import DatasetPlatform
+from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
 from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway
 from parsing.registry import ParserRegistry
@@ -60,7 +61,7 @@ class WorkerParseDocumentService(WorkerService):
         *,
         stage_queue: StageQueue,
         object_storage: ObjectStorageGateway,
-        lineage: LineageEmitter,
+        lineage: DataHubRunTimeLineage,
         processing_config: DocumentProcessingConfig,
         parser_registry: ParserRegistry,
     ) -> None:
@@ -89,19 +90,9 @@ class WorkerParseDocumentService(WorkerService):
 
         doc_id = doc_id_from_source_key(source_key)
         destination_key = self._processed_key(doc_id)
-        self.lineage.start_run(
-            run_facets={
-                "governedRag": {
-                    "_producer": self.lineage.producer,
-                    "_schemaURL": "https://governed-rag.dev/schemas/facets/governedRagRunFacet.json",
-                    "raw_source_key": source_key,
-                    "processed_key": destination_key,
-                    "doc_id": doc_id,
-                }
-            }
-        )
-        self.lineage.add_input({"name": source_key})
-        self.lineage.add_output({"name": destination_key})
+        self.lineage.start_run()
+        self.lineage.add_input(name=f"{self.storage_bucket}/{source_key}", platform=DatasetPlatform.S3)
+        self.lineage.add_output(name=f"{self.storage_bucket}/{destination_key}", platform=DatasetPlatform.S3)
         if self._processed_exists(destination_key):
             error_message = f"Processed document already exists: {destination_key}"
             self.stage_queue.push_dlq_message(

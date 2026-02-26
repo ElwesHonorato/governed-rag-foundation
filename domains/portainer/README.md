@@ -5,7 +5,7 @@ This domain is an operational dashboard for the local stack. It is not part of a
 ## Deep Dive
 
 ### What runs here
-- `portainer` (`portainer/portainer-ce:latest`)
+- `portainer` (`portainer/portainer-ce@sha256:9012a4256c4632f2c6162da361a4d4db9d6d04800e0db0137de96e31656ab876`)
 
 ### How it contributes to RAG
 - Lets you inspect container health, logs, and lifecycle.

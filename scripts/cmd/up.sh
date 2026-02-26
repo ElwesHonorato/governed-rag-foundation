@@ -19,7 +19,7 @@ cmd_up() {
 
     ui_rule
     ui_print action "domain=$d start"
-    compose_domain "$d" up -d --build
+    compose_domain "$d" up -d --build --remove-orphans
     ui_print ok "domain=$d ready"
   done < <(selected_domains "$domain")
 }

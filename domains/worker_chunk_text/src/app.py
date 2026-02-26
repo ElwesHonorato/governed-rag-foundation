@@ -1,4 +1,3 @@
-
 """worker_chunk_text entrypoint.
 
 Purpose:
@@ -11,43 +10,51 @@ What this module should do:
 
 Best practices:
 - Keep this file focused on composition, not transformation logic.
-- Keep worker configuration centralized in `configs/constants.py`.
+- Keep worker configuration sourced from DataHub job `custom_properties`.
 - Ensure queue contract and service wiring stay aligned when stages evolve.
 """
 
-from pipeline_common.queue import StageQueue
-from pipeline_common.lineage import LineageEmitter
-from pipeline_common.object_storage import ObjectStorageGateway, S3Client
-from pipeline_common.settings import LineageEmitterSettings, QueueRuntimeSettings, S3StorageSettings
-from configs.constants import CHUNK_TEXT_LINEAGE_CONFIG, CHUNK_TEXT_PROCESSING_CONFIG
+from pipeline_common.lineage.pipeline import DataHubPipelineJobs
+from pipeline_common.startup import (
+    build_datahub_lineage_client,
+    build_object_storage,
+    build_stage_queue,
+    expand_dot_properties,
+    load_runtime_settings,
+)
 from services.worker_chunk_text_service import WorkerChunkTextService
 
 
 def run() -> None:
     """Initialize dependencies and start the worker service."""
-    s3_settings = S3StorageSettings.from_env()
-    queue_settings = QueueRuntimeSettings.from_env()
-    lineage_settings = LineageEmitterSettings.from_env()
-    processing_config = CHUNK_TEXT_PROCESSING_CONFIG
-    lineage = LineageEmitter(
-        lineage_settings=lineage_settings,
-        lineage_config=CHUNK_TEXT_LINEAGE_CONFIG,
+    s3_settings, queue_settings, datahub_settings = load_runtime_settings()
+    lineage = build_datahub_lineage_client(
+        datahub_settings=datahub_settings,
+        data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_chunk_text"),
     )
-    stage_queue = StageQueue(queue_settings.broker_url, queue_config=processing_config["queue"])
-    object_storage = ObjectStorageGateway(
-        S3Client(
-            endpoint_url=s3_settings.s3_endpoint,
-            access_key=s3_settings.s3_access_key,
-            secret_key=s3_settings.s3_secret_key,
-            region_name=s3_settings.aws_region,
-        )
+    raw_config = expand_dot_properties(lineage.resolved_job_config.custom_properties)
+    chunk_config, queue_config = _extract_chunk_and_queue_config(raw_config)
+
+    stage_queue = build_stage_queue(
+        broker_url=queue_settings.broker_url,
+        queue_config=queue_config,
     )
+    object_storage = build_object_storage(s3_settings)
     WorkerChunkTextService(
         stage_queue=stage_queue,
         object_storage=object_storage,
         lineage=lineage,
-        processing_config=processing_config,
+        processing_config={
+            "poll_interval_seconds": int(chunk_config["poll_interval_seconds"]),
+            "queue": queue_config,
+            "storage": chunk_config["storage"],
+        },
     ).serve()
+
+
+def _extract_chunk_and_queue_config(expanded_config: dict) -> tuple[dict, dict]:
+    """Return chunk and queue config sections from expanded properties."""
+    return expanded_config["chunk"], expanded_config["queue"]
 
 
 if __name__ == "__main__":

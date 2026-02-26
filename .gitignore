@@ -1,6 +1,7 @@
 # Local data and virtual environments
 localdata/
 .venv/
+.venv-datahub-sdk/
 
 # Python cache/artifacts
 __pycache__/

@@ -28,3 +28,5 @@ class MarquezApiClient:
     def search(self, query: str) -> dict:
         encoded_query = parse.urlencode({"q": query})
         return self._get_json(f"{self.base_url}/search?{encoded_query}")
+
+__all__ = ["MarquezApiClient"]

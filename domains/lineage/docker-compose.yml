@@ -173,7 +173,7 @@ services:
       test: curl -sS --fail http://elasticsearch:$${DATAHUB_ELASTIC_PORT:-9200}/_cluster/health?wait_for_status=yellow&timeout=0s
       timeout: 5s
     hostname: elasticsearch
-    image: elasticsearch@sha256:a6d6b405028e5fc2195bcad27a639bb9a6c19edeb91650f8d2114a9927ac9d07
+    image: elasticsearch@sha256:4000fb7daa3ca86b3dc2ab2d492ddadd79f46367e5875d9871c34f97b1c94b5e
     ports:
     - ${DATAHUB_MAPPED_ELASTIC_PORT:-9200}:9200
     volumes:

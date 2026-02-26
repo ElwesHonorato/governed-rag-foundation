@@ -26,6 +26,7 @@ from datahub.metadata.schema_classes import (
     DataProcessInstanceRelationshipsClass,
     DataProcessInstanceRunEventClass,
     DataProcessRunStatusClass,
+    DatasetPropertiesClass,
     EdgeClass,
 )
 from datahub.metadata.urns import DatasetUrn
@@ -269,6 +270,7 @@ class DataHubRunTimeLineage:
         self.datajob_urn = self.resolved_job_config.job_urn()
         self.job_version = self._resolve_job_version()
         self._active_context: ActiveRunContext | None = None
+        self._dataset_properties_emitted: set[str] = set()
 
     def _dataset_urn(self, platform: DatasetPlatform, name: str) -> DatasetUrn:
         return DataHubUrnFactory.dataset_urn(
@@ -304,13 +306,34 @@ class DataHubRunTimeLineage:
 
     def add_input(self, name: str, platform: DatasetPlatform) -> DatasetUrn:
         dataset = self._dataset_urn(platform=platform, name=name)
+        self._ensure_dataset_properties(dataset_urn=str(dataset), dataset_name=name)
         self._active_context.run.inputs.append(str(dataset))
         return dataset
 
     def add_output(self, name: str, platform: DatasetPlatform) -> DatasetUrn:
         dataset = self._dataset_urn(platform=platform, name=name)
+        self._ensure_dataset_properties(dataset_urn=str(dataset), dataset_name=name)
         self._active_context.run.outputs.append(str(dataset))
         return dataset
+
+    def _ensure_dataset_properties(self, *, dataset_urn: str, dataset_name: str) -> None:
+        if dataset_urn in self._dataset_properties_emitted:
+            return
+
+        mcp = MetadataChangeProposalWrapper(
+            entityUrn=dataset_urn,
+            entityType="dataset",
+            aspectName="datasetProperties",
+            aspect=DatasetPropertiesClass(
+                name=dataset_name,
+            ),
+            changeType=ChangeTypeClass.UPSERT,
+        )
+        try:
+            self.graph_client.emit_mcps(mcps=[mcp])
+            self._dataset_properties_emitted.add(dataset_urn)
+        except Exception as exc:
+            logger.warning("Could not emit datasetProperties for %s: %s", dataset_urn, exc)
 
     def _generate_run_id(self) -> str:
         return f"{int(time.time() * 1000)}-{self.resolved_job_config.job_id}-{uuid.uuid4()}"

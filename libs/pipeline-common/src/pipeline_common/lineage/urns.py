@@ -8,7 +8,7 @@ class DataHubUrnFactory:
     def flow_urn(*, flow_platform: str, flow_id: str, flow_instance: str) -> str:
         return DataFlowUrn(
             orchestrator=flow_platform,
-            flow_id=f"{flow_instance}.{flow_id}",
+            flow_id=flow_id,
             cluster=flow_instance,
         ).urn()
 

@@ -41,7 +41,7 @@ class QueueRuntimeSettings:
 
 
 @dataclass(frozen=True)
-class DataHubBootstrapSettings:
+class DataHubSettings:
     """DataHub bootstrap settings for flow/job template upserts."""
 
     server: str
@@ -51,7 +51,7 @@ class DataHubBootstrapSettings:
     retry_max_times: int
 
     @classmethod
-    def from_env(cls) -> "DataHubBootstrapSettings":
+    def from_env(cls) -> "DataHubSettings":
         """Execute from env."""
         token = _optional_env("DATAHUB_TOKEN", "")
         server = _optional_env("DATAHUB_GMS_SERVER", "")

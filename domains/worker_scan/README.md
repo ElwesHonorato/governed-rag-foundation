@@ -11,8 +11,8 @@ This domain is the pipeline starter. It watches incoming documents, moves valid 
 - Enqueues parse jobs to the DataHub-configured `queue.produce` value for `worker_scan`.
 
 ### File selection behavior
-- Only processes keys matching configured extensions (default `.html`).
-- Skips keys that do not match prefix/suffix rules.
+- Processes all keys under the configured incoming prefix.
+- Skips only the prefix placeholder key itself.
 
 ### Runtime dependencies
 - `BROKER_URL` for queue publishing.

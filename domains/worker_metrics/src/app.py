@@ -17,35 +17,39 @@ Best practices:
 from pipeline_common.lineage.pipeline import DataHubPipelineJobs
 from pipeline_common.observability import Counters
 from pipeline_common.startup import (
-    build_datahub_lineage_client,
-    build_object_storage,
-    expand_dot_properties,
-    load_runtime_settings,
+    InfrastructureFactory,
+    RuntimeContextFactory,
 )
 from services.worker_metrics_service import WorkerMetricsService
 
 
 def run() -> None:
     """Initialize dependencies and start the worker service."""
-    s3_settings, _, datahub_settings = load_runtime_settings()
-    lineage = build_datahub_lineage_client(
-        datahub_settings=datahub_settings,
+    runtime_factory = RuntimeContextFactory(
         data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_metrics"),
     )
-    raw_config = expand_dot_properties(lineage.resolved_job_config.custom_properties)
-    metrics_config = raw_config["metrics"]
+    runtime = runtime_factory.runtime_context
+    infra = InfrastructureFactory(runtime)
+    lineage = infra.datahub_lineage_client
+    raw_config = infra.job_properties
+    job_config = _extract_job_config(raw_config)
 
     counters = Counters().for_worker("worker_metrics")
-    object_storage = build_object_storage(s3_settings)
+    object_storage = infra.object_storage
     WorkerMetricsService(
         counters=counters,
         object_storage=object_storage,
         lineage=lineage,
         processing_config={
-            "poll_interval_seconds": int(metrics_config["poll_interval_seconds"]),
-            "storage": metrics_config["storage"],
+            "poll_interval_seconds": int(job_config["poll_interval_seconds"]),
+            "storage": job_config["storage"],
         },
     ).serve()
+
+
+def _extract_job_config(expanded_config: dict) -> dict:
+    """Return job config section from job properties."""
+    return expanded_config["job"]
 
 
 if __name__ == "__main__":

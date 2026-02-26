@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 
-from collections.abc import Sequence
 import logging
 from typing import TypedDict
 
@@ -28,15 +27,9 @@ class StorageConfig(TypedDict):
     raw_prefix: str
 
 
-class FiltersConfig(TypedDict):
-    """File-extension filters used to select processable source keys."""
-    extensions: list[str]
-
-
 class ScanProcessingConfig(TypedDict):
-    """Runtime config for scan cycle storage and filtering."""
+    """Runtime config for scan cycle storage settings."""
     storage: StorageConfig
-    filters: FiltersConfig
 
 
 class StorageScanCycleProcessor(ScanCycleProcessor):
@@ -64,7 +57,7 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
         return processed
 
     def _candidate_keys(self) -> list[str]:
-        """List source keys that match the configured extension filter."""
+        """List source keys from the configured source prefix."""
         return [
             key
             for key in self.object_storage.list_keys(self.bucket, self.source_prefix)
@@ -119,23 +112,14 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
 
     def _is_candidate_key(self, key: str) -> bool:
         """Return True when a key is a processable source object."""
-        return (
-            key.startswith(self.source_prefix)
-            and key != self.source_prefix
-            and key.endswith(self.extensions)
-        )
+        return key.startswith(self.source_prefix) and key != self.source_prefix
 
     def _destination_key(self, source_key: str) -> str:
         """Map a source key to its destination key."""
         return source_key.replace(self.source_prefix, self.destination_prefix, 1)
-
-    def _normalize_extensions(self, extensions: Sequence[str]) -> tuple[str, ...]:
-        """Normalize extension list into a tuple for str.endswith checks."""
-        return tuple(extensions)
 
     def _initialize_runtime_config(self, processing_config: ScanProcessingConfig) -> None:
         """Internal helper for initialize runtime config."""
         self.bucket = processing_config["storage"]["bucket"]
         self.source_prefix = processing_config["storage"]["incoming_prefix"]
         self.destination_prefix = processing_config["storage"]["raw_prefix"]
-        self.extensions = self._normalize_extensions(processing_config["filters"]["extensions"])

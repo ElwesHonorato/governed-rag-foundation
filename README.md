@@ -87,7 +87,7 @@ When finished:
 - Weaviate: `http://localhost:8080`
 - RabbitMQ Management UI: `http://localhost:15672`
 - DataHub GMS: value of `DATAHUB_GMS_URL`
-- DataHub OpenLineage endpoint: value of `DATAHUB_OPENLINEAGE_URL`
+- DataHub frontend: `http://localhost:${DATAHUB_MAPPED_FRONTEND_PORT}`
 - Portainer: `https://localhost:9443`
 - Ollama API: `http://localhost:11434`
 - rag-api: `http://localhost:8000`
@@ -96,8 +96,8 @@ When finished:
 ## Lineage Guide
 
 - `./stack.sh up lineage` runs DataHub quickstart services from `domains/lineage/docker-compose.yml`.
-- Workers emit OpenLineage events to `DATAHUB_OPENLINEAGE_URL`.
-- Use `make lineage-help` for DataHub-oriented lineage search commands.
+- Workers emit runtime lineage to DataHub GMS via `DATAHUB_GMS_SERVER` and `DATAHUB_ENV`.
+- `make lineage-*` commands are legacy Marquez tooling and are not DataHub-native.
 
 ## Python Dependencies (Poetry)
 

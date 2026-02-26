@@ -27,16 +27,12 @@ Full compose definition: `domains/lineage/docker-compose.yml`.
   `http://datahub-gms:8080/openapi/openlineage/api/v1/lineage`
 
 ## Worker lineage settings
-- `DATAHUB_OPENLINEAGE_URL`
+- `DATAHUB_GMS_SERVER` (or `DATAHUB_GMS_URL`)
+- `DATAHUB_ENV` (for example `DEV` / `PROD`)
 - `DATAHUB_TOKEN` (optional bearer token)
-- Canonical namespaces in worker configs:
-  - job namespace: `jobs-rag.local`
-  - dataset namespace: `datasets-rag.local`
 
 ## Verification checks
 ```bash
-make lineage-help
-make lineage-jobs
-make lineage-datasets
-make lineage-search q=<text>
+curl -fsS "http://localhost:${DATAHUB_MAPPED_GMS_PORT}/health"
+curl -fsS "http://localhost:${DATAHUB_MAPPED_FRONTEND_PORT}" >/dev/null
 ```

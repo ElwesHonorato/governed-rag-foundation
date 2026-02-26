@@ -1,7 +1,7 @@
 # DataHub Lineage Emitter Implementation Guide
 
 ## Goal
-Implement a DataHub emitter in `pipeline_common/lineage/data_hub` using the working model in `datahub_migration/minimal_datahub_test.py`.
+Implement a DataHub emitter in `pipeline_common/lineage/data_hub` using the current runtime emitter design in this package.
 
 Boundary rule for this package:
 - `pipeline_common/lineage` is runtime-lineage only.
@@ -9,13 +9,13 @@ Boundary rule for this package:
 - Governance-owned static mutations are handled outside runtime lineage.
 
 Reference implementation model:
-- `datahub_migration/minimal_datahub_test.py`
+- `pipeline_common/lineage/data_hub/lineage.py`
 
 ## Scope Clarification
 This implementation does not need to preserve the legacy OpenLineage worker method contract.
 Primary objective: refactor the tested DataHub run-emission model into a reusable class that workers can adopt.
 
-## Pattern to Follow From `minimal_datahub_test.py`
+## Pattern to Follow
 The implementation model that currently works against local DataHub is:
 1. Resolve runtime job identity and runtime config from DataHub metadata.
 2. Emit one `DataProcessInstance` per run via MCPs.
@@ -51,9 +51,8 @@ Example shape:
 ## Recommended Internal Structure
 Inside `libs/pipeline-common/src/pipeline_common/lineage/data_hub/`:
 1. `contracts.py`
-2. `constants.py`
-3. `lineage.py`
-4. `__init__.py`
+2. `lineage.py`
+3. `__init__.py`
 
 Suggested helpers inside `lineage.py`:
 1. `_init_lineage_settings(...)`
@@ -77,7 +76,7 @@ Keep a clean runtime-lineage separation:
 4. Keep CLI wrapper thin; business logic should live in class methods.
 
 ## Validation Strategy
-Use `datahub_migration/minimal_datahub_test.py` behavior as baseline acceptance:
+Use runtime worker behavior as baseline acceptance:
 1. Fanout producer run emits two chunk outputs from one input.
 2. Same consumer job emits two distinct runs with different IO sets.
 3. All runs are represented as separate `DataProcessInstance` entities.

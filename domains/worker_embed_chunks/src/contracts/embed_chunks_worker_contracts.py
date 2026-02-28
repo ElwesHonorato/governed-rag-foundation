@@ -48,9 +48,7 @@ class EmbedChunksProcessingConfigContract:
 class EmbedChunksWorkerConfigContract:
     """Typed embed_chunks worker startup configuration."""
 
-    bucket: str
-    input_prefix: str
-    output_prefix: str
+    storage: EmbedChunksStorageConfigContract
     poll_interval_seconds: int
     dimension: int
     queue_config: EmbedChunksQueueConfigContract

@@ -3,7 +3,12 @@
 from collections.abc import Mapping
 from typing import Any
 
-from contracts.parse_worker_contracts import ParseJobConfigContract, ParseQueueConfigContract, ParseWorkerConfigContract
+from contracts.parse_worker_contracts import (
+    ParseJobConfigContract,
+    ParseQueueConfigContract,
+    ParseStorageConfigContract,
+    ParseWorkerConfigContract,
+)
 from pipeline_common.startup import WorkerConfigExtractor
 
 
@@ -32,9 +37,11 @@ class ParseConfigExtractor(WorkerConfigExtractor[ParseWorkerConfigContract]):
             dlq=queue["dlq"],
         )
         return ParseWorkerConfigContract(
-            bucket=job_contract.bucket,
-            input_prefix=job_contract.input_prefix,
-            output_prefix=job_contract.output_prefix,
+            storage=ParseStorageConfigContract(
+                bucket=job_contract.bucket,
+                input_prefix=job_contract.input_prefix,
+                output_prefix=job_contract.output_prefix,
+            ),
             poll_interval_seconds=job_contract.poll_interval_seconds,
             security_clearance=job_contract.security_clearance,
             queue_config=queue_contract,

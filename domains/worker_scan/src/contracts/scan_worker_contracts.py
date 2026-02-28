@@ -26,11 +26,18 @@ class ScanJobConfigContract:
 
 
 @dataclass(frozen=True)
-class ScanWorkerConfigContract:
-    """Typed scan worker startup configuration."""
+class ScanStorageContract:
+    """Storage bucket and stage prefix settings for scan worker."""
 
     bucket: str
     input_prefix: str
     output_prefix: str
+
+
+@dataclass(frozen=True)
+class ScanWorkerConfigContract:
+    """Typed scan worker startup configuration."""
+
+    storage: ScanStorageContract
     poll_interval_seconds: int
     queue_config: ScanQueueConfigContract

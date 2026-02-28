@@ -46,8 +46,6 @@ class IndexWeaviateProcessingConfigContract:
 class IndexWeaviateWorkerConfigContract:
     """Typed index_weaviate worker startup configuration."""
 
-    bucket: str
-    input_prefix: str
-    output_prefix: str
+    storage: IndexWeaviateStorageConfigContract
     poll_interval_seconds: int
     queue_config: IndexWeaviateQueueConfigContract

@@ -47,8 +47,6 @@ class ChunkTextProcessingConfigContract:
 class ChunkTextWorkerConfigContract:
     """Typed chunk_text worker startup configuration."""
 
-    bucket: str
-    input_prefix: str
-    output_prefix: str
+    storage: ChunkTextStorageConfigContract
     poll_interval_seconds: int
     queue_config: ChunkTextQueueConfigContract

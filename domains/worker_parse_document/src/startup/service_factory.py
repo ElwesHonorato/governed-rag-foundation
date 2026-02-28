@@ -1,11 +1,6 @@
 """Service graph assembly for worker_parse_document startup."""
 
-from contracts.parse_worker_contracts import (
-    ParseProcessingConfigContract,
-    ParseSecurityConfigContract,
-    ParseStorageConfigContract,
-    ParseWorkerConfigContract,
-)
+from contracts.parse_worker_contracts import ParseProcessingConfigContract, ParseSecurityConfigContract, ParseWorkerConfigContract
 from parsing.registry import ParserRegistry
 from pipeline_common.startup import WorkerRuntimeContext, WorkerServiceFactory
 from services.worker_parse_document_service import WorkerParseDocumentService
@@ -30,11 +25,7 @@ class ParseServiceFactory(WorkerServiceFactory[ParseWorkerConfigContract, Worker
             processing_config=ParseProcessingConfigContract(
                 poll_interval_seconds=worker_config.poll_interval_seconds,
                 queue=worker_config.queue_config,
-                storage=ParseStorageConfigContract(
-                    bucket=worker_config.bucket,
-                    input_prefix=worker_config.input_prefix,
-                    output_prefix=worker_config.output_prefix,
-                ),
+                storage=worker_config.storage,
                 security=ParseSecurityConfigContract(clearance=worker_config.security_clearance),
             ),
             parser_registry=self._parser_registry,

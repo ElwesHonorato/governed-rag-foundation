@@ -1,10 +1,6 @@
 """Service graph assembly for worker_index_weaviate startup."""
 
-from contracts.index_weaviate_worker_contracts import (
-    IndexWeaviateProcessingConfigContract,
-    IndexWeaviateStorageConfigContract,
-    IndexWeaviateWorkerConfigContract,
-)
+from contracts.index_weaviate_worker_contracts import IndexWeaviateProcessingConfigContract, IndexWeaviateWorkerConfigContract
 from pipeline_common.startup import WorkerRuntimeContext, WorkerServiceFactory
 from pipeline_common.weaviate import ensure_schema
 from services.worker_index_weaviate_service import WorkerIndexWeaviateService
@@ -30,11 +26,7 @@ class IndexWeaviateServiceFactory(WorkerServiceFactory[IndexWeaviateWorkerConfig
             processing_config=IndexWeaviateProcessingConfigContract(
                 poll_interval_seconds=worker_config.poll_interval_seconds,
                 queue=worker_config.queue_config,
-                storage=IndexWeaviateStorageConfigContract(
-                    bucket=worker_config.bucket,
-                    input_prefix=worker_config.input_prefix,
-                    output_prefix=worker_config.output_prefix,
-                ),
+                storage=worker_config.storage,
             ),
             weaviate_url=self._weaviate_url,
         )

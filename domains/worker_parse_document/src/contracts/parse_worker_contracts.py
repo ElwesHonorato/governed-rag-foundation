@@ -56,9 +56,7 @@ class ParseProcessingConfigContract:
 class ParseWorkerConfigContract:
     """Typed parse worker startup configuration."""
 
-    bucket: str
-    input_prefix: str
-    output_prefix: str
+    storage: ParseStorageConfigContract
     poll_interval_seconds: int
     security_clearance: str
     queue_config: ParseQueueConfigContract

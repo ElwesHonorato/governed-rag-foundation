@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 
 import logging
 
+from contracts.scan_worker_contracts import ScanStorageContract
 from pipeline_common.contracts import doc_id_from_source_key
 from pipeline_common.lineage import DatasetPlatform
 from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
@@ -18,16 +18,6 @@ class ScanCycleProcessor(ABC):
     @abstractmethod
     def scan(self) -> int:
         """Run one scan cycle and return the number of processed items."""
-
-
-@dataclass(frozen=True)
-class ScanStorageContract:
-    """Storage bucket and stage prefix settings for scan worker."""
-
-    bucket: str
-    input_prefix: str
-    output_prefix: str
-
 
 class StorageScanCycleProcessor(ScanCycleProcessor):
     """Move objects from a source prefix to a destination prefix and enqueue jobs."""

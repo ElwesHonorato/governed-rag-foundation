@@ -6,6 +6,7 @@ from typing import Any
 from contracts.chunk_text_worker_contracts import (
     ChunkTextJobConfigContract,
     ChunkTextQueueConfigContract,
+    ChunkTextStorageConfigContract,
     ChunkTextWorkerConfigContract,
 )
 from pipeline_common.startup import WorkerConfigExtractor
@@ -34,9 +35,11 @@ class ChunkTextConfigExtractor(WorkerConfigExtractor[ChunkTextWorkerConfigContra
             dlq=queue["dlq"],
         )
         return ChunkTextWorkerConfigContract(
-            bucket=job_contract.bucket,
-            input_prefix=job_contract.input_prefix,
-            output_prefix=job_contract.output_prefix,
+            storage=ChunkTextStorageConfigContract(
+                bucket=job_contract.bucket,
+                input_prefix=job_contract.input_prefix,
+                output_prefix=job_contract.output_prefix,
+            ),
             poll_interval_seconds=job_contract.poll_interval_seconds,
             queue_config=queue_contract,
         )

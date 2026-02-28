@@ -3,7 +3,12 @@
 from collections.abc import Mapping
 from typing import Any
 
-from contracts.scan_worker_contracts import ScanJobConfigContract, ScanQueueConfigContract, ScanWorkerConfigContract
+from contracts.scan_worker_contracts import (
+    ScanJobConfigContract,
+    ScanQueueConfigContract,
+    ScanStorageContract,
+    ScanWorkerConfigContract,
+)
 from pipeline_common.startup import WorkerConfigExtractor
 
 
@@ -30,9 +35,11 @@ class ScanConfigExtractor(WorkerConfigExtractor[ScanWorkerConfigContract]):
             consume=queue.get("consume", ""),
         )
         return ScanWorkerConfigContract(
-            bucket=job_contract.bucket,
-            input_prefix=job_contract.input_prefix,
-            output_prefix=job_contract.output_prefix,
+            storage=ScanStorageContract(
+                bucket=job_contract.bucket,
+                input_prefix=job_contract.input_prefix,
+                output_prefix=job_contract.output_prefix,
+            ),
             poll_interval_seconds=job_contract.poll_interval_seconds,
             queue_config=queue_contract,
         )

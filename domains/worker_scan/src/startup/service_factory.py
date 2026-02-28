@@ -1,8 +1,8 @@
 """Service graph assembly for worker_scan startup."""
 
-from contracts.scan_worker_contracts import ScanWorkerConfigContract
+from contracts.scan_worker_contracts import ScanStorageContract, ScanWorkerConfigContract
 from pipeline_common.startup import WorkerPollingContract, WorkerRuntimeContext, WorkerServiceFactory
-from services.scan_cycle_processor import ScanStorageContract, StorageScanCycleProcessor
+from services.scan_cycle_processor import StorageScanCycleProcessor
 from services.worker_scan_service import WorkerScanService
 
 
@@ -20,16 +20,16 @@ class ScanServiceFactory(WorkerServiceFactory[ScanWorkerConfigContract, WorkerSc
         lineage_gateway = runtime.lineage_gateway
 
         # Keep startup side effect explicit and early.
-        object_storage.bootstrap_bucket_prefixes(worker_config.bucket)
+        object_storage.bootstrap_bucket_prefixes(worker_config.storage.bucket)
 
         processor = StorageScanCycleProcessor(
             object_storage=object_storage,
             stage_queue=stage_queue,
             lineage=lineage_gateway,
             storage_contract=ScanStorageContract(
-                bucket=worker_config.bucket,
-                input_prefix=worker_config.input_prefix,
-                output_prefix=worker_config.output_prefix,
+                bucket=worker_config.storage.bucket,
+                input_prefix=worker_config.storage.input_prefix,
+                output_prefix=worker_config.storage.output_prefix,
             ),
         )
         return WorkerScanService(

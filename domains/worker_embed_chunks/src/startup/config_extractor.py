@@ -7,6 +7,7 @@ from typing import Any
 from contracts.embed_chunks_worker_contracts import (
     EmbedChunksJobConfigContract,
     EmbedChunksQueueConfigContract,
+    EmbedChunksStorageConfigContract,
     EmbedChunksWorkerConfigContract,
 )
 from pipeline_common.startup import WorkerConfigExtractor
@@ -36,9 +37,11 @@ class EmbedChunksConfigExtractor(WorkerConfigExtractor[EmbedChunksWorkerConfigCo
             dlq=queue["dlq"],
         )
         return EmbedChunksWorkerConfigContract(
-            bucket=job_contract.bucket,
-            input_prefix=job_contract.input_prefix,
-            output_prefix=job_contract.output_prefix,
+            storage=EmbedChunksStorageConfigContract(
+                bucket=job_contract.bucket,
+                input_prefix=job_contract.input_prefix,
+                output_prefix=job_contract.output_prefix,
+            ),
             poll_interval_seconds=job_contract.poll_interval_seconds,
             dimension=job_contract.dimension,
             queue_config=queue_contract,

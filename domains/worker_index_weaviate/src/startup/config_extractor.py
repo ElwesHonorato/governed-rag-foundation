@@ -6,6 +6,7 @@ from typing import Any
 from contracts.index_weaviate_worker_contracts import (
     IndexWeaviateJobConfigContract,
     IndexWeaviateQueueConfigContract,
+    IndexWeaviateStorageConfigContract,
     IndexWeaviateWorkerConfigContract,
 )
 from pipeline_common.startup import WorkerConfigExtractor
@@ -33,9 +34,11 @@ class IndexWeaviateConfigExtractor(WorkerConfigExtractor[IndexWeaviateWorkerConf
             dlq=queue["dlq"],
         )
         return IndexWeaviateWorkerConfigContract(
-            bucket=job_contract.bucket,
-            input_prefix=job_contract.input_prefix,
-            output_prefix=job_contract.output_prefix,
+            storage=IndexWeaviateStorageConfigContract(
+                bucket=job_contract.bucket,
+                input_prefix=job_contract.input_prefix,
+                output_prefix=job_contract.output_prefix,
+            ),
             poll_interval_seconds=job_contract.poll_interval_seconds,
             queue_config=queue_contract,
         )

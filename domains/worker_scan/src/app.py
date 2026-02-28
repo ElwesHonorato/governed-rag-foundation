@@ -1,6 +1,6 @@
 """worker_scan entrypoint."""
 
-from pipeline_common.lineage.pipeline import DataHubPipelineJobs
+from registry import DataHubPipelineJobs
 from pipeline_common.settings import DataHubSettings, QueueRuntimeSettings, S3StorageSettings
 from pipeline_common.startup import (
     RuntimeContextFactory,

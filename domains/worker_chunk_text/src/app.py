@@ -1,7 +1,7 @@
 """worker_chunk_text entrypoint."""
 
 from contracts.contracts import ChunkTextWorkerConfigContract
-from pipeline_common.lineage.pipeline import DataHubPipelineJobs
+from registry import DataHubPipelineJobs
 from pipeline_common.settings import DataHubSettings, QueueRuntimeSettings, S3StorageSettings
 from pipeline_common.startup import RuntimeContextFactory, WorkerRuntimeLauncher
 from services.worker_chunk_text_service import WorkerChunkTextService

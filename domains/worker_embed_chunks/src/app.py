@@ -1,7 +1,7 @@
 """worker_embed_chunks entrypoint."""
 
 from contracts.contracts import EmbedChunksWorkerConfigContract
-from pipeline_common.lineage.pipeline import DataHubPipelineJobs
+from registry import DataHubPipelineJobs
 from pipeline_common.settings import DataHubSettings, QueueRuntimeSettings, S3StorageSettings
 from pipeline_common.startup import RuntimeContextFactory, WorkerRuntimeLauncher
 from services.worker_embed_chunks_service import WorkerEmbedChunksService

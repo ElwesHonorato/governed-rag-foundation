@@ -28,6 +28,21 @@ Core infrastructure image tags are hardcoded in the domain compose files.
 - `scripts/`: Shared shell helpers used by `stack.sh`.
 - `stack.sh`: Entry point for bringing the local stack up/down.
 
+## Development Strategy
+
+This repository follows a modular monorepo approach during the solo development phase:
+
+- Each domain is treated as an independently deployable unit.
+- Domains are kept together in one repo to reduce coordination overhead and speed up iteration.
+- The target future state is polyrepo: each domain can be split into its own repository.
+
+To keep that future split low-risk, current changes should preserve clear boundaries:
+
+- No direct cross-domain Python imports.
+- Shared logic lives in `libs/pipeline-common`.
+- Domain-local runtime wiring stays inside each domain.
+- Domain contracts/config keys stay explicit and versionable.
+
 ## Requirements Tracking
 
 - Requirements workspace: `requirements/README.md`

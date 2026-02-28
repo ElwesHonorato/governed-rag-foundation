@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 
 import logging
-from typing import TypedDict
 
 from pipeline_common.contracts import doc_id_from_source_key
 from pipeline_common.lineage import DatasetPlatform
@@ -20,16 +20,13 @@ class ScanCycleProcessor(ABC):
         """Run one scan cycle and return the number of processed items."""
 
 
-class StorageConfig(TypedDict):
+@dataclass(frozen=True)
+class ScanStorageContract:
     """Storage bucket and stage prefix settings for scan worker."""
+
     bucket: str
     incoming_prefix: str
     raw_prefix: str
-
-
-class ScanProcessingConfig(TypedDict):
-    """Runtime config for scan cycle storage settings."""
-    storage: StorageConfig
 
 
 class StorageScanCycleProcessor(ScanCycleProcessor):
@@ -41,13 +38,15 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
         object_storage: ObjectStorageGateway,
         stage_queue: StageQueue,
         lineage: DataHubRunTimeLineage,
-        processing_config: ScanProcessingConfig,
+        storage_contract: ScanStorageContract,
     ) -> None:
         """Initialize instance state and dependencies."""
         self.object_storage = object_storage
         self.stage_queue = stage_queue
         self.lineage = lineage
-        self._initialize_runtime_config(processing_config)
+        self.bucket = storage_contract.bucket
+        self.source_prefix = storage_contract.incoming_prefix
+        self.destination_prefix = storage_contract.raw_prefix
 
     def scan(self) -> int:
         """Run one scan cycle and return the number of newly moved files."""
@@ -117,9 +116,3 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
     def _destination_key(self, source_key: str) -> str:
         """Map a source key to its destination key."""
         return source_key.replace(self.source_prefix, self.destination_prefix, 1)
-
-    def _initialize_runtime_config(self, processing_config: ScanProcessingConfig) -> None:
-        """Internal helper for initialize runtime config."""
-        self.bucket = processing_config["storage"]["bucket"]
-        self.source_prefix = processing_config["storage"]["incoming_prefix"]
-        self.destination_prefix = processing_config["storage"]["raw_prefix"]

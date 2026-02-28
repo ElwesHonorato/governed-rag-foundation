@@ -6,10 +6,10 @@ Use class-based startup with explicit responsibilities and hard boundaries.
 
 ## Target design (Object-Oriented)
 Use these patterns together:
-1. Template Method: one abstract startup pipeline for all workers.
+1. Startup Pipeline: one shared startup pipeline for all workers.
 2. Abstract Factory: class-based service construction.
 3. Strategy: class-based config extraction per worker.
-4. Composition Root: each worker app wires one bootstrap object and calls `run()`.
+4. Composition Root: each worker app wires one bootstrap object and calls `start()`.
 
 References:
 1. Template Method: https://refactoring.guru/design-patterns/template-method
@@ -51,22 +51,24 @@ class WorkerServiceFactory(ABC, Generic[TConfig, TService]):
     @abstractmethod
     def build(self, runtime: WorkerRuntimeContext, worker_config: TConfig) -> TService: ...
 
-class WorkerBootstrap(ABC, Generic[TConfig, TService]):
-    def run(self) -> None:
-        # template method: fixed orchestration
-        runtime = self._resolve_runtime()
-        worker_config = self.extractor().extract(runtime.lineage.resolved_job_config.custom_properties)
-        service = self.factory().build(runtime, worker_config)
+class WorkerRuntimeLauncher(Generic[TConfig, TService]):
+    def __init__(
+        self,
+        *,
+        data_job_key: DataHubDataJobKey,
+        config_extractor: WorkerConfigExtractor[TConfig],
+        service_factory: WorkerServiceFactory[TConfig, TService],
+    ) -> None:
+        self._data_job_key = data_job_key
+        self._config_extractor = config_extractor
+        self._service_factory = service_factory
+
+    def start(self) -> None:
+        runtime_factory = RuntimeContextFactory(data_job_key=self._data_job_key)
+        runtime = runtime_factory.runtime_context
+        worker_config = self._config_extractor.extract(runtime.job_properties)
+        service = self._service_factory.build(runtime, worker_config)
         service.serve()
-
-    @abstractmethod
-    def extractor(self) -> WorkerConfigExtractor[TConfig]: ...
-
-    @abstractmethod
-    def factory(self) -> WorkerServiceFactory[TConfig, TService]: ...
-
-    @abstractmethod
-    def _resolve_runtime(self) -> WorkerRuntimeContext: ...
 ```
 
 ## `job.*` standard
@@ -84,12 +86,16 @@ Each worker must define:
 1. `XWorkerConfig` dataclass.
 2. `XConfigExtractor(WorkerConfigExtractor[XWorkerConfig])`.
 3. `XServiceFactory(WorkerServiceFactory[XWorkerConfig, WorkerService])`.
-4. `XWorkerBootstrap(WorkerBootstrap[XWorkerConfig, WorkerService])`.
+4. A composition root that wires `WorkerRuntimeLauncher` with job key + extractor + factory.
 
 Worker `app.py` should be minimal:
 ```python
 def run() -> None:
-    ScanWorkerBootstrap().run()
+    WorkerRuntimeLauncher[ScanWorkerConfig, WorkerScanService](
+        data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_scan"),
+        config_extractor=ScanConfigExtractor(),
+        service_factory=ScanServiceFactory(),
+    ).start()
 ```
 
 ## Migration plan for current repo

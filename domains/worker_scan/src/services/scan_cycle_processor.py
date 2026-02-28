@@ -83,10 +83,6 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
         """Check whether the source object is still present."""
         return self.object_storage.object_exists(self.bucket, source_key)
 
-    def _destination_exists(self, destination_key: str) -> bool:
-        """Check whether the destination object already exists."""
-        return self.object_storage.object_exists(self.bucket, destination_key)
-
     def _delete_source(self, source_key: str) -> None:
         """Delete the source object after processing to avoid reprocessing."""
         self.object_storage.delete(self.bucket, source_key)

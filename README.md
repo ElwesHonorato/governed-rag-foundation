@@ -112,7 +112,7 @@ When finished:
 
 - `./stack.sh up infra_lineage` runs DataHub quickstart services from `domains/infra_lineage/docker-compose.yml`.
 - Workers emit runtime lineage to DataHub GMS via `DATAHUB_GMS_SERVER` and `DATAHUB_ENV`.
-- `make lineage-*` commands are legacy Marquez tooling and are not DataHub-native.
+- Legacy `make lineage-*` tooling has been removed from this repository.
 
 ## Python Dependencies (Poetry)
 

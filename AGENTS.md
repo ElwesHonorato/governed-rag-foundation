@@ -6,7 +6,6 @@ This file defines repo-wide rules for Codex changes.
 - Setup (root deps): `poetry install`
 - Setup (project deps): `cd <project-dir> && poetry install`
 - Stack lifecycle: `./stack.sh up <domain>`, `./stack.sh down`, `./stack.sh ps`, `./stack.sh logs <domain>`
-- Lineage tooling: `make lineage-help` (and `make lineage-*` targets)
 - Test (baseline sanity): `python3 -m compileall libs domains`
 - Test (project-level): `cd <project-dir> && poetry run pytest` (when tests exist)
 - Lint: project-specific only (no repo-wide lint command configured yet). TODO: standardize.
@@ -20,7 +19,7 @@ This file defines repo-wide rules for Codex changes.
 - `requirements/`: requirements and architecture decision references.
 - `docs/`: normalized architecture/pattern guidance for day-to-day development.
 - `standards/patterns/`: preserved standards corpus and policy source material.
-- `scripts/`, `stack.sh`, `Makefile`: dev/runtime operations.
+- `scripts/`, `stack.sh`: dev/runtime operations.
 
 ## Architecture Rules
 - Dependency direction: `domains/` may depend on `libs/pipeline-common`; `libs/` must not depend on `domains/`.

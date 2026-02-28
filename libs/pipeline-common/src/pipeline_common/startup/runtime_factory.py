@@ -5,7 +5,7 @@ from pipeline_common.settings import DataHubSettings, QueueRuntimeSettings, S3St
 from pipeline_common.startup.infra.datahub_lineage import DataHubLineageGatewayBuilder
 from pipeline_common.startup.infra.object_storage import ObjectStorageGatewayBuilder
 from pipeline_common.startup.infra.stage_queue import StageQueueGatewayBuilder
-from pipeline_common.startup.job_properties import derive_job_properties
+from pipeline_common.startup.job_properties import JobPropertiesParser
 from pipeline_common.startup.runtime_context import WorkerRuntimeContext
 
 
@@ -32,7 +32,7 @@ class RuntimeContextFactory:
             datahub_settings=self._datahub_settings,
             data_job_key=self._data_job_key,
         ).build()
-        job_properties = derive_job_properties(lineage_gateway.resolved_job_config.custom_properties)
+        job_properties = JobPropertiesParser(lineage_gateway.resolved_job_config.custom_properties).job_properties
         object_storage_gateway = ObjectStorageGatewayBuilder(
             s3_settings=self._s3_settings
         ).build()

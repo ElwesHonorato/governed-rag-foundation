@@ -30,8 +30,3 @@ class JobPropertiesParser:
             if "." in key:
                 self._set_nested(expanded, key, value)
         return expanded
-
-
-def derive_job_properties(custom_properties: Mapping[str, str]) -> dict[str, Any]:
-    """Derive nested job properties from resolved DataHub custom properties."""
-    return JobPropertiesParser(custom_properties).job_properties

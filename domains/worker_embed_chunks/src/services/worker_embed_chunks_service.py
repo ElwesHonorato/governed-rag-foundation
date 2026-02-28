@@ -25,8 +25,8 @@ class StorageConfig(TypedDict):
     """Storage-related prefixes and bucket for embedding worker."""
 
     bucket: str
-    chunks_prefix: str
-    embeddings_prefix: str
+    input_prefix: str
+    output_prefix: str
 
 
 class QueueConfig(TypedDict):
@@ -87,7 +87,7 @@ class WorkerEmbedChunksService(WorkerService):
 
     def process_source_key(self, source_key: str) -> None:
         """Embed one chunk artifact and publish downstream indexing work."""
-        if not source_key.startswith(self.chunks_prefix) or source_key == self.chunks_prefix:
+        if not source_key.startswith(self.input_prefix) or source_key == self.input_prefix:
             return
         if not source_key.endswith(self.chunks_suffix):
             return
@@ -123,7 +123,7 @@ class WorkerEmbedChunksService(WorkerService):
 
     def _embedding_object_key(self, doc_id: str, chunk_id: str) -> str:
         """Build one embeddings object key scoped under the document id."""
-        return f"{self.embeddings_prefix}{doc_id}/{chunk_id}.embedding.json"
+        return f"{self.output_prefix}{doc_id}/{chunk_id}.embedding.json"
 
     def _embeddings_exists(self, destination_key: str) -> bool:
         """Return whether the embeddings output already exists."""
@@ -181,6 +181,6 @@ class WorkerEmbedChunksService(WorkerService):
         """Load runtime config values into worker state."""
         self.poll_interval_seconds = processing_config["poll_interval_seconds"]
         self.storage_bucket = processing_config["storage"]["bucket"]
-        self.chunks_prefix = processing_config["storage"]["chunks_prefix"]
-        self.embeddings_prefix = processing_config["storage"]["embeddings_prefix"]
+        self.input_prefix = processing_config["storage"]["input_prefix"]
+        self.output_prefix = processing_config["storage"]["output_prefix"]
         self.chunks_suffix = ".chunk.json"

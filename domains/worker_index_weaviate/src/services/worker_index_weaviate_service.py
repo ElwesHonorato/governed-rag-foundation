@@ -25,8 +25,8 @@ class StorageConfig(TypedDict):
     """Storage-related prefixes and bucket for indexing worker."""
 
     bucket: str
-    embeddings_prefix: str
-    indexes_prefix: str
+    input_prefix: str
+    output_prefix: str
 
 
 class QueueConfig(TypedDict):
@@ -79,7 +79,7 @@ class WorkerIndexWeaviateService(WorkerService):
 
     def process_embeddings_key(self, embeddings_key: str, doc_id: str) -> None:
         """Index one embedding artifact and write indexing status output."""
-        if not embeddings_key.startswith(self.embeddings_prefix) or embeddings_key == self.embeddings_prefix:
+        if not embeddings_key.startswith(self.input_prefix) or embeddings_key == self.input_prefix:
             return
         if not embeddings_key.endswith(self.embeddings_suffix):
             return
@@ -143,8 +143,8 @@ class WorkerIndexWeaviateService(WorkerService):
     def _indexed_key(self, doc_id: str, chunk_id: str) -> str:
         """Build the indexed-stage key for one document chunk."""
         if chunk_id:
-            return f"{self.indexes_prefix}{doc_id}/{chunk_id}.indexed.json"
-        return f"{self.indexes_prefix}{doc_id}.indexed.json"
+            return f"{self.output_prefix}{doc_id}/{chunk_id}.indexed.json"
+        return f"{self.output_prefix}{doc_id}.indexed.json"
 
     def _indexed_exists(self, destination_key: str) -> bool:
         """Return whether the indexing status output already exists."""
@@ -168,6 +168,6 @@ class WorkerIndexWeaviateService(WorkerService):
         """Load runtime config values into worker state."""
         self.poll_interval_seconds = processing_config["poll_interval_seconds"]
         self.storage_bucket = processing_config["storage"]["bucket"]
-        self.embeddings_prefix = processing_config["storage"]["embeddings_prefix"]
-        self.indexes_prefix = processing_config["storage"]["indexes_prefix"]
+        self.input_prefix = processing_config["storage"]["input_prefix"]
+        self.output_prefix = processing_config["storage"]["output_prefix"]
         self.embeddings_suffix = ".embedding.json"

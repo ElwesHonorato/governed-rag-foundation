@@ -34,8 +34,8 @@ class ScanWorkerConfig:
     """Typed scan worker startup configuration."""
 
     bucket: str
-    incoming_prefix: str
-    raw_prefix: str
+    input_prefix: str
+    output_prefix: str
     poll_interval_seconds: int
     queue_config: "ScanQueueConfigContract"
 
@@ -57,8 +57,8 @@ class ScanJobConfigContract:
     """Typed contract for scan-specific job config fields."""
 
     bucket: str
-    incoming_prefix: str
-    raw_prefix: str
+    input_prefix: str
+    output_prefix: str
     poll_interval_seconds: int
 
 
@@ -81,8 +81,8 @@ class ScanConfigExtractor(WorkerConfigExtractor[ScanWorkerConfig]):
         queue = job_config["queue"]
         job_contract = ScanJobConfigContract(
             bucket=storage["bucket"],
-            incoming_prefix=storage["incoming_prefix"],
-            raw_prefix=storage["raw_prefix"],
+            input_prefix=storage["input_prefix"],
+            output_prefix=storage["output_prefix"],
             poll_interval_seconds=job_config["poll_interval_seconds"],
         )
         queue_contract = ScanQueueConfigContract(
@@ -95,8 +95,8 @@ class ScanConfigExtractor(WorkerConfigExtractor[ScanWorkerConfig]):
         )
         return ScanWorkerConfig(
             bucket=job_contract.bucket,
-            incoming_prefix=job_contract.incoming_prefix,
-            raw_prefix=job_contract.raw_prefix,
+            input_prefix=job_contract.input_prefix,
+            output_prefix=job_contract.output_prefix,
             poll_interval_seconds=job_contract.poll_interval_seconds,
             queue_config=queue_contract,
         )
@@ -124,8 +124,8 @@ class ScanServiceFactory(WorkerServiceFactory[ScanWorkerConfig, WorkerScanServic
             lineage=lineage_gateway,
             storage_contract=ScanStorageContract(
                 bucket=worker_config.bucket,
-                incoming_prefix=worker_config.incoming_prefix,
-                raw_prefix=worker_config.raw_prefix,
+                input_prefix=worker_config.input_prefix,
+                output_prefix=worker_config.output_prefix,
             ),
         )
         return WorkerScanService(

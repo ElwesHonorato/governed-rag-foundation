@@ -25,8 +25,8 @@ class ScanStorageContract:
     """Storage bucket and stage prefix settings for scan worker."""
 
     bucket: str
-    incoming_prefix: str
-    raw_prefix: str
+    input_prefix: str
+    output_prefix: str
 
 
 class StorageScanCycleProcessor(ScanCycleProcessor):
@@ -45,8 +45,8 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
         self.stage_queue = stage_queue
         self.lineage = lineage
         self.bucket = storage_contract.bucket
-        self.source_prefix = storage_contract.incoming_prefix
-        self.destination_prefix = storage_contract.raw_prefix
+        self.source_prefix = storage_contract.input_prefix
+        self.destination_prefix = storage_contract.output_prefix
 
     def scan(self) -> int:
         """Run one scan cycle and return the number of newly moved files."""

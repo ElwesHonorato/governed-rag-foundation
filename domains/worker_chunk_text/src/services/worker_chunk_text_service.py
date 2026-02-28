@@ -26,8 +26,8 @@ class StorageConfig(TypedDict):
     """Storage-related prefixes and bucket for chunking worker."""
 
     bucket: str
-    processed_prefix: str
-    chunks_prefix: str
+    input_prefix: str
+    output_prefix: str
 
 
 class QueueConfig(TypedDict):
@@ -77,13 +77,13 @@ class WorkerChunkTextService(WorkerService):
 
     def process_source_key(self, source_key: str) -> None:
         """Chunk one processed document and publish per-chunk downstream work."""
-        if not source_key.startswith(self.processed_prefix) or source_key == self.processed_prefix:
+        if not source_key.startswith(self.input_prefix) or source_key == self.input_prefix:
             return
         if not source_key.endswith(self.processed_suffix):
             return
 
         doc_id = source_key.split("/")[-1].replace(self.processed_suffix, "")
-        destination_prefix = f"{self.chunks_prefix}{doc_id}/"
+        destination_prefix = f"{self.output_prefix}{doc_id}/"
         self.lineage.start_run()
         self.lineage.add_input(name=f"{self.storage_bucket}/{source_key}", platform=DatasetPlatform.S3)
         try:
@@ -116,7 +116,7 @@ class WorkerChunkTextService(WorkerService):
 
     def _chunk_object_key(self, doc_id: str, chunk_id: str) -> str:
         """Build one chunk object key scoped under the document id."""
-        return f"{self.chunks_prefix}{doc_id}/{chunk_id}.chunk.json"
+        return f"{self.output_prefix}{doc_id}/{chunk_id}.chunk.json"
 
     def _chunk_object_exists(self, destination_key: str) -> bool:
         """Return whether one chunk object already exists."""
@@ -165,6 +165,6 @@ class WorkerChunkTextService(WorkerService):
         """Load runtime config values into worker state."""
         self.poll_interval_seconds = processing_config["poll_interval_seconds"]
         self.storage_bucket = processing_config["storage"]["bucket"]
-        self.processed_prefix = processing_config["storage"]["processed_prefix"]
-        self.chunks_prefix = processing_config["storage"]["chunks_prefix"]
+        self.input_prefix = processing_config["storage"]["input_prefix"]
+        self.output_prefix = processing_config["storage"]["output_prefix"]
         self.processed_suffix = ".json"

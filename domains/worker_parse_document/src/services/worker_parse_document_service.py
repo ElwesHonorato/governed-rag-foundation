@@ -33,8 +33,8 @@ class StorageConfig(TypedDict):
     """Storage-related prefixes and bucket for parse worker."""
 
     bucket: str
-    raw_prefix: str
-    processed_prefix: str
+    input_prefix: str
+    output_prefix: str
 
 
 class QueueConfig(TypedDict):
@@ -85,7 +85,7 @@ class WorkerParseDocumentService(WorkerService):
 
     def process_source_key(self, source_key: str) -> None:
         """Parse a single raw document key and publish downstream work."""
-        if not source_key.startswith(self.raw_prefix) or source_key == self.raw_prefix:
+        if not source_key.startswith(self.input_prefix) or source_key == self.input_prefix:
             return
 
         doc_id = doc_id_from_source_key(source_key)
@@ -131,7 +131,7 @@ class WorkerParseDocumentService(WorkerService):
 
     def _processed_key(self, doc_id: str) -> str:
         """Build the processed-stage key for a document id."""
-        return f"{self.processed_prefix}{doc_id}.json"
+        return f"{self.output_prefix}{doc_id}.json"
 
     def _processed_exists(self, destination_key: str) -> bool:
         """Return whether the processed output already exists."""
@@ -167,6 +167,6 @@ class WorkerParseDocumentService(WorkerService):
         """Internal helper for initialize runtime config."""
         self.poll_interval_seconds = processing_config["poll_interval_seconds"]
         self.storage_bucket = processing_config["storage"]["bucket"]
-        self.raw_prefix = processing_config["storage"]["raw_prefix"]
-        self.processed_prefix = processing_config["storage"]["processed_prefix"]
+        self.input_prefix = processing_config["storage"]["input_prefix"]
+        self.output_prefix = processing_config["storage"]["output_prefix"]
         self.security_clearance = processing_config["security"]["clearance"]

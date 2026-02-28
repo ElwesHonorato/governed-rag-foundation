@@ -8,7 +8,6 @@ DataHub metadata.
 import logging
 import time
 import uuid
-from dataclasses import dataclass
 
 import requests
 from datahub.emitter.mcp import MetadataChangeProposalWrapper
@@ -33,16 +32,16 @@ from datahub.metadata.urns import DatasetUrn
 from pipeline_common.lineage.contracts import DataHubDataJobKey, DatasetPlatform, ResolvedDataHubFlowConfig
 from pipeline_common.lineage.urns import DataHubUrnFactory
 
-from .runtime_contracts import CustomProperties, DataHubLineageRuntimeConfig, DataHubRuntimeConnectionSettings, RunSpec
+from .runtime_contracts import (
+    ActiveRunContext,
+    CustomProperties,
+    DataHubLineageRuntimeConfig,
+    DataHubRuntimeConnectionSettings,
+    RunSpec,
+)
 
 logger = logging.getLogger(__name__)
 DEFAULT_ACTOR_URN = "urn:li:corpuser:datahub"
-
-@dataclass(frozen=True)
-class ActiveRunContext:
-    run: RunSpec
-    datajob_urn: str
-
 
 class DataProcessInstanceMcpBuilder:
     """Build DataProcessInstance aspects and MCP payloads.

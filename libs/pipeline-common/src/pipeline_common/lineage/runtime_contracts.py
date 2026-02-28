@@ -24,6 +24,12 @@ class RunSpec:
 
 
 @dataclass(frozen=True)
+class ActiveRunContext:
+    run: RunSpec
+    datajob_urn: str
+
+
+@dataclass(frozen=True)
 class DataHubRuntimeConnectionSettings:
     """DataHub connection settings used by runtime lineage clients."""
 

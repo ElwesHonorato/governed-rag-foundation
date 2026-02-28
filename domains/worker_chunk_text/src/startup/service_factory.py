@@ -1,6 +1,6 @@
 """Service graph assembly for worker_chunk_text startup."""
 
-from contracts.chunk_text_worker_contracts import ChunkTextProcessingConfigContract, ChunkTextWorkerConfigContract
+from contracts.contracts import ChunkTextProcessingConfigContract, ChunkTextWorkerConfigContract
 from pipeline_common.startup import WorkerRuntimeContext, WorkerServiceFactory
 from services.worker_chunk_text_service import WorkerChunkTextService
 

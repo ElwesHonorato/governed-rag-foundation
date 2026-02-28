@@ -3,7 +3,7 @@
 from collections.abc import Mapping
 from typing import Any
 
-from contracts.manifest_worker_contracts import ManifestJobConfigContract, ManifestStorageConfigContract, ManifestWorkerConfigContract
+from contracts.contracts import ManifestJobConfigContract, ManifestStorageConfigContract, ManifestWorkerConfigContract
 from pipeline_common.startup import WorkerConfigExtractor
 
 

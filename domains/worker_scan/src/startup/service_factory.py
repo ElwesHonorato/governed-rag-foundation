@@ -1,6 +1,6 @@
 """Service graph assembly for worker_scan startup."""
 
-from contracts.scan_worker_contracts import ScanStorageContract, ScanWorkerConfigContract
+from contracts.contracts import ScanStorageContract, ScanWorkerConfigContract
 from pipeline_common.startup import WorkerPollingContract, WorkerRuntimeContext, WorkerServiceFactory
 from services.scan_cycle_processor import StorageScanCycleProcessor
 from services.worker_scan_service import WorkerScanService

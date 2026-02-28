@@ -1,6 +1,6 @@
 """Service graph assembly for worker_index_weaviate startup."""
 
-from contracts.index_weaviate_worker_contracts import IndexWeaviateProcessingConfigContract, IndexWeaviateWorkerConfigContract
+from contracts.contracts import IndexWeaviateProcessingConfigContract, IndexWeaviateWorkerConfigContract
 from pipeline_common.startup import WorkerRuntimeContext, WorkerServiceFactory
 from pipeline_common.weaviate import ensure_schema
 from services.worker_index_weaviate_service import WorkerIndexWeaviateService

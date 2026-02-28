@@ -1,6 +1,6 @@
 """Contracts package for worker_chunk_text."""
 
-from contracts.chunk_text_worker_contracts import (
+from contracts.contracts import (
     ChunkTextJobConfigContract,
     ChunkTextProcessingConfigContract,
     ChunkTextQueueConfigContract,

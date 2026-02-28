@@ -1,6 +1,6 @@
 """worker_parse_document entrypoint."""
 
-from contracts.parse_worker_contracts import ParseWorkerConfigContract
+from contracts.contracts import ParseWorkerConfigContract
 from parsing.html import HtmlParser
 from parsing.registry import ParserRegistry
 from pipeline_common.lineage.pipeline import DataHubPipelineJobs

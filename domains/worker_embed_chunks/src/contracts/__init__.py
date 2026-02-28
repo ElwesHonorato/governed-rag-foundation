@@ -1,6 +1,6 @@
 """Contracts package for worker_embed_chunks."""
 
-from contracts.embed_chunks_worker_contracts import (
+from contracts.contracts import (
     EmbedChunksJobConfigContract,
     EmbedChunksProcessingConfigContract,
     EmbedChunksQueueConfigContract,

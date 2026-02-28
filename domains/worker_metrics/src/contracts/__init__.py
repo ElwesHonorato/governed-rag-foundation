@@ -1,6 +1,6 @@
 """Contracts package for worker_metrics."""
 
-from contracts.metrics_worker_contracts import (
+from contracts.contracts import (
     MetricsJobConfigContract,
     MetricsProcessingConfigContract,
     MetricsStorageConfigContract,

@@ -3,7 +3,7 @@
 from collections.abc import Mapping
 from typing import Any
 
-from contracts.index_weaviate_worker_contracts import (
+from contracts.contracts import (
     IndexWeaviateJobConfigContract,
     IndexWeaviateQueueConfigContract,
     IndexWeaviateStorageConfigContract,

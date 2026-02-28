@@ -1,6 +1,6 @@
 """Contracts package for worker_parse_document."""
 
-from contracts.parse_worker_contracts import (
+from contracts.contracts import (
     ParseJobConfigContract,
     ParseProcessingConfigContract,
     ParseQueueConfigContract,

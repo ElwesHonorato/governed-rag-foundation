@@ -1,7 +1,7 @@
 import logging
 import time
 
-from contracts.metrics_worker_contracts import MetricsProcessingConfigContract
+from contracts.contracts import MetricsProcessingConfigContract
 from pipeline_common.lineage import DatasetPlatform
 from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
 from pipeline_common.observability import Counters

@@ -1,6 +1,6 @@
 """Service graph assembly for worker_manifest startup."""
 
-from contracts.manifest_worker_contracts import ManifestProcessingConfigContract, ManifestWorkerConfigContract
+from contracts.contracts import ManifestProcessingConfigContract, ManifestWorkerConfigContract
 from pipeline_common.startup import WorkerRuntimeContext, WorkerServiceFactory
 from services.worker_manifest_service import WorkerManifestService
 

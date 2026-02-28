@@ -1,6 +1,6 @@
 """Service graph assembly for worker_parse_document startup."""
 
-from contracts.parse_worker_contracts import ParseProcessingConfigContract, ParseSecurityConfigContract, ParseWorkerConfigContract
+from contracts.contracts import ParseProcessingConfigContract, ParseSecurityConfigContract, ParseWorkerConfigContract
 from parsing.registry import ParserRegistry
 from pipeline_common.startup import WorkerRuntimeContext, WorkerServiceFactory
 from services.worker_parse_document_service import WorkerParseDocumentService

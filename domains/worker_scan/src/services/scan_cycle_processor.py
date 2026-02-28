@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 import logging
 
-from contracts.scan_worker_contracts import ScanStorageContract
+from contracts.contracts import ScanStorageContract
 from pipeline_common.contracts import doc_id_from_source_key
 from pipeline_common.lineage import DatasetPlatform
 from pipeline_common.lineage.data_hub import DataHubRunTimeLineage

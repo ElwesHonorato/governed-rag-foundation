@@ -6,7 +6,7 @@ from pipeline_common.startup import (
     RuntimeContextFactory,
     WorkerRuntimeLauncher,
 )
-from contracts.scan_worker_contracts import ScanWorkerConfigContract
+from contracts.contracts import ScanWorkerConfigContract
 from services.worker_scan_service import WorkerScanService
 from startup.config_extractor import ScanConfigExtractor
 from startup.service_factory import ScanServiceFactory

@@ -1,6 +1,6 @@
 """Contracts package for worker_manifest."""
 
-from contracts.manifest_worker_contracts import (
+from contracts.contracts import (
     ManifestJobConfigContract,
     ManifestProcessingConfigContract,
     ManifestStorageConfigContract,

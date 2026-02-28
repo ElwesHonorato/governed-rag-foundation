@@ -1,6 +1,6 @@
 """Service graph assembly for worker_embed_chunks startup."""
 
-from contracts.embed_chunks_worker_contracts import EmbedChunksProcessingConfigContract, EmbedChunksWorkerConfigContract
+from contracts.contracts import EmbedChunksProcessingConfigContract, EmbedChunksWorkerConfigContract
 from pipeline_common.startup import WorkerRuntimeContext, WorkerServiceFactory
 from services.worker_embed_chunks_service import WorkerEmbedChunksService
 

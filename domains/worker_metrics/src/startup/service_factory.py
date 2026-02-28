@@ -1,6 +1,6 @@
 """Service graph assembly for worker_metrics startup."""
 
-from contracts.metrics_worker_contracts import MetricsProcessingConfigContract, MetricsWorkerConfigContract
+from contracts.contracts import MetricsProcessingConfigContract, MetricsWorkerConfigContract
 from pipeline_common.observability import Counters
 from pipeline_common.startup import WorkerRuntimeContext, WorkerServiceFactory
 from services.worker_metrics_service import WorkerMetricsService

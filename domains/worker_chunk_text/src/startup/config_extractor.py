@@ -3,7 +3,7 @@
 from collections.abc import Mapping
 from typing import Any
 
-from contracts.chunk_text_worker_contracts import (
+from contracts.contracts import (
     ChunkTextJobConfigContract,
     ChunkTextQueueConfigContract,
     ChunkTextStorageConfigContract,

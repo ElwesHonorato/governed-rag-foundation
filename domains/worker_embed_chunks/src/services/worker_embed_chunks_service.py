@@ -3,7 +3,7 @@ import json
 import logging
 from typing import Any
 
-from contracts.embed_chunks_worker_contracts import EmbedChunksProcessingConfigContract
+from contracts.contracts import EmbedChunksProcessingConfigContract
 from pipeline_common.lineage import DatasetPlatform
 from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
 from pipeline_common.queue import StageQueue

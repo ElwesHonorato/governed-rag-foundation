@@ -1,6 +1,6 @@
 """worker_index_weaviate entrypoint."""
 
-from contracts.index_weaviate_worker_contracts import IndexWeaviateWorkerConfigContract
+from contracts.contracts import IndexWeaviateWorkerConfigContract
 from pipeline_common.config import _required_env
 from pipeline_common.lineage.pipeline import DataHubPipelineJobs
 from pipeline_common.settings import DataHubSettings, QueueRuntimeSettings, S3StorageSettings

@@ -1,6 +1,6 @@
 """worker_manifest entrypoint."""
 
-from contracts.manifest_worker_contracts import ManifestWorkerConfigContract
+from contracts.contracts import ManifestWorkerConfigContract
 from pipeline_common.lineage.pipeline import DataHubPipelineJobs
 from pipeline_common.settings import DataHubSettings, QueueRuntimeSettings, S3StorageSettings
 from pipeline_common.startup import RuntimeContextFactory, WorkerRuntimeLauncher

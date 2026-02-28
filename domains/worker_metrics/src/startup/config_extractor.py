@@ -3,7 +3,7 @@
 from collections.abc import Mapping
 from typing import Any
 
-from contracts.metrics_worker_contracts import MetricsJobConfigContract, MetricsStorageConfigContract, MetricsWorkerConfigContract
+from contracts.contracts import MetricsJobConfigContract, MetricsStorageConfigContract, MetricsWorkerConfigContract
 from pipeline_common.startup import WorkerConfigExtractor
 
 

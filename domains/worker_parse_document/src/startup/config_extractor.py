@@ -3,7 +3,7 @@
 from collections.abc import Mapping
 from typing import Any
 
-from contracts.parse_worker_contracts import (
+from contracts.contracts import (
     ParseJobConfigContract,
     ParseQueueConfigContract,
     ParseStorageConfigContract,

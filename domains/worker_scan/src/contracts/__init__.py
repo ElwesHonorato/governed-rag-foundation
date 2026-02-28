@@ -1,6 +1,6 @@
 """Contracts package for worker_scan."""
 
-from contracts.scan_worker_contracts import (
+from contracts.contracts import (
     ScanJobConfigContract,
     ScanQueueConfigContract,
     ScanStorageContract,

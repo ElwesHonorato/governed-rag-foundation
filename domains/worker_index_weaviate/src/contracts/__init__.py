@@ -1,6 +1,6 @@
 """Contracts package for worker_index_weaviate."""
 
-from contracts.index_weaviate_worker_contracts import (
+from contracts.contracts import (
     IndexWeaviateJobConfigContract,
     IndexWeaviateProcessingConfigContract,
     IndexWeaviateQueueConfigContract,

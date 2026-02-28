@@ -4,7 +4,7 @@ import os
 from collections.abc import Mapping
 from typing import Any
 
-from contracts.embed_chunks_worker_contracts import (
+from contracts.contracts import (
     EmbedChunksJobConfigContract,
     EmbedChunksQueueConfigContract,
     EmbedChunksStorageConfigContract,

@@ -1,6 +1,6 @@
 """worker_metrics entrypoint."""
 
-from contracts.metrics_worker_contracts import MetricsWorkerConfigContract
+from contracts.contracts import MetricsWorkerConfigContract
 from pipeline_common.lineage.pipeline import DataHubPipelineJobs
 from pipeline_common.settings import DataHubSettings, QueueRuntimeSettings, S3StorageSettings
 from pipeline_common.startup import RuntimeContextFactory, WorkerRuntimeLauncher

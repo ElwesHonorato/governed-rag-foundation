@@ -17,7 +17,6 @@ Best practices:
 from pipeline_common.lineage.pipeline import DataHubPipelineJobs
 from pipeline_common.observability import Counters
 from pipeline_common.startup import (
-    InfrastructureFactory,
     RuntimeContextFactory,
 )
 from services.worker_metrics_service import WorkerMetricsService
@@ -28,14 +27,12 @@ def run() -> None:
     runtime_factory = RuntimeContextFactory(
         data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_metrics"),
     )
-    runtime = runtime_factory.runtime_context
-    infra = InfrastructureFactory(runtime)
-    lineage = infra.datahub_lineage_client
-    raw_config = infra.job_properties
+    lineage = runtime_factory.runtime_context.lineage_gateway
+    raw_config = runtime_factory.runtime_context.job_properties
     job_config = _extract_job_config(raw_config)
 
     counters = Counters().for_worker("worker_metrics")
-    object_storage = infra.object_storage
+    object_storage = runtime_factory.runtime_context.object_storage_gateway
     WorkerMetricsService(
         counters=counters,
         object_storage=object_storage,

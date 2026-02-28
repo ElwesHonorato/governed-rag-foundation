@@ -18,7 +18,6 @@ import os
 
 from pipeline_common.lineage.pipeline import DataHubPipelineJobs
 from pipeline_common.startup import (
-    InfrastructureFactory,
     RuntimeContextFactory,
 )
 from services.worker_embed_chunks_service import WorkerEmbedChunksService
@@ -29,15 +28,13 @@ def run() -> None:
     runtime_factory = RuntimeContextFactory(
         data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_embed_chunks"),
     )
-    runtime = runtime_factory.runtime_context
-    infra = InfrastructureFactory(runtime)
-    lineage = infra.datahub_lineage_client
-    raw_config = infra.job_properties
+    lineage = runtime_factory.runtime_context.lineage_gateway
+    raw_config = runtime_factory.runtime_context.job_properties
     job_config, queue_config = _extract_job_and_queue_config(raw_config)
 
-    stage_queue = infra.stage_queue
+    stage_queue = runtime_factory.runtime_context.stage_queue_gateway
     dimension = int(job_config.get("dimension", os.getenv("EMBEDDING_DIM", "32")))
-    object_storage = infra.object_storage
+    object_storage = runtime_factory.runtime_context.object_storage_gateway
     WorkerEmbedChunksService(
         stage_queue=stage_queue,
         object_storage=object_storage,

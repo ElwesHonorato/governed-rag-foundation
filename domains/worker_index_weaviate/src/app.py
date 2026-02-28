@@ -17,7 +17,6 @@ Best practices:
 from pipeline_common.config import _required_env
 from pipeline_common.lineage.pipeline import DataHubPipelineJobs
 from pipeline_common.startup import (
-    InfrastructureFactory,
     RuntimeContextFactory,
 )
 from pipeline_common.weaviate import ensure_schema
@@ -29,15 +28,13 @@ def run() -> None:
     runtime_factory = RuntimeContextFactory(
         data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_index_weaviate"),
     )
-    runtime = runtime_factory.runtime_context
-    infra = InfrastructureFactory(runtime)
-    lineage = infra.datahub_lineage_client
-    raw_config = infra.job_properties
+    lineage = runtime_factory.runtime_context.lineage_gateway
+    raw_config = runtime_factory.runtime_context.job_properties
     job_config, queue_config = _extract_job_and_queue_config(raw_config)
 
     weaviate_url = _required_env("WEAVIATE_URL")
-    stage_queue = infra.stage_queue
-    object_storage = infra.object_storage
+    stage_queue = runtime_factory.runtime_context.stage_queue_gateway
+    object_storage = runtime_factory.runtime_context.object_storage_gateway
     ensure_schema(weaviate_url)
     WorkerIndexWeaviateService(
         stage_queue=stage_queue,

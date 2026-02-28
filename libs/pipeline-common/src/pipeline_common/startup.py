@@ -35,8 +35,8 @@ class WorkerConfigExtractor(Generic[TWorkerConfig], ABC):
     """Extractor contract for typed worker config."""
 
     @abstractmethod
-    def extract(self, custom_properties: Mapping[str, str]) -> TWorkerConfig:
-        """Parse and validate raw DataHub custom properties."""
+    def extract(self, job_properties: Mapping[str, Any]) -> TWorkerConfig:
+        """Parse and validate resolved worker job properties."""
 
 
 class WorkerServiceFactory(Generic[TWorkerConfig, TWorkerService], ABC):
@@ -46,78 +46,87 @@ class WorkerServiceFactory(Generic[TWorkerConfig, TWorkerService], ABC):
     def build(
         self,
         runtime: "WorkerRuntimeContext",
-        infrastructure: "InfrastructureFactory",
         worker_config: TWorkerConfig,
     ) -> TWorkerService:
         """Build worker service from runtime context + typed config."""
 
 
-class WorkerBootstrap(Generic[TWorkerConfig, TWorkerService], ABC):
-    """Template method bootstrap for worker startup orchestration."""
+class WorkerRuntimeLauncher(Generic[TWorkerConfig, TWorkerService]):
+    """Launch worker runtime from injected startup collaborators."""
 
     def __init__(
         self,
         *,
-        runtime_factory: "RuntimeContextFactory",
+        data_job_key: DataHubDataJobKey,
+        config_extractor: WorkerConfigExtractor[TWorkerConfig],
+        service_factory: WorkerServiceFactory[TWorkerConfig, TWorkerService],
     ) -> None:
-        self.runtime_factory = runtime_factory
+        self._data_job_key = data_job_key
+        self._config_extractor = config_extractor
+        self._service_factory = service_factory
 
-    def run(self) -> None:
+    def start(self) -> None:
         """Execute the standard worker startup pipeline."""
-        runtime = self.runtime_factory.runtime_context
-        infrastructure = InfrastructureFactory(runtime)
-        lineage = infrastructure.datahub_lineage_client
-        worker_config = self.config_extractor().extract(lineage.resolved_job_config.custom_properties)
-        service = self.service_factory().build(runtime, infrastructure, worker_config)
+        runtime_factory = RuntimeContextFactory(data_job_key=self._data_job_key)
+        runtime = runtime_factory.runtime_context
+        worker_config = self._config_extractor.extract(runtime.job_properties)
+        service = self._service_factory.build(runtime, worker_config)
         service.serve()
-
-    @abstractmethod
-    def data_job_key(self) -> DataHubDataJobKey:
-        """Return DataHub job key for this worker."""
-
-    @abstractmethod
-    def config_extractor(self) -> WorkerConfigExtractor[TWorkerConfig]:
-        """Return typed config extractor for this worker."""
-
-    @abstractmethod
-    def service_factory(self) -> WorkerServiceFactory[TWorkerConfig, TWorkerService]:
-        """Return worker service factory."""
 
 
 @dataclass(frozen=True)
 class WorkerRuntimeContext:
     """Runtime dependencies resolved by startup bootstrap."""
 
-    data_job_key: DataHubDataJobKey
-    s3_settings: S3StorageSettings
-    queue_settings: QueueRuntimeSettings
-    datahub_settings: DataHubSettings
+    lineage_gateway: DataHubRunTimeLineage
+    object_storage_gateway: ObjectStorageGateway
+    stage_queue_gateway: StageQueue
+    job_properties: dict[str, Any]
 
 
 class RuntimeContextFactory:
-    """Factory for shared runtime settings."""
+    """Factory for shared runtime settings and initialized gateways."""
 
     def __init__(self, *, data_job_key: DataHubDataJobKey) -> None:
         self._data_job_key = data_job_key
-        self._s3_settings = S3StorageSettings.from_env()
-        self._queue_settings = QueueRuntimeSettings.from_env()
-        self._datahub_settings = DataHubSettings.from_env()
-        self._runtime_context = self._build_runtime_context()
+        self.runtime_context = self._build_runtime_context()
 
     def _build_runtime_context(self) -> WorkerRuntimeContext:
         """Resolve shared runtime dependencies required by every worker."""
+        lineage_gateway = self._build_lineage_gateway()
+        job_properties = self._derive_job_properties(lineage_gateway)
+        object_storage_gateway = self._build_object_storage_gateway()
+        stage_queue_gateway = self._build_stage_queue_gateway(job_properties)
         return WorkerRuntimeContext(
-            data_job_key=self._data_job_key,
-            s3_settings=self._s3_settings,
-            queue_settings=self._queue_settings,
-            datahub_settings=self._datahub_settings,
+            lineage_gateway=lineage_gateway,
+            object_storage_gateway=object_storage_gateway,
+            stage_queue_gateway=stage_queue_gateway,
+            job_properties=job_properties,
         )
 
-    @property
-    def runtime_context(self) -> WorkerRuntimeContext:
-        """Expose initialized runtime context."""
-        return self._runtime_context
+    def _derive_job_properties(self, lineage_gateway: DataHubRunTimeLineage) -> dict[str, Any]:
+        """Derive nested job properties from resolved DataHub custom properties."""
+        return JobPropertiesParser(lineage_gateway.resolved_job_config.custom_properties).job_properties
 
+    def _build_lineage_gateway(self) -> DataHubRunTimeLineage:
+        """Build DataHub runtime lineage gateway."""
+        return DataHubLineageGatewayBuilder(
+            datahub_settings=DataHubSettings.from_env(),
+            data_job_key=self._data_job_key,
+        ).build()
+
+    def _build_object_storage_gateway(self) -> ObjectStorageGateway:
+        """Build object storage gateway."""
+        return ObjectStorageGatewayBuilder(
+            s3_settings=S3StorageSettings.from_env()
+        ).build()
+
+    def _build_stage_queue_gateway(self, job_properties: dict[str, Any]) -> StageQueue:
+        """Build stage queue gateway."""
+        return StageQueueGatewayBuilder(
+            queue_settings=QueueRuntimeSettings.from_env(),
+            queue_config=job_properties["job"]["queue"],
+        ).build()
 
 class JobPropertiesParser:
     """Parser for worker DataHub job custom properties."""
@@ -148,52 +157,57 @@ class JobPropertiesParser:
         return expanded
 
 
-class InfrastructureFactory:
-    """Factory for queue and object storage infrastructure clients."""
+class DataHubLineageGatewayBuilder:
+    """Build DataHub runtime lineage gateway from DataHub settings + job key."""
 
-    def __init__(self, runtime_context: WorkerRuntimeContext) -> None:
-        self.runtime_context = runtime_context
-        self.datahub_lineage_client = self._create_datahub_lineage_client()
-        self.job_properties = self._parse_job_properties()
-        self.object_storage = self._create_object_storage()
-        self.stage_queue = self._create_stage_queue()
+    def __init__(self, *, datahub_settings: DataHubSettings, data_job_key: DataHubDataJobKey) -> None:
+        self.datahub_settings = datahub_settings
+        self.data_job_key = data_job_key
 
-    def _create_datahub_lineage_client(self) -> DataHubRunTimeLineage:
-        """Create DataHub runtime lineage client for this worker."""
-        datahub_settings = self.runtime_context.datahub_settings
+    def build(self) -> DataHubRunTimeLineage:
+        """Build DataHub runtime lineage gateway for one worker."""
         return DataHubRunTimeLineage(
             client_config=DataHubLineageRuntimeConfig(
                 connection_settings=DataHubRuntimeConnectionSettings(
-                    server=datahub_settings.server,
-                    env=datahub_settings.env,
-                    token=datahub_settings.token,
-                    timeout_sec=datahub_settings.timeout_sec,
-                    retry_max_times=datahub_settings.retry_max_times,
+                    server=self.datahub_settings.server,
+                    env=self.datahub_settings.env,
+                    token=self.datahub_settings.token,
+                    timeout_sec=self.datahub_settings.timeout_sec,
+                    retry_max_times=self.datahub_settings.retry_max_times,
                 ),
-                data_job_key=self.runtime_context.data_job_key,
+                data_job_key=self.data_job_key,
             )
         )
 
-    def _parse_job_properties(self) -> dict[str, Any]:
-        """Create nested job properties from DataHub custom properties."""
-        custom_properties = self.datahub_lineage_client.resolved_job_config.custom_properties
-        return JobPropertiesParser(custom_properties).job_properties
 
-    def _create_stage_queue(self) -> StageQueue:
-        """Create queue gateway from job queue config."""
-        queue_config = self.job_properties["job"]["queue"]
-        return StageQueue(
-            self.runtime_context.queue_settings.broker_url,
-            queue_config=queue_config,
-        )
+class ObjectStorageGatewayBuilder:
+    """Build object storage gateway from S3 runtime settings."""
 
-    def _create_object_storage(self) -> ObjectStorageGateway:
-        """Create object storage gateway from S3 settings."""
+    def __init__(self, *, s3_settings: S3StorageSettings) -> None:
+        self.s3_settings = s3_settings
+
+    def build(self) -> ObjectStorageGateway:
+        """Build object storage gateway for one worker."""
         return ObjectStorageGateway(
             S3Client(
-                endpoint_url=self.runtime_context.s3_settings.s3_endpoint,
-                access_key=self.runtime_context.s3_settings.s3_access_key,
-                secret_key=self.runtime_context.s3_settings.s3_secret_key,
-                region_name=self.runtime_context.s3_settings.aws_region,
+                endpoint_url=self.s3_settings.s3_endpoint,
+                access_key=self.s3_settings.s3_access_key,
+                secret_key=self.s3_settings.s3_secret_key,
+                region_name=self.s3_settings.aws_region,
             )
+        )
+
+
+class StageQueueGatewayBuilder:
+    """Build stage queue gateway from queue runtime settings and job config."""
+
+    def __init__(self, *, queue_settings: QueueRuntimeSettings, queue_config: dict[str, Any]) -> None:
+        self.queue_settings = queue_settings
+        self.queue_config = queue_config
+
+    def build(self) -> StageQueue:
+        """Build stage queue gateway for one worker."""
+        return StageQueue(
+            self.queue_settings.broker_url,
+            queue_config=self.queue_config,
         )

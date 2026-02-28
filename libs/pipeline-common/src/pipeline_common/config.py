@@ -1,13 +1,4 @@
 import os
-from enum import Enum
-
-
-class JobStageName(str, Enum):
-    WORKER_SCAN = "worker_scan"
-    WORKER_PARSE_DOCUMENT = "worker_parse_document"
-    WORKER_CHUNK_TEXT = "worker_chunk_text"
-    WORKER_EMBED_CHUNKS = "worker_embed_chunks"
-    WORKER_INDEX_WEAVIATE = "worker_index_weaviate"
 
 
 def _required_env(name: str) -> str:

@@ -1,18 +1,9 @@
-from dataclasses import dataclass
-
 import logging
 import time
-from pipeline_common.startup.contracts import WorkerService
+from pipeline_common.startup.contracts import WorkerPollingContract, WorkerService
 from services.scan_cycle_processor import ScanCycleProcessor
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass(frozen=True)
-class ScanPollingContract:
-    """Polling cadence contract for scan worker service loop."""
-
-    poll_interval_seconds: int
 
 
 class WorkerScanService(WorkerService):
@@ -21,7 +12,7 @@ class WorkerScanService(WorkerService):
         self,
         *,
         processor: ScanCycleProcessor,
-        polling_contract: ScanPollingContract,
+        polling_contract: WorkerPollingContract,
     ) -> None:
         """Initialize instance state and dependencies."""
         self.processor = processor

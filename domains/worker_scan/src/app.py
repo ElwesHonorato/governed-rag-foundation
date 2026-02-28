@@ -23,12 +23,13 @@ from pipeline_common.settings import DataHubSettings, QueueRuntimeSettings, S3St
 from pipeline_common.startup import (
     RuntimeContextFactory,
     WorkerRuntimeLauncher,
+    WorkerPollingContract,
     WorkerConfigExtractor,
     WorkerServiceFactory,
     WorkerRuntimeContext,
 )
 from services.scan_cycle_processor import ScanStorageContract, StorageScanCycleProcessor
-from services.worker_scan_service import ScanPollingContract, WorkerScanService
+from services.worker_scan_service import WorkerScanService
 
 
 @dataclass(frozen=True)
@@ -138,7 +139,7 @@ class ScanServiceFactory(WorkerServiceFactory[ScanWorkerConfig, WorkerScanServic
         )
         return WorkerScanService(
             processor=processor,
-            polling_contract=ScanPollingContract(
+            polling_contract=WorkerPollingContract(
                 poll_interval_seconds=worker_config.poll_interval_seconds,
             ),
         )

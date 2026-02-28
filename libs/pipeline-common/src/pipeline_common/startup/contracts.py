@@ -1,6 +1,7 @@
 """Startup contracts shared by worker entrypoints."""
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Any, Generic, Mapping, TypeVar
 
 from pipeline_common.startup.runtime_context import WorkerRuntimeContext
@@ -35,3 +36,10 @@ class WorkerServiceFactory(Generic[TWorkerConfig, TWorkerService], ABC):
         worker_config: TWorkerConfig,
     ) -> TWorkerService:
         """Build worker service from runtime context + typed config."""
+
+
+@dataclass(frozen=True)
+class WorkerPollingContract:
+    """Polling cadence contract for long-running worker loops."""
+
+    poll_interval_seconds: int

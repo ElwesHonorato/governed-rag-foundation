@@ -45,8 +45,8 @@ To keep that future split low-risk, current changes should preserve clear bounda
 
 ## Requirements Tracking
 
-- Requirements workspace: `requirements/README.md`
-- Coverage roadmap (canonical): `requirements/00-overview/requirements-coverage-roadmap.md`
+- Requirements workspace: `docs/requirements/README.md`
+- Coverage roadmap (canonical): `docs/requirements/00-overview/requirements-coverage-roadmap.md`
 
 ## Getting Started
 

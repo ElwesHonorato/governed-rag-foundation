@@ -16,9 +16,9 @@ This file defines repo-wide rules for Codex changes.
 - `domains/`: deployable local domains (infra + apps + workers).
 - `libs/pipeline-common/`: shared worker/runtime library.
 - `domains/gov_governance/`: config definitions (`job.*` custom properties and policies).
-- `requirements/`: requirements and architecture decision references.
+- `docs/requirements/`: requirements and architecture decision references.
 - `docs/`: normalized architecture/pattern guidance for day-to-day development.
-- `standards/patterns/`: preserved standards corpus and policy source material.
+- `docs/standards/patterns/`: preserved standards corpus and policy source material.
 - `scripts/`, `stack.sh`: dev/runtime operations.
 
 ## Architecture Rules

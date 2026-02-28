@@ -7,7 +7,7 @@ This repository implements a locally runnable governed RAG stack with isolated d
 - `domains/`: infrastructure and worker runtime domains, each independently startable via `stack.sh`.
 - `libs/pipeline-common/`: shared runtime contracts, startup orchestration, queue/storage/lineage adapters.
 - `domains/gov_governance/`: job and policy definitions (`job.*` custom properties).
-- `requirements/`: architecture/requirements references.
+- `docs/requirements/`: architecture/requirements references.
 
 ## Dependency Direction
 - `apps/*` and `domains/*` may depend on `libs/pipeline-common`.

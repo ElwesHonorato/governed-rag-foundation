@@ -5,7 +5,7 @@
 - `domains/app_rag_api`: Flask API exposing `/`, `/ui`, and `/prompt`; currently functions as a direct Ollama chat proxy without retrieval, citation, filtering, or policy enforcement (`domains/app_rag_api/src/rag_api/routes.py`, `domains/app_rag_api/src/rag_api/services/prompt_service.py`).
 - `domains/worker_*`: isolated pipeline worker stages for scan, parse, chunk, embed, index, manifest, and metrics (`domains/worker_*/docker-compose.yml`).
 - Infrastructure domains are defined for MinIO, Weaviate, Redis, Marquez, Ollama, and app services (`domains/*/docker-compose.yml`), but most domain capabilities are not yet integrated into business logic.
-- No automated test suite is present in application code; acceptance criteria are documented but not executable (`requirements/80-testing-acceptance/acceptance-criteria-global-logistics-hub.md`).
+- No automated test suite is present in application code; acceptance criteria are documented but not executable (`docs/requirements/80-testing-acceptance/acceptance-criteria-global-logistics-hub.md`).
 - Requirements set is comprehensive across functional, data, architecture, security, AI ops, and non-functional domains, while implementation is currently foundation-stage.
 
 ## Requirement-to-Implementation Coverage Matrix
@@ -69,7 +69,7 @@ Status legend: `P0` immediate, `P1` near-term, `P2` follow-on.
 ### Phase 0 - Foundation Decisions and Contracts (P0)
 1. Finalize architecture decisions as ADRs for vector DB profile, embedding model set, retrieval strategy, and security/compliance scope.
 - Dependencies: none.
-- Outputs: `requirements/99-decisions/*.md` ADRs; updated `requirements/95-open-questions/*` closure notes.
+- Outputs: `docs/requirements/99-decisions/*.md` ADRs; updated `docs/requirements/95-open-questions/*` closure notes.
 2. Define canonical data contracts and metadata schema (`source_type`, `timestamp`, `security_clearance`, source identifiers, version IDs).
 - Dependencies: Step 1.
 - Outputs: versioned schema docs and shared Python models package.
@@ -143,7 +143,7 @@ Roadmap sequencing rationale:
 
 ### Immediate Vertical Slice Plan (HTML: S3 -> Weaviate)
 Tracked as a separate epic ticket:
-- `requirements/sprints/on-going/01_html-s3-weaviate-vertical-slice-epic.md`
+- `docs/requirements/sprints/on-going/01_html-s3-weaviate-vertical-slice-epic.md`
 
 ## Risks, Assumptions, and Open Questions
 ### Risks
@@ -178,4 +178,4 @@ Tracked as a separate epic ticket:
 - 2026-02-09: Initial creation of requirements coverage roadmap. Baseline assessment indicates foundation infrastructure is present but product capability coverage is largely missing; established deterministic coverage matrix, critical gaps, and dependency-aware execution roadmap.
 - 2026-02-09: Added immediate HTML vertical-slice execution plan (`rag-data/01_incoming` to Weaviate) with ordered implementation steps, idempotency guidance, observability counters, and slice-specific acceptance criteria.
 - 2026-02-09: Moved the HTML vertical-slice plan into a dedicated epic ticket document and left a roadmap reference link.
-- 2026-02-09: Relocated the HTML vertical-slice epic into `requirements/sprints/on-going/` and refreshed the roadmap reference.
+- 2026-02-09: Relocated the HTML vertical-slice epic into `docs/requirements/sprints/on-going/` and refreshed the roadmap reference.

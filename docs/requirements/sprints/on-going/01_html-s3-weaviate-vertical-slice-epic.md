@@ -30,4 +30,4 @@
 - Indexed chunks are queryable in Weaviate.
 
 ## Change Log
-- 2026-02-09: Created epic ticket by extracting the HTML vertical-slice plan from `requirements/00-overview/requirements-coverage-roadmap.md`.
+- 2026-02-09: Created epic ticket by extracting the HTML vertical-slice plan from `docs/requirements/00-overview/requirements-coverage-roadmap.md`.

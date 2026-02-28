@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from pipeline_common.lineage.contracts import DataHubDataJobKey
+from pipeline_common.gateways.lineage.contracts import DataHubDataJobKey
 
 
 @dataclass

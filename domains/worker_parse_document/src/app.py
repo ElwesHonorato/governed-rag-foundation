@@ -4,7 +4,9 @@ from contracts.contracts import ParseWorkerConfigContract
 from parsing.html import HtmlParser
 from parsing.registry import ParserRegistry
 from registry import DataHubPipelineJobs
-from pipeline_common.settings import DataHubSettings, QueueRuntimeSettings, S3StorageSettings
+from pipeline_common.gateways.lineage.settings import DataHubSettings
+from pipeline_common.gateways.queue.settings import QueueRuntimeSettings
+from pipeline_common.gateways.object_storage.settings import S3StorageSettings
 from pipeline_common.startup import RuntimeContextFactory, WorkerRuntimeLauncher
 from services.worker_parse_document_service import WorkerParseDocumentService
 from startup.config_extractor import ParseConfigExtractor

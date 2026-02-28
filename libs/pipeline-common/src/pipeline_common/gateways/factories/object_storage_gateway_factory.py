@@ -1,7 +1,7 @@
 """Object storage gateway builder for worker runtime."""
 
-from pipeline_common.object_storage import ObjectStorageGateway, S3Client
-from pipeline_common.settings import S3StorageSettings
+from pipeline_common.gateways.object_storage import ObjectStorageGateway, S3Client
+from pipeline_common.gateways.object_storage.settings import S3StorageSettings
 
 
 class ObjectStorageGatewayBuilder:

@@ -29,8 +29,8 @@ from datahub.metadata.schema_classes import (
 )
 from datahub.metadata.urns import DatasetUrn
 
-from pipeline_common.lineage.contracts import DataHubDataJobKey, DatasetPlatform, ResolvedDataHubFlowConfig
-from pipeline_common.lineage.urns import DataHubUrnFactory
+from pipeline_common.gateways.lineage.contracts import DataHubDataJobKey, DatasetPlatform, ResolvedDataHubFlowConfig
+from pipeline_common.gateways.lineage.urns import DataHubUrnFactory
 
 from .runtime_contracts import (
     ActiveRunContext,

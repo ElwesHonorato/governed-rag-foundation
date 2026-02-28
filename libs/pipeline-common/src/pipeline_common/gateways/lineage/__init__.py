@@ -1,5 +1,5 @@
 from .contracts import DataHubDataJobKey, DatasetPlatform, ResolvedDataHubFlowConfig
-from .runtime import DataHubGraphClient, DataHubJobMetadataResolver, DataHubRunTimeLineage
+from .lineage import DataHubGraphClient, DataHubJobMetadataResolver, DataHubRunTimeLineage
 
 __all__ = [
     "DataHubGraphClient",

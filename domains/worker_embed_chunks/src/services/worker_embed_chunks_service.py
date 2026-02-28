@@ -4,10 +4,10 @@ import logging
 from typing import Any
 
 from contracts.contracts import EmbedChunksProcessingConfigContract
-from pipeline_common.lineage import DatasetPlatform
-from pipeline_common.lineage import DataHubRunTimeLineage
-from pipeline_common.queue import StageQueue
-from pipeline_common.object_storage import ObjectStorageGateway
+from pipeline_common.gateways.lineage import DatasetPlatform
+from pipeline_common.gateways.lineage import DataHubRunTimeLineage
+from pipeline_common.gateways.queue import StageQueue
+from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.startup.contracts import WorkerService
 
 logger = logging.getLogger(__name__)

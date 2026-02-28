@@ -3,9 +3,9 @@
 from dataclasses import dataclass
 from typing import Any
 
-from pipeline_common.lineage import DataHubRunTimeLineage
-from pipeline_common.object_storage import ObjectStorageGateway
-from pipeline_common.queue import StageQueue
+from pipeline_common.gateways.lineage import DataHubRunTimeLineage
+from pipeline_common.gateways.object_storage import ObjectStorageGateway
+from pipeline_common.gateways.queue import StageQueue
 
 
 @dataclass(frozen=True)

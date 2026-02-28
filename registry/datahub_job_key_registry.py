@@ -11,7 +11,7 @@ Ownership note:
 
 from enum import Enum
 
-from pipeline_common.lineage.contracts import DataHubDataJobKey
+from pipeline_common.gateways.lineage.contracts import DataHubDataJobKey
 
 
 class DataHubPipelineJobs(Enum):

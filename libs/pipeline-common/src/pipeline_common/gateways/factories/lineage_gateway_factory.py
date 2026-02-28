@@ -1,9 +1,9 @@
 """DataHub lineage gateway builder for worker runtime."""
 
-from pipeline_common.lineage.contracts import DataHubDataJobKey
-from pipeline_common.lineage import DataHubRunTimeLineage
-from pipeline_common.lineage.runtime_contracts import DataHubLineageRuntimeConfig, DataHubRuntimeConnectionSettings
-from pipeline_common.settings import DataHubSettings
+from pipeline_common.gateways.lineage.contracts import DataHubDataJobKey
+from pipeline_common.gateways.lineage import DataHubRunTimeLineage
+from pipeline_common.gateways.lineage.runtime_contracts import DataHubLineageRuntimeConfig, DataHubRuntimeConnectionSettings
+from pipeline_common.gateways.lineage.settings import DataHubSettings
 
 
 class DataHubLineageGatewayBuilder:

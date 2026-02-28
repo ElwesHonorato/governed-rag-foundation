@@ -1,10 +1,12 @@
 """Runtime context assembly for worker startup."""
 
-from pipeline_common.lineage.contracts import DataHubDataJobKey
-from pipeline_common.settings import DataHubSettings, QueueRuntimeSettings, S3StorageSettings
-from pipeline_common.gateways.datahub_lineage import DataHubLineageGatewayBuilder
-from pipeline_common.gateways.object_storage import ObjectStorageGatewayBuilder
-from pipeline_common.gateways.stage_queue import StageQueueGatewayBuilder
+from pipeline_common.gateways.lineage.contracts import DataHubDataJobKey
+from pipeline_common.gateways.lineage.settings import DataHubSettings
+from pipeline_common.gateways.queue.settings import QueueRuntimeSettings
+from pipeline_common.gateways.object_storage.settings import S3StorageSettings
+from pipeline_common.gateways.factories.lineage_gateway_factory import DataHubLineageGatewayBuilder
+from pipeline_common.gateways.factories.object_storage_gateway_factory import ObjectStorageGatewayBuilder
+from pipeline_common.gateways.factories.queue_gateway_factory import StageQueueGatewayBuilder
 from pipeline_common.startup.job_properties import JobPropertiesParser
 from pipeline_common.startup.runtime_context import WorkerRuntimeContext
 

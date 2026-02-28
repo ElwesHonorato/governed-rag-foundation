@@ -2,8 +2,8 @@
 
 from typing import Any
 
-from pipeline_common.queue import StageQueue
-from pipeline_common.settings import QueueRuntimeSettings
+from pipeline_common.gateways.queue import StageQueue
+from pipeline_common.gateways.queue.settings import QueueRuntimeSettings
 
 
 class StageQueueGatewayBuilder:

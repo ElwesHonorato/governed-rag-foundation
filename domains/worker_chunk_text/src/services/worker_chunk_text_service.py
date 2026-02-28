@@ -4,10 +4,10 @@ from typing import Any
 
 from contracts.contracts import ChunkTextProcessingConfigContract
 from pipeline_common.helpers.contracts import chunk_id_for
-from pipeline_common.lineage import DatasetPlatform
-from pipeline_common.lineage import DataHubRunTimeLineage
-from pipeline_common.queue import StageQueue
-from pipeline_common.object_storage import ObjectStorageGateway
+from pipeline_common.gateways.lineage import DatasetPlatform
+from pipeline_common.gateways.lineage import DataHubRunTimeLineage
+from pipeline_common.gateways.queue import StageQueue
+from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.startup.contracts import WorkerService
 from chunking.domain.text_chunker import chunk_text
 

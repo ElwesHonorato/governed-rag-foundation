@@ -2,10 +2,10 @@ import logging
 import time
 
 from contracts.contracts import MetricsProcessingConfigContract
-from pipeline_common.lineage import DatasetPlatform
-from pipeline_common.lineage import DataHubRunTimeLineage
-from pipeline_common.observability import Counters
-from pipeline_common.object_storage import ObjectStorageGateway
+from pipeline_common.gateways.lineage import DatasetPlatform
+from pipeline_common.gateways.lineage import DataHubRunTimeLineage
+from pipeline_common.gateways.observability import Counters
+from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.startup.contracts import WorkerService
 
 logger = logging.getLogger(__name__)

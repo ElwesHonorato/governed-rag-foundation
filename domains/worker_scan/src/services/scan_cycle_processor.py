@@ -4,10 +4,10 @@ import logging
 
 from contracts.contracts import ScanStorageContract
 from pipeline_common.helpers.contracts import doc_id_from_source_key
-from pipeline_common.lineage import DatasetPlatform
-from pipeline_common.lineage import DataHubRunTimeLineage
-from pipeline_common.queue import StageQueue
-from pipeline_common.object_storage import ObjectStorageGateway
+from pipeline_common.gateways.lineage import DatasetPlatform
+from pipeline_common.gateways.lineage import DataHubRunTimeLineage
+from pipeline_common.gateways.queue import StageQueue
+from pipeline_common.gateways.object_storage import ObjectStorageGateway
 
 logger = logging.getLogger(__name__)
 

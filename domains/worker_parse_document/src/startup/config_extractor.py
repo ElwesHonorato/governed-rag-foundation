@@ -3,14 +3,14 @@
 from collections.abc import Mapping
 from typing import Any
 
-from configs.parse_worker_config import ParseJobConfigContract, ParseQueueConfigContract, ParseWorkerConfig
+from contracts.parse_worker_contracts import ParseJobConfigContract, ParseQueueConfigContract, ParseWorkerConfigContract
 from pipeline_common.startup import WorkerConfigExtractor
 
 
-class ParseConfigExtractor(WorkerConfigExtractor[ParseWorkerConfig]):
+class ParseConfigExtractor(WorkerConfigExtractor[ParseWorkerConfigContract]):
     """Parse and validate worker_parse_document config from job properties."""
 
-    def extract(self, job_properties: Mapping[str, Any]) -> ParseWorkerConfig:
+    def extract(self, job_properties: Mapping[str, Any]) -> ParseWorkerConfigContract:
         """Extract typed parse worker config."""
         job_config = job_properties["job"]
         storage = job_config["storage"]
@@ -31,7 +31,7 @@ class ParseConfigExtractor(WorkerConfigExtractor[ParseWorkerConfig]):
             produce=queue["produce"],
             dlq=queue["dlq"],
         )
-        return ParseWorkerConfig(
+        return ParseWorkerConfigContract(
             bucket=job_contract.bucket,
             input_prefix=job_contract.input_prefix,
             output_prefix=job_contract.output_prefix,

@@ -1,11 +1,11 @@
-"""Configuration package for worker_chunk_text."""
+"""Contracts package for worker_chunk_text."""
 
-from configs.chunk_text_worker_config import (
+from contracts.chunk_text_worker_contracts import (
     ChunkTextJobConfigContract,
     ChunkTextProcessingConfigContract,
     ChunkTextQueueConfigContract,
     ChunkTextStorageConfigContract,
-    ChunkTextWorkerConfig,
+    ChunkTextWorkerConfigContract,
 )
 
 __all__ = [
@@ -13,5 +13,5 @@ __all__ = [
     "ChunkTextProcessingConfigContract",
     "ChunkTextQueueConfigContract",
     "ChunkTextStorageConfigContract",
-    "ChunkTextWorkerConfig",
+    "ChunkTextWorkerConfigContract",
 ]

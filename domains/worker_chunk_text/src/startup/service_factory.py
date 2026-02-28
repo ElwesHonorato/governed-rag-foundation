@@ -1,21 +1,21 @@
 """Service graph assembly for worker_chunk_text startup."""
 
-from configs.chunk_text_worker_config import (
+from contracts.chunk_text_worker_contracts import (
     ChunkTextProcessingConfigContract,
     ChunkTextStorageConfigContract,
-    ChunkTextWorkerConfig,
+    ChunkTextWorkerConfigContract,
 )
 from pipeline_common.startup import WorkerRuntimeContext, WorkerServiceFactory
 from services.worker_chunk_text_service import WorkerChunkTextService
 
 
-class ChunkTextServiceFactory(WorkerServiceFactory[ChunkTextWorkerConfig, WorkerChunkTextService]):
+class ChunkTextServiceFactory(WorkerServiceFactory[ChunkTextWorkerConfigContract, WorkerChunkTextService]):
     """Build chunk_text service from runtime context and typed config."""
 
     def build(
         self,
         runtime: WorkerRuntimeContext,
-        worker_config: ChunkTextWorkerConfig,
+        worker_config: ChunkTextWorkerConfigContract,
     ) -> WorkerChunkTextService:
         """Construct worker chunk_text service object graph."""
         return WorkerChunkTextService(

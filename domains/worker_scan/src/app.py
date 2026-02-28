@@ -6,7 +6,7 @@ from pipeline_common.startup import (
     RuntimeContextFactory,
     WorkerRuntimeLauncher,
 )
-from configs.scan_worker_config import ScanWorkerConfig
+from contracts.scan_worker_contracts import ScanWorkerConfigContract
 from services.worker_scan_service import WorkerScanService
 from startup.config_extractor import ScanConfigExtractor
 from startup.service_factory import ScanServiceFactory
@@ -20,7 +20,7 @@ def run() -> None:
         s3_settings=S3StorageSettings.from_env(),
         queue_settings=QueueRuntimeSettings.from_env(),
     )
-    WorkerRuntimeLauncher[ScanWorkerConfig, WorkerScanService](
+    WorkerRuntimeLauncher[ScanWorkerConfigContract, WorkerScanService](
         runtime_factory=runtime_factory,
         config_extractor=ScanConfigExtractor(),
         service_factory=ScanServiceFactory(),

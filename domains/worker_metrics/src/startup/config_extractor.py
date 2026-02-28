@@ -3,14 +3,14 @@
 from collections.abc import Mapping
 from typing import Any
 
-from configs.metrics_worker_config import MetricsJobConfigContract, MetricsStorageConfigContract, MetricsWorkerConfig
+from contracts.metrics_worker_contracts import MetricsJobConfigContract, MetricsStorageConfigContract, MetricsWorkerConfigContract
 from pipeline_common.startup import WorkerConfigExtractor
 
 
-class MetricsConfigExtractor(WorkerConfigExtractor[MetricsWorkerConfig]):
+class MetricsConfigExtractor(WorkerConfigExtractor[MetricsWorkerConfigContract]):
     """Parse and validate worker_metrics config from job properties."""
 
-    def extract(self, job_properties: Mapping[str, Any]) -> MetricsWorkerConfig:
+    def extract(self, job_properties: Mapping[str, Any]) -> MetricsWorkerConfigContract:
         """Extract typed metrics worker config."""
         job_config = job_properties["job"]
         storage = job_config["storage"]
@@ -25,7 +25,7 @@ class MetricsConfigExtractor(WorkerConfigExtractor[MetricsWorkerConfig]):
             poll_interval_seconds=int(job_config["poll_interval_seconds"]),
             storage=storage_contract,
         )
-        return MetricsWorkerConfig(
+        return MetricsWorkerConfigContract(
             poll_interval_seconds=job_contract.poll_interval_seconds,
             storage=job_contract.storage,
         )

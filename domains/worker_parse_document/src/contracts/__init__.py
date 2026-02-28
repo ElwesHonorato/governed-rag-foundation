@@ -1,12 +1,12 @@
-"""Configuration package for worker_parse_document."""
+"""Contracts package for worker_parse_document."""
 
-from configs.parse_worker_config import (
+from contracts.parse_worker_contracts import (
     ParseJobConfigContract,
     ParseProcessingConfigContract,
     ParseQueueConfigContract,
     ParseSecurityConfigContract,
     ParseStorageConfigContract,
-    ParseWorkerConfig,
+    ParseWorkerConfigContract,
 )
 
 __all__ = [
@@ -15,5 +15,5 @@ __all__ = [
     "ParseQueueConfigContract",
     "ParseSecurityConfigContract",
     "ParseStorageConfigContract",
-    "ParseWorkerConfig",
+    "ParseWorkerConfigContract",
 ]

@@ -1,17 +1,17 @@
 """Service graph assembly for worker_parse_document startup."""
 
-from configs.parse_worker_config import (
+from contracts.parse_worker_contracts import (
     ParseProcessingConfigContract,
     ParseSecurityConfigContract,
     ParseStorageConfigContract,
-    ParseWorkerConfig,
+    ParseWorkerConfigContract,
 )
 from parsing.registry import ParserRegistry
 from pipeline_common.startup import WorkerRuntimeContext, WorkerServiceFactory
 from services.worker_parse_document_service import WorkerParseDocumentService
 
 
-class ParseServiceFactory(WorkerServiceFactory[ParseWorkerConfig, WorkerParseDocumentService]):
+class ParseServiceFactory(WorkerServiceFactory[ParseWorkerConfigContract, WorkerParseDocumentService]):
     """Build parse service from runtime context and typed parse config."""
 
     def __init__(self, *, parser_registry: ParserRegistry) -> None:
@@ -20,7 +20,7 @@ class ParseServiceFactory(WorkerServiceFactory[ParseWorkerConfig, WorkerParseDoc
     def build(
         self,
         runtime: WorkerRuntimeContext,
-        worker_config: ParseWorkerConfig,
+        worker_config: ParseWorkerConfigContract,
     ) -> WorkerParseDocumentService:
         """Construct worker parse service object graph."""
         return WorkerParseDocumentService(

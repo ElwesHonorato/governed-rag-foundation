@@ -1,17 +1,17 @@
 """Service graph assembly for worker_manifest startup."""
 
-from configs.manifest_worker_config import ManifestProcessingConfigContract, ManifestWorkerConfig
+from contracts.manifest_worker_contracts import ManifestProcessingConfigContract, ManifestWorkerConfigContract
 from pipeline_common.startup import WorkerRuntimeContext, WorkerServiceFactory
 from services.worker_manifest_service import WorkerManifestService
 
 
-class ManifestServiceFactory(WorkerServiceFactory[ManifestWorkerConfig, WorkerManifestService]):
+class ManifestServiceFactory(WorkerServiceFactory[ManifestWorkerConfigContract, WorkerManifestService]):
     """Build manifest service from runtime context and typed config."""
 
     def build(
         self,
         runtime: WorkerRuntimeContext,
-        worker_config: ManifestWorkerConfig,
+        worker_config: ManifestWorkerConfigContract,
     ) -> WorkerManifestService:
         """Construct worker manifest service object graph."""
         return WorkerManifestService(

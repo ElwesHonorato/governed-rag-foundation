@@ -1,6 +1,6 @@
 """worker_parse_document entrypoint."""
 
-from configs.parse_worker_config import ParseWorkerConfig
+from contracts.parse_worker_contracts import ParseWorkerConfigContract
 from parsing.html import HtmlParser
 from parsing.registry import ParserRegistry
 from pipeline_common.lineage.pipeline import DataHubPipelineJobs
@@ -19,7 +19,7 @@ def run() -> None:
         s3_settings=S3StorageSettings.from_env(),
         queue_settings=QueueRuntimeSettings.from_env(),
     )
-    WorkerRuntimeLauncher[ParseWorkerConfig, WorkerParseDocumentService](
+    WorkerRuntimeLauncher[ParseWorkerConfigContract, WorkerParseDocumentService](
         runtime_factory=runtime_factory,
         config_extractor=ParseConfigExtractor(),
         service_factory=ParseServiceFactory(parser_registry=ParserRegistry(parsers=[HtmlParser()])),

@@ -1,18 +1,18 @@
 """Service graph assembly for worker_metrics startup."""
 
-from configs.metrics_worker_config import MetricsProcessingConfigContract, MetricsWorkerConfig
+from contracts.metrics_worker_contracts import MetricsProcessingConfigContract, MetricsWorkerConfigContract
 from pipeline_common.observability import Counters
 from pipeline_common.startup import WorkerRuntimeContext, WorkerServiceFactory
 from services.worker_metrics_service import WorkerMetricsService
 
 
-class MetricsServiceFactory(WorkerServiceFactory[MetricsWorkerConfig, WorkerMetricsService]):
+class MetricsServiceFactory(WorkerServiceFactory[MetricsWorkerConfigContract, WorkerMetricsService]):
     """Build metrics service from runtime context and typed config."""
 
     def build(
         self,
         runtime: WorkerRuntimeContext,
-        worker_config: MetricsWorkerConfig,
+        worker_config: MetricsWorkerConfigContract,
     ) -> WorkerMetricsService:
         """Construct worker metrics service object graph."""
         return WorkerMetricsService(

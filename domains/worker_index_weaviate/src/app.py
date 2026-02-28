@@ -1,6 +1,6 @@
 """worker_index_weaviate entrypoint."""
 
-from configs.index_weaviate_worker_config import IndexWeaviateWorkerConfig
+from contracts.index_weaviate_worker_contracts import IndexWeaviateWorkerConfigContract
 from pipeline_common.config import _required_env
 from pipeline_common.lineage.pipeline import DataHubPipelineJobs
 from pipeline_common.settings import DataHubSettings, QueueRuntimeSettings, S3StorageSettings
@@ -18,7 +18,7 @@ def run() -> None:
         s3_settings=S3StorageSettings.from_env(),
         queue_settings=QueueRuntimeSettings.from_env(),
     )
-    WorkerRuntimeLauncher[IndexWeaviateWorkerConfig, WorkerIndexWeaviateService](
+    WorkerRuntimeLauncher[IndexWeaviateWorkerConfigContract, WorkerIndexWeaviateService](
         runtime_factory=runtime_factory,
         config_extractor=IndexWeaviateConfigExtractor(),
         service_factory=IndexWeaviateServiceFactory(weaviate_url=_required_env("WEAVIATE_URL")),

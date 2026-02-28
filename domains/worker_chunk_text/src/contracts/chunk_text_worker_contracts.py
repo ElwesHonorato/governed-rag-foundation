@@ -44,7 +44,7 @@ class ChunkTextProcessingConfigContract:
 
 
 @dataclass(frozen=True)
-class ChunkTextWorkerConfig:
+class ChunkTextWorkerConfigContract:
     """Typed chunk_text worker startup configuration."""
 
     bucket: str

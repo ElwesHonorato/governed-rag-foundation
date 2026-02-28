@@ -3,18 +3,18 @@
 from collections.abc import Mapping
 from typing import Any
 
-from configs.chunk_text_worker_config import (
+from contracts.chunk_text_worker_contracts import (
     ChunkTextJobConfigContract,
     ChunkTextQueueConfigContract,
-    ChunkTextWorkerConfig,
+    ChunkTextWorkerConfigContract,
 )
 from pipeline_common.startup import WorkerConfigExtractor
 
 
-class ChunkTextConfigExtractor(WorkerConfigExtractor[ChunkTextWorkerConfig]):
+class ChunkTextConfigExtractor(WorkerConfigExtractor[ChunkTextWorkerConfigContract]):
     """Parse and validate worker_chunk_text config from job properties."""
 
-    def extract(self, job_properties: Mapping[str, Any]) -> ChunkTextWorkerConfig:
+    def extract(self, job_properties: Mapping[str, Any]) -> ChunkTextWorkerConfigContract:
         """Extract typed chunk_text worker config."""
         job_config = job_properties["job"]
         storage = job_config["storage"]
@@ -33,7 +33,7 @@ class ChunkTextConfigExtractor(WorkerConfigExtractor[ChunkTextWorkerConfig]):
             produce=queue["produce"],
             dlq=queue["dlq"],
         )
-        return ChunkTextWorkerConfig(
+        return ChunkTextWorkerConfigContract(
             bucket=job_contract.bucket,
             input_prefix=job_contract.input_prefix,
             output_prefix=job_contract.output_prefix,

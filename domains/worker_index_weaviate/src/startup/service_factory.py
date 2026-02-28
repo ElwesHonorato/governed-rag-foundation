@@ -1,16 +1,16 @@
 """Service graph assembly for worker_index_weaviate startup."""
 
-from configs.index_weaviate_worker_config import (
+from contracts.index_weaviate_worker_contracts import (
     IndexWeaviateProcessingConfigContract,
     IndexWeaviateStorageConfigContract,
-    IndexWeaviateWorkerConfig,
+    IndexWeaviateWorkerConfigContract,
 )
 from pipeline_common.startup import WorkerRuntimeContext, WorkerServiceFactory
 from pipeline_common.weaviate import ensure_schema
 from services.worker_index_weaviate_service import WorkerIndexWeaviateService
 
 
-class IndexWeaviateServiceFactory(WorkerServiceFactory[IndexWeaviateWorkerConfig, WorkerIndexWeaviateService]):
+class IndexWeaviateServiceFactory(WorkerServiceFactory[IndexWeaviateWorkerConfigContract, WorkerIndexWeaviateService]):
     """Build index_weaviate service from runtime context and typed config."""
 
     def __init__(self, *, weaviate_url: str) -> None:
@@ -19,7 +19,7 @@ class IndexWeaviateServiceFactory(WorkerServiceFactory[IndexWeaviateWorkerConfig
     def build(
         self,
         runtime: WorkerRuntimeContext,
-        worker_config: IndexWeaviateWorkerConfig,
+        worker_config: IndexWeaviateWorkerConfigContract,
     ) -> WorkerIndexWeaviateService:
         """Construct worker index_weaviate service object graph."""
         ensure_schema(self._weaviate_url)

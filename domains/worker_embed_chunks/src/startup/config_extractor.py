@@ -4,18 +4,18 @@ import os
 from collections.abc import Mapping
 from typing import Any
 
-from configs.embed_chunks_worker_config import (
+from contracts.embed_chunks_worker_contracts import (
     EmbedChunksJobConfigContract,
     EmbedChunksQueueConfigContract,
-    EmbedChunksWorkerConfig,
+    EmbedChunksWorkerConfigContract,
 )
 from pipeline_common.startup import WorkerConfigExtractor
 
 
-class EmbedChunksConfigExtractor(WorkerConfigExtractor[EmbedChunksWorkerConfig]):
+class EmbedChunksConfigExtractor(WorkerConfigExtractor[EmbedChunksWorkerConfigContract]):
     """Parse and validate worker_embed_chunks config from job properties."""
 
-    def extract(self, job_properties: Mapping[str, Any]) -> EmbedChunksWorkerConfig:
+    def extract(self, job_properties: Mapping[str, Any]) -> EmbedChunksWorkerConfigContract:
         """Extract typed embed_chunks worker config."""
         job_config = job_properties["job"]
         storage = job_config["storage"]
@@ -35,7 +35,7 @@ class EmbedChunksConfigExtractor(WorkerConfigExtractor[EmbedChunksWorkerConfig])
             produce=queue["produce"],
             dlq=queue["dlq"],
         )
-        return EmbedChunksWorkerConfig(
+        return EmbedChunksWorkerConfigContract(
             bucket=job_contract.bucket,
             input_prefix=job_contract.input_prefix,
             output_prefix=job_contract.output_prefix,

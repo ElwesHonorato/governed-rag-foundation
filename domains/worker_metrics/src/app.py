@@ -1,6 +1,6 @@
 """worker_metrics entrypoint."""
 
-from configs.metrics_worker_config import MetricsWorkerConfig
+from contracts.metrics_worker_contracts import MetricsWorkerConfigContract
 from pipeline_common.lineage.pipeline import DataHubPipelineJobs
 from pipeline_common.settings import DataHubSettings, QueueRuntimeSettings, S3StorageSettings
 from pipeline_common.startup import RuntimeContextFactory, WorkerRuntimeLauncher
@@ -17,7 +17,7 @@ def run() -> None:
         s3_settings=S3StorageSettings.from_env(),
         queue_settings=QueueRuntimeSettings.from_env(),
     )
-    WorkerRuntimeLauncher[MetricsWorkerConfig, WorkerMetricsService](
+    WorkerRuntimeLauncher[MetricsWorkerConfigContract, WorkerMetricsService](
         runtime_factory=runtime_factory,
         config_extractor=MetricsConfigExtractor(),
         service_factory=MetricsServiceFactory(),

@@ -2,7 +2,7 @@ import json
 import logging
 from typing import Any
 
-from configs.index_weaviate_worker_config import IndexWeaviateProcessingConfigContract
+from contracts.index_weaviate_worker_contracts import IndexWeaviateProcessingConfigContract
 from pipeline_common.lineage import DatasetPlatform
 from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
 from pipeline_common.queue import StageQueue

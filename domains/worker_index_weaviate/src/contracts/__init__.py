@@ -1,11 +1,11 @@
-"""Configuration package for worker_index_weaviate."""
+"""Contracts package for worker_index_weaviate."""
 
-from configs.index_weaviate_worker_config import (
+from contracts.index_weaviate_worker_contracts import (
     IndexWeaviateJobConfigContract,
     IndexWeaviateProcessingConfigContract,
     IndexWeaviateQueueConfigContract,
     IndexWeaviateStorageConfigContract,
-    IndexWeaviateWorkerConfig,
+    IndexWeaviateWorkerConfigContract,
 )
 
 __all__ = [
@@ -13,5 +13,5 @@ __all__ = [
     "IndexWeaviateProcessingConfigContract",
     "IndexWeaviateQueueConfigContract",
     "IndexWeaviateStorageConfigContract",
-    "IndexWeaviateWorkerConfig",
+    "IndexWeaviateWorkerConfigContract",
 ]

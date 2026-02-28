@@ -3,18 +3,18 @@
 from collections.abc import Mapping
 from typing import Any
 
-from configs.index_weaviate_worker_config import (
+from contracts.index_weaviate_worker_contracts import (
     IndexWeaviateJobConfigContract,
     IndexWeaviateQueueConfigContract,
-    IndexWeaviateWorkerConfig,
+    IndexWeaviateWorkerConfigContract,
 )
 from pipeline_common.startup import WorkerConfigExtractor
 
 
-class IndexWeaviateConfigExtractor(WorkerConfigExtractor[IndexWeaviateWorkerConfig]):
+class IndexWeaviateConfigExtractor(WorkerConfigExtractor[IndexWeaviateWorkerConfigContract]):
     """Parse and validate worker_index_weaviate config from job properties."""
 
-    def extract(self, job_properties: Mapping[str, Any]) -> IndexWeaviateWorkerConfig:
+    def extract(self, job_properties: Mapping[str, Any]) -> IndexWeaviateWorkerConfigContract:
         """Extract typed index_weaviate worker config."""
         job_config = job_properties["job"]
         storage = job_config["storage"]
@@ -32,7 +32,7 @@ class IndexWeaviateConfigExtractor(WorkerConfigExtractor[IndexWeaviateWorkerConf
             consume=queue["consume"],
             dlq=queue["dlq"],
         )
-        return IndexWeaviateWorkerConfig(
+        return IndexWeaviateWorkerConfigContract(
             bucket=job_contract.bucket,
             input_prefix=job_contract.input_prefix,
             output_prefix=job_contract.output_prefix,

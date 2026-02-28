@@ -1,11 +1,11 @@
-"""Configuration package for worker_embed_chunks."""
+"""Contracts package for worker_embed_chunks."""
 
-from configs.embed_chunks_worker_config import (
+from contracts.embed_chunks_worker_contracts import (
     EmbedChunksJobConfigContract,
     EmbedChunksProcessingConfigContract,
     EmbedChunksQueueConfigContract,
     EmbedChunksStorageConfigContract,
-    EmbedChunksWorkerConfig,
+    EmbedChunksWorkerConfigContract,
 )
 
 __all__ = [
@@ -13,5 +13,5 @@ __all__ = [
     "EmbedChunksProcessingConfigContract",
     "EmbedChunksQueueConfigContract",
     "EmbedChunksStorageConfigContract",
-    "EmbedChunksWorkerConfig",
+    "EmbedChunksWorkerConfigContract",
 ]

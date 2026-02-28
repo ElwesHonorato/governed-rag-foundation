@@ -1,6 +1,6 @@
 """worker_manifest entrypoint."""
 
-from configs.manifest_worker_config import ManifestWorkerConfig
+from contracts.manifest_worker_contracts import ManifestWorkerConfigContract
 from pipeline_common.lineage.pipeline import DataHubPipelineJobs
 from pipeline_common.settings import DataHubSettings, QueueRuntimeSettings, S3StorageSettings
 from pipeline_common.startup import RuntimeContextFactory, WorkerRuntimeLauncher
@@ -17,7 +17,7 @@ def run() -> None:
         s3_settings=S3StorageSettings.from_env(),
         queue_settings=QueueRuntimeSettings.from_env(),
     )
-    WorkerRuntimeLauncher[ManifestWorkerConfig, WorkerManifestService](
+    WorkerRuntimeLauncher[ManifestWorkerConfigContract, WorkerManifestService](
         runtime_factory=runtime_factory,
         config_extractor=ManifestConfigExtractor(),
         service_factory=ManifestServiceFactory(),

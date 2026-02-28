@@ -45,7 +45,7 @@ class EmbedChunksProcessingConfigContract:
 
 
 @dataclass(frozen=True)
-class EmbedChunksWorkerConfig:
+class EmbedChunksWorkerConfigContract:
     """Typed embed_chunks worker startup configuration."""
 
     bucket: str

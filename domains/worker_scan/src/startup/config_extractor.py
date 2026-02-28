@@ -3,14 +3,14 @@
 from collections.abc import Mapping
 from typing import Any
 
-from configs.scan_worker_config import ScanJobConfigContract, ScanQueueConfigContract, ScanWorkerConfig
+from contracts.scan_worker_contracts import ScanJobConfigContract, ScanQueueConfigContract, ScanWorkerConfigContract
 from pipeline_common.startup import WorkerConfigExtractor
 
 
-class ScanConfigExtractor(WorkerConfigExtractor[ScanWorkerConfig]):
+class ScanConfigExtractor(WorkerConfigExtractor[ScanWorkerConfigContract]):
     """Parse and validate worker_scan config from DataHub job properties."""
 
-    def extract(self, job_properties: Mapping[str, Any]) -> ScanWorkerConfig:
+    def extract(self, job_properties: Mapping[str, Any]) -> ScanWorkerConfigContract:
         """Extract typed scan worker config."""
         job_config = job_properties["job"]
         storage = job_config["storage"]
@@ -29,7 +29,7 @@ class ScanConfigExtractor(WorkerConfigExtractor[ScanWorkerConfig]):
             dlq=queue["dlq"],
             consume=queue.get("consume", ""),
         )
-        return ScanWorkerConfig(
+        return ScanWorkerConfigContract(
             bucket=job_contract.bucket,
             input_prefix=job_contract.input_prefix,
             output_prefix=job_contract.output_prefix,

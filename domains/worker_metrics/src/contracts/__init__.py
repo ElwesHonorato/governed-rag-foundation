@@ -1,15 +1,15 @@
-"""Configuration package for worker_metrics."""
+"""Contracts package for worker_metrics."""
 
-from configs.metrics_worker_config import (
+from contracts.metrics_worker_contracts import (
     MetricsJobConfigContract,
     MetricsProcessingConfigContract,
     MetricsStorageConfigContract,
-    MetricsWorkerConfig,
+    MetricsWorkerConfigContract,
 )
 
 __all__ = [
     "MetricsJobConfigContract",
     "MetricsProcessingConfigContract",
     "MetricsStorageConfigContract",
-    "MetricsWorkerConfig",
+    "MetricsWorkerConfigContract",
 ]

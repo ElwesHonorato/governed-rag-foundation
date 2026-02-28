@@ -26,7 +26,7 @@ class ScanJobConfigContract:
 
 
 @dataclass(frozen=True)
-class ScanWorkerConfig:
+class ScanWorkerConfigContract:
     """Typed scan worker startup configuration."""
 
     bucket: str

@@ -1,6 +1,6 @@
 """worker_chunk_text entrypoint."""
 
-from configs.chunk_text_worker_config import ChunkTextWorkerConfig
+from contracts.chunk_text_worker_contracts import ChunkTextWorkerConfigContract
 from pipeline_common.lineage.pipeline import DataHubPipelineJobs
 from pipeline_common.settings import DataHubSettings, QueueRuntimeSettings, S3StorageSettings
 from pipeline_common.startup import RuntimeContextFactory, WorkerRuntimeLauncher
@@ -17,7 +17,7 @@ def run() -> None:
         s3_settings=S3StorageSettings.from_env(),
         queue_settings=QueueRuntimeSettings.from_env(),
     )
-    WorkerRuntimeLauncher[ChunkTextWorkerConfig, WorkerChunkTextService](
+    WorkerRuntimeLauncher[ChunkTextWorkerConfigContract, WorkerChunkTextService](
         runtime_factory=runtime_factory,
         config_extractor=ChunkTextConfigExtractor(),
         service_factory=ChunkTextServiceFactory(),

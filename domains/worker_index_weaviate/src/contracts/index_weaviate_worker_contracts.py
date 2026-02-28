@@ -43,7 +43,7 @@ class IndexWeaviateProcessingConfigContract:
 
 
 @dataclass(frozen=True)
-class IndexWeaviateWorkerConfig:
+class IndexWeaviateWorkerConfigContract:
     """Typed index_weaviate worker startup configuration."""
 
     bucket: str

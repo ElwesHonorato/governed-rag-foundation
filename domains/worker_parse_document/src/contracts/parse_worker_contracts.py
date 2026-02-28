@@ -53,7 +53,7 @@ class ParseProcessingConfigContract:
 
 
 @dataclass(frozen=True)
-class ParseWorkerConfig:
+class ParseWorkerConfigContract:
     """Typed parse worker startup configuration."""
 
     bucket: str

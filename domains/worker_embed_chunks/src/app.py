@@ -1,6 +1,6 @@
 """worker_embed_chunks entrypoint."""
 
-from configs.embed_chunks_worker_config import EmbedChunksWorkerConfig
+from contracts.embed_chunks_worker_contracts import EmbedChunksWorkerConfigContract
 from pipeline_common.lineage.pipeline import DataHubPipelineJobs
 from pipeline_common.settings import DataHubSettings, QueueRuntimeSettings, S3StorageSettings
 from pipeline_common.startup import RuntimeContextFactory, WorkerRuntimeLauncher
@@ -17,7 +17,7 @@ def run() -> None:
         s3_settings=S3StorageSettings.from_env(),
         queue_settings=QueueRuntimeSettings.from_env(),
     )
-    WorkerRuntimeLauncher[EmbedChunksWorkerConfig, WorkerEmbedChunksService](
+    WorkerRuntimeLauncher[EmbedChunksWorkerConfigContract, WorkerEmbedChunksService](
         runtime_factory=runtime_factory,
         config_extractor=EmbedChunksConfigExtractor(),
         service_factory=EmbedChunksServiceFactory(),

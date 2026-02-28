@@ -31,7 +31,7 @@ class MetricsProcessingConfigContract:
 
 
 @dataclass(frozen=True)
-class MetricsWorkerConfig:
+class MetricsWorkerConfigContract:
     """Typed metrics worker startup configuration."""
 
     poll_interval_seconds: int

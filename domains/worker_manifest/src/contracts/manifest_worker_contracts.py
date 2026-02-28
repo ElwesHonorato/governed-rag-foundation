@@ -32,7 +32,7 @@ class ManifestProcessingConfigContract:
 
 
 @dataclass(frozen=True)
-class ManifestWorkerConfig:
+class ManifestWorkerConfigContract:
     """Typed manifest worker startup configuration."""
 
     poll_interval_seconds: int

@@ -1,15 +1,15 @@
-"""Configuration package for worker_manifest."""
+"""Contracts package for worker_manifest."""
 
-from configs.manifest_worker_config import (
+from contracts.manifest_worker_contracts import (
     ManifestJobConfigContract,
     ManifestProcessingConfigContract,
     ManifestStorageConfigContract,
-    ManifestWorkerConfig,
+    ManifestWorkerConfigContract,
 )
 
 __all__ = [
     "ManifestJobConfigContract",
     "ManifestProcessingConfigContract",
     "ManifestStorageConfigContract",
-    "ManifestWorkerConfig",
+    "ManifestWorkerConfigContract",
 ]

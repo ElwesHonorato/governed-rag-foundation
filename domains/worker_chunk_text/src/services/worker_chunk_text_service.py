@@ -2,7 +2,7 @@ import json
 import logging
 from typing import Any
 
-from configs.chunk_text_worker_config import ChunkTextProcessingConfigContract
+from contracts.chunk_text_worker_contracts import ChunkTextProcessingConfigContract
 from pipeline_common.contracts import chunk_id_for
 from pipeline_common.lineage import DatasetPlatform
 from pipeline_common.lineage.data_hub import DataHubRunTimeLineage

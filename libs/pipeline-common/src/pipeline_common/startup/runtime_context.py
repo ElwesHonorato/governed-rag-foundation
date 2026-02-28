@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
+from pipeline_common.lineage import DataHubRunTimeLineage
 from pipeline_common.object_storage import ObjectStorageGateway
 from pipeline_common.queue import StageQueue
 

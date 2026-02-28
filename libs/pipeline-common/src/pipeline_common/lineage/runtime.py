@@ -6,7 +6,6 @@ DataHub metadata.
 """
 
 import logging
-import os
 import time
 import uuid
 from dataclasses import dataclass
@@ -34,7 +33,7 @@ from datahub.metadata.urns import DatasetUrn
 from pipeline_common.lineage.contracts import DataHubDataJobKey, DatasetPlatform, ResolvedDataHubFlowConfig
 from pipeline_common.lineage.urns import DataHubUrnFactory
 
-from .contracts import CustomProperties, DataHubLineageRuntimeConfig, DataHubRuntimeConnectionSettings, RunSpec
+from .runtime_contracts import CustomProperties, DataHubLineageRuntimeConfig, DataHubRuntimeConnectionSettings, RunSpec
 
 logger = logging.getLogger(__name__)
 DEFAULT_ACTOR_URN = "urn:li:corpuser:datahub"

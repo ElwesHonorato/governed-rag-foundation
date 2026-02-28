@@ -5,7 +5,7 @@ from typing import Any
 from contracts.contracts import ParseProcessingConfigContract
 from pipeline_common.contracts import doc_id_from_source_key, utc_now_iso
 from pipeline_common.lineage import DatasetPlatform
-from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
+from pipeline_common.lineage import DataHubRunTimeLineage
 from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway
 from pipeline_common.startup.contracts import WorkerService

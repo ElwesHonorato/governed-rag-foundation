@@ -5,7 +5,7 @@ import logging
 from contracts.contracts import ScanStorageContract
 from pipeline_common.contracts import doc_id_from_source_key
 from pipeline_common.lineage import DatasetPlatform
-from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
+from pipeline_common.lineage import DataHubRunTimeLineage
 from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway
 

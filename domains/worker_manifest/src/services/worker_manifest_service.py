@@ -4,7 +4,7 @@ import time
 
 from contracts.contracts import ManifestProcessingConfigContract
 from pipeline_common.lineage import DatasetPlatform
-from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
+from pipeline_common.lineage import DataHubRunTimeLineage
 from pipeline_common.object_storage import ObjectStorageGateway
 from pipeline_common.startup.contracts import WorkerService
 

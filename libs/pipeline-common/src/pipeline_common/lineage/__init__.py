@@ -1,19 +1,11 @@
-__all__: list[str] = []
+from .contracts import DataHubDataJobKey, DatasetPlatform, ResolvedDataHubFlowConfig
+from .runtime import DataHubGraphClient, DataHubJobMetadataResolver, DataHubRunTimeLineage
 
-# Keep legacy Marquez tooling importable even when DataHub extras are not installed.
-try:
-    from .contracts import DataHubDataJobKey, DatasetPlatform, ResolvedDataHubFlowConfig
-    from .data_hub import DataHubGraphClient, DataHubJobMetadataResolver, DataHubRunTimeLineage
-except ModuleNotFoundError:
-    pass
-else:
-    __all__.extend(
-        [
-            "DataHubGraphClient",
-            "DataHubRunTimeLineage",
-            "DataHubJobMetadataResolver",
-            "DatasetPlatform",
-            "DataHubDataJobKey",
-            "ResolvedDataHubFlowConfig",
-        ]
-    )
+__all__ = [
+    "DataHubGraphClient",
+    "DataHubRunTimeLineage",
+    "DataHubJobMetadataResolver",
+    "DatasetPlatform",
+    "DataHubDataJobKey",
+    "ResolvedDataHubFlowConfig",
+]

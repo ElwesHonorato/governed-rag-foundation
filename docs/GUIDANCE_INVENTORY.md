@@ -20,7 +20,7 @@ This document tracks where guidance existed before normalization and where it no
 - Scoped agent rules:
   - `domains/AGENTS.md`
   - `libs/pipeline-common/AGENTS.md`
-  - `governance/AGENTS.md`
+  - `domains/gov_governance/AGENTS.md`
 - Architecture + implementation patterns:
   - `docs/ARCHITECTURE.md`
   - `docs/patterns/*.md`

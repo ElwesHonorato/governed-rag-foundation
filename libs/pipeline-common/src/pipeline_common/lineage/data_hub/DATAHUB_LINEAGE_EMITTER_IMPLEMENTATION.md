@@ -38,7 +38,7 @@ These are required with the currently installed SDK and must be implemented exac
    - `DataProcessInstanceInput`
    - `DataProcessInstanceOutput`
    Do not pass raw dicts as MCP aspects.
-4. Runtime lineage should not create static entities; missing static entities are a governance/setup issue.
+4. Runtime lineage should not create static entities; missing static entities are a domains/gov_governance/setup issue.
 
 ## Run ID Rules
 Follow the proven uniqueness pattern from the test:

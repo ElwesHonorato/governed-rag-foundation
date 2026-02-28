@@ -20,7 +20,7 @@ export ENV=dev
 ```
 
 ```bash
-PYTHONPATH=libs/pipeline-common/src .venv/bin/python governance/src/apply.py
+PYTHONPATH=libs/pipeline-common/src .venv/bin/python domains/gov_governance/src/apply.py
 ```
 
 Use prod config:
@@ -28,7 +28,7 @@ Use prod config:
 ```bash
 export DATAHUB_TOKEN_PROD="..."
 export ENV=prod
-PYTHONPATH=libs/pipeline-common/src .venv/bin/python governance/src/apply.py
+PYTHONPATH=libs/pipeline-common/src .venv/bin/python domains/gov_governance/src/apply.py
 ```
 
 ## Workflow

@@ -1,6 +1,6 @@
 # Governance Agent Guide
 
-Applies to `governance/`.
+Applies to `domains/gov_governance/`.
 
 ## Local Rules
 - Keep custom properties schema under `job.*`.
@@ -13,5 +13,5 @@ Applies to `governance/`.
 - Keep examples and comments in governance docs consistent with actual key names.
 
 ## Local Commands
-- Search job keys: `rg -n "job\\." governance/definitions -S`
+- Search job keys: `rg -n "job\\." domains/gov_governance/definitions -S`
 - Validate impacted workers compile: `python3 -m compileall domains/worker_*/src`

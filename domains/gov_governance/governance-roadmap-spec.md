@@ -62,7 +62,7 @@ To avoid impacting other teams, the tool MUST operate on an explicit scope bound
 ### 2) Discovery Layer
 **Responsibility:** Find definition files and classify them.
 
-- Input: `governance/definitions/**/*.yaml`
+- Input: `domains/gov_governance/definitions/**/*.yaml`
 - Output: discovered standalone + relational files (with paths + raw dicts)
 - No validation beyond structural parse
 
@@ -130,7 +130,7 @@ Outputs:
 
 ### Governance definitions (source of truth)
 
-governance/
+domains/gov_governance/
 definitions/
 domains.yaml
 groups.yaml
@@ -148,7 +148,7 @@ mapping_rules.yaml # optional
 
 ### Tool implementation
 
-governance/
+domains/gov_governance/
 src/
 common/
 core.py # snapshot model + assembly entrypoint
@@ -379,9 +379,9 @@ Reason:
 ---
 
 ## Definition of Done (Current State)
-- `governance/src/apply.py` applies governance entities: domains, groups, tags, glossary terms, datasets, flows/jobs, and lineage contract edges.
+- `domains/gov_governance/src/apply.py` applies governance entities: domains, groups, tags, glossary terms, datasets, flows/jobs, and lineage contract edges.
 - Environment selection for apply is resolved from `ENV` and validated against allowed values (`dev`, `prod`).
-- CI apply workflow runs `governance/src/apply.py` with `ENV=prod` on pushes to `main` that touch `governance/**`.
+- CI apply workflow runs `domains/gov_governance/src/apply.py` with `ENV=prod` on pushes to `main` that touch `domains/gov_governance/**`.
 - Governance definitions are loaded from YAML and assembled deterministically into a snapshot before apply.
 - Re-running apply with unchanged definitions is expected to be idempotent via upsert semantics.
 

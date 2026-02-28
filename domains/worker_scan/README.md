@@ -18,7 +18,7 @@ This domain is the pipeline starter. It watches incoming documents, moves valid 
 - `BROKER_URL` for queue publishing.
 - `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` for object storage operations.
 - `DATAHUB_GMS_SERVER`, `DATAHUB_ENV` (and optional `DATAHUB_TOKEN`) for DataHub runtime metadata.
-- Processing config and queue routing are read from DataHub job `custom_properties` (source: `governance/definitions/600_jobs/600_governed-rag.yaml`).
+- Processing config and queue routing are read from DataHub job `custom_properties` (source: `domains/gov_governance/definitions/600_jobs/600_governed-rag.yaml`).
 
 ### Operational notes
 - Service container: `pipeline-worker-scan`.

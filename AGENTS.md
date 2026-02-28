@@ -16,7 +16,7 @@ This file defines repo-wide rules for Codex changes.
 ## Repo Map
 - `domains/`: deployable local domains (infra + apps + workers).
 - `libs/pipeline-common/`: shared worker/runtime library.
-- `governance/`: config definitions (`job.*` custom properties and policies).
+- `domains/gov_governance/`: config definitions (`job.*` custom properties and policies).
 - `requirements/`: requirements and architecture decision references.
 - `docs/`: normalized architecture/pattern guidance for day-to-day development.
 - `standards/patterns/`: preserved standards corpus and policy source material.

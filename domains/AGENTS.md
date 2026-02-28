@@ -8,7 +8,7 @@ Applies to everything under `domains/`.
 - Prefer shared abstractions from `libs/pipeline-common` instead of duplicating contracts.
 
 ## If You Change X, Also Update Y
-- If `job.storage` or `job.queue` field names change in worker code, update `governance/definitions/600_jobs/600_governed-rag.yaml` in the same change.
+- If `job.storage` or `job.queue` field names change in worker code, update `domains/gov_governance/definitions/600_jobs/600_governed-rag.yaml` in the same change.
 - If worker startup wiring changes, update `docs/patterns/composition-root.md` and `docs/ARCHITECTURE.md`.
 - If a domain `README.md` startup instructions change, keep `README.md` (repo root) stack examples aligned.
 

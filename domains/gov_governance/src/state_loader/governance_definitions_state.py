@@ -55,7 +55,7 @@ class GovernanceStateLoader:
 
     @classmethod
     def _load_env_settings(cls, env_name: str) -> EnvironmentSettings:
-        """Load one environment config file from `governance/configs`."""
+        """Load one environment config file from `domains/gov_governance/configs`."""
 
         config_path = cls._governance_dir() / "configs" / f"{env_name.lower()}.yaml"
         data = FileReader(path=config_path).read()

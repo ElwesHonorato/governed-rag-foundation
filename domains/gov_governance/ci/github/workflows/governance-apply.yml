@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "governance/**"
+      - "domains/gov_governance/**"
 
 jobs:
   apply:
@@ -22,4 +22,4 @@ jobs:
         env:
           DATAHUB_TOKEN_PROD: ${{ secrets.DATAHUB_TOKEN_PROD }}
           ENV: prod
-        run: PYTHONPATH=libs/pipeline-common/src python governance/src/apply.py
+        run: PYTHONPATH=libs/pipeline-common/src python domains/gov_governance/src/apply.py

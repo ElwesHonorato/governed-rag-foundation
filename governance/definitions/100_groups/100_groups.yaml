@@ -1,8 +1,4 @@
 groups:
-  - id: search-platform
-    name: Search Platform
-    description: Owns RAG runtime and services
-
-  - id: ml-platform
-    name: ML Platform
-    description: Owns embedding models and evaluation
+  - id: daedalus
+    name: Daedalus
+    description: Owns the operation, reliability, and evolution of the RAG platform and its supporting infrastructure.

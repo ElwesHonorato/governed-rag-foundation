@@ -25,7 +25,7 @@ Core infrastructure image tags are hardcoded in the domain compose files.
   - `worker_index_weaviate`
   - `worker_manifest`
   - `worker_metrics`
-- `scripts/`: Shared shell helpers used by `stack.sh`.
+- `tooling/ops/`: Shared stack lifecycle helpers used by `stack.sh`.
 - `stack.sh`: Entry point for bringing the local stack up/down.
 
 ## Development Strategy

@@ -1,4 +1,4 @@
-# Local Stack Scripts
+# Local Stack Operations
 
 These scripts centralize local infrastructure lifecycle for development and testing so services can be started consistently as one stack or by domain.
 

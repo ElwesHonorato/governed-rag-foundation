@@ -19,7 +19,7 @@ This file defines repo-wide rules for Codex changes.
 - `docs/requirements/`: requirements and architecture decision references.
 - `docs/`: normalized architecture/pattern guidance for day-to-day development.
 - `docs/standards/patterns/`: preserved standards corpus and policy source material.
-- `scripts/`, `stack.sh`: dev/runtime operations.
+- `tooling/ops/`, `tooling/python_env/`, `tooling/ci/`, `stack.sh`: repo operations and developer tooling.
 
 ## Architecture Rules
 - Dependency direction: `domains/` may depend on `libs/pipeline-common`; `libs/` must not depend on `domains/`.

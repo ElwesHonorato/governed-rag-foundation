@@ -3,14 +3,14 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-source "$ROOT_DIR/scripts/lib/core.sh"
-source "$ROOT_DIR/scripts/lib/network.sh"
-source "$ROOT_DIR/scripts/lib/compose.sh"
-source "$ROOT_DIR/scripts/cmd/up.sh"
-source "$ROOT_DIR/scripts/cmd/down.sh"
-source "$ROOT_DIR/scripts/cmd/logs.sh"
-source "$ROOT_DIR/scripts/cmd/ps.sh"
-source "$ROOT_DIR/scripts/cmd/wipe.sh"
+source "$ROOT_DIR/tooling/ops/lib/core.sh"
+source "$ROOT_DIR/tooling/ops/lib/network.sh"
+source "$ROOT_DIR/tooling/ops/lib/compose.sh"
+source "$ROOT_DIR/tooling/ops/cmd/up.sh"
+source "$ROOT_DIR/tooling/ops/cmd/down.sh"
+source "$ROOT_DIR/tooling/ops/cmd/logs.sh"
+source "$ROOT_DIR/tooling/ops/cmd/ps.sh"
+source "$ROOT_DIR/tooling/ops/cmd/wipe.sh"
 
 usage() {
   cat <<'USAGE'

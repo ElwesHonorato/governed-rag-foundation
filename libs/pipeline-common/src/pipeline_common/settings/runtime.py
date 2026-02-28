@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 
-from pipeline_common.config import _optional_env, _required_env, _required_int
+from pipeline_common.helpers.config import _optional_env, _required_env, _required_int
 
 
 @dataclass(frozen=True)

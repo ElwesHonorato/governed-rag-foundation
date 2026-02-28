@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import logging
 
 from contracts.contracts import ScanStorageContract
-from pipeline_common.contracts import doc_id_from_source_key
+from pipeline_common.helpers.contracts import doc_id_from_source_key
 from pipeline_common.lineage import DatasetPlatform
 from pipeline_common.lineage import DataHubRunTimeLineage
 from pipeline_common.queue import StageQueue

@@ -1,7 +1,7 @@
 """worker_index_weaviate entrypoint."""
 
 from contracts.contracts import IndexWeaviateWorkerConfigContract
-from pipeline_common.config import _required_env
+from pipeline_common.helpers.config import _required_env
 from registry import DataHubPipelineJobs
 from pipeline_common.settings import DataHubSettings, QueueRuntimeSettings, S3StorageSettings
 from pipeline_common.startup import RuntimeContextFactory, WorkerRuntimeLauncher

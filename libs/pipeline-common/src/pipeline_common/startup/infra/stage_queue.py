@@ -1,0 +1,21 @@
+"""Stage queue gateway builder for worker runtime."""
+
+from typing import Any
+
+from pipeline_common.queue import StageQueue
+from pipeline_common.settings import QueueRuntimeSettings
+
+
+class StageQueueGatewayBuilder:
+    """Build stage queue gateway from queue runtime settings and job config."""
+
+    def __init__(self, *, queue_settings: QueueRuntimeSettings, queue_config: dict[str, Any]) -> None:
+        self.queue_settings = queue_settings
+        self.queue_config = queue_config
+
+    def build(self) -> StageQueue:
+        """Build stage queue gateway for one worker."""
+        return StageQueue(
+            self.queue_settings.broker_url,
+            queue_config=self.queue_config,
+        )

@@ -2,9 +2,9 @@
 
 from pipeline_common.lineage.contracts import DataHubDataJobKey
 from pipeline_common.settings import DataHubSettings, QueueRuntimeSettings, S3StorageSettings
-from pipeline_common.startup.infra.datahub_lineage import DataHubLineageGatewayBuilder
-from pipeline_common.startup.infra.object_storage import ObjectStorageGatewayBuilder
-from pipeline_common.startup.infra.stage_queue import StageQueueGatewayBuilder
+from pipeline_common.gateways.datahub_lineage import DataHubLineageGatewayBuilder
+from pipeline_common.gateways.object_storage import ObjectStorageGatewayBuilder
+from pipeline_common.gateways.stage_queue import StageQueueGatewayBuilder
 from pipeline_common.startup.job_properties import JobPropertiesParser
 from pipeline_common.startup.runtime_context import WorkerRuntimeContext
 

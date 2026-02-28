@@ -2,7 +2,7 @@
 
 from contracts.contracts import IndexWeaviateProcessingConfigContract, IndexWeaviateWorkerConfigContract
 from pipeline_common.startup import WorkerRuntimeContext, WorkerServiceFactory
-from pipeline_common.weaviate import ensure_schema
+from services.weaviate_gateway import ensure_schema
 from services.worker_index_weaviate_service import WorkerIndexWeaviateService
 
 

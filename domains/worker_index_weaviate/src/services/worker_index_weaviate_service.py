@@ -8,7 +8,7 @@ from pipeline_common.lineage import DataHubRunTimeLineage
 from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway
 from pipeline_common.startup.contracts import WorkerService
-from pipeline_common.weaviate import upsert_chunk, verify_query
+from services.weaviate_gateway import upsert_chunk, verify_query
 
 logger = logging.getLogger(__name__)
 

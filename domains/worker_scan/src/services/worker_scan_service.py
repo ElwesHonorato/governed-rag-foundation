@@ -1,19 +1,11 @@
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 import logging
 import time
+from pipeline_common.startup.contracts import WorkerService
 from services.scan_cycle_processor import ScanCycleProcessor
 
 logger = logging.getLogger(__name__)
-
-
-class WorkerService(ABC):
-    """Minimal worker interface for long-running service loops."""
-
-    @abstractmethod
-    def serve(self) -> None:
-        """Run the worker loop indefinitely."""
 
 
 @dataclass(frozen=True)

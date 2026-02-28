@@ -1,5 +1,3 @@
-from abc import ABC, abstractmethod
-
 import json
 import logging
 from typing import Any, TypedDict
@@ -9,6 +7,7 @@ from pipeline_common.lineage import DatasetPlatform
 from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
 from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway
+from pipeline_common.startup.contracts import WorkerService
 from parsing.registry import ParserRegistry
 
 logger = logging.getLogger(__name__)
@@ -43,14 +42,6 @@ class QueueConfig(TypedDict):
     stage: str
     stage_queues: dict[str, Any]
     queue_pop_timeout_seconds: int
-
-
-class WorkerService(ABC):
-    """Minimal worker interface for long-running service loops."""
-
-    @abstractmethod
-    def serve(self) -> None:
-        """Run the worker loop indefinitely."""
 
 
 class WorkerParseDocumentService(WorkerService):

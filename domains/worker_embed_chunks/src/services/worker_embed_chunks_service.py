@@ -1,5 +1,3 @@
-
-from abc import ABC, abstractmethod
 import hashlib
 import json
 import logging
@@ -9,16 +7,9 @@ from pipeline_common.lineage import DatasetPlatform
 from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
 from pipeline_common.queue import StageQueue
 from pipeline_common.object_storage import ObjectStorageGateway
+from pipeline_common.startup.contracts import WorkerService
 
 logger = logging.getLogger(__name__)
-
-
-class WorkerService(ABC):
-    """Minimal worker interface for long-running service loops."""
-
-    @abstractmethod
-    def serve(self) -> None:
-        """Run the worker loop indefinitely."""
 
 
 class StorageConfig(TypedDict):

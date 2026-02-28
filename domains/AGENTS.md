@@ -3,7 +3,7 @@
 Applies to everything under `domains/`.
 
 ## Local Rules
-- Keep domain entrypoints orchestration-only; move parsing/business logic to `services/`, `startup/`, or `configs/`.
+- Keep domain entrypoints orchestration-only; move parsing/business logic to `services/`, `startup/`, or `contracts/`.
 - Do not couple one worker domain directly to another worker domain's Python modules.
 - Prefer shared abstractions from `libs/pipeline-common` instead of duplicating contracts.
 

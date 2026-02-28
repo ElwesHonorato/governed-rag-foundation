@@ -3,14 +3,13 @@
 This repository implements a locally runnable governed RAG stack with isolated domains and shared worker runtime infrastructure.
 
 ## System Layout
-- `apps/`: API/UI applications.
-- `domains/`: infrastructure and worker runtime domains, each independently startable via `stack.sh`.
+- `domains/`: infrastructure, app, governance, and worker runtime domains, each independently startable via `stack.sh`.
 - `libs/pipeline-common/`: shared runtime contracts, startup orchestration, queue/storage/lineage adapters.
 - `domains/gov_governance/`: job and policy definitions (`job.*` custom properties).
 - `docs/requirements/`: architecture/requirements references.
 
 ## Dependency Direction
-- `apps/*` and `domains/*` may depend on `libs/pipeline-common`.
+- `domains/*` may depend on `libs/pipeline-common`.
 - `libs/pipeline-common` must not depend on `domains/*`.
 - `domains/gov_governance/*` defines configuration schema consumed by workers at runtime.
 

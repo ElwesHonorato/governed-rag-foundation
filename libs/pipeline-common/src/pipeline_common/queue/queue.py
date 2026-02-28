@@ -6,15 +6,12 @@ from typing import Any, Callable
 
 import pika
 from pika.exceptions import AMQPError
-from pipeline_common.queue.contracts import WorkerStageQueueContract
 
 logger = logging.getLogger(__name__)
 
 
 class StageQueue:
     """StageQueue type definition."""
-    stage: str
-    stage_queues: dict[str, WorkerStageQueueContract]
     timeout_seconds: int
 
     def __init__(
@@ -154,19 +151,12 @@ class StageQueue:
         *,
         queue_config: dict[str, Any],
     ) -> None:
-        """Internal helper for initialize stage contract."""
+        """Initialize queue names/contracts from direct runtime queue config."""
         self._load_stage_runtime_config(queue_config)
-        if not self.stage_queues:
-            self._bind_direct_queue_config(queue_config)
-            return
-        stage_queue_contract = self._resolve_stage_contract()
-        self._bind_stage_queue_names(stage_queue_contract)
-        self._bind_stage_message_contracts(stage_queue_contract)
+        self._bind_direct_queue_config(queue_config)
 
     def _load_stage_runtime_config(self, queue_config: dict[str, Any]) -> None:
-        """Load stage identity, contract map, and timeout from config payload."""
-        self.stage = str(queue_config.get("stage", ""))
-        self.stage_queues = queue_config.get("stage_queues", {})
+        """Load queue timeout from config payload."""
         self.timeout_seconds = int(
             queue_config.get("queue_pop_timeout_seconds", queue_config.get("pop_timeout_seconds", 1))
         )
@@ -179,21 +169,3 @@ class StageQueue:
         self.consume_contract = dict
         self.produce_contract = dict
         self.dlq_contract = dict
-
-    def _resolve_stage_contract(self) -> WorkerStageQueueContract:
-        """Return queue contract for configured stage or raise on unknown stage."""
-        if self.stage not in self.stage_queues:
-            raise ValueError(f"Unknown stage queue contract: {self.stage}")
-        return self.stage_queues[self.stage]
-
-    def _bind_stage_queue_names(self, stage_queue_contract: WorkerStageQueueContract) -> None:
-        """Bind consume/produce/dlq queue names from stage contract."""
-        self.consume = stage_queue_contract["consume"]["queue_name"]
-        self.produce = stage_queue_contract["produce"]["queue_name"]
-        self.dlq = stage_queue_contract["dlq"]["queue_name"]
-
-    def _bind_stage_message_contracts(self, stage_queue_contract: WorkerStageQueueContract) -> None:
-        """Bind message contract constructors for consume/produce/dlq payloads."""
-        self.consume_contract = stage_queue_contract["consume"]["queue_contract"]
-        self.produce_contract = stage_queue_contract["produce"]["queue_contract"]
-        self.dlq_contract = stage_queue_contract["dlq"]["queue_contract"]

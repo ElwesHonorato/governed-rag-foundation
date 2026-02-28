@@ -1,6 +1,4 @@
-from .api import MarquezApiClient
-
-__all__ = ["MarquezApiClient"]
+__all__: list[str] = []
 
 # Keep legacy Marquez tooling importable even when DataHub extras are not installed.
 try:

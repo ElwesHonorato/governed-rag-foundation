@@ -37,7 +37,29 @@ class ScanWorkerConfig:
     incoming_prefix: str
     raw_prefix: str
     poll_interval_seconds: int
-    queue_config: dict[str, Any]
+    queue_config: "ScanQueueConfigContract"
+
+
+@dataclass(frozen=True)
+class ScanQueueConfigContract:
+    """Typed contract for scan queue runtime settings."""
+
+    stage: str
+    queue_pop_timeout_seconds: int
+    pop_timeout_seconds: int
+    produce: str
+    dlq: str
+    consume: str = ""
+
+
+@dataclass(frozen=True)
+class ScanJobConfigContract:
+    """Typed contract for scan-specific job config fields."""
+
+    bucket: str
+    incoming_prefix: str
+    raw_prefix: str
+    poll_interval_seconds: int
 
 
 def run() -> None:
@@ -55,13 +77,28 @@ class ScanConfigExtractor(WorkerConfigExtractor[ScanWorkerConfig]):
     def extract(self, job_properties: Mapping[str, Any]) -> ScanWorkerConfig:
         """Extract typed scan worker config."""
         job_config = job_properties["job"]
-        queue_config = job_config["queue"]
+        storage = job_config["storage"]
+        queue = job_config["queue"]
+        job_contract = ScanJobConfigContract(
+            bucket=storage["bucket"],
+            incoming_prefix=storage["incoming_prefix"],
+            raw_prefix=storage["raw_prefix"],
+            poll_interval_seconds=job_config["poll_interval_seconds"],
+        )
+        queue_contract = ScanQueueConfigContract(
+            stage=queue["stage"],
+            queue_pop_timeout_seconds=queue["queue_pop_timeout_seconds"],
+            pop_timeout_seconds=queue["pop_timeout_seconds"],
+            produce=queue["produce"],
+            dlq=queue["dlq"],
+            consume=queue.get("consume", ""),
+        )
         return ScanWorkerConfig(
-            bucket=job_config["storage"]["bucket"],
-            incoming_prefix=job_config["storage"]["incoming_prefix"],
-            raw_prefix=job_config["storage"]["raw_prefix"],
-            poll_interval_seconds=int(job_config["poll_interval_seconds"]),
-            queue_config=queue_config,
+            bucket=job_contract.bucket,
+            incoming_prefix=job_contract.incoming_prefix,
+            raw_prefix=job_contract.raw_prefix,
+            poll_interval_seconds=job_contract.poll_interval_seconds,
+            queue_config=queue_contract,
         )
 
 

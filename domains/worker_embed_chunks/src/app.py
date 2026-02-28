@@ -17,6 +17,7 @@ Best practices:
 import os
 
 from pipeline_common.lineage.pipeline import DataHubPipelineJobs
+from pipeline_common.settings import DataHubSettings, QueueRuntimeSettings, S3StorageSettings
 from pipeline_common.startup import (
     RuntimeContextFactory,
 )
@@ -27,6 +28,9 @@ def run() -> None:
     """Initialize dependencies and start the worker service."""
     runtime_factory = RuntimeContextFactory(
         data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_embed_chunks"),
+        datahub_settings=DataHubSettings.from_env(),
+        s3_settings=S3StorageSettings.from_env(),
+        queue_settings=QueueRuntimeSettings.from_env(),
     )
     lineage = runtime_factory.runtime_context.lineage_gateway
     raw_config = runtime_factory.runtime_context.job_properties

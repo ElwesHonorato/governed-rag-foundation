@@ -1,7 +1,7 @@
 services:
   ollama:
     build:
-      context: ./domains/llm
+      context: ./domains/infra_llm
       dockerfile: Dockerfile
       args:
         LLM_MODEL: ${LLM_MODEL:?LLM_MODEL is required}

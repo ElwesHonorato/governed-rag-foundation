@@ -12,14 +12,14 @@ fi
 readonly STACK_NETWORK="${STACK_NETWORK:-rag-local}"
 readonly LOCALDATA_DIR="$REPO_ROOT/localdata"
 readonly DOMAINS=(
-  storage
-  vector
-  queue
-  lineage
-  portainer
-  llm
-  app
-  vector_ui
+  infra_storage
+  infra_vector
+  infra_queue
+  infra_lineage
+  infra_portainer
+  infra_llm
+  app_rag_api
+  app_vector_ui
   worker_scan
   worker_parse_document
   worker_chunk_text

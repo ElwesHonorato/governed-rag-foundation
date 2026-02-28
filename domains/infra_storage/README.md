@@ -1,4 +1,4 @@
-# storage domain
+# infra_storage domain
 
 This domain is the artifact backbone of the RAG pipeline. Every worker reads and writes document artifacts here as processing advances through stages.
 

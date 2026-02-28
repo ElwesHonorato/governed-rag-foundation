@@ -1,4 +1,4 @@
-# queue domain
+# infra_queue domain
 
 This domain is the pipeline traffic controller. It decouples stages so each worker can process jobs independently and reliably.
 

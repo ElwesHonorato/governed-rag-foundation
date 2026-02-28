@@ -1,4 +1,4 @@
-# lineage domain
+# infra_lineage domain
 
 This domain runs DataHub quickstart for lineage storage, graph, and UI exploration.
 
@@ -10,14 +10,14 @@ This domain runs DataHub quickstart for lineage storage, graph, and UI explorati
 - `mysql`, `elasticsearch`, `neo4j`
 - `broker`, `zookeeper`, `schema-registry`
 
-Full compose definition: `domains/lineage/docker-compose.yml`.
+Full compose definition: `domains/infra_lineage/docker-compose.yml`.
 
 ## How to run
 ```bash
-./stack.sh up lineage
-./stack.sh ps lineage
-./stack.sh logs lineage
-./stack.sh down lineage
+./stack.sh up infra_lineage
+./stack.sh ps infra_lineage
+./stack.sh logs infra_lineage
+./stack.sh down infra_lineage
 ```
 
 ## Key endpoints

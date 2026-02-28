@@ -1,11 +1,11 @@
-# app domain
+# app_rag_api domain
 
 This domain is the main front door of the RAG system. If you ask a question, `rag-api` is the service that receives it, coordinates retrieval and generation, and returns the answer.
 
 ## Deep Dive
 
 ### What runs here
-- `rag-api` (Flask app from `apps/rag-api`)
+- `rag-api` (Flask app from `domains/app_rag_api`)
 
 ### How it contributes to RAG
 - Accepts prompt requests from clients.

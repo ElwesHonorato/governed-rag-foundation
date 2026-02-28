@@ -1,4 +1,4 @@
-# portainer domain
+# infra_portainer domain
 
 This domain is an operational dashboard for the local stack. It is not part of answer generation directly, but it makes running and troubleshooting the RAG environment much easier.
 

@@ -1,7 +1,7 @@
 services:
   rag-api:
     build:
-      context: ./apps/rag-api
+      context: ./domains/app_rag_api
       dockerfile: Dockerfile
     ports:
       - "${RAG_API_PORT:?RAG_API_PORT is required}:8000"

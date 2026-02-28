@@ -7,15 +7,14 @@ This file defines repo-wide rules for Codex changes.
 - Setup (project deps): `cd <project-dir> && poetry install`
 - Stack lifecycle: `./stack.sh up <domain>`, `./stack.sh down`, `./stack.sh ps`, `./stack.sh logs <domain>`
 - Lineage tooling: `make lineage-help` (and `make lineage-*` targets)
-- Test (baseline sanity): `python3 -m compileall apps libs domains`
+- Test (baseline sanity): `python3 -m compileall libs domains`
 - Test (project-level): `cd <project-dir> && poetry run pytest` (when tests exist)
 - Lint: project-specific only (no repo-wide lint command configured yet). TODO: standardize.
 - Format: project-specific only (no repo-wide formatter command configured yet). TODO: standardize.
 - Typecheck: project-specific only (no repo-wide typecheck command configured yet). TODO: standardize.
 
 ## Repo Map
-- `apps/`: application services (`rag-api`, `vector-ui`).
-- `domains/`: deployable local domains (infra + workers).
+- `domains/`: deployable local domains (infra + apps + workers).
 - `libs/pipeline-common/`: shared worker/runtime library.
 - `governance/`: config definitions (`job.*` custom properties and policies).
 - `requirements/`: requirements and architecture decision references.
@@ -24,7 +23,7 @@ This file defines repo-wide rules for Codex changes.
 - `scripts/`, `stack.sh`, `Makefile`: dev/runtime operations.
 
 ## Architecture Rules
-- Dependency direction: `apps/` and `domains/` may depend on `libs/pipeline-common`; `libs/` must not depend on `domains/`.
+- Dependency direction: `domains/` may depend on `libs/pipeline-common`; `libs/` must not depend on `domains/`.
 - Worker entrypoints (`domains/worker_*/src/app.py`) are composition roots only; business logic stays in services/processors.
 - Governance config uses `job.*` namespace; key changes must be coordinated with worker config extractors.
 - Keep runtime behavior unchanged unless the request explicitly asks for behavior change.

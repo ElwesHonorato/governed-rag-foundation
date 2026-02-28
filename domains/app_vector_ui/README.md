@@ -1,11 +1,11 @@
-# vector_ui domain
+# app_vector_ui domain
 
 This domain is a friendly inspection tool for retrieval data. It helps you quickly check what is indexed in Weaviate and how queries resolve.
 
 ## Deep Dive
 
 ### What runs here
-- `vector-ui` app from `apps/vector-ui`
+- `vector-ui` app from `domains/app_vector_ui`
 
 ### How it contributes to RAG
 - Provides manual query/filter/sort workflows against chunk records.

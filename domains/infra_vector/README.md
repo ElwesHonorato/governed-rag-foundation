@@ -1,4 +1,4 @@
-# vector domain
+# infra_vector domain
 
 This domain is the retrieval engine. It stores chunk vectors and metadata so the API can retrieve relevant context for user questions.
 

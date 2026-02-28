@@ -1,11 +1,11 @@
-# llm domain
+# infra_llm domain
 
 This domain is the model-serving layer. It provides the language model endpoint that turns grounded context into natural-language answers.
 
 ## Deep Dive
 
 ### What runs here
-- `ollama` built from `domains/llm/Dockerfile`
+- `ollama` built from `domains/infra_llm/Dockerfile`
 
 ### How it contributes to RAG
 - Receives chat/generation requests from `rag-api`.

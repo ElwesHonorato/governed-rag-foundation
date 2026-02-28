@@ -2,7 +2,7 @@
 
 ## Current Repository State Summary
 - Repository provides local-stack scaffolding and two runtime services:
-- `apps/rag-api`: Flask API exposing `/`, `/ui`, and `/prompt`; currently functions as a direct Ollama chat proxy without retrieval, citation, filtering, or policy enforcement (`apps/rag-api/src/rag_api/routes.py`, `apps/rag-api/src/rag_api/services/prompt_service.py`).
+- `domains/app_rag_api`: Flask API exposing `/`, `/ui`, and `/prompt`; currently functions as a direct Ollama chat proxy without retrieval, citation, filtering, or policy enforcement (`domains/app_rag_api/src/rag_api/routes.py`, `domains/app_rag_api/src/rag_api/services/prompt_service.py`).
 - `domains/worker_*`: isolated pipeline worker stages for scan, parse, chunk, embed, index, manifest, and metrics (`domains/worker_*/docker-compose.yml`).
 - Infrastructure domains are defined for MinIO, Weaviate, Redis, Marquez, Ollama, and app services (`domains/*/docker-compose.yml`), but most domain capabilities are not yet integrated into business logic.
 - No automated test suite is present in application code; acceptance criteria are documented but not executable (`requirements/80-testing-acceptance/acceptance-criteria-global-logistics-hub.md`).
@@ -14,14 +14,14 @@ Legend: `Covered` = implemented and traceable in code, `Partial` = scaffolded/in
 | Requirement ID | Requirement Summary | Current Coverage | Evidence in Repository | Gap Notes |
 |---|---|---|---|---|
 | FR-01 | Unified ingestion across unstructured/structured/streaming/APIs/DB | Partial | `domains/worker_scan/src/app.py`, `domains/worker_parse_document/src/app.py` | Current implementation covers S3-driven document flow only; SharePoint/SAP/Oracle/Kafka/Flink/API/DB connectors are still missing. |
-| FR-02 | Retrieval for delays/contracts/IoT | Missing | `apps/rag-api/src/rag_api/routes.py` | No retrieval pipeline; `/prompt` calls LLM directly. |
-| FR-03 | Multimodal query support (text/tables/images) | Missing | `apps/rag-api/src/rag_api/services/prompt_service.py` | No multimodal parsing, indexing, or query path. |
-| FR-04 | Metadata-filtered retrieval (`source_type`, `timestamp`, domain) | Missing | `apps/rag-api/src/rag_api/routes.py` | No retrieval query API or metadata filter handling. |
-| NFR-01 | 1,000+ concurrent users | Missing | `apps/rag-api/src/rag_api/app.py` | Single-process Flask app; no load/perf controls or benchmark evidence. |
-| NFR-02 | Hybrid retrieval (BM25 + semantic) | Missing | `domains/vector/docker-compose.yml` | Weaviate deployed but no hybrid retrieval logic implemented. |
-| NFR-03 | Caching for latency/cost optimization | Missing | `domains/queue/docker-compose.yml` | Redis deployed but unused in app logic. |
-| NFR-04 | Reliability under peak/degraded upstream | Partial | `apps/rag-api/src/rag_api/llm_client.py` | Basic retry for some LLM failures only; no circuit breaking, fallback retrieval, or resilience policy. |
-| A-01 | Full governed RAG flow (ingest->chunk->mask->embed->hybrid retrieve->grounded response) | Missing | `domains/worker_*/src`, `apps/rag-api/src/rag_api/services/prompt_service.py` | Worker stages exist, but masking and governed retrieval/grounded response behavior are still incomplete. |
+| FR-02 | Retrieval for delays/contracts/IoT | Missing | `domains/app_rag_api/src/rag_api/routes.py` | No retrieval pipeline; `/prompt` calls LLM directly. |
+| FR-03 | Multimodal query support (text/tables/images) | Missing | `domains/app_rag_api/src/rag_api/services/prompt_service.py` | No multimodal parsing, indexing, or query path. |
+| FR-04 | Metadata-filtered retrieval (`source_type`, `timestamp`, domain) | Missing | `domains/app_rag_api/src/rag_api/routes.py` | No retrieval query API or metadata filter handling. |
+| NFR-01 | 1,000+ concurrent users | Missing | `domains/app_rag_api/src/rag_api/app.py` | Single-process Flask app; no load/perf controls or benchmark evidence. |
+| NFR-02 | Hybrid retrieval (BM25 + semantic) | Missing | `domains/infra_vector/docker-compose.yml` | Weaviate deployed but no hybrid retrieval logic implemented. |
+| NFR-03 | Caching for latency/cost optimization | Missing | `domains/infra_queue/docker-compose.yml` | Redis deployed but unused in app logic. |
+| NFR-04 | Reliability under peak/degraded upstream | Partial | `domains/app_rag_api/src/rag_api/llm_client.py` | Basic retry for some LLM failures only; no circuit breaking, fallback retrieval, or resilience policy. |
+| A-01 | Full governed RAG flow (ingest->chunk->mask->embed->hybrid retrieve->grounded response) | Missing | `domains/worker_*/src`, `domains/app_rag_api/src/rag_api/services/prompt_service.py` | Worker stages exist, but masking and governed retrieval/grounded response behavior are still incomplete. |
 | A-02 | Context-aware chunking, parent-child indexing, versioned indexing | Partial | `domains/worker_chunk_text/src/app.py`, `domains/worker_index_weaviate/src/app.py` | Chunking and indexing stages exist, but advanced context-aware and versioning features are incomplete. |
 | INT-01 | S3 + SharePoint document sources | Partial | S3 config in `.env.example`; S3 usage in `domains/worker_*/src` | S3 pipeline is present; SharePoint integration remains missing. |
 | INT-02 | SAP + Oracle shipment logs | Missing | N/A in app code | No connectors/contracts/ingestion jobs. |
@@ -34,15 +34,15 @@ Legend: `Covered` = implemented and traceable in code, `Partial` = scaffolded/in
 | D-04 | Cross-modal embeddings + late-interaction evaluation | Missing | N/A in app code | No embedding service or evaluation harness. |
 | D-05 | Metadata enrichment (`source_type`, `timestamp`, `security_clearance`) | Missing | N/A in app code | Metadata schema not enforced in pipeline/indexing. |
 | SEC-01 | PII/PHI masking before vectorization | Missing | N/A in app code | No detection/masking stage before persistence. |
-| SEC-02 | RBAC authorization by user/document | Missing | `apps/rag-api/src/rag_api/routes.py` | No authn/authz stack. |
+| SEC-02 | RBAC authorization by user/document | Missing | `domains/app_rag_api/src/rag_api/routes.py` | No authn/authz stack. |
 | SEC-03 | Query-time authorization filters | Missing | N/A in app code | No security metadata filter layer in retrieval. |
 | AC-01 | Ingestion coverage for all source classes | Missing | `domains/worker_scan/src/app.py` | Current ingestion remains limited to S3-driven processing. |
 | AC-02 | Canonical data normalization | Missing | N/A in app code | No canonical mapping validation. |
-| AC-03 | Relevant hybrid retrieval with citations | Missing | `apps/rag-api/src/rag_api/services/prompt_service.py` | No retrieval/citation subsystem. |
-| AC-04 | Source/version/process traceability | Missing | Marquez infra defined in `domains/lineage/docker-compose.yml` | Lineage infra exists; no lineage events emitted from app/pipeline. |
+| AC-03 | Relevant hybrid retrieval with citations | Missing | `domains/app_rag_api/src/rag_api/services/prompt_service.py` | No retrieval/citation subsystem. |
+| AC-04 | Source/version/process traceability | Missing | Marquez infra defined in `domains/infra_lineage/docker-compose.yml` | Lineage infra exists; no lineage events emitted from app/pipeline. |
 | AC-05 | Security masking + RBAC enforcement | Missing | N/A in app code | Security requirements not implemented. |
 | AC-06 | Stable 1,000+ user behavior with acceptable latency | Missing | N/A in app code | No performance profile/tests/SLO evidence. |
-| AI-01 | Grounded responses with source references | Missing | `apps/rag-api/src/rag_api/services/prompt_service.py` | Current responses are not evidence-grounded/cited. |
+| AI-01 | Grounded responses with source references | Missing | `domains/app_rag_api/src/rag_api/services/prompt_service.py` | Current responses are not evidence-grounded/cited. |
 | AI-02 | Hybrid retrieval + metadata guardrails + low-confidence defer | Missing | N/A in app code | No guardrail pipeline/confidence model. |
 | AI-03 | Evals for retrieval/citations/latency/cost/safety | Missing | N/A in app code | No evaluation datasets, runners, or dashboards. |
 

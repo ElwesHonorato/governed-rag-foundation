@@ -1,7 +1,8 @@
 import json
 import logging
-from typing import Any, TypedDict
+from typing import Any
 
+from configs.chunk_text_worker_config import ChunkTextProcessingConfigContract
 from pipeline_common.contracts import chunk_id_for
 from pipeline_common.lineage import DatasetPlatform
 from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
@@ -13,30 +14,6 @@ from pipeline_common.text import chunk_text
 logger = logging.getLogger(__name__)
 
 
-class StorageConfig(TypedDict):
-    """Storage-related prefixes and bucket for chunking worker."""
-
-    bucket: str
-    input_prefix: str
-    output_prefix: str
-
-
-class QueueConfig(TypedDict):
-    """Queue contract and timeout settings for chunking worker."""
-
-    stage: str
-    stage_queues: dict[str, Any]
-    queue_pop_timeout_seconds: int
-
-
-class ChunkTextProcessingConfig(TypedDict):
-    """Runtime config for chunking worker queues, storage, and polling."""
-
-    poll_interval_seconds: int
-    queue: QueueConfig
-    storage: StorageConfig
-
-
 class WorkerChunkTextService(WorkerService):
     """Transform processed document payloads into chunk artifacts."""
 
@@ -46,7 +23,7 @@ class WorkerChunkTextService(WorkerService):
         stage_queue: StageQueue,
         object_storage: ObjectStorageGateway,
         lineage: DataHubRunTimeLineage,
-        processing_config: ChunkTextProcessingConfig,
+        processing_config: ChunkTextProcessingConfigContract,
     ) -> None:
         """Initialize chunking worker dependencies and runtime settings."""
         self.stage_queue = stage_queue
@@ -152,10 +129,10 @@ class WorkerChunkTextService(WorkerService):
         """Publish embedding work for one chunk object artifact."""
         self.stage_queue.push_produce_message(storage_key=destination_key)
 
-    def _initialize_runtime_config(self, processing_config: ChunkTextProcessingConfig) -> None:
+    def _initialize_runtime_config(self, processing_config: ChunkTextProcessingConfigContract) -> None:
         """Load runtime config values into worker state."""
-        self.poll_interval_seconds = processing_config["poll_interval_seconds"]
-        self.storage_bucket = processing_config["storage"]["bucket"]
-        self.input_prefix = processing_config["storage"]["input_prefix"]
-        self.output_prefix = processing_config["storage"]["output_prefix"]
+        self.poll_interval_seconds = processing_config.poll_interval_seconds
+        self.storage_bucket = processing_config.storage.bucket
+        self.input_prefix = processing_config.storage.input_prefix
+        self.output_prefix = processing_config.storage.output_prefix
         self.processed_suffix = ".json"

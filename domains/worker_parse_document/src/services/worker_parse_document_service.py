@@ -1,7 +1,8 @@
 import json
 import logging
-from typing import Any, TypedDict
+from typing import Any
 
+from configs.parse_worker_config import ParseProcessingConfigContract
 from pipeline_common.contracts import doc_id_from_source_key, utc_now_iso
 from pipeline_common.lineage import DatasetPlatform
 from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
@@ -13,37 +14,6 @@ from parsing.registry import ParserRegistry
 logger = logging.getLogger(__name__)
 
 
-class SecurityConfig(TypedDict):
-    """Security-related parse metadata configuration."""
-
-    clearance: str
-
-
-class DocumentProcessingConfig(TypedDict):
-    """Runtime config for parse worker queues, storage, polling, and metadata."""
-
-    poll_interval_seconds: int
-    queue: "QueueConfig"
-    storage: "StorageConfig"
-    security: SecurityConfig
-
-
-class StorageConfig(TypedDict):
-    """Storage-related prefixes and bucket for parse worker."""
-
-    bucket: str
-    input_prefix: str
-    output_prefix: str
-
-
-class QueueConfig(TypedDict):
-    """Queue contract and timeout settings for parse worker."""
-
-    stage: str
-    stage_queues: dict[str, Any]
-    queue_pop_timeout_seconds: int
-
-
 class WorkerParseDocumentService(WorkerService):
     """Transform raw source documents into processed payloads."""
 
@@ -53,7 +23,7 @@ class WorkerParseDocumentService(WorkerService):
         stage_queue: StageQueue,
         object_storage: ObjectStorageGateway,
         lineage: DataHubRunTimeLineage,
-        processing_config: DocumentProcessingConfig,
+        processing_config: ParseProcessingConfigContract,
         parser_registry: ParserRegistry,
     ) -> None:
         """Initialize parse worker dependencies and runtime settings."""
@@ -154,10 +124,10 @@ class WorkerParseDocumentService(WorkerService):
         """Publish chunking work for a newly produced processed document."""
         self.stage_queue.push_produce_message(storage_key=destination_key)
 
-    def _initialize_runtime_config(self, processing_config: DocumentProcessingConfig) -> None:
+    def _initialize_runtime_config(self, processing_config: ParseProcessingConfigContract) -> None:
         """Internal helper for initialize runtime config."""
-        self.poll_interval_seconds = processing_config["poll_interval_seconds"]
-        self.storage_bucket = processing_config["storage"]["bucket"]
-        self.input_prefix = processing_config["storage"]["input_prefix"]
-        self.output_prefix = processing_config["storage"]["output_prefix"]
-        self.security_clearance = processing_config["security"]["clearance"]
+        self.poll_interval_seconds = processing_config.poll_interval_seconds
+        self.storage_bucket = processing_config.storage.bucket
+        self.input_prefix = processing_config.storage.input_prefix
+        self.output_prefix = processing_config.storage.output_prefix
+        self.security_clearance = processing_config.security.clearance

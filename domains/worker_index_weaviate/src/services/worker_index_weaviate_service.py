@@ -1,7 +1,8 @@
 import json
 import logging
-from typing import Any, TypedDict
+from typing import Any
 
+from configs.index_weaviate_worker_config import IndexWeaviateProcessingConfigContract
 from pipeline_common.lineage import DatasetPlatform
 from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
 from pipeline_common.queue import StageQueue
@@ -10,30 +11,6 @@ from pipeline_common.startup.contracts import WorkerService
 from pipeline_common.weaviate import upsert_chunk, verify_query
 
 logger = logging.getLogger(__name__)
-
-
-class StorageConfig(TypedDict):
-    """Storage-related prefixes and bucket for indexing worker."""
-
-    bucket: str
-    input_prefix: str
-    output_prefix: str
-
-
-class QueueConfig(TypedDict):
-    """Queue contract and timeout settings for indexing worker."""
-
-    stage: str
-    stage_queues: dict[str, Any]
-    queue_pop_timeout_seconds: int
-
-
-class IndexWeaviateProcessingConfig(TypedDict):
-    """Runtime config for indexing worker queues, storage, and polling."""
-
-    poll_interval_seconds: int
-    queue: QueueConfig
-    storage: StorageConfig
 
 
 class WorkerIndexWeaviateService(WorkerService):
@@ -45,7 +22,7 @@ class WorkerIndexWeaviateService(WorkerService):
         stage_queue: StageQueue,
         object_storage: ObjectStorageGateway,
         lineage: DataHubRunTimeLineage,
-        processing_config: IndexWeaviateProcessingConfig,
+        processing_config: IndexWeaviateProcessingConfigContract,
         weaviate_url: str,
     ) -> None:
         """Initialize indexing worker dependencies and runtime settings."""
@@ -155,10 +132,10 @@ class WorkerIndexWeaviateService(WorkerService):
         result = verify_query(self.weaviate_url, "logistics")
         logger.info("Indexed doc_id '%s' verify=%s", doc_id, bool(result))
 
-    def _initialize_runtime_config(self, processing_config: IndexWeaviateProcessingConfig) -> None:
+    def _initialize_runtime_config(self, processing_config: IndexWeaviateProcessingConfigContract) -> None:
         """Load runtime config values into worker state."""
-        self.poll_interval_seconds = processing_config["poll_interval_seconds"]
-        self.storage_bucket = processing_config["storage"]["bucket"]
-        self.input_prefix = processing_config["storage"]["input_prefix"]
-        self.output_prefix = processing_config["storage"]["output_prefix"]
+        self.poll_interval_seconds = processing_config.poll_interval_seconds
+        self.storage_bucket = processing_config.storage.bucket
+        self.input_prefix = processing_config.storage.input_prefix
+        self.output_prefix = processing_config.storage.output_prefix
         self.embeddings_suffix = ".embedding.json"

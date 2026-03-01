@@ -1,6 +1,8 @@
 from dataclasses import dataclass
+from typing import Protocol
 
 from pipeline_common.gateways.lineage.contracts import DataHubDataJobKey
+from pipeline_common.gateways.lineage.contracts import DatasetPlatform, ResolvedDataHubFlowConfig
 
 
 @dataclass
@@ -46,3 +48,32 @@ class DataHubLineageRuntimeConfig:
 
     connection_settings: DataHubRuntimeConnectionSettings
     data_job_key: DataHubDataJobKey
+
+
+class LineageRuntimeGateway(Protocol):
+    """Application port for runtime lineage emission operations."""
+
+    @property
+    def resolved_job_config(self) -> ResolvedDataHubFlowConfig:
+        """Return resolved DataHub job metadata for the active worker."""
+
+    def resolve_job_metadata(self) -> ResolvedDataHubFlowConfig:
+        """Resolve and cache DataHub job metadata."""
+
+    def start_run(self) -> RunSpec:
+        """Start one lineage runtime run."""
+
+    def add_input(self, name: str, platform: DatasetPlatform) -> str:
+        """Add an input dataset URN to the active run."""
+
+    def add_output(self, name: str, platform: DatasetPlatform) -> str:
+        """Add an output dataset URN to the active run."""
+
+    def complete_run(self) -> str:
+        """Emit a completion event and return the DataProcessInstance URN."""
+
+    def fail_run(self, error_message: str | None) -> str:
+        """Emit a failure event and return the DataProcessInstance URN."""
+
+    def abort_run(self) -> None:
+        """Clear active run state without emitting terminal status."""

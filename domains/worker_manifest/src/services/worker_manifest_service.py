@@ -4,7 +4,7 @@ import time
 
 from contracts.contracts import ManifestProcessingConfigContract
 from pipeline_common.gateways.lineage import DatasetPlatform
-from pipeline_common.gateways.lineage import DataHubRunTimeLineage
+from pipeline_common.gateways.lineage import DataHubRuntimeLineage
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.startup.contracts import WorkerService
 
@@ -17,7 +17,7 @@ class WorkerManifestService(WorkerService):
         self,
         *,
         object_storage: ObjectStorageGateway,
-        lineage: DataHubRunTimeLineage,
+        lineage: DataHubRuntimeLineage,
         processing_config: ManifestProcessingConfigContract,
     ) -> None:
         """Initialize instance state and dependencies."""

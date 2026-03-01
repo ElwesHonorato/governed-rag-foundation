@@ -5,7 +5,7 @@ from typing import Any
 
 from contracts.contracts import EmbedChunksProcessingConfigContract
 from pipeline_common.gateways.lineage import DatasetPlatform
-from pipeline_common.gateways.lineage import DataHubRunTimeLineage
+from pipeline_common.gateways.lineage import DataHubRuntimeLineage
 from pipeline_common.gateways.queue import StageQueue
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.startup.contracts import WorkerService
@@ -21,7 +21,7 @@ class WorkerEmbedChunksService(WorkerService):
         *,
         stage_queue: StageQueue,
         object_storage: ObjectStorageGateway,
-        lineage: DataHubRunTimeLineage,
+        lineage: DataHubRuntimeLineage,
         processing_config: EmbedChunksProcessingConfigContract,
         dimension: int,
     ) -> None:

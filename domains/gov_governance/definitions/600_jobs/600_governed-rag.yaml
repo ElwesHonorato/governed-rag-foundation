@@ -2,7 +2,7 @@ flow_id: governed-rag
 jobs:
   - id: worker_scan
     domain: rag-platform
-    owners: [search-platform]
+    owners: [daedalus]
     custom_properties:
       job.version: "0.0.1"
       job.poll_interval_seconds: "30"
@@ -17,7 +17,7 @@ jobs:
 
   - id: worker_parse_document
     domain: rag-platform
-    owners: [search-platform]
+    owners: [daedalus]
     custom_properties:
       job.version: "0.0.1"
       job.poll_interval_seconds: "30"
@@ -34,7 +34,7 @@ jobs:
 
   - id: worker_chunk_text
     domain: rag-embeddings
-    owners: [search-platform]
+    owners: [daedalus]
     custom_properties:
       job.version: "0.0.1"
       job.poll_interval_seconds: "30"
@@ -50,7 +50,7 @@ jobs:
 
   - id: worker_embed_chunks
     domain: rag-embeddings
-    owners: [ml-platform]
+    owners: [daedalus]
     custom_properties:
       job.version: "0.0.1"
       job.poll_interval_seconds: "30"
@@ -67,7 +67,7 @@ jobs:
 
   - id: worker_index_weaviate
     domain: rag-indexing
-    owners: [search-platform]
+    owners: [daedalus]
     custom_properties:
       job.version: "0.0.1"
       job.poll_interval_seconds: "30"
@@ -82,7 +82,7 @@ jobs:
 
   - id: worker_manifest
     domain: rag-platform
-    owners: [search-platform]
+    owners: [daedalus]
     custom_properties:
       job.version: "0.0.1"
       job.poll_interval_seconds: "30"
@@ -95,7 +95,7 @@ jobs:
 
   - id: worker_metrics
     domain: rag-platform
-    owners: [search-platform]
+    owners: [daedalus]
     custom_properties:
       job.version: "0.0.1"
       job.poll_interval_seconds: "30"

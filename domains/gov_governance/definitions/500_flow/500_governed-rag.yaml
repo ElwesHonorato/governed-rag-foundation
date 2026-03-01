@@ -2,4 +2,4 @@ flow:
   id: governed-rag
   platform: custom
   domain: rag-platform
-  owners: [search-platform]
+  owners: [daedalus]

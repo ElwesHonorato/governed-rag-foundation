@@ -3,6 +3,6 @@ datasets:
     platform: postgres
     name: rag/chunk_metadata
     domain: rag-embeddings
-    owners: [search-platform]
+    owners: [daedalus]
     tags: [internal]
     terms: [chunk]

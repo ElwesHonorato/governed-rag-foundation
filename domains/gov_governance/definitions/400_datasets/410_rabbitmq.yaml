@@ -3,7 +3,7 @@ datasets:
     platform: rabbitmq
     name: q.parse_document
     domain: rag-platform
-    owners: [search-platform]
+    owners: [daedalus]
     tags: [internal]
     terms: []
 
@@ -11,7 +11,7 @@ datasets:
     platform: rabbitmq
     name: q.chunk_text
     domain: rag-platform
-    owners: [search-platform]
+    owners: [daedalus]
     tags: [internal]
     terms: []
 
@@ -19,7 +19,7 @@ datasets:
     platform: rabbitmq
     name: q.embed_chunks
     domain: rag-embeddings
-    owners: [search-platform]
+    owners: [daedalus]
     tags: [internal]
     terms: []
 
@@ -27,7 +27,7 @@ datasets:
     platform: rabbitmq
     name: q.index_weaviate
     domain: rag-indexing
-    owners: [search-platform]
+    owners: [daedalus]
     tags: [internal]
     terms: []
 
@@ -35,7 +35,7 @@ datasets:
     platform: rabbitmq
     name: q.scan.dlq
     domain: rag-platform
-    owners: [search-platform]
+    owners: [daedalus]
     tags: [internal]
     terms: []
 
@@ -43,7 +43,7 @@ datasets:
     platform: rabbitmq
     name: q.parse_document.dlq
     domain: rag-platform
-    owners: [search-platform]
+    owners: [daedalus]
     tags: [internal]
     terms: []
 
@@ -51,7 +51,7 @@ datasets:
     platform: rabbitmq
     name: q.chunk_text.dlq
     domain: rag-embeddings
-    owners: [search-platform]
+    owners: [daedalus]
     tags: [internal]
     terms: []
 
@@ -59,7 +59,7 @@ datasets:
     platform: rabbitmq
     name: q.embed_chunks.dlq
     domain: rag-embeddings
-    owners: [search-platform]
+    owners: [daedalus]
     tags: [internal]
     terms: []
 
@@ -67,6 +67,6 @@ datasets:
     platform: rabbitmq
     name: q.index_weaviate.dlq
     domain: rag-indexing
-    owners: [search-platform]
+    owners: [daedalus]
     tags: [internal]
     terms: []

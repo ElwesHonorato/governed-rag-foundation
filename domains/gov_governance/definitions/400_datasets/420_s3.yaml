@@ -3,7 +3,7 @@ datasets:
     platform: s3
     name: rag-data/01_incoming
     domain: rag-platform
-    owners: [search-platform]
+    owners: [daedalus]
     tags: [internal, retention-30d]
     terms: []
 
@@ -11,7 +11,7 @@ datasets:
     platform: s3
     name: rag-data/02_raw
     domain: rag-platform
-    owners: [search-platform]
+    owners: [daedalus]
     tags: [internal]
     terms: []
 
@@ -19,7 +19,7 @@ datasets:
     platform: s3
     name: rag-data/03_processed
     domain: rag-platform
-    owners: [search-platform]
+    owners: [daedalus]
     tags: [internal]
     terms: []
 
@@ -27,7 +27,7 @@ datasets:
     platform: s3
     name: rag-data/04_chunks
     domain: rag-embeddings
-    owners: [search-platform]
+    owners: [daedalus]
     tags: [internal]
     terms: [chunk]
 
@@ -35,7 +35,7 @@ datasets:
     platform: s3
     name: rag-data/05_embeddings
     domain: rag-embeddings
-    owners: [ml-platform]
+    owners: [daedalus]
     tags: [internal]
     terms: [embedding]
 
@@ -43,7 +43,7 @@ datasets:
     platform: s3
     name: rag-data/06_indexes
     domain: rag-indexing
-    owners: [search-platform]
+    owners: [daedalus]
     tags: [internal]
     terms: []
 
@@ -51,6 +51,6 @@ datasets:
     platform: s3
     name: rag-data/07_metadata/manifest
     domain: rag-platform
-    owners: [search-platform]
+    owners: [daedalus]
     tags: [internal]
     terms: []

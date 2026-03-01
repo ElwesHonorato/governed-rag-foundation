@@ -20,6 +20,14 @@ from entities import (
     TaxonomyManagerContext,
 )
 from entities.shared.ports import GovernanceCatalogWriterPort
+from entities.shared.definitions import (
+    DatasetDefinition,
+    DomainDefinition,
+    GroupDefinition,
+    PipelineDefinition,
+    TagDefinition,
+    TermDefinition,
+)
 from state_loader import GovernanceState
 
 
@@ -99,21 +107,28 @@ class GovernanceApplier:
     def _apply_static(self, manager_contexts: ManagerContexts) -> None:
         """Apply static entities in dependency-safe order."""
 
-        DomainManager(manager_contexts.domain).apply(self.state.governance_definitions_snapshot.domains)
-        GroupManager(manager_contexts.group).apply(self.state.governance_definitions_snapshot.groups)
+        snapshot = self.state.governance_definitions_snapshot
+        DomainManager(manager_contexts.domain).apply(
+            [DomainDefinition.from_mapping(payload) for payload in snapshot.domains]
+        )
+        GroupManager(manager_contexts.group).apply(
+            [GroupDefinition.from_mapping(payload) for payload in snapshot.groups]
+        )
         TaxonomyManager(manager_contexts.taxonomy).apply(
-            self.state.governance_definitions_snapshot.tags,
-            self.state.governance_definitions_snapshot.terms,
+            [TagDefinition.from_mapping(payload) for payload in snapshot.tags],
+            [TermDefinition.from_mapping(payload) for payload in snapshot.terms],
         )
 
     def _apply_dynamic(self, manager_contexts: ManagerContexts) -> None:
         """Apply datasets, jobs, and lineage contracts."""
 
-        DatasetManager(manager_contexts.dataset).apply(self.state.governance_definitions_snapshot.datasets)
-        FlowJobManager(manager_contexts.flow_job).apply(self.state.governance_definitions_snapshot.pipelines)
-        LineageContractManager(manager_contexts.lineage).apply(
-            self.state.governance_definitions_snapshot.pipelines
+        snapshot = self.state.governance_definitions_snapshot
+        pipelines = [PipelineDefinition.from_mapping(payload) for payload in snapshot.pipelines]
+        DatasetManager(manager_contexts.dataset).apply(
+            [DatasetDefinition.from_mapping(payload) for payload in snapshot.datasets]
         )
+        FlowJobManager(manager_contexts.flow_job).apply(pipelines)
+        LineageContractManager(manager_contexts.lineage).apply(pipelines)
 
     def apply(self) -> int:
         """Apply governance model."""

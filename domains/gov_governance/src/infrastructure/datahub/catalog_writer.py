@@ -49,23 +49,23 @@ class DataHubGovernanceCatalogWriter(GovernanceCatalogWriterPort):
     def upsert_group(
         self,
         *,
-        entity_urn: str,
+        group_urn: str,
         display_name: str | None,
         description: str | None,
-        admins: list[str],
-        members: list[str],
-        groups: list[str],
+        admin_refs: list[str],
+        member_refs: list[str],
+        group_refs: list[str],
     ) -> None:
         aspect = CorpGroupInfoClass(
             displayName=display_name,
             description=description,
-            admins=admins,
-            members=members,
-            groups=groups,
+            admins=self._as_user_urns(admin_refs),
+            members=self._as_user_urns(member_refs),
+            groups=self._as_group_urns(group_refs),
         )
         self._graph.emit(
             MetadataChangeProposalWrapper(
-                entityUrn=entity_urn,
+                entityUrn=group_urn,
                 entityType="corpGroup",
                 aspectName="corpGroupInfo",
                 aspect=aspect,
@@ -191,3 +191,15 @@ class DataHubGovernanceCatalogWriter(GovernanceCatalogWriterPort):
                 outlets=outlets,
             )
         )
+
+    def _as_user_urns(self, values: list[str]) -> list[str]:
+        return [
+            value if value.startswith("urn:li:corpuser:") else f"urn:li:corpuser:{value}"
+            for value in values
+        ]
+
+    def _as_group_urns(self, values: list[str]) -> list[str]:
+        return [
+            value if value.startswith("urn:li:corpGroup:") else f"urn:li:corpGroup:{value}"
+            for value in values
+        ]

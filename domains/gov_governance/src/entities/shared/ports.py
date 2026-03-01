@@ -22,12 +22,12 @@ class GovernanceCatalogWriterPort(Protocol):
     def upsert_group(
         self,
         *,
-        entity_urn: str,
+        group_urn: str,
         display_name: str | None,
         description: str | None,
-        admins: list[str],
-        members: list[str],
-        groups: list[str],
+        admin_refs: list[str],
+        member_refs: list[str],
+        group_refs: list[str],
     ) -> None:
         """Upsert one ownership group definition."""
 

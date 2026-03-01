@@ -3,9 +3,8 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from entities.shared.context import DatasetManagerContext
+from entities.shared.definitions import DatasetDefinition
 from entities.shared.ports import GovernanceCatalogWriterPort
 
 
@@ -18,18 +17,18 @@ class DatasetManager:
         self.governance_def_ctx = governance_def_ctx
         self._governance_writer: GovernanceCatalogWriterPort = governance_def_ctx.governance_writer
 
-    def apply(self, datasets: list[dict[str, Any]]) -> None:
+    def apply(self, datasets: list[DatasetDefinition]) -> None:
         """Upsert all datasets with domain, owners, tags, and terms."""
 
         for dataset in datasets:
             self._governance_writer.upsert_dataset(
-                platform=dataset["platform"],
-                name=dataset["name"],
+                platform=dataset.platform,
+                name=dataset.name,
                 env=self.governance_def_ctx.env,
-                description=dataset.get("description"),
-                domain=self.governance_def_ctx.domain_urns[dataset["domain"]],
-                owners=[self.governance_def_ctx.group_urns[group_id] for group_id in dataset.get("owners", [])],
-                tags=[self.governance_def_ctx.tag_urns[tag_id] for tag_id in dataset.get("tags", [])],
-                terms=[self.governance_def_ctx.term_urns[term_id] for term_id in dataset.get("terms", [])],
+                description=dataset.description,
+                domain=self.governance_def_ctx.domain_urns[dataset.domain],
+                owners=[self.governance_def_ctx.group_urns[group_id] for group_id in dataset.owners],
+                tags=[self.governance_def_ctx.tag_urns[tag_id] for tag_id in dataset.tags],
+                terms=[self.governance_def_ctx.term_urns[term_id] for term_id in dataset.terms],
             )
-            print(f"upserted dataset {dataset['id']}")
+            print(f"upserted dataset {dataset.id}")

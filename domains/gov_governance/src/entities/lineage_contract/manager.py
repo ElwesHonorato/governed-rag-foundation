@@ -3,9 +3,8 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from entities.shared.context import LineageContractManagerContext
+from entities.shared.definitions import PipelineDefinition
 from entities.shared.ports import GovernanceCatalogWriterPort
 
 
@@ -18,33 +17,33 @@ class LineageContractManager:
         self.governance_def_ctx = governance_def_ctx
         self._governance_writer: GovernanceCatalogWriterPort = governance_def_ctx.governance_writer
 
-    def apply(self, pipelines: list[dict[str, Any]]) -> None:
+    def apply(self, pipelines: list[PipelineDefinition]) -> None:
         """Upsert DataJob inlets/outlets for each lineage contract entry."""
 
         for pipeline in pipelines:
-            contracts = {c["job"]: c for c in pipeline.get("lineage_contract", [])}
-            for job in pipeline.get("jobs", []):
-                contract = contracts.get(job["id"])
+            contracts = {contract.job: contract for contract in pipeline.lineage_contract}
+            for job in pipeline.jobs:
+                contract = contracts.get(job.id)
                 if contract is None:
                     continue
 
-                inlets = [self.governance_def_ctx.dataset_urns[ds_id] for ds_id in contract.get("inputs", [])]
-                outlets = [self.governance_def_ctx.dataset_urns[ds_id] for ds_id in contract.get("outputs", [])]
+                inlets = [self.governance_def_ctx.dataset_urns[ds_id] for ds_id in contract.inputs]
+                outlets = [self.governance_def_ctx.dataset_urns[ds_id] for ds_id in contract.outputs]
 
-                flow_def = pipeline["flow"]
+                flow_def = pipeline.flow
                 self._governance_writer.upsert_job(
-                    flow_platform=flow_def["platform"],
-                    flow_id=flow_def["id"],
+                    flow_platform=flow_def.platform,
+                    flow_id=flow_def.id,
                     env=self.governance_def_ctx.env,
-                    job_id=job["id"],
-                    description=job.get("description"),
-                    custom_properties=job.get("custom_properties", {}),
-                    domain=self.governance_def_ctx.domain_urns[job["domain"]],
+                    job_id=job.id,
+                    description=job.description,
+                    custom_properties=job.custom_properties,
+                    domain=self.governance_def_ctx.domain_urns[job.domain],
                     owners=[
                         self.governance_def_ctx.group_urns[group_id]
-                        for group_id in job.get("owners", [])
+                        for group_id in job.owners
                     ],
                     inlets=inlets,
                     outlets=outlets,
                 )
-                print(f"upserted lineage contract for job {job['id']} (inputs={len(inlets)} outputs={len(outlets)})")
+                print(f"upserted lineage contract for job {job.id} (inputs={len(inlets)} outputs={len(outlets)})")

@@ -3,7 +3,7 @@ import time
 
 from contracts.contracts import MetricsProcessingConfigContract
 from pipeline_common.gateways.lineage import DatasetPlatform
-from pipeline_common.gateways.lineage import DataHubRuntimeLineage
+from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.observability import Counters
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.startup.contracts import WorkerService
@@ -18,7 +18,7 @@ class WorkerMetricsService(WorkerService):
         *,
         counters: Counters,
         object_storage: ObjectStorageGateway,
-        lineage: DataHubRuntimeLineage,
+        lineage: LineageRuntimeGateway,
         processing_config: MetricsProcessingConfigContract,
     ) -> None:
         """Initialize instance state and dependencies."""

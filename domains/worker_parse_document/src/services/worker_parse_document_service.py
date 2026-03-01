@@ -5,7 +5,7 @@ from typing import Any
 from contracts.contracts import ParseProcessingConfigContract
 from pipeline_common.helpers.contracts import doc_id_from_source_key, utc_now_iso
 from pipeline_common.gateways.lineage import DatasetPlatform
-from pipeline_common.gateways.lineage import DataHubRuntimeLineage
+from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.queue import StageQueue
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.startup.contracts import WorkerService
@@ -22,7 +22,7 @@ class WorkerParseDocumentService(WorkerService):
         *,
         stage_queue: StageQueue,
         object_storage: ObjectStorageGateway,
-        lineage: DataHubRuntimeLineage,
+        lineage: LineageRuntimeGateway,
         processing_config: ParseProcessingConfigContract,
         parser_registry: ParserRegistry,
     ) -> None:

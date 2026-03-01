@@ -5,7 +5,7 @@ import logging
 from contracts.contracts import ScanStorageContract
 from pipeline_common.helpers.contracts import doc_id_from_source_key
 from pipeline_common.gateways.lineage import DatasetPlatform
-from pipeline_common.gateways.lineage import DataHubRuntimeLineage
+from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.queue import StageQueue
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 
@@ -27,7 +27,7 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
         *,
         object_storage: ObjectStorageGateway,
         stage_queue: StageQueue,
-        lineage: DataHubRuntimeLineage,
+        lineage: LineageRuntimeGateway,
         storage_contract: ScanStorageContract,
     ) -> None:
         """Initialize instance state and dependencies."""

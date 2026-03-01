@@ -3,28 +3,16 @@
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, Callable, Mapping
+from typing import Any, Callable
 
 from datahub.metadata.urns import CorpGroupUrn, DatasetUrn, DomainUrn, GlossaryTermUrn, TagUrn
 
 from entities.shared.context import ResolvedRefs
 from pipeline_common.helpers.file_reader import FileReader
 from pipeline_common.helpers.file_system_helper import FileSystemHelper
-
-
-ALLOWED_ENVS = ("DEV", "PROD")
-
-
-@dataclass(frozen=True)
-class EnvironmentSettings:
-    """Runtime config for a target DataHub environment."""
-
-    gms_server: str
-    token: str | None
 
 
 @dataclass(frozen=True)
@@ -43,7 +31,6 @@ class GovernanceDefinitionSnapshot:
 class GovernanceState:
     """Resolved governance runtime state for a selected environment."""
 
-    env_settings: EnvironmentSettings
     governance_definitions_snapshot: GovernanceDefinitionSnapshot
     refs: ResolvedRefs
 
@@ -53,25 +40,18 @@ class GovernanceStateLoader:
 
     env_name: str
     governance_definitions_snapshot: GovernanceDefinitionSnapshot
+    refs: ResolvedRefs
+    state: GovernanceState
+
+    def __init__(self, env_name: str) -> None:
+        self.env_name = env_name.strip().upper()
+        self.state = self._load()
 
     @classmethod
     def _governance_dir(cls) -> Path:
         """Resolve the governance directory from this module location."""
 
         return FileSystemHelper.find_dir_upwards(Path(__file__), n=2)
-
-    @classmethod
-    def _load_env_settings(cls, env_name: str) -> EnvironmentSettings:
-        """Load one environment config file from `domains/gov_governance/configs`."""
-
-        config_path = cls._governance_dir() / "configs" / f"{env_name.lower()}.yaml"
-        data = FileReader(path=config_path).read()
-        datahub_env_config = data.get("datahub", {})
-        token_env_name = str(datahub_env_config["token_env"])
-        return EnvironmentSettings(
-            gms_server=str(datahub_env_config["gms_server"]),
-            token=os.getenv(token_env_name) or None,
-        )
 
     @classmethod
     def load_definition_snapshot(cls) -> GovernanceDefinitionSnapshot:
@@ -93,29 +73,18 @@ class GovernanceStateLoader:
             pipelines=discoverer.pipelines,
         )
 
-    @classmethod
-    def load(cls, env_name: str) -> GovernanceState:
+    def _load(self) -> GovernanceState:
         """Load environment settings and governance definitions for one environment."""
 
-        env_label = env_name.strip().upper()
-        if env_label not in ALLOWED_ENVS:
-            raise SystemExit(
-                f"Invalid env '{env_name}'. Allowed values: {', '.join(ALLOWED_ENVS)}"
-            )
-
-        env_settings = cls._load_env_settings(env_label)
-        governance_definitions_snapshot = cls.load_definition_snapshot()
-        loader = cls()
-        loader.env_name = env_label
-        loader.governance_definitions_snapshot = governance_definitions_snapshot
-        refs = loader.resolve_refs()
+        governance_definitions_snapshot = self.load_definition_snapshot()
+        self.governance_definitions_snapshot = governance_definitions_snapshot
+        self.refs = self._resolve_refs()
         return GovernanceState(
-            env_settings=env_settings,
             governance_definitions_snapshot=governance_definitions_snapshot,
-            refs=refs,
+            refs=self.refs,
         )
 
-    def resolve_refs(self) -> ResolvedRefs:
+    def _resolve_refs(self) -> ResolvedRefs:
         """Resolve governance ID->URN maps using DataHub URN classes."""
 
         snapshot = self.governance_definitions_snapshot
@@ -446,14 +415,3 @@ class GovernanceDefinitionDiscoverer:
                 continue
         valid = ", ".join(t.value for t in DefinitionType)
         raise ValueError(f"Unable to classify governance YAML type for file: {path}. Expected keys: {valid}")
-
-
-def resolve_env(default_env: str = "DEV") -> str:
-    """Resolve environment from `ENV` and validate it."""
-
-    env_from_var = os.getenv("ENV", default_env).strip().upper()
-    if env_from_var not in ALLOWED_ENVS:
-        raise SystemExit(
-            f"Invalid ENV='{os.getenv('ENV')}'. Allowed values: {', '.join(ALLOWED_ENVS)}"
-        )
-    return env_from_var

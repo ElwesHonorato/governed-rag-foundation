@@ -8,26 +8,28 @@ from datahub.sdk import DataHubClient
 
 from infrastructure.datahub import DataHubGovernanceCatalogWriter
 from orchestration.governance_applier import GovernanceApplier
-from state_loader import GovernanceStateLoader, resolve_env
+from pipeline_common.settings import SettingsProvider, SettingsRequest
+from state_loader import GovernanceStateLoader
 
 
 def main() -> int:
     """CLI entrypoint for governance apply."""
 
-    env_name = resolve_env()
-    state = GovernanceStateLoader.load(env_name)
+    settings = SettingsProvider(SettingsRequest(datahub=True)).bundle
+    datahub_settings = settings.datahub
+    state = GovernanceStateLoader(datahub_settings.env).state
     client = DataHubClient(
-        server=state.env_settings.gms_server,
-        token=state.env_settings.token,
+        server=datahub_settings.server,
+        token=datahub_settings.token,
     )
     graph_config = DatahubClientConfig(
-        server=state.env_settings.gms_server,
-        token=state.env_settings.token,
+        server=datahub_settings.server,
+        token=datahub_settings.token,
     )
     with DataHubGraph(graph_config) as graph:
         governance_writer = DataHubGovernanceCatalogWriter(graph=graph, client=client)
         return GovernanceApplier(
-            env_name=env_name,
+            env_name=datahub_settings.env,
             state=state,
             governance_writer=governance_writer,
         ).apply()

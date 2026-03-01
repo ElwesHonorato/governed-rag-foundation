@@ -9,6 +9,9 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
+from datahub.metadata.urns import CorpGroupUrn, DatasetUrn, DomainUrn, GlossaryTermUrn, TagUrn
+
+from entities.shared.context import ResolvedRefs
 from pipeline_common.helpers.file_reader import FileReader
 from pipeline_common.helpers.file_system_helper import FileSystemHelper
 
@@ -42,10 +45,14 @@ class GovernanceState:
 
     env_settings: EnvironmentSettings
     governance_definitions_snapshot: GovernanceDefinitionSnapshot
+    refs: ResolvedRefs
 
 
 class GovernanceStateLoader:
     """Load governance runtime state from local configuration definitions."""
+
+    env_name: str
+    governance_definitions_snapshot: GovernanceDefinitionSnapshot
 
     @classmethod
     def _governance_dir(cls) -> Path:
@@ -98,9 +105,30 @@ class GovernanceStateLoader:
 
         env_settings = cls._load_env_settings(env_label)
         governance_definitions_snapshot = cls.load_definition_snapshot()
+        loader = cls()
+        loader.env_name = env_label
+        loader.governance_definitions_snapshot = governance_definitions_snapshot
+        refs = loader.resolve_refs()
         return GovernanceState(
             env_settings=env_settings,
             governance_definitions_snapshot=governance_definitions_snapshot,
+            refs=refs,
+        )
+
+    def resolve_refs(self) -> ResolvedRefs:
+        """Resolve governance ID->URN maps using DataHub URN classes."""
+
+        snapshot = self.governance_definitions_snapshot
+        env_name = self.env_name
+        return ResolvedRefs(
+            domain_urns={d["id"]: str(DomainUrn(d["id"])) for d in snapshot.domains},
+            group_urns={g["id"]: str(CorpGroupUrn(g["id"])) for g in snapshot.groups},
+            tag_urns={t["id"]: str(TagUrn(t["name"])) for t in snapshot.tags},
+            term_urns={t["id"]: str(GlossaryTermUrn(t["id"])) for t in snapshot.terms},
+            dataset_urns={
+                d["id"]: str(DatasetUrn(platform=d["platform"], name=d["name"], env=env_name))
+                for d in snapshot.datasets
+            },
         )
 
 

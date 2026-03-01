@@ -15,7 +15,6 @@ from entities import (
     LineageContractManager,
     LineageContractManagerContext,
     ManagerContexts,
-    ResolvedRefs,
     TaxonomyManager,
     TaxonomyManagerContext,
 )
@@ -39,14 +38,12 @@ class GovernanceApplier:
         *,
         env_name: str,
         state: GovernanceState,
-        refs: ResolvedRefs,
         governance_writer: GovernanceCatalogWriterPort,
     ) -> None:
         """Store runtime state and port dependencies required for apply operations."""
 
         self.env = env_name
         self.state = state
-        self.refs = refs
         self.governance_writer = governance_writer
 
     def _split_context_by_manager(self) -> ManagerContexts:
@@ -71,36 +68,36 @@ class GovernanceApplier:
         return ManagerContexts(
             domain=DomainManagerContext(
                 governance_writer=self.governance_writer,
-                domain_urns=self.refs.domain_urns,
+                domain_urns=self.state.refs.domain_urns,
             ),
             group=GroupManagerContext(
                 governance_writer=self.governance_writer,
-                group_urns=self.refs.group_urns,
+                group_urns=self.state.refs.group_urns,
             ),
             taxonomy=TaxonomyManagerContext(
                 governance_writer=self.governance_writer,
-                term_urns=self.refs.term_urns,
+                term_urns=self.state.refs.term_urns,
             ),
             dataset=DatasetManagerContext(
                 governance_writer=self.governance_writer,
                 env=self.env,
-                domain_urns=self.refs.domain_urns,
-                group_urns=self.refs.group_urns,
-                tag_urns=self.refs.tag_urns,
-                term_urns=self.refs.term_urns,
+                domain_urns=self.state.refs.domain_urns,
+                group_urns=self.state.refs.group_urns,
+                tag_urns=self.state.refs.tag_urns,
+                term_urns=self.state.refs.term_urns,
             ),
             flow_job=FlowJobManagerContext(
                 governance_writer=self.governance_writer,
                 env=self.env,
-                domain_urns=self.refs.domain_urns,
-                group_urns=self.refs.group_urns,
+                domain_urns=self.state.refs.domain_urns,
+                group_urns=self.state.refs.group_urns,
             ),
             lineage=LineageContractManagerContext(
                 governance_writer=self.governance_writer,
                 env=self.env,
-                domain_urns=self.refs.domain_urns,
-                group_urns=self.refs.group_urns,
-                dataset_urns=self.refs.dataset_urns,
+                domain_urns=self.state.refs.domain_urns,
+                group_urns=self.state.refs.group_urns,
+                dataset_urns=self.state.refs.dataset_urns,
             ),
         )
 

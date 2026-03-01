@@ -6,7 +6,7 @@ from __future__ import annotations
 from datahub.ingestion.graph.client import DataHubGraph, DatahubClientConfig
 from datahub.sdk import DataHubClient
 
-from infrastructure.datahub import DataHubGovernanceCatalogWriter, resolve_refs
+from infrastructure.datahub import DataHubGovernanceCatalogWriter
 from orchestration.governance_applier import GovernanceApplier
 from state_loader import GovernanceStateLoader, resolve_env
 
@@ -16,7 +16,6 @@ def main() -> int:
 
     env_name = resolve_env()
     state = GovernanceStateLoader.load(env_name)
-    refs = resolve_refs(state.governance_definitions_snapshot, env_name)
     client = DataHubClient(
         server=state.env_settings.gms_server,
         token=state.env_settings.token,
@@ -30,7 +29,6 @@ def main() -> int:
         return GovernanceApplier(
             env_name=env_name,
             state=state,
-            refs=refs,
             governance_writer=governance_writer,
         ).apply()
 

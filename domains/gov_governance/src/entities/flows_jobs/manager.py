@@ -9,7 +9,13 @@ from entities.shared.ports import GovernanceCatalogWriterPort
 
 
 class FlowJobManager:
-    """Apply flow and job template entities."""
+    """Apply flow and job template entities.
+
+    Design note:
+    This manager is the first phase of a deliberate two-phase strategy:
+    1) upsert flows/jobs with core metadata
+    2) later attach lineage edges in ``LineageContractManager``
+    """
 
     def __init__(self, governance_def_ctx: FlowJobManagerContext) -> None:
         """Store shared governance execution context."""
@@ -18,7 +24,10 @@ class FlowJobManager:
         self._governance_writer: GovernanceCatalogWriterPort = governance_def_ctx.governance_writer
 
     def apply(self, pipelines: list[PipelineDefinition]) -> None:
-        """Upsert flows and jobs without lineage contract edges."""
+        """Upsert flows and jobs without lineage contract edges.
+
+        This intentionally does not set inlets/outlets; lineage is attached in phase two.
+        """
 
         for pipeline in pipelines:
             for job in pipeline.jobs:

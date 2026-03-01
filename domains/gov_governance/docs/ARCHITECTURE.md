@@ -130,15 +130,15 @@ No manager imports DataHub SDK directly; SDK coupling is concentrated in `infras
 - Decision:
   - Keep eager-init behavior.
 
-### 2) Double-write behavior for jobs is implicit
+### 2) Double-write behavior for jobs is explicit (accepted)
 - Current behavior:
   - `FlowJobManager` upserts jobs first (without lineage).
   - `LineageContractManager` upserts the same jobs again (with inlets/outlets).
-- Friction:
-  - The two-phase job update is valid but not explicitly documented as intentional.
-  - Contributors may treat it as accidental duplication.
-- Decision needed:
-  - Keep as explicit two-phase strategy (document rationale) or collapse into a single write path.
+- Rationale:
+  - Separates job template upsert concerns from lineage edge attachment concerns.
+  - Allows jobs to exist even when lineage contracts are intentionally partial or delayed.
+- Decision:
+  - Keep as explicit two-phase strategy.
 
 ### 3) CLI observability uses `print` across layers
 - Current behavior:

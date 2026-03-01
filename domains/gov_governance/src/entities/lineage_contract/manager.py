@@ -9,7 +9,13 @@ from entities.shared.ports import GovernanceCatalogWriterPort
 
 
 class LineageContractManager:
-    """Apply lineage contract edges to existing jobs."""
+    """Apply lineage contract edges to existing jobs.
+
+    Design note:
+    This is phase two of the explicit two-phase job upsert strategy.
+    Jobs are first created/updated in ``FlowJobManager``, then re-upserted here
+    with inlets/outlets from lineage contracts.
+    """
 
     def __init__(self, governance_def_ctx: LineageContractManagerContext) -> None:
         """Store lineage context and governance catalog writer."""

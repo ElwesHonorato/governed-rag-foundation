@@ -1,3 +1,18 @@
+"""Stage queue infrastructure adapter.
+
+Layer:
+- Infrastructure adapter used by worker services.
+
+Role:
+- Wrap queue publish/consume operations for stage-based worker pipelines.
+
+Design intent:
+- Keep AMQP client mechanics isolated from worker services.
+
+Non-goals:
+- This module does not define business-level message schemas.
+"""
+
 import json
 
 import logging
@@ -11,7 +26,22 @@ logger = logging.getLogger(__name__)
 
 
 class StageQueue:
-    """StageQueue type definition."""
+    """Runtime facade for stage queue interactions.
+
+    Layer:
+    - Infrastructure adapter facade.
+
+    Dependencies:
+    - pika/AMQP broker.
+    - Runtime queue configuration parsed from job properties.
+
+    Design intent:
+    - Offer a narrow API for pushing/popping stage messages.
+
+    Non-goals:
+    - Does not provide exactly-once guarantees.
+    - Does not abstract broker topology beyond direct queue names.
+    """
     timeout_seconds: int
 
     def __init__(

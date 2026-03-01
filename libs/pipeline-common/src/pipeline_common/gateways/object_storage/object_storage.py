@@ -1,4 +1,20 @@
 
+"""Object storage infrastructure adapters.
+
+Layer:
+- Infrastructure adapter used by worker services.
+
+Role:
+- Expose a stable object-storage API while delegating driver specifics to a
+  client implementation (for example S3-compatible boto3 client).
+
+Design intent:
+- Keep storage driver details out of worker business logic.
+
+Non-goals:
+- This module does not implement domain validation for payload schemas.
+"""
+
 from typing import Any, Protocol
 
 import boto3
@@ -17,7 +33,20 @@ FOLDERS = (
 
 
 class ObjectStorageGateway:
-    """ObjectStorageGateway type definition."""
+    """Facade over an object-storage client implementation.
+
+    Layer:
+    - Infrastructure adapter facade.
+
+    Dependencies:
+    - An ``ObjectStorageClient`` implementation.
+
+    Design intent:
+    - Provide worker-facing storage operations independent of client library.
+
+    Non-goals:
+    - No retry/backoff policy abstraction beyond client call behavior.
+    """
     def __init__(self, client: "ObjectStorageClient") -> None:
         """Initialize instance state and dependencies."""
         self.client = client
@@ -66,7 +95,7 @@ class ObjectStorageGateway:
 
 
 class ObjectStorageClient(Protocol):
-    """ObjectStorageClient type definition."""
+    """Port contract implemented by concrete object-storage clients."""
     def bucket_exists(self, bucket: str) -> bool:
         """Execute bucket exists."""
         ...
@@ -101,7 +130,20 @@ class ObjectStorageClient(Protocol):
 
 
 class S3Client:
-    """S3Client type definition."""
+    """Concrete S3-compatible client adapter backed by boto3.
+
+    Layer:
+    - Infrastructure adapter implementation.
+
+    Dependencies:
+    - boto3 S3 client.
+
+    Design intent:
+    - Implement ``ObjectStorageClient`` using a widely available S3 API.
+
+    Non-goals:
+    - This class does not expose boto3 objects to worker code.
+    """
     def __init__(self, *, endpoint_url: str, access_key: str, secret_key: str, region_name: str) -> None:
         """Initialize instance state and dependencies."""
         self.client = boto3.client(

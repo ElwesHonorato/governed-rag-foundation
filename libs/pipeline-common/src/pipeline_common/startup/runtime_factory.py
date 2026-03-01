@@ -1,4 +1,19 @@
-"""Runtime context assembly for worker startup."""
+"""Worker runtime context assembly.
+
+Layer:
+- Startup wiring/composition helper shared across worker domains.
+
+Role:
+- Build the shared runtime dependency bundle used by worker service factories.
+
+Design intent:
+- Centralize gateway construction and resolved job-properties extraction so
+  worker domains keep composition roots small and consistent.
+
+Non-goals:
+- Does not execute worker business logic.
+- Does not validate worker-specific configuration semantics.
+"""
 
 from pipeline_common.gateways.lineage.contracts import DataHubDataJobKey
 from pipeline_common.gateways.factories.lineage_gateway_factory import DataHubLineageGatewayFactory
@@ -10,7 +25,21 @@ from pipeline_common.startup.runtime_context import WorkerRuntimeContext
 
 
 class RuntimeContextFactory:
-    """Factory for shared runtime settings and initialized gateways."""
+    """Build a ``WorkerRuntimeContext`` from settings and a DataHub job key.
+
+    Layer:
+    - Startup wiring/composition.
+
+    Dependencies:
+    - Gateway factories (lineage/object storage/queue).
+    - Settings bundle loaded by ``SettingsProvider``.
+
+    Design intent:
+    - Create one place where shared runtime dependencies are assembled.
+
+    Non-goals:
+    - Not a long-lived service; this is startup-time construction logic.
+    """
 
     def __init__(
         self,

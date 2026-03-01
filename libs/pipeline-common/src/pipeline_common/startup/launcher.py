@@ -1,4 +1,19 @@
-"""Worker runtime launcher orchestration."""
+"""Worker startup pipeline launcher.
+
+Layer:
+- Startup/application orchestration.
+
+Role:
+- Execute the standard startup sequence:
+  runtime context -> typed config extraction -> service construction -> serve.
+
+Design intent:
+- Keep worker entrypoints thin while enforcing a consistent bootstrap flow.
+
+Non-goals:
+- Does not own worker-specific configuration parsing rules.
+- Does not own worker processing logic.
+"""
 
 from typing import Generic
 
@@ -12,7 +27,18 @@ from pipeline_common.startup.runtime_factory import RuntimeContextFactory
 
 
 class WorkerRuntimeLauncher(Generic[TWorkerConfig, TWorkerService]):
-    """Launch worker runtime from injected startup collaborators."""
+    """Orchestrate worker bootstrap from injected startup collaborators.
+
+    Layer:
+    - Startup orchestration.
+
+    Dependencies:
+    - Runtime context factory.
+    - Worker-specific config extractor and service factory implementations.
+
+    Design intent:
+    - Provide one generic launch path across worker domains.
+    """
 
     def __init__(
         self,

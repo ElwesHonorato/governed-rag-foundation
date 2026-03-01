@@ -1,3 +1,21 @@
+"""Capability-scoped runtime settings provider.
+
+Layer:
+- Infrastructure configuration adapter used by composition roots.
+
+Role:
+- Convert environment variables into typed settings objects requested by a
+  worker/app startup path.
+
+Design intent:
+- Keep env parsing logic out of service and gateway construction code.
+- Allow startup paths to request only needed capabilities.
+
+Non-goals:
+- This module does not validate cross-capability consistency.
+- This module does not own business defaults beyond env parsing defaults.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -69,7 +87,23 @@ def load_cache_settings_from_env() -> CacheSettings:
 
 
 class SettingsProvider:
-    """Load capability settings from env based on a ``SettingsRequest``."""
+    """Load requested capability settings from environment variables.
+
+    Layer:
+    - Infrastructure configuration adapter.
+
+    Dependencies:
+    - Gateway-specific settings loaders.
+    - Process environment.
+
+    Design intent:
+    - Keep composition roots declarative by requesting capabilities, then
+      consuming a typed bundle.
+
+    Non-goals:
+    - Avoids caching policy beyond returning a snapshot in ``bundle``.
+    - Does not perform service wiring; only settings loading.
+    """
 
     def __init__(self, request: SettingsRequest) -> None:
         self._request = request

@@ -15,9 +15,7 @@ def run() -> None:
     settings = SettingsProvider(SettingsRequest(datahub=True, storage=True, queue=True)).bundle
     runtime_factory = RuntimeContextFactory(
         data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_index_weaviate"),
-        datahub_settings=settings.datahub,
-        s3_settings=settings.storage,
-        queue_settings=settings.queue,
+        settings_bundle=settings,
     )
     WorkerRuntimeLauncher[IndexWeaviateWorkerConfigContract, WorkerIndexWeaviateService](
         runtime_factory=runtime_factory,

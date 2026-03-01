@@ -1,6 +1,17 @@
-# DataHub Governance-as-Code Platform Tool
+# DataHub Governance-as-Code Platform Tool (Roadmap)
 
-## Purpose
+## Document Status
+This file is a roadmap/target-state specification.
+
+- Source of truth for current implemented behavior:
+  - `domains/gov_governance/src/*`
+  - `domains/gov_governance/docs/ARCHITECTURE.md`
+- Source of truth for planned behavior:
+  - this document
+
+Read this document as "where we want to go", not "what is fully implemented today".
+
+## Purpose (Target State)
 Provide a safe, repeatable, auditable way to manage **DataHub static governance entities** as code (Domains, Owners, Tags/Terms, Datasets, Flows/Jobs, Lineage Contracts), using a **GitOps-style** workflow:
 - **Plan**: compute changes (read-only)
 - **Approve**: human gate in CI
@@ -10,9 +21,9 @@ This tool is intentionally **not** responsible for runtime lineage (DataProcessI
 
 ---
 
-## Scope
+## Scope (Target State)
 
-### In scope
+### In scope (Target State)
 - Declarative governance definitions (YAML) as the source of truth
 - Entity assembly into an immutable in-memory snapshot
 - Validation and linting of governance definitions
@@ -20,7 +31,7 @@ This tool is intentionally **not** responsible for runtime lineage (DataProcessI
 - Apply/reconcile: upserts + safe deprecation of removed entities
 - Reporting, CI integration, and audit-friendly output
 
-### Out of scope
+### Out of scope (Target State)
 - Runtime execution telemetry (DataProcessInstance) emission
 - Data quality/assertions execution (can integrate later, but not owned here)
 - Ingesting metadata from external sources (dbt/spark/airflow connectors)
@@ -51,7 +62,7 @@ To avoid impacting other teams, the tool MUST operate on an explicit scope bound
 
 ---
 
-## Responsibilities and Boundaries
+## Responsibilities and Boundaries (Target State)
 
 ### 1) Definitions Layer (Inputs)
 **Responsibility:** Provide a stable declarative format for governance definitions.
@@ -126,7 +137,7 @@ Outputs:
 
 ---
 
-## Repo Layout (Suggested)
+## Repo Layout (Suggested Target Layout)
 
 ### Governance definitions (source of truth)
 
@@ -250,7 +261,7 @@ Rationale:
 
 ---
 
-## Plan / Apply Workflow
+## Plan / Apply Workflow (Target State)
 
 ### Plan
 Plan is read-only and produces:
@@ -281,7 +292,7 @@ Apply:
 
 ---
 
-## Safety Requirements (Non-negotiable)
+## Safety Requirements (Target State)
 
 ### Scope enforcement
 Tool must operate ONLY on managed entities, defined by:
@@ -305,7 +316,7 @@ Because DataHub can be changed outside the tool:
 
 ---
 
-## CLI Design
+## CLI Design (Target State)
 
 ### `governance validate`
 - Parses YAML
@@ -329,7 +340,7 @@ Because DataHub can be changed outside the tool:
 
 ---
 
-## Output Format (Plan Summary)
+## Output Format (Plan Summary, Target State)
 
 Example:
 - Domains: 1 create, 0 update, 0 deprecate
@@ -346,7 +357,7 @@ Each change includes:
 
 ---
 
-## Implementation Notes (Practical Choices)
+## Implementation Notes (Practical Choices for Target State)
 
 ### YAML vs typed classes
 - YAML is the declarative interface for humans and governance review

@@ -6,8 +6,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from datahub.metadata.urns import CorpGroupUrn, DatasetUrn, DomainUrn, GlossaryTermUrn, TagUrn
-
 
 @dataclass(frozen=True)
 class ResolvedRefs:
@@ -44,7 +42,7 @@ class ResolvedRefs:
 class DomainManagerContext:
     """Context required by the domain manager."""
 
-    domain_writer: Any
+    governance_writer: Any
     domain_urns: dict[str, str]
 
 
@@ -52,7 +50,7 @@ class DomainManagerContext:
 class GroupManagerContext:
     """Context required by the group manager."""
 
-    graph: Any
+    governance_writer: Any
     group_urns: dict[str, str]
 
 
@@ -60,8 +58,7 @@ class GroupManagerContext:
 class TaxonomyManagerContext:
     """Context required by the taxonomy manager."""
 
-    client: Any
-    graph: Any
+    governance_writer: Any
     term_urns: dict[str, str]
 
 
@@ -89,7 +86,7 @@ class DatasetManagerContext:
     - `term_urns["embedding"]`
     """
 
-    client: Any
+    governance_writer: Any
     env: str
     domain_urns: dict[str, str]
     group_urns: dict[str, str]
@@ -101,7 +98,7 @@ class DatasetManagerContext:
 class FlowJobManagerContext:
     """Context required by the flow/job manager."""
 
-    client: Any
+    governance_writer: Any
     env: str
     domain_urns: dict[str, str]
     group_urns: dict[str, str]
@@ -111,7 +108,10 @@ class FlowJobManagerContext:
 class LineageContractManagerContext:
     """Context required by the lineage-contract manager."""
 
-    client: Any
+    governance_writer: Any
+    env: str
+    domain_urns: dict[str, str]
+    group_urns: dict[str, str]
     dataset_urns: dict[str, str]
 
 
@@ -125,25 +125,3 @@ class ManagerContexts:
     dataset: DatasetManagerContext
     flow_job: FlowJobManagerContext
     lineage: LineageContractManagerContext
-
-
-def resolve_refs(model: Any, env: str) -> ResolvedRefs:
-    """Build all commonly-used URN maps from one governance snapshot.
-
-    Input:
-    - `model`: snapshot with domains/groups/tags/terms/datasets definitions.
-    - `env`: DataHub environment label used in dataset URNs (for example `DEV`).
-
-    Output:
-    - `ResolvedRefs` with per-entity ID->URN maps used by managers.
-    """
-
-    return ResolvedRefs(
-        domain_urns={d["id"]: str(DomainUrn(d["id"])) for d in model.domains},
-        group_urns={g["id"]: str(CorpGroupUrn(g["id"])) for g in model.groups},
-        tag_urns={t["id"]: str(TagUrn(t["name"])) for t in model.tags},
-        term_urns={t["id"]: str(GlossaryTermUrn(t["id"])) for t in model.terms},
-        dataset_urns={
-            d["id"]: str(DatasetUrn(platform=d["platform"], name=d["name"], env=env)) for d in model.datasets
-        },
-    )

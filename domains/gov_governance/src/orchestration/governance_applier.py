@@ -7,7 +7,7 @@ from datahub.ingestion.graph.client import DataHubGraph, DatahubClientConfig
 from datahub.metadata.urns import CorpGroupUrn, DatasetUrn, DomainUrn, GlossaryTermUrn, TagUrn
 from datahub.sdk import DataHubClient
 
-from infrastructure.datahub import DataHubDomainWriter
+from infrastructure.datahub import DataHubGovernanceCatalogWriter
 from state_loader import GovernanceStateLoader
 from entities import (
     DatasetManager,
@@ -79,22 +79,25 @@ class GovernanceApplier:
         - DatasetManager then resolves each field by key from the corresponding map.
         """
 
+        governance_writer = DataHubGovernanceCatalogWriter(
+            graph=graph,
+            client=self.client,
+        )
         return ManagerContexts(
             domain=DomainManagerContext(
-                domain_writer=DataHubDomainWriter(graph),
+                governance_writer=governance_writer,
                 domain_urns=self.refs.domain_urns,
             ),
             group=GroupManagerContext(
-                graph=graph,
+                governance_writer=governance_writer,
                 group_urns=self.refs.group_urns,
             ),
             taxonomy=TaxonomyManagerContext(
-                client=self.client,
-                graph=graph,
+                governance_writer=governance_writer,
                 term_urns=self.refs.term_urns,
             ),
             dataset=DatasetManagerContext(
-                client=self.client,
+                governance_writer=governance_writer,
                 env=self.env,
                 domain_urns=self.refs.domain_urns,
                 group_urns=self.refs.group_urns,
@@ -102,13 +105,16 @@ class GovernanceApplier:
                 term_urns=self.refs.term_urns,
             ),
             flow_job=FlowJobManagerContext(
-                client=self.client,
+                governance_writer=governance_writer,
                 env=self.env,
                 domain_urns=self.refs.domain_urns,
                 group_urns=self.refs.group_urns,
             ),
             lineage=LineageContractManagerContext(
-                client=self.client,
+                governance_writer=governance_writer,
+                env=self.env,
+                domain_urns=self.refs.domain_urns,
+                group_urns=self.refs.group_urns,
                 dataset_urns=self.refs.dataset_urns,
             ),
         )
@@ -128,10 +134,7 @@ class GovernanceApplier:
 
         DatasetManager(manager_contexts.dataset).apply(self.state.governance_definitions_snapshot.datasets)
         FlowJobManager(manager_contexts.flow_job).apply(self.state.governance_definitions_snapshot.pipelines)
-        LineageContractManager(
-            manager_contexts.lineage,
-            FlowJobManager(manager_contexts.flow_job),
-        ).apply(
+        LineageContractManager(manager_contexts.lineage).apply(
             self.state.governance_definitions_snapshot.pipelines
         )
 

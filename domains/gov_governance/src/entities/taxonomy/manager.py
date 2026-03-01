@@ -5,11 +5,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from datahub.emitter.mcp import MetadataChangeProposalWrapper
-from datahub.metadata.schema_classes import ChangeTypeClass, GlossaryTermInfoClass
-from datahub.sdk import Tag
-
 from entities.shared.context import TaxonomyManagerContext
+from entities.shared.ports import GovernanceCatalogWriterPort
 
 
 class TaxonomyManager:
@@ -19,6 +16,7 @@ class TaxonomyManager:
         """Store shared governance execution context."""
 
         self.governance_def_ctx = governance_def_ctx
+        self._governance_writer: GovernanceCatalogWriterPort = governance_def_ctx.governance_writer
 
     def apply(self, tags: list[dict[str, Any]], terms: list[dict[str, Any]]) -> None:
         """Upsert tags and glossary terms."""
@@ -30,12 +28,10 @@ class TaxonomyManager:
         """Upsert tag entities using the DataHub SDK."""
 
         for tag in tags:
-            self.governance_def_ctx.client.entities.upsert(
-                Tag(
-                    name=tag["name"],
-                    display_name=tag.get("name"),
-                    description=tag.get("description"),
-                )
+            self._governance_writer.upsert_tag(
+                name=tag["name"],
+                display_name=tag.get("name"),
+                description=tag.get("description"),
             )
             print(f"upserted tag {tag['id']}")
 
@@ -43,19 +39,10 @@ class TaxonomyManager:
         """Upsert glossary term entities via MCP emission."""
 
         for term in terms:
-            aspect = GlossaryTermInfoClass(
-                id=term["id"],
+            self._governance_writer.upsert_glossary_term(
+                entity_urn=self.governance_def_ctx.term_urns[term["id"]],
+                term_id=term["id"],
                 name=term["name"],
                 definition=term.get("description"),
-                termSource="INTERNAL",
-            )
-            self.governance_def_ctx.graph.emit(
-                MetadataChangeProposalWrapper(
-                    entityUrn=self.governance_def_ctx.term_urns[term["id"]],
-                    entityType="glossaryTerm",
-                    aspectName="glossaryTermInfo",
-                    aspect=aspect,
-                    changeType=ChangeTypeClass.UPSERT,
-                )
             )
             print(f"upserted glossary term {term['id']}")

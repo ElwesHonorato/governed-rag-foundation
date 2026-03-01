@@ -5,11 +5,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from datahub.emitter.mcp import MetadataChangeProposalWrapper
-from datahub.metadata.urns import CorpGroupUrn, CorpUserUrn
-from datahub.metadata.schema_classes import ChangeTypeClass, CorpGroupInfoClass
-
 from entities.shared.context import GroupManagerContext
+from entities.shared.ports import GovernanceCatalogWriterPort
 
 
 class GroupManager:
@@ -19,6 +16,7 @@ class GroupManager:
         """Store shared governance execution context."""
 
         self.governance_def_ctx = governance_def_ctx
+        self._governance_writer: GovernanceCatalogWriterPort = governance_def_ctx.governance_writer
 
     def apply(self, groups: list[dict[str, Any]]) -> None:
         """Upsert all ownership groups."""
@@ -27,21 +25,13 @@ class GroupManager:
             admins = self._as_user_urns(group.get("admins", []))
             members = self._as_user_urns(group.get("members", []))
             nested_groups = self._as_group_urns(group.get("groups", []))
-            aspect = CorpGroupInfoClass(
-                displayName=group.get("name"),
+            self._governance_writer.upsert_group(
+                entity_urn=self.governance_def_ctx.group_urns[group["id"]],
+                display_name=group.get("name"),
                 description=group.get("description"),
                 admins=admins,
                 members=members,
                 groups=nested_groups,
-            )
-            self.governance_def_ctx.graph.emit(
-                MetadataChangeProposalWrapper(
-                    entityUrn=self.governance_def_ctx.group_urns[group["id"]],
-                    entityType="corpGroup",
-                    aspectName="corpGroupInfo",
-                    aspect=aspect,
-                    changeType=ChangeTypeClass.UPSERT,
-                )
             )
             print(f"upserted group {group['id']}")
 
@@ -52,7 +42,7 @@ class GroupManager:
         for value in values:
             if not isinstance(value, str) or not value:
                 continue
-            user_urns.append(value if value.startswith("urn:li:corpuser:") else str(CorpUserUrn(value)))
+            user_urns.append(value if value.startswith("urn:li:corpuser:") else f"urn:li:corpuser:{value}")
         return user_urns
 
     def _as_group_urns(self, values: Any) -> list[str]:
@@ -65,5 +55,5 @@ class GroupManager:
             if value.startswith("urn:li:corpGroup:"):
                 group_urns.append(value)
             else:
-                group_urns.append(self.governance_def_ctx.group_urns.get(value, str(CorpGroupUrn(value))))
+                group_urns.append(self.governance_def_ctx.group_urns.get(value, f"urn:li:corpGroup:{value}"))
         return group_urns

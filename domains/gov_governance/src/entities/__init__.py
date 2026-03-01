@@ -14,7 +14,6 @@ from entities.shared.context import (
     ManagerContexts,
     ResolvedRefs,
     TaxonomyManagerContext,
-    resolve_refs,
 )
 from entities.taxonomy.manager import TaxonomyManager
 
@@ -33,5 +32,4 @@ __all__ = [
     "ResolvedRefs",
     "TaxonomyManagerContext",
     "TaxonomyManager",
-    "resolve_refs",
 ]

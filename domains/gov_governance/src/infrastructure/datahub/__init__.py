@@ -1,5 +1,5 @@
 """DataHub adapter implementations for governance ports."""
 
-from .domain_writer import DataHubDomainWriter
+from .catalog_writer import DataHubGovernanceCatalogWriter
 
-__all__ = ["DataHubDomainWriter"]
+__all__ = ["DataHubGovernanceCatalogWriter"]

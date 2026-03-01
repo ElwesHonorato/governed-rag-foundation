@@ -1,6 +1,11 @@
-# Runtime DataHub Lineage - Architecture Review
+# Runtime DataHub Lineage – Architecture Review (Purist Clean Architecture Critique)
+
+This document intentionally applies a **strict / purist** Clean Architecture lens. It highlights what a “Clean Architecture purist” would criticize in the current design and in the proposed refactor, even if some choices are pragmatic for production.
+
+---
 
 ## 1. Current Responsibilities
+
 This module currently:
 - Builds DataHub URNs for flows, jobs, datasets, and process instances.
 - Reads DataJob metadata (`DataJobInfo`) from DataHub to resolve runtime config.
@@ -8,199 +13,240 @@ This module currently:
 - Tracks per-run state (inputs, outputs, status transitions).
 - Exposes a factory used by workers to construct the lineage gateway.
 
-Current class-to-layer interpretation:
-- Infrastructure (Adapter): `DataHubGraphClient`, `DataProcessInstanceMcpBuilder` (actual behavior: factory), `DataHubRunTimeLineage`, `DataHubUrnFactory`, `DataHubSettings`, `DataHubLineageGatewayFactory`.
-- Application: `DataHubJobMetadataResolver` (orchestration use-case, currently coupled to infra client).
-- Domain DTO/value models: `DataHubDataJobKey`, `ResolvedDataHubFlowConfig`, `CustomProperties`, `RunSpec`, `ActiveRunContext`, `DataHubRuntimeConnectionSettings`, `DataHubLineageRuntimeConfig`, `DatasetPlatform`.
+**Purist critique (high level):**
+- The module mixes **Use Case orchestration** (“run session lifecycle”) with **Framework/Driver details** (DataHub SDK types and MCP aspects).
+- There is no explicit **port boundary** between Application and Infrastructure; callers risk depending on DataHub-centric behaviors and types.
 
-## 2. Layer Mapping
-| Class | Current Layer | Should Be Layer | Reason |
+---
+
+## 2. Dependency Rule (Purist Version)
+
+**Clean Architecture dependency rule:**
+- Source code dependencies must point **inward**.
+- **Entities (Domain)** should depend on nothing outside Domain.
+- **Use Cases (Application)** should depend only on Domain + Ports (interfaces).
+- **Interface Adapters / Infrastructure** depend on SDKs, HTTP clients, and frameworks.
+- Frameworks and drivers (DataHub SDK, requests) must be isolated at the boundary.
+
+**Purist critique:**
+- Any Domain or Application code importing DataHub schema classes, URNs, MCP wrappers, `requests`, or the DataHub graph client is a violation.
+- “Helper methods” in Domain that rely on infra factories—even if they return strings—still violate dependency direction.
+
+---
+
+## 3. Layer Mapping (Purist)
+
+| Class / Component | Current Layer | Should Be Layer | Purist Reason |
 | --- | --- | --- | --- |
-| `DatasetPlatform` | Domain | Domain | Enum value object for platform names. |
-| `DataHubDataJobKey` | Domain | Domain | Immutable key for identifying a DataHub job. |
-| `ResolvedDataHubFlowConfig` | Domain | Domain | Pure resolved metadata model with no IO. |
-| `CustomProperties` | Domain | Domain | Runtime metadata value object. |
-| `RunSpec` | Domain | Domain | Runtime run payload model. |
-| `ActiveRunContext` | Domain | Domain | In-memory run context aggregate. |
-| `DataHubRuntimeConnectionSettings` | Domain | Domain | Connection settings DTO; no side effects. |
-| `DataHubLineageRuntimeConfig` | Domain | Application | Application wiring config for a lineage use case. |
-| `DataHubSettings` | Infrastructure (Adapter) | Infrastructure (Adapter) | Reads env variables; configuration adapter concern. |
-| `DataHubUrnFactory` | Infrastructure (Adapter) | Infrastructure (Adapter) | Wraps DataHub SDK URN types. |
-| `DataProcessInstanceMcpBuilder` | Infrastructure (Adapter) | Infrastructure (Adapter) | Constructs DataHub-specific MCP payloads. |
-| `DataHubGraphClient` | Infrastructure (Adapter) | Infrastructure (Adapter) | Encapsulates DataHub SDK graph read/write calls. |
-| `DataHubJobMetadataResolver` | Application | Application | Application service for resolving job metadata from a gateway. |
-| `DataHubRunTimeLineage` | Infrastructure (Adapter) | Infrastructure (Adapter) | Concrete adapter implementing runtime lineage gateway. |
-| `DataHubLineageGatewayFactory` | Infrastructure (Adapter) | Infrastructure (Adapter) | Composition/wiring factory for concrete adapter. |
+| `DatasetPlatform` | Domain | Domain | Value object. |
+| `DataHubDataJobKey` | Domain | Domain | Identity object; must be infra-agnostic. |
+| `ResolvedDataHubFlowConfig` | Domain | Domain | Must be pure; must not call URN factories or DataHub helpers. |
+| `CustomProperties` | Domain | Domain | Value object. |
+| `RunSpec` | Domain | Domain | Domain/application DTO; must remain infra-free. |
+| `ActiveRunContext` | Domain | Application (or Domain) | Purist may argue “active context” is use-case state, not an entity. |
+| `DataHubRuntimeConnectionSettings` | Domain | Infrastructure (or Application config) | Purist: connection settings are *drivers* concerns, not domain. |
+| `DataHubLineageRuntimeConfig` | Application | Application | Use-case wiring config. |
+| `DataHubSettings` | Infrastructure | Infrastructure | Environment/config adapter. |
+| `DataHubUrnFactory` | Infrastructure | Infrastructure | DataHub URNs are driver details; must not leak inward. |
+| `DataProcessInstanceMcpFactory` | Infrastructure | Infrastructure | Builds DataHub-specific payloads. |
+| `DataHubGraphClient` | Infrastructure | Infrastructure | SDK facade. |
+| `DataHubJobMetadataResolver` | Mixed | Application + Port | Should use a port for reads; must not do IO in `__init__`. |
+| `DataHubRuntimeLineage` | Mixed | Split: Application session + Infra writer | Current class mixes use-case state with SDK emission. |
+| `DataHubLineageGatewayFactory` | Infrastructure | Composition Root / Bootstrap | Purist: factories that wire dependencies belong at the edge, not shared core libs unless explicitly “bootstrap”. |
 
-## 3. Design Pattern Audit (Per Class)
-### `DatasetPlatform`
-- Current Pattern: Enum value object.
-- Is the name correct? Yes.
-- Problems: None.
-- Proposed Pattern: Keep as value object enum.
-- Proposed Rename: None.
-- Justification: Clear and stable.
+**Key purist point:**
+- Anything that contains **server/token/timeouts** is not Domain. It belongs to **Infrastructure** or “Frameworks & Drivers config”.
 
-### `DataHubDataJobKey`
-- Current Pattern: Immutable parameter object.
-- Is the name correct? Yes.
-- Problems: None.
-- Proposed Pattern: Keep as domain key object.
-- Proposed Rename: None.
-- Justification: Explicit contract for job identity.
+---
 
-### `ResolvedDataHubFlowConfig`
-- Current Pattern: Immutable DTO with helper methods.
-- Is the name correct? Yes.
-- Problems: Helper methods depend on infra URN factory, but still return primitives.
-- Proposed Pattern: Keep as resolved config DTO.
-- Proposed Rename: None.
-- Justification: Adequate with minimal coupling impact.
+## 4. Design Pattern Audit (Purist)
 
-### `CustomProperties`
-- Current Pattern: Mutable value object for run metadata.
-- Is the name correct? Yes.
-- Problems: None.
-- Proposed Pattern: Keep as runtime metadata value object.
-- Proposed Rename: None.
-- Justification: Matches usage.
-
-### `RunSpec`
-- Current Pattern: Runtime command/state DTO.
-- Is the name correct? Yes.
-- Problems: None.
-- Proposed Pattern: Keep as run state DTO.
-- Proposed Rename: None.
-- Justification: Clear intent.
-
-### `ActiveRunContext`
-- Current Pattern: Context holder.
-- Is the name correct? Yes.
-- Problems: None.
-- Proposed Pattern: Keep as in-memory context struct.
-- Proposed Rename: None.
-- Justification: Clear and minimal.
-
-### `DataHubRuntimeConnectionSettings`
-- Current Pattern: Config DTO.
-- Is the name correct? Yes.
-- Problems: None.
-- Proposed Pattern: Keep as immutable settings model.
-- Proposed Rename: None.
-- Justification: Stable input contract.
-
-### `DataHubLineageRuntimeConfig`
-- Current Pattern: Application config bundle.
-- Is the name correct? Yes.
-- Problems: None.
-- Proposed Pattern: Keep config bundle.
-- Proposed Rename: None.
-- Justification: Composition boundary input.
-
-### `DataHubSettings`
-- Current Pattern: Configuration adapter (`from_env`).
-- Is the name correct? Yes.
-- Problems: None.
-- Proposed Pattern: Keep as environment-backed settings adapter.
-- Proposed Rename: None.
-- Justification: Correct placement in infra.
-
-### `DataHubUrnFactory`
-- Current Pattern: Static factory.
-- Is the name correct? Yes.
-- Problems: Exposes DataHub SDK type in one method (`DatasetUrn`) if consumed externally.
-- Proposed Pattern: Keep static factory, confine SDK types internally.
-- Proposed Rename: None.
-- Justification: Good centralization point for SDK URN assembly.
-
-### `DataProcessInstanceMcpBuilder`
-- Current Pattern: Factory (not true builder from client perspective).
-- Is the name correct? No.
-- Problems: Misleading pattern name; client does not incrementally build.
-- Proposed Pattern: Batch MCP factory.
-- Proposed Rename: `DataProcessInstanceMcpFactory`.
-- Justification: Name should reflect single-shot object creation.
+### `DataProcessInstanceMcpFactory`
+- Current Pattern: Builder/Assembler of MCP batches.
+- Purist critique: The name “Builder” is okay, but this is purely an **Infrastructure assembler** and must not be referenced by Application code. If Application references it, it leaks driver details.
+- Proposed Pattern: Keep as **Assembler** or rename to `DataProcessInstanceMcpAssembler` (purist preference: name describes domain action rather than GoF term).
+- Proposed Rename: `DataProcessInstanceMcpAssembler` (optional).
 
 ### `DataHubGraphClient`
-- Current Pattern: Gateway adapter.
-- Is the name correct? Yes.
-- Problems: None major.
-- Proposed Pattern: Keep as SDK gateway adapter.
-- Proposed Rename: None.
-- Justification: Encapsulates SDK IO and error translation.
+- Current Pattern: Facade over DataHub SDK.
+- Purist critique: Still fine, but it must implement ports rather than be depended upon directly by Application services.
+- Proposed Pattern: Adapter implementing `LineageReadPort` / `LineageWritePort`.
 
 ### `DataHubJobMetadataResolver`
-- Current Pattern: Application service with hidden constructor side effects.
-- Is the name correct? Partially.
-- Problems: Resolves metadata in `__init__` (implicit IO), making lifecycle opaque.
-- Proposed Pattern: Application service with explicit `resolve()` operation.
-- Proposed Rename: Keep name.
-- Justification: Preserve recognizability while removing hidden IO.
+- Current Pattern: Resolver (Application service).
+- Purist critique:
+  - Must not do network IO in `__init__`.
+  - Should depend on `JobMetadataPort` (read port), not on `DataHubGraphClient`.
+- Proposed Pattern: Use-case interactor reading from a port.
 
-### `DataHubRunTimeLineage`
-- Current Pattern: Stateful runtime adapter + orchestrator.
-- Is the name correct? No (`RunTime` typo/casing).
-- Problems: Constructor performs network resolution indirectly; public signatures leak DataHub SDK type (`DatasetUrn`); depends directly on concrete resolver flow.
-- Proposed Pattern: Infrastructure adapter implementing an application port.
-- Proposed Rename: `DataHubRuntimeLineage` (retain compatibility alias).
-- Justification: Correct naming, explicit initialization, better DIP compliance.
+### `DataHubRuntimeLineage`
+- Current Pattern: Stateful session + adapter.
+- Purist critique (strong):
+  - This is doing two jobs: Use-case/session state and Infrastructure writes.
+  - It leaks driver vocabulary (DataHub) into the Application API.
+  - It constructs its own dependencies (graph client, resolver) rather than receiving ports (violates DIP).
+- Proposed Pattern:
+  - Application: `LineageRunSession` (stateful use-case/session)
+  - Infrastructure: `DataHubLineageWriter` (stateless adapter emitting events)
 
-### `DataHubLineageGatewayFactory`
+### `DataHubUrnFactory`
 - Current Pattern: Factory.
-- Is the name correct? Yes.
-- Problems: Currently returns concrete adapter type and does not make metadata resolution step explicit.
-- Proposed Pattern: Composition root factory returning application port.
-- Proposed Rename: None.
-- Justification: Reduces application coupling to infrastructure details.
+- Purist critique:
+  - If Domain objects call this, it’s a hard dependency inversion violation.
+  - URN construction belongs in Infrastructure adapter.
+- Proposed Pattern: Keep as Infra-only helper.
 
-## 4. Anti-Patterns Identified
-- Work done inside `__init__` (network calls):
-  - `DataHubJobMetadataResolver.__init__` triggers metadata fetch.
-  - `DataHubRunTimeLineage.__init__` triggers metadata resolution through resolver construction.
-- Application logic mixed with SDK code:
-  - Runtime orchestration and DataHub MCP/URN concerns are mixed in one adapter class.
-- Builder that is actually a factory:
-  - `DataProcessInstanceMcpBuilder` behaves as a one-shot factory.
-- Stateful adapter leaking infra types:
-  - `add_input`/`add_output` expose `DatasetUrn` type in adapter public API.
-- Hidden coupling to DataHub SDK in application layer:
-  - Application-facing usage currently depends on concrete `DataHubRunTimeLineage` class instead of an abstract port.
+### “Factory used by workers”
+- Purist critique:
+  - Any “factory” that wires concrete implementations is **composition root** work.
+  - Composition root should be in the worker entrypoint, not deep inside shared libs (unless clearly a `bootstrap` package).
+- Purist preference: Replace `DataHubLineageGatewayFactory` with a composition-root function in `domains/worker_x/app.py`.
 
-## 5. Proposed Clean Architecture Structure
-Minimal, safe split:
-- Application:
-  - Add `LineageRuntimeGateway` port (interface/protocol) for worker runtime lineage operations.
-  - Keep `DataHubJobMetadataResolver` as application service, but make resolution explicit (`resolve()`).
-- Infrastructure (Adapter):
-  - `DataHubRuntimeLineage`: concrete implementation of `LineageRuntimeGateway`.
-  - `DataHubGraphClient`, `DataProcessInstanceMcpFactory`, `DataHubUrnFactory`, `DataHubSettings`, `DataHubLineageGatewayFactory`.
-- Domain:
-  - Existing DTOs/enums (`RunSpec`, `ResolvedDataHubFlowConfig`, etc.).
+---
 
-Port definition (application-facing):
-- `resolve_job_metadata() -> ResolvedDataHubFlowConfig`
-- `start_run() -> RunSpec`
-- `add_input(name, platform) -> str`
-- `add_output(name, platform) -> str`
-- `complete_run() -> str`
-- `fail_run(error_message) -> str`
-- `abort_run() -> None`
-- `resolved_job_config` read-only property
+## 5. Anti-Patterns Identified (Purist Severity)
 
-ASCII dependency diagram:
+### S1 — Dependency Direction Violations (DIP broken)
+- Domain or Application objects calling `DataHubUrnFactory` or using DataHub SDK types (even indirectly).
+- Application-level runtime orchestration importing DataHub schema classes.
+
+### S2 — Hidden IO in Constructors
+- `DataHubJobMetadataResolver.__init__` triggers network reads.
+- `DataHubRuntimeLineage.__init__` triggers resolution/graph interactions.
+
+### S2 — Mixed Responsibilities (God Class tendencies)
+- `DataHubRuntimeLineage` does: lifecycle, state, URN creation, dataset property emission, MCP assembly, and graph emissions.
+
+### S3 — Leaky Public API
+- `add_input/add_output` returning `DatasetUrn` ties callers to DataHub SDK.
+- Public API should return primitives or domain value objects not tied to a vendor SDK.
+
+---
+
+## 6. Purist “Ideal” Clean Architecture Structure
+
+A strict Clean Architecture split would look like this:
+
+### Domain (Entities / Value Objects)
+- `DatasetPlatform`
+- `DataHubDataJobKey` (purist might rename to `JobKey` and move DataHub naming outward)
+- `ResolvedFlowConfig` (vendor-neutral)
+- `RunSpec`, `CustomProperties`
+
+**Rule:** Domain must not know “DataHub”, “MCP”, “URN”.
+
+### Application (Use Cases)
+- `LineageRunSession` (state machine: start/add/complete/fail)
+- `ResolveJobMetadataUseCase` (explicit call)
+
+**Ports (interfaces) defined here:**
+- `LineageWriterPort` (emit run events + IO edges)
+- `JobMetadataReaderPort` (fetch custom properties/config)
+- `UrnTranslatorPort` (optional, if you want URN building as a service)
+
+### Infrastructure (Adapters)
+- `DataHubLineageWriterAdapter` implements `LineageWriterPort`
+- `DataHubJobMetadataReaderAdapter` implements `JobMetadataReaderPort`
+- `DataHubUrnFactory` stays here
+- `DataProcessInstanceMcpAssembler` stays here
+- `DataHubGraphClient` stays here
+
+### Composition Root (Worker Entrypoint)
+- Reads env settings
+- Instantiates adapters
+- Injects them into use cases
+- Starts worker loop
+
+---
+
+## 7. Minimal Refactor vs Purist Refactor
+
+### Minimal Refactor (Pragmatic)
+- Add `LineageRuntimeGateway` port.
+- Keep `DataHubRuntimeLineage` as adapter implementing the port.
+- Remove IO from constructors where possible (explicit `.resolve()`).
+- Stop returning SDK types in public API (`DatasetUrn` → `str`).
+
+**Purist critique:** Still couples use-case/session to vendor naming and may keep some driver assumptions in the gateway.
+
+### Purist Refactor (Strict)
+- Split `DataHubRuntimeLineage` into:
+  - Application: `LineageRunSession`
+  - Infrastructure: `DataHubLineageWriterAdapter`
+- Move all URN/MCP/SDK concerns exclusively into Infra.
+- Composition root wires everything.
+
+**Purist benefit:** Perfect DIP and layer boundaries.
+
+**Purist cost:** More files, more indirection, bigger diff.
+
+---
+
+## 8. Revised Proposed Clean Architecture Structure (Purist-Compatible, Still Minimal)
+
+This is a compromise that satisfies purists on the biggest violations while keeping changes reasonable:
+
+1) Rename and constrain infra types:
+- `DataHubRuntimeLineage` → `DataHubRuntimeLineageAdapter`
+- `DataProcessInstanceMcpFactory` → `DataProcessInstanceMcpAssembler` (optional)
+
+2) Introduce ports in Application:
+- `JobMetadataReaderPort`
+- `LineageRuntimePort` (or `LineageWriterPort` + session use-case)
+
+3) Make IO explicit:
+- `DataHubJobMetadataResolver.resolve()` instead of doing work in `__init__`.
+
+4) Remove SDK types from outward-facing methods:
+- `add_input/add_output` return `str` URNs only (or a domain `DatasetRef` value object that is vendor-neutral).
+
+---
+
+## 9. Dependency Diagram (Purist)
 
 ```text
-Worker Services (Application)
+[Worker Entrypoint / Composition Root]
         |
         v
-LineageRuntimeGateway (Port)
+[Application Use Cases / Session]
+  |                 |
+  v                 v
+[Ports: JobMetadataReaderPort, LineageWriterPort]
         |
         v
-DataHubRuntimeLineage (Infra Adapter)
-   |                 |
-   v                 v
-DataHubGraphClient   DataProcessInstanceMcpFactory
+[Infrastructure Adapters]
+  |                 |
+  v                 v
+DataHubGraphClient  MCP Assembler / URN Factory
         |
         v
-      DataHub SDK
+      DataHub SDK / HTTP
 ```
+
+## 10. What Must Not Change (Stability Promise)
+
+Even under a purist refactor, preserve:
+
+MCP ordering and aspect semantics
+
+Run lifecycle semantics (STARTED, COMPLETE, FAILURE)
+
+Dataset properties emission behavior (if relied upon)
+
+URN formats
+
+Error handling behavior (warnings vs hard-fail) unless explicitly justified
+
+## 11. Summary of Purist Criticism
+
+A strict Clean Architecture purist would say:
+
+“Your domain and application layers still speak DataHub.”
+
+“IO in constructors is unacceptable.”
+
+“A stateful session class must not import SDK types.”
+
+“The composition root should be the only place wiring concrete implementations.”
+
+The revised structure above addresses the major violations while allowing a pragmatic path forward.

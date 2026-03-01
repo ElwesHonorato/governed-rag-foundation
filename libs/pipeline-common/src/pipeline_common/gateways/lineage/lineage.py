@@ -8,6 +8,7 @@ DataHub metadata.
 import logging
 import time
 import uuid
+from typing import Protocol
 
 import requests
 from datahub.emitter.mcp import MetadataChangeProposalWrapper
@@ -216,11 +217,18 @@ class DataHubGraphClient:
                 self.graph.emit(mcp)
 
 
+class DataHubJobMetadataReader(Protocol):
+    """Application read-port for DataJob metadata retrieval."""
+
+    def get_datajob_info(self, job_urn: str) -> DataJobInfoClass | None:
+        """Fetch DataJob metadata for a single job URN."""
+
+
 class DataHubJobMetadataResolver:
     """Retrieve static DataJob details specified by governance definitions."""
 
-    def __init__(self, graph_client: DataHubGraphClient, env: str, data_job_key: DataHubDataJobKey) -> None:
-        self.graph_client = graph_client
+    def __init__(self, metadata_reader: DataHubJobMetadataReader, env: str, data_job_key: DataHubDataJobKey) -> None:
+        self.metadata_reader = metadata_reader
         self.env = env
         self.data_job_key = data_job_key
 
@@ -238,7 +246,7 @@ class DataHubJobMetadataResolver:
         )
 
     def _resolve_datajob_custom_properties(self, input_job_urn: str) -> dict[str, str]:
-        job_info = self.graph_client.get_datajob_info(input_job_urn)
+        job_info = self.metadata_reader.get_datajob_info(input_job_urn)
         if job_info is None or not isinstance(job_info.customProperties, dict):
             return {}
         custom_properties: dict[str, str] = {str(k): str(v) for k, v in job_info.customProperties.items()}
@@ -256,8 +264,12 @@ class DataHubJobMetadataResolver:
 class DataHubRuntimeLineage(LineageRuntimeGateway):
     """DataHub runtime lineage adapter implementing the runtime lineage port."""
 
-    def __init__(self, client_config: DataHubLineageRuntimeConfig) -> None:
-        self.graph_client = DataHubGraphClient(connection_settings=client_config.connection_settings)
+    def __init__(
+        self,
+        client_config: DataHubLineageRuntimeConfig,
+        graph_client: DataHubGraphClient | None = None,
+    ) -> None:
+        self.graph_client = graph_client or DataHubGraphClient(connection_settings=client_config.connection_settings)
         self._client_config = client_config
         self._resolved_job_config: ResolvedDataHubFlowConfig | None = None
         self._datajob_urn: str | None = None
@@ -272,13 +284,18 @@ class DataHubRuntimeLineage(LineageRuntimeGateway):
     def resolve_job_metadata(self) -> ResolvedDataHubFlowConfig:
         env = self._client_config.connection_settings.env
         resolver = DataHubJobMetadataResolver(
-            graph_client=self.graph_client,
+            metadata_reader=self.graph_client,
             env=env,
             data_job_key=self._client_config.data_job_key,
         )
         resolved_job_config = resolver.resolve()
         self._resolved_job_config = resolved_job_config
-        self._datajob_urn = resolved_job_config.job_urn()
+        self._datajob_urn = DataHubUrnFactory.job_urn(
+            flow_platform=resolved_job_config.flow_platform,
+            flow_id=resolved_job_config.flow_id,
+            flow_instance=resolved_job_config.flow_instance,
+            job_id=resolved_job_config.job_id,
+        )
         self._job_version = self._resolve_job_version()
         return resolved_job_config
 

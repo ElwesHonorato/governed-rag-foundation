@@ -1,0 +1,4 @@
+groups:
+  - id: daedalus
+    name: Daedalus
+    description: Owns the operation, reliability, and evolution of the RAG platform and its supporting infrastructure.

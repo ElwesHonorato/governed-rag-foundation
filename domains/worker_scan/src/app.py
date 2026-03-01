@@ -1,71 +1,29 @@
-"""worker_scan entrypoint.
+"""worker_scan entrypoint."""
 
-Purpose:
-- Bootstrap the scan stage worker that moves candidate files from incoming to raw storage.
-
-What this module should do:
-- Read runtime settings from environment.
-- Build queue and object storage gateways.
-- Initialize the scan processor and start the service loop.
-
-Best practices:
-- Keep orchestration-only code here; put business rules in services/processors.
-- Fail fast on missing configuration and rely on typed config constants.
-- Keep side effects explicit at startup (for example, bucket prefix bootstrap).
-"""
-
-from pipeline_common.lineage.pipeline import DataHubPipelineJobs
+from registry import DataHubPipelineJobs
+from pipeline_common.settings import SettingsProvider, SettingsRequest
 from pipeline_common.startup import (
-    build_datahub_lineage_client,
-    build_object_storage,
-    build_stage_queue,
-    expand_dot_properties,
-    load_runtime_settings,
-    parse_csv_list,
+    RuntimeContextFactory,
+    WorkerRuntimeLauncher,
 )
-from services.scan_cycle_processor import StorageScanCycleProcessor
+from contracts.contracts import ScanWorkerConfigContract
 from services.worker_scan_service import WorkerScanService
+from startup.config_extractor import ScanConfigExtractor
+from startup.service_factory import ScanServiceFactory
 
 
 def run() -> None:
-    """Initialize dependencies and start the worker service."""
-    s3_settings, queue_settings, datahub_settings = load_runtime_settings()
-    lineage_client = build_datahub_lineage_client(
-        datahub_settings=datahub_settings,
+    """Start scan worker."""
+    settings = SettingsProvider(SettingsRequest(datahub=True, storage=True, queue=True)).bundle
+    runtime_factory = RuntimeContextFactory(
         data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_scan"),
+        settings_bundle=settings,
     )
-
-    raw_config = expand_dot_properties(lineage_client.resolved_job_config.custom_properties)
-    scan_config, queue_config = _extract_scan_and_queue_config(raw_config)
-    extensions = parse_csv_list(scan_config["filters"]["extensions"])
-
-    stage_queue = build_stage_queue(
-        broker_url=queue_settings.broker_url,
-        queue_config=queue_config,
-    )
-    object_storage = build_object_storage(s3_settings)
-
-    # Keep startup side effect explicit and early.
-    object_storage.bootstrap_bucket_prefixes(scan_config["storage"]["bucket"])
-
-    processor = StorageScanCycleProcessor(
-        object_storage=object_storage,
-        stage_queue=stage_queue,
-        lineage=lineage_client,
-        processing_config={
-            "storage": scan_config["storage"],
-            "filters": {"extensions": extensions},
-        },
-    )
-    service = WorkerScanService(
-        processor=processor,
-        processing_config={"poll_interval_seconds": int(scan_config["poll_interval_seconds"])},
-    )
-    service.serve()
-
-def _extract_scan_and_queue_config(expanded_config: dict) -> tuple[dict, dict]:
-    """Return scan and queue config sections from expanded properties."""
-    return expanded_config["scan"], expanded_config["queue"]
+    WorkerRuntimeLauncher[ScanWorkerConfigContract, WorkerScanService](
+        runtime_factory=runtime_factory,
+        config_extractor=ScanConfigExtractor(),
+        service_factory=ScanServiceFactory(),
+    ).start()
 
 
 if __name__ == "__main__":

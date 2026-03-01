@@ -1,0 +1,72 @@
+datasets:
+  - id: rabbitmq.q.parse_document
+    platform: rabbitmq
+    name: q.parse_document
+    domain: rag-platform
+    owners: [daedalus]
+    tags: [internal]
+    terms: []
+
+  - id: rabbitmq.q.chunk_text
+    platform: rabbitmq
+    name: q.chunk_text
+    domain: rag-platform
+    owners: [daedalus]
+    tags: [internal]
+    terms: []
+
+  - id: rabbitmq.q.embed_chunks
+    platform: rabbitmq
+    name: q.embed_chunks
+    domain: rag-embeddings
+    owners: [daedalus]
+    tags: [internal]
+    terms: []
+
+  - id: rabbitmq.q.index_weaviate
+    platform: rabbitmq
+    name: q.index_weaviate
+    domain: rag-indexing
+    owners: [daedalus]
+    tags: [internal]
+    terms: []
+
+  - id: rabbitmq.q.scan.dlq
+    platform: rabbitmq
+    name: q.scan.dlq
+    domain: rag-platform
+    owners: [daedalus]
+    tags: [internal]
+    terms: []
+
+  - id: rabbitmq.q.parse_document.dlq
+    platform: rabbitmq
+    name: q.parse_document.dlq
+    domain: rag-platform
+    owners: [daedalus]
+    tags: [internal]
+    terms: []
+
+  - id: rabbitmq.q.chunk_text.dlq
+    platform: rabbitmq
+    name: q.chunk_text.dlq
+    domain: rag-embeddings
+    owners: [daedalus]
+    tags: [internal]
+    terms: []
+
+  - id: rabbitmq.q.embed_chunks.dlq
+    platform: rabbitmq
+    name: q.embed_chunks.dlq
+    domain: rag-embeddings
+    owners: [daedalus]
+    tags: [internal]
+    terms: []
+
+  - id: rabbitmq.q.index_weaviate.dlq
+    platform: rabbitmq
+    name: q.index_weaviate.dlq
+    domain: rag-indexing
+    owners: [daedalus]
+    tags: [internal]
+    terms: []

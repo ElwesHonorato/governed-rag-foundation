@@ -1,24 +1,9 @@
-from abc import ABC, abstractmethod
-
 import logging
 import time
-from typing import TypedDict
+from pipeline_common.startup.contracts import WorkerPollingContract, WorkerService
 from services.scan_cycle_processor import ScanCycleProcessor
 
 logger = logging.getLogger(__name__)
-
-
-class WorkerService(ABC):
-    """Minimal worker interface for long-running service loops."""
-
-    @abstractmethod
-    def serve(self) -> None:
-        """Run the worker loop indefinitely."""
-
-
-class ScanProcessingConfig(TypedDict):
-    """Runtime config for scan worker polling."""
-    poll_interval_seconds: int
 
 
 class WorkerScanService(WorkerService):
@@ -27,11 +12,11 @@ class WorkerScanService(WorkerService):
         self,
         *,
         processor: ScanCycleProcessor,
-        processing_config: ScanProcessingConfig,
+        polling_contract: WorkerPollingContract,
     ) -> None:
         """Initialize instance state and dependencies."""
         self.processor = processor
-        self._initialize_runtime_config(processing_config)
+        self.poll_interval_seconds = polling_contract.poll_interval_seconds
 
     def serve(self) -> None:
         """Run the worker loop indefinitely."""
@@ -41,7 +26,3 @@ class WorkerScanService(WorkerService):
             except Exception:
                 logger.exception("Scan cycle failed; continuing after poll interval")
             time.sleep(self.poll_interval_seconds)
-
-    def _initialize_runtime_config(self, processing_config: ScanProcessingConfig) -> None:
-        """Internal helper for initialize runtime config."""
-        self.poll_interval_seconds = processing_config["poll_interval_seconds"]

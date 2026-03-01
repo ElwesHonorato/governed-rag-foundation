@@ -1,0 +1,14 @@
+services:
+  ollama:
+    build:
+      context: ./domains/infra_llm
+      dockerfile: Dockerfile
+      args:
+        LLM_MODEL: ${LLM_MODEL:?LLM_MODEL is required}
+    ports:
+      - "${LLM_PORT:?LLM_PORT is required}:11434"
+
+networks:
+  default:
+    external: true
+    name: ${STACK_NETWORK:?STACK_NETWORK is required}

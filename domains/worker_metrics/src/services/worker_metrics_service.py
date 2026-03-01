@@ -1,39 +1,14 @@
-from abc import ABC, abstractmethod
 import logging
 import time
-from typing import TypedDict
 
-from pipeline_common.lineage import DatasetPlatform
-from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
-from pipeline_common.observability import Counters
-from pipeline_common.object_storage import ObjectStorageGateway
+from contracts.contracts import MetricsProcessingConfigContract
+from pipeline_common.gateways.lineage import DatasetPlatform
+from pipeline_common.gateways.lineage import LineageRuntimeGateway
+from pipeline_common.gateways.observability import Counters
+from pipeline_common.gateways.object_storage import ObjectStorageGateway
+from pipeline_common.startup.contracts import WorkerService
 
 logger = logging.getLogger(__name__)
-
-
-class WorkerService(ABC):
-    """Minimal worker interface for long-running service loops."""
-
-    @abstractmethod
-    def serve(self) -> None:
-        """Run the worker loop indefinitely."""
-
-
-class StorageConfig(TypedDict):
-    """Storage-related prefixes and bucket for metrics worker."""
-
-    bucket: str
-    processed_prefix: str
-    chunks_prefix: str
-    embeddings_prefix: str
-    indexes_prefix: str
-
-
-class MetricsProcessingConfig(TypedDict):
-    """Runtime config for metrics worker storage and polling."""
-
-    poll_interval_seconds: int
-    storage: StorageConfig
 
 
 class WorkerMetricsService(WorkerService):
@@ -43,8 +18,8 @@ class WorkerMetricsService(WorkerService):
         *,
         counters: Counters,
         object_storage: ObjectStorageGateway,
-        lineage: DataHubRunTimeLineage,
-        processing_config: MetricsProcessingConfig,
+        lineage: LineageRuntimeGateway,
+        processing_config: MetricsProcessingConfigContract,
     ) -> None:
         """Initialize instance state and dependencies."""
         self.counters = counters
@@ -101,11 +76,11 @@ class WorkerMetricsService(WorkerService):
                 logger.exception("Failed collecting pipeline metrics")
             time.sleep(self.poll_interval_seconds)
 
-    def _initialize_runtime_config(self, processing_config: MetricsProcessingConfig) -> None:
+    def _initialize_runtime_config(self, processing_config: MetricsProcessingConfigContract) -> None:
         """Internal helper for initialize runtime config."""
-        self.poll_interval_seconds = processing_config["poll_interval_seconds"]
-        self.storage_bucket = processing_config["storage"]["bucket"]
-        self.processed_prefix = processing_config["storage"]["processed_prefix"]
-        self.chunks_prefix = processing_config["storage"]["chunks_prefix"]
-        self.embeddings_prefix = processing_config["storage"]["embeddings_prefix"]
-        self.indexes_prefix = processing_config["storage"]["indexes_prefix"]
+        self.poll_interval_seconds = processing_config.poll_interval_seconds
+        self.storage_bucket = processing_config.storage.bucket
+        self.processed_prefix = processing_config.storage.processed_prefix
+        self.chunks_prefix = processing_config.storage.chunks_prefix
+        self.embeddings_prefix = processing_config.storage.embeddings_prefix
+        self.indexes_prefix = processing_config.storage.indexes_prefix

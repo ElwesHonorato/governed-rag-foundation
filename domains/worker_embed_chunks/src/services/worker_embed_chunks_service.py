@@ -1,48 +1,16 @@
-
-from abc import ABC, abstractmethod
 import hashlib
 import json
 import logging
-from typing import Any, TypedDict
+from typing import Any
 
-from pipeline_common.lineage import DatasetPlatform
-from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
-from pipeline_common.queue import StageQueue
-from pipeline_common.object_storage import ObjectStorageGateway
+from contracts.contracts import EmbedChunksProcessingConfigContract
+from pipeline_common.gateways.lineage import DatasetPlatform
+from pipeline_common.gateways.lineage import LineageRuntimeGateway
+from pipeline_common.gateways.queue import StageQueue
+from pipeline_common.gateways.object_storage import ObjectStorageGateway
+from pipeline_common.startup.contracts import WorkerService
 
 logger = logging.getLogger(__name__)
-
-
-class WorkerService(ABC):
-    """Minimal worker interface for long-running service loops."""
-
-    @abstractmethod
-    def serve(self) -> None:
-        """Run the worker loop indefinitely."""
-
-
-class StorageConfig(TypedDict):
-    """Storage-related prefixes and bucket for embedding worker."""
-
-    bucket: str
-    chunks_prefix: str
-    embeddings_prefix: str
-
-
-class QueueConfig(TypedDict):
-    """Queue contract and timeout settings for embedding worker."""
-
-    stage: str
-    stage_queues: dict[str, Any]
-    queue_pop_timeout_seconds: int
-
-
-class EmbedChunksProcessingConfig(TypedDict):
-    """Runtime config for embedding worker queues, storage, and polling."""
-
-    poll_interval_seconds: int
-    queue: QueueConfig
-    storage: StorageConfig
 
 
 class WorkerEmbedChunksService(WorkerService):
@@ -53,8 +21,8 @@ class WorkerEmbedChunksService(WorkerService):
         *,
         stage_queue: StageQueue,
         object_storage: ObjectStorageGateway,
-        lineage: DataHubRunTimeLineage,
-        processing_config: EmbedChunksProcessingConfig,
+        lineage: LineageRuntimeGateway,
+        processing_config: EmbedChunksProcessingConfigContract,
         dimension: int,
     ) -> None:
         """Initialize embedding worker dependencies and runtime settings."""
@@ -87,7 +55,7 @@ class WorkerEmbedChunksService(WorkerService):
 
     def process_source_key(self, source_key: str) -> None:
         """Embed one chunk artifact and publish downstream indexing work."""
-        if not source_key.startswith(self.chunks_prefix) or source_key == self.chunks_prefix:
+        if not source_key.startswith(self.input_prefix) or source_key == self.input_prefix:
             return
         if not source_key.endswith(self.chunks_suffix):
             return
@@ -123,7 +91,7 @@ class WorkerEmbedChunksService(WorkerService):
 
     def _embedding_object_key(self, doc_id: str, chunk_id: str) -> str:
         """Build one embeddings object key scoped under the document id."""
-        return f"{self.embeddings_prefix}{doc_id}/{chunk_id}.embedding.json"
+        return f"{self.output_prefix}{doc_id}/{chunk_id}.embedding.json"
 
     def _embeddings_exists(self, destination_key: str) -> bool:
         """Return whether the embeddings output already exists."""
@@ -136,30 +104,20 @@ class WorkerEmbedChunksService(WorkerService):
 
     def _process_object(self, payload: dict[str, Any]) -> dict[str, Any]:
         """Map one chunk payload into one embedding record with metadata."""
-        # Backward compatibility: accept legacy {"doc_id": ..., "chunks": [...]} and use first chunk.
-        chunk_payload: dict[str, Any]
-        if isinstance(payload.get("chunks"), list):
-            chunks = payload.get("chunks", [])
-            if not chunks:
-                raise ValueError("Legacy chunks payload is empty")
-            chunk_payload = dict(chunks[0])
-        else:
-            chunk_payload = payload
-
-        text = str(chunk_payload["chunk_text"])
-        doc_id = str(chunk_payload.get("doc_id"))
-        chunk_id = str(chunk_payload["chunk_id"])
+        text = str(payload["chunk_text"])
+        doc_id = str(payload.get("doc_id"))
+        chunk_id = str(payload["chunk_id"])
         return {
             "doc_id": doc_id,
             "chunk_id": chunk_id,
             "vector": self.deterministic_embedding(text),
             "metadata": {
-                "source_type": chunk_payload.get("source_type"),
-                "timestamp": chunk_payload.get("timestamp"),
-                "security_clearance": chunk_payload.get("security_clearance"),
+                "source_type": payload.get("source_type"),
+                "timestamp": payload.get("timestamp"),
+                "security_clearance": payload.get("security_clearance"),
                 "doc_id": doc_id,
-                "source_key": chunk_payload.get("source_key"),
-                "chunk_index": chunk_payload.get("chunk_index"),
+                "source_key": payload.get("source_key"),
+                "chunk_index": payload.get("chunk_index"),
                 "chunk_text": text,
             },
         }
@@ -177,10 +135,10 @@ class WorkerEmbedChunksService(WorkerService):
         """Publish indexing work for a newly produced embeddings artifact."""
         self.stage_queue.push_produce_message(embeddings_key=destination_key, doc_id=doc_id)
 
-    def _initialize_runtime_config(self, processing_config: EmbedChunksProcessingConfig) -> None:
+    def _initialize_runtime_config(self, processing_config: EmbedChunksProcessingConfigContract) -> None:
         """Load runtime config values into worker state."""
-        self.poll_interval_seconds = processing_config["poll_interval_seconds"]
-        self.storage_bucket = processing_config["storage"]["bucket"]
-        self.chunks_prefix = processing_config["storage"]["chunks_prefix"]
-        self.embeddings_prefix = processing_config["storage"]["embeddings_prefix"]
+        self.poll_interval_seconds = processing_config.poll_interval_seconds
+        self.storage_bucket = processing_config.storage.bucket
+        self.input_prefix = processing_config.storage.input_prefix
+        self.output_prefix = processing_config.storage.output_prefix
         self.chunks_suffix = ".chunk.json"

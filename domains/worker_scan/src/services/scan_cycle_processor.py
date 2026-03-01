@@ -1,14 +1,13 @@
 from abc import ABC, abstractmethod
 
-from collections.abc import Sequence
 import logging
-from typing import TypedDict
 
-from pipeline_common.contracts import doc_id_from_source_key
-from pipeline_common.lineage import DatasetPlatform
-from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
-from pipeline_common.queue import StageQueue
-from pipeline_common.object_storage import ObjectStorageGateway
+from contracts.contracts import ScanStorageContract
+from pipeline_common.helpers.contracts import doc_id_from_source_key
+from pipeline_common.gateways.lineage import DatasetPlatform
+from pipeline_common.gateways.lineage import LineageRuntimeGateway
+from pipeline_common.gateways.queue import StageQueue
+from pipeline_common.gateways.object_storage import ObjectStorageGateway
 
 logger = logging.getLogger(__name__)
 
@@ -20,25 +19,6 @@ class ScanCycleProcessor(ABC):
     def scan(self) -> int:
         """Run one scan cycle and return the number of processed items."""
 
-
-class StorageConfig(TypedDict):
-    """Storage bucket and stage prefix settings for scan worker."""
-    bucket: str
-    incoming_prefix: str
-    raw_prefix: str
-
-
-class FiltersConfig(TypedDict):
-    """File-extension filters used to select processable source keys."""
-    extensions: list[str]
-
-
-class ScanProcessingConfig(TypedDict):
-    """Runtime config for scan cycle storage and filtering."""
-    storage: StorageConfig
-    filters: FiltersConfig
-
-
 class StorageScanCycleProcessor(ScanCycleProcessor):
     """Move objects from a source prefix to a destination prefix and enqueue jobs."""
 
@@ -47,14 +27,16 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
         *,
         object_storage: ObjectStorageGateway,
         stage_queue: StageQueue,
-        lineage: DataHubRunTimeLineage,
-        processing_config: ScanProcessingConfig,
+        lineage: LineageRuntimeGateway,
+        storage_contract: ScanStorageContract,
     ) -> None:
         """Initialize instance state and dependencies."""
         self.object_storage = object_storage
         self.stage_queue = stage_queue
         self.lineage = lineage
-        self._initialize_runtime_config(processing_config)
+        self.bucket = storage_contract.bucket
+        self.source_prefix = storage_contract.input_prefix
+        self.destination_prefix = storage_contract.output_prefix
 
     def scan(self) -> int:
         """Run one scan cycle and return the number of newly moved files."""
@@ -64,7 +46,7 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
         return processed
 
     def _candidate_keys(self) -> list[str]:
-        """List source keys that match the configured extension filter."""
+        """List source keys from the configured source prefix."""
         return [
             key
             for key in self.object_storage.list_keys(self.bucket, self.source_prefix)
@@ -101,10 +83,6 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
         """Check whether the source object is still present."""
         return self.object_storage.object_exists(self.bucket, source_key)
 
-    def _destination_exists(self, destination_key: str) -> bool:
-        """Check whether the destination object already exists."""
-        return self.object_storage.object_exists(self.bucket, destination_key)
-
     def _delete_source(self, source_key: str) -> None:
         """Delete the source object after processing to avoid reprocessing."""
         self.object_storage.delete(self.bucket, source_key)
@@ -119,23 +97,8 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
 
     def _is_candidate_key(self, key: str) -> bool:
         """Return True when a key is a processable source object."""
-        return (
-            key.startswith(self.source_prefix)
-            and key != self.source_prefix
-            and key.endswith(self.extensions)
-        )
+        return key.startswith(self.source_prefix) and key != self.source_prefix
 
     def _destination_key(self, source_key: str) -> str:
         """Map a source key to its destination key."""
         return source_key.replace(self.source_prefix, self.destination_prefix, 1)
-
-    def _normalize_extensions(self, extensions: Sequence[str]) -> tuple[str, ...]:
-        """Normalize extension list into a tuple for str.endswith checks."""
-        return tuple(extensions)
-
-    def _initialize_runtime_config(self, processing_config: ScanProcessingConfig) -> None:
-        """Internal helper for initialize runtime config."""
-        self.bucket = processing_config["storage"]["bucket"]
-        self.source_prefix = processing_config["storage"]["incoming_prefix"]
-        self.destination_prefix = processing_config["storage"]["raw_prefix"]
-        self.extensions = self._normalize_extensions(processing_config["filters"]["extensions"])

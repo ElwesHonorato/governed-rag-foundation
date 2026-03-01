@@ -7,17 +7,17 @@ Core infrastructure image tags are hardcoded in the domain compose files.
 
 ## Repository Layout
 
-- `apps/rag-api`: API service for RAG operations.
+- `domains/app_rag_api`: API service for RAG operations.
 - `libs/pipeline-common`: Shared pipeline helpers used by isolated worker domains.
 - `domains/`: Docker Compose definitions split by domain:
-  - `storage` (MinIO)
-  - `vector` (Weaviate)
-  - `queue` (RabbitMQ broker)
-  - `lineage` (DataHub quickstart)
-  - `portainer` (Docker container UI)
-  - `llm` (Ollama)
-  - `app` (rag-api only)
-  - `vector_ui` (standalone Weaviate query UI)
+  - `infra_storage` (MinIO)
+  - `infra_vector` (Weaviate)
+  - `infra_queue` (RabbitMQ broker)
+  - `infra_lineage` (DataHub quickstart)
+  - `infra_portainer` (Docker container UI)
+  - `infra_llm` (Ollama)
+  - `app_rag_api` (rag-api only)
+  - `app_vector_ui` (standalone Weaviate query UI)
   - `worker_scan`
   - `worker_parse_document`
   - `worker_chunk_text`
@@ -25,27 +25,42 @@ Core infrastructure image tags are hardcoded in the domain compose files.
   - `worker_index_weaviate`
   - `worker_manifest`
   - `worker_metrics`
-- `scripts/`: Shared shell helpers used by `stack.sh`.
+- `tooling/ops/`: Shared stack lifecycle helpers used by `stack.sh`.
 - `stack.sh`: Entry point for bringing the local stack up/down.
+
+## Development Strategy
+
+This repository follows a modular monorepo approach during the solo development phase:
+
+- Each domain is treated as an independently deployable unit.
+- Domains are kept together in one repo to reduce coordination overhead and speed up iteration.
+- The target future state is polyrepo: each domain can be split into its own repository.
+
+To keep that future split low-risk, current changes should preserve clear boundaries:
+
+- No direct cross-domain Python imports.
+- Shared logic lives in `libs/pipeline-common`.
+- Domain-local runtime wiring stays inside each domain.
+- Domain contracts/config keys stay explicit and versionable.
 
 ## Requirements Tracking
 
-- Requirements workspace: `requirements/README.md`
-- Coverage roadmap (canonical): `requirements/00-overview/requirements-coverage-roadmap.md`
+- Requirements workspace: `docs/requirements/README.md`
+- Coverage roadmap (canonical): `docs/requirements/00-overview/requirements-coverage-roadmap.md`
 
 ## Getting Started
 
 Recommended first-run order from repository root:
 
 ```bash
-./stack.sh up storage
-./stack.sh up vector
-./stack.sh up queue
-./stack.sh up lineage
-./stack.sh up portainer
-./stack.sh up llm
-./stack.sh up app
-./stack.sh up vector_ui
+./stack.sh up infra_storage
+./stack.sh up infra_vector
+./stack.sh up infra_queue
+./stack.sh up infra_lineage
+./stack.sh up infra_portainer
+./stack.sh up infra_llm
+./stack.sh up app_rag_api
+./stack.sh up app_vector_ui
 ./stack.sh up worker_scan
 ./stack.sh up worker_parse_document
 ./stack.sh up worker_chunk_text
@@ -59,7 +74,7 @@ Then check status/logs:
 
 ```bash
 ./stack.sh ps
-./stack.sh logs app
+./stack.sh logs app_rag_api
 ```
 
 ## Local Stack Commands
@@ -68,7 +83,7 @@ Run from repository root:
 
 ```bash
 ./stack.sh up                 # start all domains
-./stack.sh up <domain>        # start one domain, e.g. storage or worker_scan
+./stack.sh up <domain>        # start one domain, e.g. infra_storage or worker_scan
 ./stack.sh down               # stop running domains
 ./stack.sh wipe               # stop stack and remove volumes
 ./stack.sh logs <domain>      # follow one domain logs
@@ -95,16 +110,16 @@ When finished:
 
 ## Lineage Guide
 
-- `./stack.sh up lineage` runs DataHub quickstart services from `domains/lineage/docker-compose.yml`.
+- `./stack.sh up infra_lineage` runs DataHub quickstart services from `domains/infra_lineage/docker-compose.yml`.
 - Workers emit runtime lineage to DataHub GMS via `DATAHUB_GMS_SERVER` and `DATAHUB_ENV`.
-- `make lineage-*` commands are legacy Marquez tooling and are not DataHub-native.
+- Legacy `make lineage-*` tooling has been removed from this repository.
 
 ## Python Dependencies (Poetry)
 
 Python projects in this repository are managed independently with Poetry (one `pyproject.toml` per app/lib/worker).
 
 Projects include:
-- `apps/rag-api`
+- `domains/app_rag_api`
 - `libs/pipeline-common`
 - `domains/worker_*`
 
@@ -136,6 +151,6 @@ poetry lock
   - RabbitMQ: `rabbitmq:3-management-alpine`
   - Postgres: `postgres:15-alpine`
 - Start domains independently or as a full stack, depending on what you are developing.
-- `domains/llm` builds a custom Ollama image and bakes `LLM_MODEL` (default: `llama3.2:1b`) at build time.
+- `domains/infra_llm` builds a custom Ollama image and bakes `LLM_MODEL` (default: `llama3.2:1b`) at build time.
 - To build with a different model:
-  - `LLM_MODEL=<your-model> ./stack.sh up llm`
+  - `LLM_MODEL=<your-model> ./stack.sh up infra_llm`

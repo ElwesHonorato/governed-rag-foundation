@@ -1,8 +1,0 @@
-datasets:
-  - id: postgres.rag.chunk_metadata
-    platform: postgres
-    name: rag/chunk_metadata
-    domain: rag-embeddings
-    owners: [search-platform]
-    tags: [internal]
-    terms: [chunk]

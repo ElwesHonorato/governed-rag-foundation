@@ -1,56 +1,17 @@
-from abc import ABC, abstractmethod
-
 import json
 import logging
-from typing import Any, TypedDict
+from typing import Any
 
-from pipeline_common.contracts import doc_id_from_source_key, utc_now_iso
-from pipeline_common.lineage import DatasetPlatform
-from pipeline_common.lineage.data_hub import DataHubRunTimeLineage
-from pipeline_common.queue import StageQueue
-from pipeline_common.object_storage import ObjectStorageGateway
+from contracts.contracts import ParseProcessingConfigContract
+from pipeline_common.helpers.contracts import doc_id_from_source_key, utc_now_iso
+from pipeline_common.gateways.lineage import DatasetPlatform
+from pipeline_common.gateways.lineage import LineageRuntimeGateway
+from pipeline_common.gateways.queue import StageQueue
+from pipeline_common.gateways.object_storage import ObjectStorageGateway
+from pipeline_common.startup.contracts import WorkerService
 from parsing.registry import ParserRegistry
 
 logger = logging.getLogger(__name__)
-
-
-class SecurityConfig(TypedDict):
-    """Security-related parse metadata configuration."""
-
-    clearance: str
-
-
-class DocumentProcessingConfig(TypedDict):
-    """Runtime config for parse worker queues, storage, polling, and metadata."""
-
-    poll_interval_seconds: int
-    queue: "QueueConfig"
-    storage: "StorageConfig"
-    security: SecurityConfig
-
-
-class StorageConfig(TypedDict):
-    """Storage-related prefixes and bucket for parse worker."""
-
-    bucket: str
-    raw_prefix: str
-    processed_prefix: str
-
-
-class QueueConfig(TypedDict):
-    """Queue contract and timeout settings for parse worker."""
-
-    stage: str
-    stage_queues: dict[str, Any]
-    queue_pop_timeout_seconds: int
-
-
-class WorkerService(ABC):
-    """Minimal worker interface for long-running service loops."""
-
-    @abstractmethod
-    def serve(self) -> None:
-        """Run the worker loop indefinitely."""
 
 
 class WorkerParseDocumentService(WorkerService):
@@ -61,8 +22,8 @@ class WorkerParseDocumentService(WorkerService):
         *,
         stage_queue: StageQueue,
         object_storage: ObjectStorageGateway,
-        lineage: DataHubRunTimeLineage,
-        processing_config: DocumentProcessingConfig,
+        lineage: LineageRuntimeGateway,
+        processing_config: ParseProcessingConfigContract,
         parser_registry: ParserRegistry,
     ) -> None:
         """Initialize parse worker dependencies and runtime settings."""
@@ -85,7 +46,7 @@ class WorkerParseDocumentService(WorkerService):
 
     def process_source_key(self, source_key: str) -> None:
         """Parse a single raw document key and publish downstream work."""
-        if not source_key.startswith(self.raw_prefix) or source_key == self.raw_prefix:
+        if not source_key.startswith(self.input_prefix) or source_key == self.input_prefix:
             return
 
         doc_id = doc_id_from_source_key(source_key)
@@ -131,7 +92,7 @@ class WorkerParseDocumentService(WorkerService):
 
     def _processed_key(self, doc_id: str) -> str:
         """Build the processed-stage key for a document id."""
-        return f"{self.processed_prefix}{doc_id}.json"
+        return f"{self.output_prefix}{doc_id}.json"
 
     def _processed_exists(self, destination_key: str) -> bool:
         """Return whether the processed output already exists."""
@@ -163,10 +124,10 @@ class WorkerParseDocumentService(WorkerService):
         """Publish chunking work for a newly produced processed document."""
         self.stage_queue.push_produce_message(storage_key=destination_key)
 
-    def _initialize_runtime_config(self, processing_config: DocumentProcessingConfig) -> None:
+    def _initialize_runtime_config(self, processing_config: ParseProcessingConfigContract) -> None:
         """Internal helper for initialize runtime config."""
-        self.poll_interval_seconds = processing_config["poll_interval_seconds"]
-        self.storage_bucket = processing_config["storage"]["bucket"]
-        self.raw_prefix = processing_config["storage"]["raw_prefix"]
-        self.processed_prefix = processing_config["storage"]["processed_prefix"]
-        self.security_clearance = processing_config["security"]["clearance"]
+        self.poll_interval_seconds = processing_config.poll_interval_seconds
+        self.storage_bucket = processing_config.storage.bucket
+        self.input_prefix = processing_config.storage.input_prefix
+        self.output_prefix = processing_config.storage.output_prefix
+        self.security_clearance = processing_config.security.clearance

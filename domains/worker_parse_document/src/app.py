@@ -1,65 +1,28 @@
-"""worker_parse_document entrypoint.
+"""worker_parse_document entrypoint."""
 
-Purpose:
-- Bootstrap the parse stage worker that transforms raw objects into processed payloads.
-
-What this module should do:
-- Load queue/storage runtime settings.
-- Wire parser registry and storage/queue clients.
-- Construct the parse service and start the long-running loop.
-
-Best practices:
-- Keep only dependency wiring in this module.
-- Register parsers explicitly so supported formats are easy to audit.
-- Keep startup deterministic and free of hidden global side effects.
-"""
-
-from pipeline_common.lineage.pipeline import DataHubPipelineJobs
-from pipeline_common.startup import (
-    build_datahub_lineage_client,
-    build_object_storage,
-    build_stage_queue,
-    expand_dot_properties,
-    load_runtime_settings,
-)
+from contracts.contracts import ParseWorkerConfigContract
 from parsing.html import HtmlParser
 from parsing.registry import ParserRegistry
+from registry import DataHubPipelineJobs
+from pipeline_common.settings import SettingsProvider, SettingsRequest
+from pipeline_common.startup import RuntimeContextFactory, WorkerRuntimeLauncher
 from services.worker_parse_document_service import WorkerParseDocumentService
+from startup.config_extractor import ParseConfigExtractor
+from startup.service_factory import ParseServiceFactory
 
 
 def run() -> None:
-    """Initialize dependencies and start the worker service."""
-    s3_settings, queue_settings, datahub_settings = load_runtime_settings()
-    lineage = build_datahub_lineage_client(
-        datahub_settings=datahub_settings,
+    """Start parse_document worker."""
+    settings = SettingsProvider(SettingsRequest(datahub=True, storage=True, queue=True)).bundle
+    runtime_factory = RuntimeContextFactory(
         data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_parse_document"),
+        settings_bundle=settings,
     )
-    raw_config = expand_dot_properties(lineage.resolved_job_config.custom_properties)
-    parse_config, queue_config = _extract_parse_and_queue_config(raw_config)
-
-    stage_queue = build_stage_queue(
-        broker_url=queue_settings.broker_url,
-        queue_config=queue_config,
-    )
-    parser_registry = ParserRegistry(parsers=[HtmlParser()])
-    object_storage = build_object_storage(s3_settings)
-    WorkerParseDocumentService(
-        stage_queue=stage_queue,
-        object_storage=object_storage,
-        lineage=lineage,
-        processing_config={
-            "poll_interval_seconds": int(parse_config["poll_interval_seconds"]),
-            "queue": queue_config,
-            "storage": parse_config["storage"],
-            "security": parse_config["security"],
-        },
-        parser_registry=parser_registry,
-    ).serve()
-
-
-def _extract_parse_and_queue_config(expanded_config: dict) -> tuple[dict, dict]:
-    """Return parse and queue config sections from expanded properties."""
-    return expanded_config["parse"], expanded_config["queue"]
+    WorkerRuntimeLauncher[ParseWorkerConfigContract, WorkerParseDocumentService](
+        runtime_factory=runtime_factory,
+        config_extractor=ParseConfigExtractor(),
+        service_factory=ParseServiceFactory(parser_registry=ParserRegistry(parsers=[HtmlParser()])),
+    ).start()
 
 
 if __name__ == "__main__":

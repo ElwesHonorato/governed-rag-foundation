@@ -3,12 +3,6 @@
 
 from __future__ import annotations
 
-from datahub.ingestion.graph.client import DataHubGraph, DatahubClientConfig
-from datahub.metadata.urns import CorpGroupUrn, DatasetUrn, DomainUrn, GlossaryTermUrn, TagUrn
-from datahub.sdk import DataHubClient
-
-from infrastructure.datahub import DataHubGovernanceCatalogWriter
-from state_loader import GovernanceStateLoader
 from entities import (
     DatasetManager,
     DatasetManagerContext,
@@ -25,42 +19,29 @@ from entities import (
     TaxonomyManager,
     TaxonomyManagerContext,
 )
+from entities.shared.ports import GovernanceCatalogWriterPort
+from state_loader import GovernanceState
 
 
 class GovernanceApplier:
     """Apply governance definitions for one environment."""
 
-    def __init__(self, env_name: str) -> None:
-        """Load environment state and initialize client/config for apply operations."""
+    def __init__(
+        self,
+        *,
+        env_name: str,
+        state: GovernanceState,
+        refs: ResolvedRefs,
+        governance_writer: GovernanceCatalogWriterPort,
+    ) -> None:
+        """Store runtime state and port dependencies required for apply operations."""
 
         self.env = env_name
-        self.state = GovernanceStateLoader.load(env_name)
-        self.refs = self._resolve_refs()
-        self.client = DataHubClient(
-            server=self.state.env_settings.gms_server,
-            token=self.state.env_settings.token,
-        )
-        self.graph_config = DatahubClientConfig(
-            server=self.state.env_settings.gms_server,
-            token=self.state.env_settings.token,
-        )
+        self.state = state
+        self.refs = refs
+        self.governance_writer = governance_writer
 
-    def _resolve_refs(self) -> ResolvedRefs:
-        """Resolve commonly used URN mappings for this applier instance."""
-
-        snapshot = self.state.governance_definitions_snapshot
-        return ResolvedRefs(
-            domain_urns={d["id"]: str(DomainUrn(d["id"])) for d in snapshot.domains},
-            group_urns={g["id"]: str(CorpGroupUrn(g["id"])) for g in snapshot.groups},
-            tag_urns={t["id"]: str(TagUrn(t["name"])) for t in snapshot.tags},
-            term_urns={t["id"]: str(GlossaryTermUrn(t["id"])) for t in snapshot.terms},
-            dataset_urns={
-                d["id"]: str(DatasetUrn(platform=d["platform"], name=d["name"], env=self.env))
-                for d in snapshot.datasets
-            },
-        )
-
-    def _split_context_by_manager(self, graph) -> ManagerContexts:
+    def _split_context_by_manager(self) -> ManagerContexts:
         """Split runtime state into manager-specific contexts.
 
         Example (dataset path):
@@ -79,25 +60,21 @@ class GovernanceApplier:
         - DatasetManager then resolves each field by key from the corresponding map.
         """
 
-        governance_writer = DataHubGovernanceCatalogWriter(
-            graph=graph,
-            client=self.client,
-        )
         return ManagerContexts(
             domain=DomainManagerContext(
-                governance_writer=governance_writer,
+                governance_writer=self.governance_writer,
                 domain_urns=self.refs.domain_urns,
             ),
             group=GroupManagerContext(
-                governance_writer=governance_writer,
+                governance_writer=self.governance_writer,
                 group_urns=self.refs.group_urns,
             ),
             taxonomy=TaxonomyManagerContext(
-                governance_writer=governance_writer,
+                governance_writer=self.governance_writer,
                 term_urns=self.refs.term_urns,
             ),
             dataset=DatasetManagerContext(
-                governance_writer=governance_writer,
+                governance_writer=self.governance_writer,
                 env=self.env,
                 domain_urns=self.refs.domain_urns,
                 group_urns=self.refs.group_urns,
@@ -105,13 +82,13 @@ class GovernanceApplier:
                 term_urns=self.refs.term_urns,
             ),
             flow_job=FlowJobManagerContext(
-                governance_writer=governance_writer,
+                governance_writer=self.governance_writer,
                 env=self.env,
                 domain_urns=self.refs.domain_urns,
                 group_urns=self.refs.group_urns,
             ),
             lineage=LineageContractManagerContext(
-                governance_writer=governance_writer,
+                governance_writer=self.governance_writer,
                 env=self.env,
                 domain_urns=self.refs.domain_urns,
                 group_urns=self.refs.group_urns,
@@ -141,10 +118,9 @@ class GovernanceApplier:
     def apply(self) -> int:
         """Apply governance model."""
 
-        with DataHubGraph(self.graph_config) as graph:
-            manager_contexts = self._split_context_by_manager(graph)
-            self._apply_static(manager_contexts)
-            self._apply_dynamic(manager_contexts)
+        manager_contexts = self._split_context_by_manager()
+        self._apply_static(manager_contexts)
+        self._apply_dynamic(manager_contexts)
 
         print("apply complete")
         return 0

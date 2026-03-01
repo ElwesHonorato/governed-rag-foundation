@@ -1,204 +1,178 @@
 # Governance Domain Architecture (`domains/gov_governance`)
 
 ## Scope
-This document describes only `domains/gov_governance`, inferred from code under:
+This document describes the current implemented architecture for:
 - `domains/gov_governance/src/*`
 - `domains/gov_governance/definitions/*`
-- `domains/gov_governance/configs/*`
-- `domains/gov_governance/ci/github/workflows/governance-apply.yml`
+- `domains/gov_governance/docs/*`
 
-## 1) What the governance domain does
-`gov_governance` is a metadata-as-code apply tool for DataHub. It:
-1. Loads environment config (`configs/dev.yaml`, `configs/prod.yaml`).
-2. Discovers and parses governance YAML definitions (`definitions/**.yaml`).
+It intentionally reflects code as-is (not target-state design).
+
+## What This Domain Does
+`gov_governance` applies governance metadata-as-code into DataHub.
+
+At runtime it:
+1. Loads DataHub runtime settings through shared settings (`SettingsProvider(SettingsRequest(datahub=True))`).
+2. Loads governance YAML definitions from `definitions/**/*.yaml`.
 3. Builds an in-memory snapshot (`GovernanceDefinitionSnapshot`).
-4. Resolves ID -> DataHub URN maps (`ResolvedRefs`).
-5. Applies entities in deterministic order via managers:
-   - Static: domains, groups, tags, glossary terms
-   - Dynamic: datasets, flows/jobs, lineage contracts
-6. Emits DataHub writes via a single adapter (`DataHubGovernanceCatalogWriter`) using DataHub SDK + MCP aspects.
+4. Resolves ID-to-URN maps (`ResolvedRefs`) for cross-entity linking.
+5. Applies governance entities in deterministic order through managers.
+6. Persists through a single adapter (`DataHubGovernanceCatalogWriter`) using DataHub SDK + MCP.
 
-Primary entrypoint:
-- [`src/apply.py`](../src/apply.py) -> `main()`
+Entrypoint:
+- [`src/apply.py`](../src/apply.py)
 
-## 2) Key components and responsibilities
+## Current Layering (Observed)
 
-| Component | Path | Key symbols | Responsibility |
-|---|---|---|---|
-| Composition root / CLI | `src/apply.py` | `main()` | Wires env, state loader, DataHub client/graph, concrete writer adapter, and applier. |
-| Orchestration service | `src/orchestration/governance_applier.py` | `GovernanceApplier` | Coordinates apply order, converts raw snapshot payloads to typed definitions, builds per-manager contexts. |
-| Definition/state loading | `src/state_loader/governance_definitions_state.py` | `GovernanceStateLoader`, `GovernanceDefinitionDiscoverer`, `RelationalDefinitions`, `StandaloneDefinitions`, `resolve_env` | Loads config and definitions, classifies YAML types, assembles pipelines by `flow_id`, validates references. |
-| Application managers | `src/entities/*/manager.py` | `DomainManager`, `GroupManager`, `TaxonomyManager`, `DatasetManager`, `FlowJobManager`, `LineageContractManager` | Apply one concern each using typed definitions + context maps + writer port. |
-| Typed definition models | `src/entities/shared/definitions.py` | `DomainDefinition`, `GroupDefinition`, `DatasetDefinition`, `PipelineDefinition`, etc. | Converts untyped YAML mappings into typed application inputs. |
-| Manager context model | `src/entities/shared/context.py` | `ResolvedRefs`, `*ManagerContext`, `ManagerContexts` | Holds cross-manager runtime context and resolved URN maps. |
-| Port contract | `src/entities/shared/ports.py` | `GovernanceCatalogWriterPort` | Defines writes managers can request without SDK coupling. |
-| DataHub adapter (write) | `src/infrastructure/datahub/catalog_writer.py` | `DataHubGovernanceCatalogWriter` | Implements port using DataHub SDK entities and MCP aspect emissions. |
-| Ref mapping | `src/state_loader/governance_definitions_state.py` | `GovernanceStateLoader.resolve_refs()` | Converts IDs from snapshot into DataHub URNs. |
-
-## 3) Main workflows / data flow
-
-### 3.1 Apply execution flow
-1. `apply.py:main()` resolves environment via `state_loader.resolve_env()`.
-2. `GovernanceStateLoader.load(env)` loads:
-   - DataHub connection settings from `configs/<env>.yaml`
-   - Definitions snapshot from `definitions/**.yaml`
-   - `ResolvedRefs` maps (`state.refs`) via internal `resolve_refs(...)`
-4. `apply.py` creates DataHub clients:
-   - `DataHubClient(...)`
-   - `DataHubGraph(DatahubClientConfig(...))`
-5. `DataHubGovernanceCatalogWriter(graph, client)` is instantiated.
-6. `GovernanceApplier(...).apply()` runs:
-   - `_apply_static(...)`: domain -> group -> taxonomy
-   - `_apply_dynamic(...)`: dataset -> flow/job -> lineage contract
-7. Managers call `GovernanceCatalogWriterPort` methods.
-8. `DataHubGovernanceCatalogWriter` emits SDK/MCP operations to DataHub.
-
-### 3.2 Definition discovery flow
-`GovernanceDefinitionDiscoverer.load()`:
-- Scans `definitions/**/*.yaml`.
-- Classifies each file by top-level keys (`DefinitionType`).
-- Stores standalone entities (`domains`, `groups`, `tags`, `terms`, `datasets`) in `StandaloneDefinitions`.
-- Stores relational entities (`flow`, `jobs`, `lineage_contract`) in `RelationalDefinitions`.
-- `RelationalDefinitions` validates `flow_id` references and assembles deterministic `pipelines` sorted by flow id.
-
-## 4) Inferred layer model (from dependencies)
-
-The code does not label layers explicitly, but import direction shows these practical layers.
-
-### Layer A: Definitions & Runtime State Loading
+### Composition Root
+- File: [`src/apply.py`](../src/apply.py)
 - Responsibilities:
-  - Read configs and YAML definitions
-  - Classify and aggregate definitions
-  - Validate environment and relational references (`flow_id`)
-  - Produce `GovernanceState`
-  - Build `ResolvedRefs` URN maps
-- Key files/classes:
-  - [`src/state_loader/governance_definitions_state.py`](../src/state_loader/governance_definitions_state.py)
-  - `GovernanceStateLoader`, `GovernanceDefinitionDiscoverer`, `RelationalDefinitions`
-- Depends on:
-  - `pipeline_common.helpers.file_reader.FileReader`
-  - `pipeline_common.helpers.file_system_helper.FileSystemHelper`
-  - `datahub.metadata.urns.*` (for `resolve_refs`)
-  - `os`, `pathlib`, stdlib types
+  - Load DataHub settings from environment.
+  - Instantiate `GovernanceStateLoader`.
+  - Instantiate `DataHubClient` + `DataHubGraph`.
+  - Wire `GovernanceApplier` with concrete writer adapter.
 
-### Layer B: Application Orchestration & Use-Case Services
+### State Loading and Definition Discovery
+- File: [`src/state_loader/governance_definitions_state.py`](../src/state_loader/governance_definitions_state.py)
 - Responsibilities:
-  - Convert raw payloads to typed definitions
-  - Enforce apply order and workflow
-  - Resolve ID references via context maps during write requests
-  - Express write intent via port interface (not SDK objects)
-- Key files/classes:
-  - [`src/orchestration/governance_applier.py`](../src/orchestration/governance_applier.py) (`GovernanceApplier`)
-  - [`src/entities/*/manager.py`](../src/entities)
-  - [`src/entities/shared/definitions.py`](../src/entities/shared/definitions.py)
-  - [`src/entities/shared/context.py`](../src/entities/shared/context.py)
-  - [`src/entities/shared/ports.py`](../src/entities/shared/ports.py)
-- Depends on:
-  - Layer A output (`GovernanceState`)
-  - Port protocol (`GovernanceCatalogWriterPort`)
-  - No direct `datahub.*` imports in managers/orchestration
+  - Discover/parse YAML definitions.
+  - Classify definition file types (`DefinitionType`).
+  - Build normalized pipeline payloads from flow/jobs/lineage-contract files.
+  - Build `ResolvedRefs` URN maps for domain/group/tag/term/dataset IDs.
 
-### Layer C: Infrastructure Adapters (DataHub-specific)
+### Application Orchestration
+- File: [`src/orchestration/governance_applier.py`](../src/orchestration/governance_applier.py)
 - Responsibilities:
-  - Translate port calls into DataHub SDK entities/aspects
-  - Perform URN construction and normalization
-  - Emit MCP upserts and SDK upserts
-- Key files/classes:
-  - [`src/infrastructure/datahub/catalog_writer.py`](../src/infrastructure/datahub/catalog_writer.py)
-- Depends on:
-  - `datahub.sdk` (`DataFlow`, `DataJob`, `Dataset`, `Tag`, `DataHubClient`)
-  - `datahub.emitter.mcp.MetadataChangeProposalWrapper`
-  - `datahub.metadata.schema_classes.*`
-  - `datahub.metadata.urns.*`
+  - Split runtime state into manager-specific contexts.
+  - Enforce apply order.
+  - Convert raw payload mappings into typed definitions.
 
-### Layer D: Composition Root / Delivery
+### Entity Managers (Use-Case Units)
+- Files: [`src/entities/*/manager.py`](../src/entities)
 - Responsibilities:
-  - Instantiate concrete adapter and external clients
-  - Connect layers A, B, C together at runtime
-- Key files/classes:
-  - [`src/apply.py`](../src/apply.py)
-- Depends on:
-  - Layer A loader
-  - Layer B orchestrator
-  - Layer C adapters
-  - DataHub connection classes (`DataHubGraph`, `DatahubClientConfig`, `DataHubClient`)
+  - Domain, group, taxonomy, dataset, flow/job, and lineage-contract apply operations.
+  - Resolve references via context maps and invoke writer port.
 
-## 5) Dependency and boundary view
+### Port and Infrastructure Adapter
+- Port: [`src/entities/shared/ports.py`](../src/entities/shared/ports.py)
+- Adapter: [`src/infrastructure/datahub/catalog_writer.py`](../src/infrastructure/datahub/catalog_writer.py)
+- Responsibilities:
+  - Keep managers SDK-agnostic (port surface).
+  - Translate write calls into DataHub SDK entities and MCP aspects.
 
-### 5.1 Compile-time dependency direction
+## Runtime Flow
 
 ```text
-apply.py (composition root)
-  ├─> state_loader (load GovernanceState)
-  ├─> infrastructure.datahub.DataHubGovernanceCatalogWriter
-  └─> orchestration.GovernanceApplier
-         ├─> entities managers
-         ├─> entities.shared.definitions/context
-         └─> entities.shared.ports (GovernanceCatalogWriterPort)
-
-infrastructure.datahub.*
-  └─> datahub SDK + MCP + URN classes
-
-state_loader
-  └─> pipeline_common file helpers
+Environment vars
+  └─> SettingsProvider(SettingsRequest(datahub=True)).bundle.datahub
+       └─> apply.py
+            ├─> GovernanceStateLoader(env).state
+            │    ├─> GovernanceDefinitionDiscoverer(definitions/**/*.yaml)
+            │    ├─> StandaloneDefinitions + RelationalDefinitions
+            │    └─> ResolvedRefs (URN maps)
+            ├─> DataHubClient + DataHubGraph
+            └─> GovernanceApplier.apply()
+                 ├─ static: Domain -> Group -> Taxonomy
+                 └─ dynamic: Dataset -> Flow/Job -> Lineage
+                      └─> GovernanceCatalogWriterPort
+                           └─> DataHubGovernanceCatalogWriter
+                                └─> DataHub
 ```
 
-### 5.2 Runtime call flow
+## Deterministic Ordering Rules
+- Static entities:
+  1. Domains
+  2. Groups
+  3. Tags/Terms
+- Dynamic entities:
+  1. Datasets
+  2. Flows/Jobs
+  3. Lineage contracts
+
+`RelationalDefinitions._assemble_pipelines()` sorts by `flow_id`, making flow-based execution deterministic.
+
+## Core Data Contracts
+- `GovernanceDefinitionSnapshot`:
+  - `domains`, `groups`, `tags`, `terms`, `datasets`, `pipelines`
+- `GovernanceState`:
+  - `governance_definitions_snapshot`
+  - `refs: ResolvedRefs`
+- `ResolvedRefs`:
+  - `domain_urns`, `group_urns`, `tag_urns`, `term_urns`, `dataset_urns`
+
+## Dependency Direction
 
 ```text
-YAML files (configs + definitions)
-   │
-   ▼
-GovernanceStateLoader.load()
-   │   produces GovernanceState(snapshot + env settings + refs)
-   ▼
-GovernanceApplier.apply()
-   ├─ static: DomainManager -> GroupManager -> TaxonomyManager
-   └─ dynamic: DatasetManager -> FlowJobManager -> LineageContractManager
-            each manager calls GovernanceCatalogWriterPort
-                               │
-                               ▼
-                 DataHubGovernanceCatalogWriter (adapter)
-                               │
-                               ▼
-                DataHubGraph.emit / DataHubClient.entities.upsert
-                               │
-                               ▼
-                             DataHub
+apply.py
+  ├─> state_loader
+  ├─> orchestration
+  └─> infrastructure.datahub
+
+orchestration
+  ├─> entities managers
+  ├─> entities definitions/context
+  └─> entities ports
+
+infrastructure.datahub
+  └─> datahub SDK + MCP
 ```
 
-## 6) External systems and adapters
-- External metadata system: DataHub (GMS server from `configs/*.yaml`).
-- Adapter boundary:
-  - Port: `GovernanceCatalogWriterPort` (`src/entities/shared/ports.py`)
-  - Adapter: `DataHubGovernanceCatalogWriter` (`src/infrastructure/datahub/catalog_writer.py`)
-- URN mapping is implemented in `GovernanceStateLoader.resolve_refs` (`src/state_loader/governance_definitions_state.py`).
+No manager imports DataHub SDK directly; SDK coupling is concentrated in `infrastructure/datahub`.
 
-## 7) Observed patterns from code
-- Composition Root: `src/apply.py`
-- Use-case orchestration service: `GovernanceApplier`
-- Application service per concern: manager classes under `src/entities/*/manager.py`
-- Port/Adapter boundary: `GovernanceCatalogWriterPort` -> `DataHubGovernanceCatalogWriter`
-- Data Mapper / DTO conversion: `*.from_mapping()` in `src/entities/shared/definitions.py`
+## Architectural Friction / Ambiguities
 
-## 8) How to extend
+### 1) Loader has side effects in constructor (accepted)
+- Current behavior:
+  - `GovernanceStateLoader.__init__` immediately executes `_load()` and stores `.state`.
+- Friction:
+  - Instantiation triggers disk I/O and validation.
+  - This reduces clarity and test ergonomics (construction vs execution lifecycle are merged).
+- Decision:
+  - Keep eager-init behavior.
 
-### Add a new governance entity type (example: `assertions`)
-1. Add YAML type and files under `definitions/`.
-2. Extend `DefinitionType` and discovery/aggregation in [`state_loader/governance_definitions_state.py`](../src/state_loader/governance_definitions_state.py).
+### 2) Double-write behavior for jobs is implicit
+- Current behavior:
+  - `FlowJobManager` upserts jobs first (without lineage).
+  - `LineageContractManager` upserts the same jobs again (with inlets/outlets).
+- Friction:
+  - The two-phase job update is valid but not explicitly documented as intentional.
+  - Contributors may treat it as accidental duplication.
+- Decision needed:
+  - Keep as explicit two-phase strategy (document rationale) or collapse into a single write path.
+
+### 3) CLI observability uses `print` across layers
+- Current behavior:
+  - Managers and applier print progress directly.
+- Friction:
+  - No structured log levels, correlation IDs, or consistent sink strategy.
+  - Harder to integrate with CI/ops telemetry standards.
+- Decision needed:
+  - Standardize on logging interface (aligned with repo logging/tracing patterns).
+
+## Extension Guide
+
+### Add a new governance entity type
+1. Add YAML definitions under `definitions/`.
+2. Extend `DefinitionType` and discovery wiring in [`state_loader/governance_definitions_state.py`](../src/state_loader/governance_definitions_state.py).
 3. Add typed model in [`entities/shared/definitions.py`](../src/entities/shared/definitions.py).
-4. Add manager + context (new `entities/<entity>/manager.py`, update `entities/shared/context.py`).
-5. Add/extend port method in [`entities/shared/ports.py`](../src/entities/shared/ports.py).
-6. Implement adapter behavior in [`infrastructure/datahub/catalog_writer.py`](../src/infrastructure/datahub/catalog_writer.py).
-7. Wire new manager call in [`orchestration/governance_applier.py`](../src/orchestration/governance_applier.py) in correct ordering.
+4. Add/extend manager context in [`entities/shared/context.py`](../src/entities/shared/context.py).
+5. Add manager implementation in `entities/<new_entity>/manager.py`.
+6. Extend port in [`entities/shared/ports.py`](../src/entities/shared/ports.py).
+7. Implement adapter behavior in [`infrastructure/datahub/catalog_writer.py`](../src/infrastructure/datahub/catalog_writer.py).
+8. Wire manager call ordering in [`orchestration/governance_applier.py`](../src/orchestration/governance_applier.py).
 
-### Add new metadata fields to existing entities
-1. Extend typed definition dataclass in `entities/shared/definitions.py`.
-2. Thread field through manager call to port method.
-3. Extend port signature and adapter implementation.
-4. Update YAML definitions under `definitions/*`.
+### Add new fields to existing entities
+1. Extend typed dataclass and `from_mapping`.
+2. Thread through manager and context as needed.
+3. Extend port + adapter signatures.
+4. Update YAML payloads.
 
-### Add new environment
-1. Add config file under `configs/<env>.yaml`.
-2. Add env name to `ALLOWED_ENVS` in `state_loader/governance_definitions_state.py`.
-3. Provide required token env var in runtime/CI.
+## External References (Design and Refactoring Heuristics)
+- Refactoring Guru - Adapter: https://refactoring.guru/design-patterns/adapter
+- Refactoring Guru - Facade: https://refactoring.guru/design-patterns/facade
+- Refactoring Guru - Factory Method: https://refactoring.guru/design-patterns/factory-method
+- Refactoring Guru - Shotgun Surgery: https://refactoring.guru/smells/shotgun-surgery
+- Refactoring Guru - Feature Envy: https://refactoring.guru/smells/feature-envy
+- Refactoring Guru - Long Method: https://refactoring.guru/smells/long-method
+
+These references are used as shared vocabulary for the friction items above, not as strict prescriptions.

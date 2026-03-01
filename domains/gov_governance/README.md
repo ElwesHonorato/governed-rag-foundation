@@ -4,7 +4,6 @@ This directory defines static DataHub metadata as code: versioned, reviewable, r
 
 ## Layout
 
-- `configs/`: environment-specific DataHub connection settings
 - `definitions/`: domains, groups, tags, glossary terms, datasets, and pipelines/jobs
 - `src/`: apply entrypoints
 - `ci/github/workflows/`: example CI workflows for check/apply
@@ -13,21 +12,24 @@ This directory defines static DataHub metadata as code: versioned, reviewable, r
 
 Run from repo root.
 
-Set environment once (default is `dev` if not set):
+Set DataHub environment variables:
 
 ```bash
-export ENV=dev
+export DATAHUB_GMS_SERVER="http://localhost:8081"
+export DATAHUB_ENV="DEV"
+export DATAHUB_TOKEN="..."
 ```
 
 ```bash
 PYTHONPATH=libs/pipeline-common/src .venv/bin/python domains/gov_governance/src/apply.py
 ```
 
-Use prod config:
+Use PROD target:
 
 ```bash
-export DATAHUB_TOKEN_PROD="..."
-export ENV=prod
+export DATAHUB_GMS_SERVER="https://datahub.company.com"
+export DATAHUB_ENV="PROD"
+export DATAHUB_TOKEN="..."
 PYTHONPATH=libs/pipeline-common/src .venv/bin/python domains/gov_governance/src/apply.py
 ```
 

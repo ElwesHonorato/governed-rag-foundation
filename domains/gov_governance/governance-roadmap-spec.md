@@ -380,8 +380,8 @@ Reason:
 
 ## Definition of Done (Current State)
 - `domains/gov_governance/src/apply.py` applies governance entities: domains, groups, tags, glossary terms, datasets, flows/jobs, and lineage contract edges.
-- Environment selection for apply is resolved from `ENV` and validated against allowed values (`dev`, `prod`).
-- CI apply workflow runs `domains/gov_governance/src/apply.py` with `ENV=prod` on pushes to `main` that touch `domains/gov_governance/**`.
+- Environment selection for apply is resolved from `DATAHUB_ENV` (operationally provided as `DEV` or `PROD`).
+- CI apply workflow runs `domains/gov_governance/src/apply.py` with `DATAHUB_ENV=PROD` on pushes to `main` that touch `domains/gov_governance/**`.
 - Governance definitions are loaded from YAML and assembled deterministically into a snapshot before apply.
 - Re-running apply with unchanged definitions is expected to be idempotent via upsert semantics.
 

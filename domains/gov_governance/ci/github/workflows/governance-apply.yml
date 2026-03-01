@@ -20,6 +20,7 @@ jobs:
           python -m pip install pyyaml acryl-datahub requests
       - name: Apply governance to PROD
         env:
-          DATAHUB_TOKEN_PROD: ${{ secrets.DATAHUB_TOKEN_PROD }}
-          ENV: prod
+          DATAHUB_GMS_SERVER: https://datahub.company.com
+          DATAHUB_ENV: PROD
+          DATAHUB_TOKEN: ${{ secrets.DATAHUB_TOKEN_PROD }}
         run: PYTHONPATH=libs/pipeline-common/src python domains/gov_governance/src/apply.py

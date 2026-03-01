@@ -1,11 +1,11 @@
 from pipeline_common.gateways.factories import (
-    DataHubLineageGatewayBuilder,
-    ObjectStorageGatewayBuilder,
-    StageQueueGatewayBuilder,
+    DataHubLineageGatewayFactory,
+    ObjectStorageGatewayFactory,
+    StageQueueGatewayFactory,
 )
 
 __all__ = [
-    "DataHubLineageGatewayBuilder",
-    "ObjectStorageGatewayBuilder",
-    "StageQueueGatewayBuilder",
+    "DataHubLineageGatewayFactory",
+    "ObjectStorageGatewayFactory",
+    "StageQueueGatewayFactory",
 ]

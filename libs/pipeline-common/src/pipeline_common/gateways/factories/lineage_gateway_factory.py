@@ -1,4 +1,4 @@
-"""DataHub lineage gateway builder for worker runtime."""
+"""DataHub lineage gateway factory for worker runtime."""
 
 from pipeline_common.gateways.lineage.contracts import DataHubDataJobKey
 from pipeline_common.gateways.lineage import DataHubRunTimeLineage
@@ -6,15 +6,15 @@ from pipeline_common.gateways.lineage.runtime_contracts import DataHubLineageRun
 from pipeline_common.gateways.lineage.settings import DataHubSettings
 
 
-class DataHubLineageGatewayBuilder:
-    """Build DataHub runtime lineage gateway from DataHub settings + job key."""
+class DataHubLineageGatewayFactory:
+    """Create DataHub runtime lineage gateway from DataHub settings + job key."""
 
     def __init__(self, *, datahub_settings: DataHubSettings, data_job_key: DataHubDataJobKey) -> None:
         self.datahub_settings = datahub_settings
         self.data_job_key = data_job_key
 
     def build(self) -> DataHubRunTimeLineage:
-        """Build DataHub runtime lineage gateway for one worker."""
+        """Create DataHub runtime lineage gateway for one worker."""
         return DataHubRunTimeLineage(
             client_config=DataHubLineageRuntimeConfig(
                 connection_settings=DataHubRuntimeConnectionSettings(

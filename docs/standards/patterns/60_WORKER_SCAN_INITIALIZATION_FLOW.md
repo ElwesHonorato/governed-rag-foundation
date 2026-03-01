@@ -28,10 +28,10 @@ File: `libs/pipeline-common/src/pipeline_common/startup/runtime_factory.py`
 4. `queue_settings`
 
 Then `_build_runtime_context()` does:
-1. Build lineage gateway via `DataHubLineageGatewayBuilder`.
+1. Build lineage gateway via `DataHubLineageGatewayFactory`.
 2. Parse DataHub `custom_properties` into nested `job_properties` using `JobPropertiesParser`.
-3. Build object storage gateway via `ObjectStorageGatewayBuilder`.
-4. Build stage queue gateway via `StageQueueGatewayBuilder` using `job_properties["job"]["queue"]`.
+3. Build object storage gateway via `ObjectStorageGatewayFactory`.
+4. Build stage queue gateway via `StageQueueGatewayFactory` using `job_properties["job"]["queue"]`.
 5. Return `WorkerRuntimeContext`.
 
 Pattern: Assembler / Shared Composition-Root Helper
@@ -150,7 +150,7 @@ Where: `WorkerServiceFactory` interface and `ScanServiceFactory` implementation
 Why: Creates one service graph product for the worker.
 
 ### Gateway Factories (Simple Builders)
-Where: `DataHubLineageGatewayBuilder`, `ObjectStorageGatewayBuilder`, `StageQueueGatewayBuilder`
+Where: `DataHubLineageGatewayFactory`, `ObjectStorageGatewayFactory`, `StageQueueGatewayFactory`
 
 Why: Each class constructs one gateway deterministically from settings.
 

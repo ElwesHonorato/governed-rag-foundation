@@ -7,6 +7,7 @@ from datahub.ingestion.graph.client import DataHubGraph, DatahubClientConfig
 from datahub.metadata.urns import CorpGroupUrn, DatasetUrn, DomainUrn, GlossaryTermUrn, TagUrn
 from datahub.sdk import DataHubClient
 
+from infrastructure.datahub import DataHubDomainWriter
 from state_loader import GovernanceStateLoader
 from entities import (
     DatasetManager,
@@ -80,7 +81,7 @@ class GovernanceApplier:
 
         return ManagerContexts(
             domain=DomainManagerContext(
-                graph=graph,
+                domain_writer=DataHubDomainWriter(graph),
                 domain_urns=self.refs.domain_urns,
             ),
             group=GroupManagerContext(

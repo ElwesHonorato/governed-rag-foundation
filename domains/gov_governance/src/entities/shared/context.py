@@ -44,7 +44,7 @@ class ResolvedRefs:
 class DomainManagerContext:
     """Context required by the domain manager."""
 
-    graph: Any
+    domain_writer: Any
     domain_urns: dict[str, str]
 
 

@@ -3,9 +3,13 @@
 
 from __future__ import annotations
 
+import logging
+
 from entities.shared.context import DomainManagerContext
 from entities.shared.definitions import DomainDefinition
 from entities.shared.ports import GovernanceCatalogWriterPort
+
+logger = logging.getLogger(__name__)
 
 
 class DomainManager:
@@ -28,4 +32,4 @@ class DomainManager:
                 description=domain.description,
                 parent_domain_urn=parent_urn,
             )
-            print(f"upserted domain {domain.id}")
+            logger.info("upserted domain %s", domain.id)

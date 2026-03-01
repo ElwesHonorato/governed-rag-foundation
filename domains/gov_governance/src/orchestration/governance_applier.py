@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from entities import (
     DatasetManager,
     DatasetManagerContext,
@@ -28,6 +30,8 @@ from entities.shared.definitions import (
     TermDefinition,
 )
 from state_loader import GovernanceState
+
+logger = logging.getLogger(__name__)
 
 
 class GovernanceApplier:
@@ -134,5 +138,5 @@ class GovernanceApplier:
         self._apply_static(manager_contexts)
         self._apply_dynamic(manager_contexts)
 
-        print("apply complete")
+        logger.info("governance apply complete")
         return 0

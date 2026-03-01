@@ -3,9 +3,13 @@
 
 from __future__ import annotations
 
+import logging
+
 from entities.shared.context import FlowJobManagerContext
 from entities.shared.definitions import JobDefinition, PipelineDefinition
 from entities.shared.ports import GovernanceCatalogWriterPort
+
+logger = logging.getLogger(__name__)
 
 
 class FlowJobManager:
@@ -32,7 +36,7 @@ class FlowJobManager:
         for pipeline in pipelines:
             for job in pipeline.jobs:
                 self._upsert_job(pipeline, job, inlets=[], outlets=[])
-                print(f"upserted job {job.id}")
+                logger.info("upserted job %s", job.id)
 
             flow_def = pipeline.flow
             self._governance_writer.upsert_flow(
@@ -43,7 +47,7 @@ class FlowJobManager:
                 domain=self.governance_def_ctx.domain_urns[flow_def.domain],
                 owners=[self.governance_def_ctx.group_urns[group_id] for group_id in flow_def.owners],
             )
-            print(f"upserted flow {flow_def.id}")
+            logger.info("upserted flow %s", flow_def.id)
 
     def _upsert_job(
         self,

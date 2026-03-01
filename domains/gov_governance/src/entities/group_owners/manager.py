@@ -3,9 +3,13 @@
 
 from __future__ import annotations
 
+import logging
+
 from entities.shared.context import GroupManagerContext
 from entities.shared.definitions import GroupDefinition
 from entities.shared.ports import GovernanceCatalogWriterPort
+
+logger = logging.getLogger(__name__)
 
 
 class GroupManager:
@@ -29,4 +33,4 @@ class GroupManager:
                 member_refs=group.members,
                 group_refs=group.groups,
             )
-            print(f"upserted group {group.id}")
+            logger.info("upserted group %s", group.id)

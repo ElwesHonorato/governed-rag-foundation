@@ -140,15 +140,6 @@ No manager imports DataHub SDK directly; SDK coupling is concentrated in `infras
 - Decision:
   - Keep as explicit two-phase strategy.
 
-### 3) CLI observability uses `print` across layers
-- Current behavior:
-  - Managers and applier print progress directly.
-- Friction:
-  - No structured log levels, correlation IDs, or consistent sink strategy.
-  - Harder to integrate with CI/ops telemetry standards.
-- Decision needed:
-  - Standardize on logging interface (aligned with repo logging/tracing patterns).
-
 ## Extension Guide
 
 ### Add a new governance entity type

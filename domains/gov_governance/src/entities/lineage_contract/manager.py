@@ -3,9 +3,13 @@
 
 from __future__ import annotations
 
+import logging
+
 from entities.shared.context import LineageContractManagerContext
 from entities.shared.definitions import PipelineDefinition
 from entities.shared.ports import GovernanceCatalogWriterPort
+
+logger = logging.getLogger(__name__)
 
 
 class LineageContractManager:
@@ -52,4 +56,9 @@ class LineageContractManager:
                     inlets=inlets,
                     outlets=outlets,
                 )
-                print(f"upserted lineage contract for job {job.id} (inputs={len(inlets)} outputs={len(outlets)})")
+                logger.info(
+                    "upserted lineage contract for job %s (inputs=%d outputs=%d)",
+                    job.id,
+                    len(inlets),
+                    len(outlets),
+                )

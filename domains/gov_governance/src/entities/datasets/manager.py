@@ -3,9 +3,13 @@
 
 from __future__ import annotations
 
+import logging
+
 from entities.shared.context import DatasetManagerContext
 from entities.shared.definitions import DatasetDefinition
 from entities.shared.ports import GovernanceCatalogWriterPort
+
+logger = logging.getLogger(__name__)
 
 
 class DatasetManager:
@@ -31,4 +35,4 @@ class DatasetManager:
                 tags=[self.governance_def_ctx.tag_urns[tag_id] for tag_id in dataset.tags],
                 terms=[self.governance_def_ctx.term_urns[term_id] for term_id in dataset.terms],
             )
-            print(f"upserted dataset {dataset.id}")
+            logger.info("upserted dataset %s", dataset.id)

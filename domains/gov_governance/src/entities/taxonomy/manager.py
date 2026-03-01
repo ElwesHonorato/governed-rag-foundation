@@ -3,9 +3,13 @@
 
 from __future__ import annotations
 
+import logging
+
 from entities.shared.context import TaxonomyManagerContext
 from entities.shared.definitions import TagDefinition, TermDefinition
 from entities.shared.ports import GovernanceCatalogWriterPort
+
+logger = logging.getLogger(__name__)
 
 
 class TaxonomyManager:
@@ -32,7 +36,7 @@ class TaxonomyManager:
                 display_name=tag.name,
                 description=tag.description,
             )
-            print(f"upserted tag {tag.id}")
+            logger.info("upserted tag %s", tag.id)
 
     def _apply_glossary_terms(self, terms: list[TermDefinition]) -> None:
         """Upsert glossary term entities via MCP emission."""
@@ -44,4 +48,4 @@ class TaxonomyManager:
                 name=term.name,
                 definition=term.description,
             )
-            print(f"upserted glossary term {term.id}")
+            logger.info("upserted glossary term %s", term.id)

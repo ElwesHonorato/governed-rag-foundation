@@ -77,7 +77,7 @@ Repository structure (architecture-relevant):
 
 Architecture document index (central references):
 - `docs/ARCHITECTURE.md` (this file)
-- `domains/ARCHITECTURE.md`
+- `domains/docs/ARCHITECTURE.md`
 - `domains/gov_governance/docs/ARCHITECTURE.md`
 - `domains/worker_scan/docs/ARCHITECTURE.md`
 - `domains/worker_parse_document/docs/ARCHITECTURE.md`
@@ -88,11 +88,10 @@ Architecture document index (central references):
 - `domains/worker_metrics/docs/ARCHITECTURE.md`
 - `domains/app_rag_api/docs/ARCHITECTURE.md`
 - `domains/app_vector_ui/docs/ARCHITECTURE.md`
-- `libs/pipeline-common/src/pipeline_common/startup/ARCHITECTURE.md`
-- `libs/pipeline-common/src/pipeline_common/settings/ARCHITECTURE.md`
-- `libs/pipeline-common/src/pipeline_common/gateways/ARCHITECTURE.md`
+- `libs/pipeline-common/src/pipeline_common/startup/docs/ARCHITECTURE.md`
+- `libs/pipeline-common/src/pipeline_common/settings/docs/ARCHITECTURE.md`
 - `libs/pipeline-common/src/pipeline_common/gateways/docs/ARCHITECTURE.md`
-- `libs/pipeline-common/src/pipeline_common/gateways/lineage/ARCHITECTURE.md`
+- `libs/pipeline-common/src/pipeline_common/gateways/lineage/docs/ARCHITECTURE.md`
 - `registry/docs/ARCHITECTURE.md`
 - `tooling/ops/docs/ARCHITECTURE.md`
 - `tooling/python_env/docs/ARCHITECTURE.md`

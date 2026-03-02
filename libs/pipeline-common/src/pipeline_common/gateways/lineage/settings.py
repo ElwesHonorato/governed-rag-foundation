@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from pipeline_common.helpers.config import _optional_env, _required_int
+from pipeline_common.helpers.config import _optional_env, _required_env, _required_int
 
 
 @dataclass(frozen=True)
@@ -22,7 +22,7 @@ class DataHubSettings:
             server = _optional_env("DATAHUB_GMS_URL", "http://localhost:8081")
         return cls(
             server=server,
-            env=_optional_env("DATAHUB_ENV", "PROD"),
+            env=_required_env("DATAHUB_ENV"),
             token=token or None,
             timeout_sec=float(_optional_env("DATAHUB_TIMEOUT_SEC", "3")),
             retry_max_times=_required_int("DATAHUB_RETRY_MAX_TIMES", 1),

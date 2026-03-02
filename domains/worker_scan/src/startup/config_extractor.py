@@ -24,12 +24,12 @@ class ScanConfigExtractor(WorkerConfigExtractor[ScanWorkerConfigContract]):
             bucket=storage["bucket"],
             input_prefix=storage["input_prefix"],
             output_prefix=storage["output_prefix"],
-            poll_interval_seconds=job_config["poll_interval_seconds"],
+            poll_interval_seconds=int(job_config["poll_interval_seconds"]),
         )
         queue_contract = ScanQueueConfigContract(
             stage=queue["stage"],
-            queue_pop_timeout_seconds=queue["queue_pop_timeout_seconds"],
-            pop_timeout_seconds=queue["pop_timeout_seconds"],
+            queue_pop_timeout_seconds=int(queue["queue_pop_timeout_seconds"]),
+            pop_timeout_seconds=int(queue["pop_timeout_seconds"]),
             produce=queue["produce"],
             dlq=queue["dlq"],
             consume=queue.get("consume", ""),

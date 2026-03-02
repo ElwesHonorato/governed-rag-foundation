@@ -247,6 +247,10 @@ Issue: DataHub naming leaks through many internal types.
 - Why problematic: raises migration cost for alternate lineage backends.
 - Future direction: introduce vendor-neutral internal contracts only if multi-backend support is a real requirement.
 
+Issue: High-cardinality dataset emission for artifact-level IO (especially chunk-heavy stages).
+- Why problematic: stages such as chunking can emit very large numbers of input/output dataset URNs, which can pollute DataHub entity/edge space and reduce UI signal-to-noise for end-to-end lineage exploration.
+- Future direction: preserve end-to-end lineage usability while reducing graph cardinality pressure from per-artifact/per-chunk emissions.
+
 # 9. Future Roadmap / Planned Enhancements
 
 Confirmed roadmap:

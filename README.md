@@ -2,6 +2,20 @@
 
 Reference repository for a locally runnable, governed RAG stack.
 
+## License and Portfolio Publishing Notice
+
+This repository includes third-party components with mixed license models.
+Some infrastructure dependencies are copyleft or source-available and may impose
+additional obligations for redistribution, SaaS use, or commercial use.
+
+Before publishing this project as a public portfolio:
+- Review [`THIRD_PARTY_LICENSES.md`](THIRD_PARTY_LICENSES.md).
+- Review [`docs/compliance/OSS_LICENSE_EVIDENCE.md`](docs/compliance/OSS_LICENSE_EVIDENCE.md).
+- Prefer publishing source code and setup instructions; avoid redistributing
+  prebuilt images/artifacts that bundle restricted components.
+- Treat this stack as development/demo unless legal approval is recorded for
+  production/commercial usage.
+
 Runtime configuration is centralized in `.env` at the repository root.
 Core infrastructure image tags are hardcoded in the domain compose files.
 

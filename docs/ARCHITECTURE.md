@@ -31,6 +31,8 @@ Core responsibilities of repository architecture:
 - Standardize worker startup and gateway usage.
 - Support governance metadata-as-code apply flow.
 - Support lightweight app domains for retrieval/query use cases.
+- Define DEV/PROD tooling portability expectations for core platform capabilities.
+- Define and maintain repository-level OSS license governance guardrails.
 
 Non-responsibilities:
 - No monolithic process orchestration in one runtime package.
@@ -201,6 +203,8 @@ Where new features should be added:
 Where integrations should plug in:
 - External runtime integration for workers: gateway adapter + factory + settings.
 - Governance backend behavior: writer adapter implementation.
+- New infrastructure tools/services: add only with explicit DEV and PROD usage profiles.
+- New infrastructure tools/services: add only with explicit license classification and approval.
 
 How to avoid boundary violations:
 - Keep dependency direction from domains toward libs, not inverse.
@@ -225,11 +229,78 @@ Issue: architecture docs are distributed across multiple subsystem files.
 - Why problem: onboarding requires navigation across several docs.
 - Direction: keep cross-links current and ensure subsystem docs stay synchronized with code.
 
+Issue: no formal DEV->PROD tooling parity matrix is currently documented.
+- Why problem: cloud/prod migration risk increases when local tooling assumptions are not explicitly mapped to production-capable equivalents.
+- Direction: maintain a parity matrix for queue/storage/vector/lineage/observability/LLM dependencies.
+
+Initial parity matrix template:
+
+| Capability | DEV Tooling (Current) | PROD Tooling (Target) | Interface Boundary | Parity Status | Gaps / Notes |
+| --- | --- | --- | --- | --- | --- |
+| Queue | RabbitMQ (compose) | TBD | `StageQueue` | Not started | Define ack/retry/ordering parity requirements. |
+| Object Storage | MinIO/S3-compatible (compose) | TBD | `ObjectStorageGateway` | Not started | Define bucket policy, IAM, lifecycle, and eventing parity. |
+| Vector Store | Weaviate (compose) | TBD | Worker/service Weaviate clients | In progress | Define schema/index/versioning and query-behavior parity. |
+| Lineage Backend | DataHub (compose) | TBD | `LineageRuntimeGateway` + governance writer port | In progress | Define ingestion throughput and UI navigation parity targets. |
+| Observability | Local logs + counters | TBD | Logging/tracing adapters | Not started | Define metrics/traces/logs contract and retention parity. |
+| LLM Runtime | Local Ollama | TBD | LLM client adapters | Not started | Define model/API compatibility, latency, and cost constraints. |
+
+Issue: no explicit repository-level OSS license policy is currently documented.
+- Why problem: license risk can be discovered late during production hardening and procurement/legal review.
+- Direction: maintain an approved-license policy and enforce license checks in CI.
+
+Issue: public portfolio redistribution can unintentionally include restrictive third-party licensing obligations.
+- Why problem: publishing source and especially bundled container artifacts can trigger obligations (copyleft/source-available) that are often missed in personal projects.
+- Direction: keep third-party license inventory current, document portfolio-safe publishing constraints, and avoid distributing bundled artifacts for restricted components.
+
 # 9. Future Roadmap / Planned Enhancements
 
 Confirmed roadmap:
 - Establish consistent unit-test and functional-test coverage standards across modules.
 - Establish a standardized linting baseline and enforcement flow across the repository.
+- Define and maintain a DEV/PROD tooling parity matrix for core platform services.
+- Add license governance checks (approved-license policy + dependency license audit in CI).
+- Add lightweight portfolio-publishing checks/docs to prevent accidental redistribution risk.
+- Add migration-readiness checks to validate behavior parity between local and cloud/prod profiles.
+
+### Allowed (validated permissive OSS licenses)
+- **Weaviate DB**: BSD-3-Clause (permissive; self-host and cloud options).
+
+Audit source links are maintained in a separate compliance evidence document:
+- `docs/compliance/OSS_LICENSE_EVIDENCE.md`
+
+### Repository-level OSS license policy
+
+Policy intent:
+- Ensure all OSS dependencies are safe for commercial DEV and PROD use.
+- Prevent late-stage legal/procurement blockers during cloud migration.
+
+Default allowed license families:
+- Apache-2.0
+- MIT
+- BSD-2-Clause / BSD-3-Clause
+- ISC
+
+Conditionally allowed (requires explicit legal/security review record):
+- MPL-2.0
+- EPL-2.0
+- LGPL variants
+
+Not allowed for new dependencies by default:
+- GPL variants (GPL-2.0, GPL-3.0)
+- AGPL variants
+- SSPL and other copyleft/network copyleft licenses that can impose broader distribution obligations
+- Custom or unknown licenses without approved legal review
+
+Policy requirements for new dependencies:
+1. License must be identified and documented before merge.
+2. Dependency must be added to an approved dependency/license inventory.
+3. Any conditional license must include explicit approval reference (legal/security decision record).
+4. Dependency updates must be re-evaluated when license metadata changes.
+
+CI enforcement expectations:
+- Run automated license scan on dependency manifests/lockfiles.
+- Fail CI for denied/unknown licenses unless explicit allow-override is recorded.
+- Publish license scan artifact for auditability.
 
 # 10. Anti-Patterns / What Not To Do
 
@@ -238,6 +309,8 @@ Confirmed roadmap:
 - Do not scatter direct SDK calls through worker services when gateway adapters already exist.
 - Do not put non-documentation runtime code under `docs/`.
 - Do not treat architecture docs as static; update them with significant structural changes.
+- Do not adopt infrastructure tooling without a defined DEV and PROD usage profile.
+- Do not introduce new OSS dependencies without explicit license review and approval.
 
 # 11. Glossary
 

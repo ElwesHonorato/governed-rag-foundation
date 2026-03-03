@@ -23,9 +23,6 @@ class ScanServiceFactory(WorkerServiceFactory[ScanWorkerConfigContract, WorkerSc
         object_storage.bootstrap_bucket_prefixes(worker_config.storage.bucket)
 
         processor = StorageScanCycleProcessor(
-            object_storage=object_storage,
-            stage_queue=stage_queue,
-            lineage=lineage_gateway,
             storage_contract=ScanStorageContract(
                 bucket=worker_config.storage.bucket,
                 input_prefix=worker_config.storage.input_prefix,
@@ -34,6 +31,9 @@ class ScanServiceFactory(WorkerServiceFactory[ScanWorkerConfigContract, WorkerSc
         )
         return WorkerScanService(
             processor=processor,
+            stage_queue=stage_queue,
+            object_storage=object_storage,
+            lineage=lineage_gateway,
             polling_contract=WorkerPollingContract(
                 poll_interval_seconds=worker_config.poll_interval_seconds,
             ),

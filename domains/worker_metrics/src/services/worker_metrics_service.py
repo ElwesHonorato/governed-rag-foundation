@@ -5,9 +5,10 @@ from typing import Any
 from contracts.contracts import MetricsProcessingConfigContract
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
-from pipeline_common.gateways.observability import Counters
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
+from pipeline_common.gateways.observability import Counters
 from pipeline_common.startup.contracts import WorkerService
+from services.metrics_cycle_processor import MetricsCycleProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -29,55 +30,54 @@ class WorkerMetricsService(WorkerService):
         self.lineage = lineage
         self.spark_session = spark_session
         self._initialize_runtime_config(processing_config)
-
-    @staticmethod
-    def _count_suffix(keys: list[str], suffix: str) -> int:
-        """Internal helper for count suffix."""
-        return sum(1 for key in keys if key.endswith(suffix))
-
-    @staticmethod
-    def _count_suffixes(keys: list[str], suffixes: tuple[str, ...]) -> int:
-        """Count keys that end with any suffix from the provided tuple."""
-        return sum(1 for key in keys if key.endswith(suffixes))
+        self.processor = MetricsCycleProcessor(
+            spark_session=self.spark_session,
+        )
 
     def serve(self) -> None:
         """Run the worker loop indefinitely."""
         while True:
-            self.lineage.start_run()
-            self.lineage.add_input(
-                name=f"{self.storage_bucket}/{self.processed_prefix}",
-                platform=DatasetPlatform.S3,
-            )
-            self.lineage.add_input(
-                name=f"{self.storage_bucket}/{self.chunks_prefix}",
-                platform=DatasetPlatform.S3,
-            )
-            self.lineage.add_input(
-                name=f"{self.storage_bucket}/{self.embeddings_prefix}",
-                platform=DatasetPlatform.S3,
-            )
-            self.lineage.add_input(
-                name=f"{self.storage_bucket}/{self.indexes_prefix}",
-                platform=DatasetPlatform.S3,
-            )
-            try:
-                processed = self.object_storage.list_keys(self.storage_bucket, self.processed_prefix)
-                chunks = self.object_storage.list_keys(self.storage_bucket, self.chunks_prefix)
-                embeddings = self.object_storage.list_keys(self.storage_bucket, self.embeddings_prefix)
-                indexed = self.object_storage.list_keys(self.storage_bucket, self.indexes_prefix)
+            self._run_metrics_iteration()
 
-                self.counters.files_processed = self._count_suffix(processed, ".json")
-                self.counters.chunks_created = self._count_suffixes(chunks, (".chunk.json", ".chunks.json"))
-                self.counters.embedding_artifacts = self._count_suffixes(
-                    embeddings, (".embedding.json", ".embeddings.json")
-                )
-                self.counters.index_upserts = self._count_suffix(indexed, ".indexed.json")
-                self.counters.emit()
-                self.lineage.complete_run()
-            except Exception as exc:
-                self.lineage.fail_run(error_message=str(exc))
-                logger.exception("Failed collecting pipeline metrics")
-            time.sleep(self.poll_interval_seconds)
+    def _run_metrics_iteration(self) -> None:
+        try:
+            self._run_metrics_cycle()
+        except Exception as exc:
+            self._handle_metrics_cycle_failure(exc)
+        finally:
+            self._sleep_until_next_cycle()
+
+    def _run_metrics_cycle(self) -> None:
+        self.lineage.start_run()
+        self.lineage.add_input(name=f"{self.storage_bucket}/{self.processed_prefix}", platform=DatasetPlatform.S3)
+        self.lineage.add_input(name=f"{self.storage_bucket}/{self.chunks_prefix}", platform=DatasetPlatform.S3)
+        self.lineage.add_input(name=f"{self.storage_bucket}/{self.embeddings_prefix}", platform=DatasetPlatform.S3)
+        self.lineage.add_input(name=f"{self.storage_bucket}/{self.indexes_prefix}", platform=DatasetPlatform.S3)
+
+        processed_keys = self.object_storage.list_keys(self.storage_bucket, self.processed_prefix)
+        chunk_keys = self.object_storage.list_keys(self.storage_bucket, self.chunks_prefix)
+        embedding_keys = self.object_storage.list_keys(self.storage_bucket, self.embeddings_prefix)
+        indexed_keys = self.object_storage.list_keys(self.storage_bucket, self.indexes_prefix)
+        counts = self.processor.build_counts(
+            processed_keys=processed_keys,
+            chunk_keys=chunk_keys,
+            embedding_keys=embedding_keys,
+            indexed_keys=indexed_keys,
+        )
+
+        self.counters.files_processed = counts["files_processed"]
+        self.counters.chunks_created = counts["chunks_created"]
+        self.counters.embedding_artifacts = counts["embedding_artifacts"]
+        self.counters.index_upserts = counts["index_upserts"]
+        self.counters.emit()
+        self.lineage.complete_run()
+
+    def _handle_metrics_cycle_failure(self, exc: Exception) -> None:
+        self.lineage.fail_run(error_message=str(exc))
+        logger.exception("Failed collecting pipeline metrics")
+
+    def _sleep_until_next_cycle(self) -> None:
+        time.sleep(self.poll_interval_seconds)
 
     def _initialize_runtime_config(self, processing_config: MetricsProcessingConfigContract) -> None:
         """Internal helper for initialize runtime config."""

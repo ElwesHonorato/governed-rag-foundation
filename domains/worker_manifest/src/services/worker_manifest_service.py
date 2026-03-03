@@ -1,6 +1,5 @@
-import json
-import logging
 import time
+import logging
 from typing import Any
 
 from contracts.contracts import ManifestProcessingConfigContract
@@ -8,6 +7,7 @@ from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.startup.contracts import WorkerService
+from services.manifest_cycle_processor import ManifestCycleProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -27,58 +27,65 @@ class WorkerManifestService(WorkerService):
         self.lineage = lineage
         self.spark_session = spark_session
         self._initialize_runtime_config(processing_config)
+        self.processor = ManifestCycleProcessor(
+            processed_prefix=self.processed_prefix,
+            manifest_prefix=self.manifest_prefix,
+            spark_session=self.spark_session,
+        )
 
     def serve(self) -> None:
         """Run the worker loop indefinitely."""
         while True:
-            processed_keys = [
-                key
-                for key in self.object_storage.list_keys(self.storage_bucket, self.processed_prefix)
-                if key != self.processed_prefix and key.endswith(".json")
-            ]
+            self._run_manifest_iteration()
 
-            for processed_key in processed_keys:
-                doc_id = processed_key.split("/")[-1].replace(".json", "")
-                manifest_key = f"{self.manifest_prefix}{doc_id}.json"
-                self._write_manifest_for_doc(doc_id=doc_id, processed_key=processed_key, manifest_key=manifest_key)
+    def _run_manifest_iteration(self) -> None:
+        self._run_manifest_cycle()
+        self._sleep_until_next_cycle()
 
-            time.sleep(self.poll_interval_seconds)
+    def _run_manifest_cycle(self) -> None:
+        processed_keys = self.object_storage.list_keys(self.storage_bucket, self.processed_prefix)
+        for doc_id in self.processor.list_doc_ids(processed_keys):
+            self._write_manifest_for_doc(doc_id)
 
-    def _write_manifest_for_doc(self, *, doc_id: str, processed_key: str, manifest_key: str) -> None:
-        """Write one manifest artifact and emit runtime lineage for the write."""
+    def _write_manifest_for_doc(self, doc_id: str) -> None:
+        processed_key = f"{self.processed_prefix}{doc_id}.json"
+        manifest_key = self.processor.build_manifest_key(doc_id)
         self.lineage.start_run()
-        self.lineage.add_input(name=f"{self.storage_bucket}/{processed_key}", platform=DatasetPlatform.S3)
-        self.lineage.add_output(name=f"{self.storage_bucket}/{manifest_key}", platform=DatasetPlatform.S3)
+        self.lineage.add_input(
+            name=f"{self.storage_bucket}/{processed_key}",
+            platform=DatasetPlatform.S3,
+        )
+        self.lineage.add_output(
+            name=f"{self.storage_bucket}/{manifest_key}",
+            platform=DatasetPlatform.S3,
+        )
         try:
-            status = {
-                "doc_id": doc_id,
-                "stages": {
-                    "parse_document": self.object_storage.object_exists(
-                        self.storage_bucket, f"{self.processed_prefix}{doc_id}.json"
-                    ),
-                    "chunk_text": self._any_stage_object_exists(
-                        self.chunks_prefix,
-                        doc_id,
-                        (".chunk.json", ".chunks.json"),
-                    ),
-                    "embed_chunks": self._any_stage_object_exists(
-                        self.embeddings_prefix,
-                        doc_id,
-                        (".embedding.json", ".embeddings.json"),
-                    ),
-                    "index_weaviate": self._any_stage_object_exists(
-                        self.indexes_prefix,
-                        doc_id,
-                        (".indexed.json",),
-                    ),
-                },
-                "attempts": 1,
-                "last_error": None,
-            }
+            chunks_prefix = f"{self.chunks_prefix}{doc_id}"
+            embeddings_prefix = f"{self.embeddings_prefix}{doc_id}"
+            indexes_prefix = f"{self.indexes_prefix}{doc_id}"
+            status_body = self.processor.build_manifest_status(
+                doc_id=doc_id,
+                parse_document=self.object_storage.object_exists(self.storage_bucket, processed_key),
+                chunk_text=self.processor.any_stage_object_exists(
+                    self.object_storage.list_keys(self.storage_bucket, chunks_prefix),
+                    chunks_prefix,
+                    (".chunk.json", ".chunks.json"),
+                ),
+                embed_chunks=self.processor.any_stage_object_exists(
+                    self.object_storage.list_keys(self.storage_bucket, embeddings_prefix),
+                    embeddings_prefix,
+                    (".embedding.json", ".embeddings.json"),
+                ),
+                index_weaviate=self.processor.any_stage_object_exists(
+                    self.object_storage.list_keys(self.storage_bucket, indexes_prefix),
+                    indexes_prefix,
+                    (".indexed.json",),
+                ),
+            )
             self.object_storage.write_object(
                 self.storage_bucket,
                 manifest_key,
-                json.dumps(status, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode("utf-8"),
+                status_body,
                 content_type="application/json",
             )
             self.lineage.complete_run()
@@ -87,11 +94,8 @@ class WorkerManifestService(WorkerService):
             logger.exception("Failed writing manifest for doc_id '%s'", doc_id)
             raise
 
-    def _any_stage_object_exists(self, stage_prefix: str, doc_id: str, suffixes: tuple[str, ...]) -> bool:
-        """Return whether any stage object exists for the document id."""
-        doc_prefix = f"{stage_prefix}{doc_id}"
-        stage_keys = self.object_storage.list_keys(self.storage_bucket, doc_prefix)
-        return any(key != doc_prefix and key.endswith(suffixes) for key in stage_keys)
+    def _sleep_until_next_cycle(self) -> None:
+        time.sleep(self.poll_interval_seconds)
 
     def _initialize_runtime_config(self, processing_config: ManifestProcessingConfigContract) -> None:
         """Internal helper for initialize runtime config."""

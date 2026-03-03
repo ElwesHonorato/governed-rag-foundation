@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM apache/spark:3.5.1
 
 ENV POETRY_VIRTUALENVS_CREATE=false \
     POETRY_NO_INTERACTION=1 \
@@ -10,7 +10,7 @@ ENV POETRY_VIRTUALENVS_CREATE=false \
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir poetry
+RUN python3 -m pip install --no-cache-dir poetry
 
 COPY domains/worker_chunk_text/pyproject.toml /app/pyproject.toml
 COPY domains/worker_chunk_text/poetry.lock /app/poetry.lock
@@ -20,4 +20,4 @@ COPY domains/worker_chunk_text/src /app/src
 COPY libs/pipeline-common/src /pipeline-common/src
 COPY registry /app/registry
 
-CMD ["poetry", "run", "python", "-m", "app"]
+CMD ["poetry", "run", "python3", "-m", "app"]

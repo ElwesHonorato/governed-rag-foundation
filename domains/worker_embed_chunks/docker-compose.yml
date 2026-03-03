@@ -11,6 +11,9 @@ services:
       DATAHUB_GMS_SERVER: ${DATAHUB_GMS_SERVER:-${DATAHUB_GMS_URL:-http://datahub-gms:8080}}
       DATAHUB_ENV: ${DATAHUB_ENV:?DATAHUB_ENV is required}
       DATAHUB_TOKEN: ${DATAHUB_TOKEN:-}
+      SPARK_ENABLED: ${SPARK_ENABLED:-false}
+      SPARK_MASTER_URL: ${SPARK_MASTER_URL:-local[*]}
+      SPARK_APP_NAME: ${SPARK_APP_NAME:-worker-process}
       EMBEDDING_DIM: ${EMBEDDING_DIM:-32}
 
 networks:

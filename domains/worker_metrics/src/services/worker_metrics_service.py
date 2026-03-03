@@ -1,5 +1,6 @@
 import logging
 import time
+from typing import Any
 
 from contracts.contracts import MetricsProcessingConfigContract
 from pipeline_common.gateways.lineage import DatasetPlatform
@@ -19,12 +20,14 @@ class WorkerMetricsService(WorkerService):
         counters: Counters,
         object_storage: ObjectStorageGateway,
         lineage: LineageRuntimeGateway,
+        spark_session: Any | None,
         processing_config: MetricsProcessingConfigContract,
     ) -> None:
         """Initialize instance state and dependencies."""
         self.counters = counters
         self.object_storage = object_storage
         self.lineage = lineage
+        self.spark_session = spark_session
         self._initialize_runtime_config(processing_config)
 
     @staticmethod

@@ -11,7 +11,7 @@ from startup.service_factory import ChunkTextServiceFactory
 
 def run() -> None:
     """Start chunk_text worker."""
-    settings = SettingsProvider(SettingsRequest(datahub=True, storage=True, queue=True)).bundle
+    settings = SettingsProvider(SettingsRequest(datahub=True, storage=True, queue=True, spark=True)).bundle
     runtime_factory = RuntimeContextFactory(
         data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_chunk_text"),
         settings_bundle=settings,

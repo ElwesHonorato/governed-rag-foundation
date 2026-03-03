@@ -17,6 +17,7 @@ Non-goals:
 
 from typing import Generic
 
+from pipeline_common.gateways.processing_engine import stop_spark_session
 from pipeline_common.startup.contracts import (
     TWorkerConfig,
     TWorkerService,
@@ -54,6 +55,9 @@ class WorkerRuntimeLauncher(Generic[TWorkerConfig, TWorkerService]):
     def start(self) -> None:
         """Execute the standard worker startup pipeline."""
         runtime = self._runtime_factory.runtime_context
-        worker_config = self._config_extractor.extract(runtime.job_properties)
-        service = self._service_factory.build(runtime, worker_config)
-        service.serve()
+        try:
+            worker_config = self._config_extractor.extract(runtime.job_properties)
+            service = self._service_factory.build(runtime, worker_config)
+            service.serve()
+        finally:
+            stop_spark_session(runtime.spark_session)

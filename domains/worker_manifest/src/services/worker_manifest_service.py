@@ -1,6 +1,7 @@
 import json
 import logging
 import time
+from typing import Any
 
 from contracts.contracts import ManifestProcessingConfigContract
 from pipeline_common.gateways.lineage import DatasetPlatform
@@ -18,11 +19,13 @@ class WorkerManifestService(WorkerService):
         *,
         object_storage: ObjectStorageGateway,
         lineage: LineageRuntimeGateway,
+        spark_session: Any | None,
         processing_config: ManifestProcessingConfigContract,
     ) -> None:
         """Initialize instance state and dependencies."""
         self.object_storage = object_storage
         self.lineage = lineage
+        self.spark_session = spark_session
         self._initialize_runtime_config(processing_config)
 
     def serve(self) -> None:

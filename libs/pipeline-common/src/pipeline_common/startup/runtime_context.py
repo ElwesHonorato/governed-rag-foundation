@@ -15,4 +15,5 @@ class WorkerRuntimeContext:
     lineage_gateway: LineageRuntimeGateway
     object_storage_gateway: ObjectStorageGateway
     stage_queue_gateway: StageQueue
+    spark_session: Any | None
     job_properties: dict[str, Any]

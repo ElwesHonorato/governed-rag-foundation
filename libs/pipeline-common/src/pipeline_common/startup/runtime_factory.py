@@ -19,6 +19,7 @@ from pipeline_common.gateways.lineage.contracts import DataHubDataJobKey
 from pipeline_common.gateways.factories.lineage_gateway_factory import DataHubLineageGatewayFactory
 from pipeline_common.gateways.factories.object_storage_gateway_factory import ObjectStorageGatewayFactory
 from pipeline_common.gateways.factories.queue_gateway_factory import StageQueueGatewayFactory
+from pipeline_common.gateways.processing_engine import build_spark_session
 from pipeline_common.settings import SettingsBundle
 from pipeline_common.startup.job_properties import JobPropertiesParser
 from pipeline_common.startup.runtime_context import WorkerRuntimeContext
@@ -65,9 +66,18 @@ class RuntimeContextFactory:
             queue_settings=self._settings_bundle.queue,
             queue_config=job_properties["job"]["queue"],
         ).build()
+        spark_settings = self._settings_bundle.spark
+        spark_session = None
+        if spark_settings is not None:
+            spark_session = build_spark_session(
+                enabled=spark_settings.enabled,
+                app_name=spark_settings.app_name,
+                master_url=spark_settings.master_url,
+            )
         return WorkerRuntimeContext(
             lineage_gateway=lineage_gateway,
             object_storage_gateway=object_storage_gateway,
             stage_queue_gateway=stage_queue_gateway,
+            spark_session=spark_session,
             job_properties=job_properties,
         )

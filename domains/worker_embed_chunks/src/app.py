@@ -11,7 +11,7 @@ from startup.service_factory import EmbedChunksServiceFactory
 
 def run() -> None:
     """Start embed_chunks worker."""
-    settings = SettingsProvider(SettingsRequest(datahub=True, storage=True, queue=True)).bundle
+    settings = SettingsProvider(SettingsRequest(datahub=True, storage=True, queue=True, spark=True)).bundle
     runtime_factory = RuntimeContextFactory(
         data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_embed_chunks"),
         settings_bundle=settings,

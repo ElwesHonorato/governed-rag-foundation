@@ -2,6 +2,7 @@ import hashlib
 import json
 from typing import Any
 
+
 class EmbedChunksProcessor:
     """Build embedding payloads from chunk payloads."""
 
@@ -14,13 +15,25 @@ class EmbedChunksProcessor:
         self.dimension = dimension
         self.spark_session = spark_session
 
-    def _deterministic_embedding(self, text: str) -> list[float]:
+    @staticmethod
+    def _deterministic_embedding_for(text: str, dimension: int) -> list[float]:
         digest = hashlib.sha256(text.encode("utf-8")).digest()
         values: list[float] = []
-        for index in range(self.dimension):
+        for index in range(dimension):
             byte = digest[index % len(digest)]
             values.append((byte / 255.0) * 2.0 - 1.0)
         return values
+
+    def _build_vector(self, text: str) -> list[float]:
+        """Build embedding vector using Spark when available, else local Python."""
+        if self.spark_session is None:
+            return self._deterministic_embedding_for(text, self.dimension)
+        return list(
+            self.spark_session.sparkContext
+            .parallelize([text], 1)
+            .map(lambda item: self._deterministic_embedding_for(item, self.dimension))
+            .collect()[0]
+        )
 
     @staticmethod
     def read_chunk_payload(raw_payload: bytes) -> dict[str, Any]:
@@ -33,7 +46,7 @@ class EmbedChunksProcessor:
         return {
             "doc_id": doc_id,
             "chunk_id": chunk_id,
-            "vector": self._deterministic_embedding(text),
+            "vector": self._build_vector(text),
             "metadata": {
                 "source_type": payload.get("source_type"),
                 "timestamp": payload.get("timestamp"),

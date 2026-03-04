@@ -19,10 +19,18 @@ class ChunkTextProcessor:
     def read_processed_payload(raw_payload: bytes) -> dict[str, Any]:
         return dict(json.loads(raw_payload.decode("utf-8", errors="ignore")))
 
+    def _build_chunks(self, source_text: str) -> list[str]:
+        """Build chunks using Spark when available, else local Python."""
+        if self.spark_session is None:
+            return chunk_text(source_text)
+        return list(
+            self.spark_session.sparkContext.parallelize([source_text], 1).flatMap(chunk_text).collect()
+        )
+
     def build_chunk_records(self, processed: dict[str, Any], doc_id: str) -> list[dict[str, Any]]:
         parsed_payload = processed.get("parsed")
         parsed_text = parsed_payload.get("text", "") if isinstance(parsed_payload, dict) else ""
-        chunks = chunk_text(str(parsed_text or processed.get("text", "")))
+        chunks = self._build_chunks(str(parsed_text or processed.get("text", "")))
         records: list[dict[str, Any]] = []
         for index, chunk in enumerate(chunks):
             records.append(

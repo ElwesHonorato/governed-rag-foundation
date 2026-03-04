@@ -5,14 +5,13 @@ This domain provides a local Spark standalone cluster (master + worker) for work
 ## Deep Dive
 
 ### What runs here
-- `spark-master` (`bitnami/spark:3.5.1`)
-- `spark-worker` (`bitnami/spark:3.5.1`)
+- `spark-master` (`apache/spark:3.5.1`)
+- `spark-worker` (`apache/spark:3.5.1`)
 
-### Why `bitnami/spark`
-- Chosen for fast local bootstrap in Docker Compose with minimal custom startup scripts.
-- Provides a simple env-driven mode switch (`SPARK_MODE=master|worker`) that aligns with this repo's infra-domain pattern.
-- Keeps stack operations (`./stack.sh up/down/ps/logs`) straightforward for local development.
-- If you prefer upstream images, `apache/spark` is a valid alternative and can replace this setup with explicit command wiring.
+### Why `apache/spark`
+- `apache/spark:3.5.1` is currently resolvable from Docker Hub in this environment.
+- Previous `bitnami/spark:3.5.1` reference fails with image-not-found.
+- Uses explicit master/worker startup commands, so behavior is deterministic and does not depend on image-specific mode env vars.
 
 ### How it contributes to RAG
 - Hosts the Spark driver/worker runtime used by workers that enable Spark in their composition roots.

@@ -1,37 +1,34 @@
 services:
   spark-master:
-    image: bitnami/spark:3.5.1
+    image: apache/spark:3.5.1
     hostname: spark-master
-    environment:
-      SPARK_MODE: master
-      SPARK_RPC_AUTHENTICATION_ENABLED: "no"
-      SPARK_RPC_ENCRYPTION_ENABLED: "no"
-      SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: "no"
-      SPARK_SSL_ENABLED: "no"
-      SPARK_MASTER_PORT: "7077"
+    command:
+      - /opt/spark/bin/spark-class
+      - org.apache.spark.deploy.master.Master
+      - --host
+      - spark-master
+      - --port
+      - "7077"
+      - --webui-port
+      - "8080"
     ports:
       - "${SPARK_MASTER_PORT:-7077}:7077"
       - "${SPARK_MASTER_UI_PORT:-8088}:8080"
     healthcheck:
-      test: ["CMD-SHELL", "bash -lc 'exec 3<>/dev/tcp/127.0.0.1/7077'"]
+      test: ["CMD-SHELL", "bash -lc 'exec 3<>/dev/tcp/spark-master/7077'"]
       interval: 15s
       timeout: 5s
       retries: 10
 
   spark-worker:
-    image: bitnami/spark:3.5.1
+    image: apache/spark:3.5.1
     hostname: spark-worker
     depends_on:
       - spark-master
-    environment:
-      SPARK_MODE: worker
-      SPARK_MASTER_URL: spark://spark-master:7077
-      SPARK_WORKER_CORES: "${SPARK_WORKER_CORES:-2}"
-      SPARK_WORKER_MEMORY: "${SPARK_WORKER_MEMORY:-2G}"
-      SPARK_RPC_AUTHENTICATION_ENABLED: "no"
-      SPARK_RPC_ENCRYPTION_ENABLED: "no"
-      SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: "no"
-      SPARK_SSL_ENABLED: "no"
+    command:
+      - /bin/bash
+      - -lc
+      - /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker --webui-port 8081 --cores ${SPARK_WORKER_CORES:-2} --memory ${SPARK_WORKER_MEMORY:-2G} spark://spark-master:7077
     ports:
       - "${SPARK_WORKER_UI_PORT:-8089}:8081"
 

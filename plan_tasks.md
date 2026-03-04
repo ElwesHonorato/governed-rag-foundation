@@ -537,6 +537,37 @@ Rules:
 - Risk:
   - Low
 
+### Implementation Status (as of 2026-03-03)
+
+Status labels:
+- `Done`: Implemented in codebase.
+- `Partial`: Started but not fully aligned with planned end-state.
+- `Pending`: Not yet implemented.
+
+1. Step 1 (Processing engine port in shared runtime): `Partial`
+   - Spark session wiring exists, but no full processing-engine facade/port abstraction for stage compute paths.
+2. Step 2 (Spark engine adapter and settings): `Done`
+   - Spark settings, Spark session builder, and runtime startup integration are implemented.
+3. Step 3 (Wire engine through worker service factories): `Done`
+   - All worker service factories inject `runtime.spark_session`; all worker apps request `spark=True`.
+4. Step 4 (Extract compute logic into processors): `Done`
+   - Worker services now delegate core compute/flow logic to processor/component modules.
+5. Step 5 (Spark-backed chunking path): `Done`
+   - `worker_chunk_text` now executes chunk splitting through Spark when `spark_session` is available, with local fallback when Spark is disabled.
+6. Step 6 (Spark-backed embedding path): `Done`
+   - `worker_embed_chunks` now executes embedding-vector computation through Spark when `spark_session` is available, with local deterministic fallback when Spark is disabled.
+7. Step 7 (Engine lifecycle + graceful shutdown): `Done`
+   - Launcher finalization now stops Spark session via shared helper.
+8. Step 8 (Queue ack/failure semantics): `Done`
+   - Queue consume now returns explicit message receipts with worker-controlled `ack()` / `nack(requeue=...)` semantics.
+   - Backward-compat eager-ack pop behavior was removed; queue consumers must now settle messages explicitly.
+   - Queue-driven workers (`parse/chunk/embed/index`) now acknowledge only after successful handling, and requeue when failure-to-DLQ routing occurs.
+   - Invalid queue payloads are no longer dropped; they are published to stage DLQ (`*.invalid_message`) and then acknowledged. If DLQ publish fails, messages are requeued.
+9. Step 9 (Docker/runtime Spark enablement): `Done` (chunk/embed scope)
+   - Spark base image, Spark env vars, and `pyspark` dependency are enabled for `worker_chunk_text` and `worker_embed_chunks`.
+10. Step 10 (Architecture docs sync): `Pending`
+   - Architecture docs have not yet been updated to reflect Spark runtime/engine boundary changes.
+
 ---
 
 ## 8) Risk and Impact Analysis

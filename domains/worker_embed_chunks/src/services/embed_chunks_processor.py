@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
+from pyspark.sql import functions as spark_functions  # type: ignore
+from pyspark.sql import types as spark_types  # type: ignore
 
 
 @dataclass(frozen=True)
@@ -106,14 +108,14 @@ class EmbedChunksProcessor:
         }
 
     def _build_embedding_payload_spark(self, input_df: Any) -> dict[str, Any]:
-        from pyspark.sql import functions as F  # type: ignore
-        from pyspark.sql import types as T  # type: ignore
-
-        vector_udf = F.udf(
+        vector_udf = spark_functions.udf(
             lambda value, dim: self._deterministic_embedding_for(str(value), int(dim)),
-            T.ArrayType(T.DoubleType()),
+            spark_types.ArrayType(spark_types.DoubleType()),
         )
-        row = input_df.withColumn("vector", vector_udf(F.col("chunk_text"), F.col("dimension"))).collect()[0]
+        row = input_df.withColumn(
+            "vector",
+            vector_udf(spark_functions.col("chunk_text"), spark_functions.col("dimension")),
+        ).collect()[0]
         doc_id = str(row["doc_id"])
         chunk_id = str(row["chunk_id"])
         text = str(row["chunk_text"])

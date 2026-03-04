@@ -40,9 +40,7 @@ class CacheSettings:
 class SparkSettings:
     """Spark runtime settings for workers."""
 
-    enabled: bool
     master_url: str
-    app_name: str
 
 
 StorageSettings = S3StorageSettings
@@ -100,12 +98,8 @@ def load_cache_settings_from_env() -> CacheSettings:
 
 def load_spark_settings_from_env() -> SparkSettings:
     """Load Spark settings from environment."""
-    enabled_raw = _optional_env("SPARK_ENABLED", "false").lower()
-    enabled = enabled_raw in {"1", "true", "yes", "on"}
     return SparkSettings(
-        enabled=enabled,
         master_url=_optional_env("SPARK_MASTER_URL", "local[*]"),
-        app_name=_optional_env("SPARK_APP_NAME", "worker-process"),
     )
 
 

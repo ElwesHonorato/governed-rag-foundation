@@ -19,7 +19,7 @@ from pipeline_common.gateways.lineage.contracts import DataHubDataJobKey
 from pipeline_common.gateways.factories.lineage_gateway_factory import DataHubLineageGatewayFactory
 from pipeline_common.gateways.factories.object_storage_gateway_factory import ObjectStorageGatewayFactory
 from pipeline_common.gateways.factories.queue_gateway_factory import StageQueueGatewayFactory
-from pipeline_common.gateways.processing_engine import build_spark_session
+from pipeline_common.gateways.factories.spark_session_factory import SparkSessionFactory
 from pipeline_common.settings import SettingsBundle
 from pipeline_common.startup.job_properties import JobPropertiesParser
 from pipeline_common.startup.runtime_context import WorkerRuntimeContext
@@ -54,26 +54,11 @@ class RuntimeContextFactory:
 
     def _build_runtime_context(self) -> WorkerRuntimeContext:
         """Resolve shared runtime dependencies required by every worker."""
-        lineage_gateway = DataHubLineageGatewayFactory(
-            datahub_settings=self._settings_bundle.datahub,
-            data_job_key=self._data_job_key,
-        ).build()
+        lineage_gateway = self._build_lineage_gateway()
         job_properties = JobPropertiesParser(lineage_gateway.resolved_job_config.custom_properties).job_properties
-        object_storage_gateway = ObjectStorageGatewayFactory(
-            s3_settings=self._settings_bundle.storage
-        ).build()
-        stage_queue_gateway = StageQueueGatewayFactory(
-            queue_settings=self._settings_bundle.queue,
-            queue_config=job_properties["job"]["queue"],
-        ).build()
-        spark_settings = self._settings_bundle.spark
-        spark_session = None
-        if spark_settings is not None:
-            spark_session = build_spark_session(
-                enabled=spark_settings.enabled,
-                app_name=spark_settings.app_name,
-                master_url=spark_settings.master_url,
-            )
+        object_storage_gateway = self._build_object_storage_gateway()
+        stage_queue_gateway = self._build_stage_queue_gateway(job_properties=job_properties)
+        spark_session = self._build_spark_session()
         return WorkerRuntimeContext(
             lineage_gateway=lineage_gateway,
             object_storage_gateway=object_storage_gateway,
@@ -81,3 +66,42 @@ class RuntimeContextFactory:
             spark_session=spark_session,
             job_properties=job_properties,
         )
+
+    def _build_lineage_gateway(self):
+        """Create lineage gateway from configured runtime settings."""
+        return DataHubLineageGatewayFactory(
+            datahub_settings=self._settings_bundle.datahub,
+            data_job_key=self._data_job_key,
+        ).build()
+
+    def _build_object_storage_gateway(self):
+        """Create object storage gateway from configured runtime settings."""
+        storage_settings = self._settings_bundle.storage
+        if storage_settings is None:
+            return None
+        return ObjectStorageGatewayFactory(
+            s3_settings=storage_settings
+        ).build()
+
+    def _build_stage_queue_gateway(self, *, job_properties: dict):
+        """Create queue gateway from runtime settings and parsed job queue config."""
+        queue_settings = self._settings_bundle.queue
+        if queue_settings is None:
+            return None
+        queue_config = job_properties.get("job", {}).get("queue")
+        if queue_config is None:
+            return None
+        return StageQueueGatewayFactory(
+            queue_settings=queue_settings,
+            queue_config=queue_config,
+        ).build()
+
+    def _build_spark_session(self):
+        """Create spark session when spark capability is requested."""
+        spark_settings = self._settings_bundle.spark
+        if spark_settings is None:
+            return None
+        return SparkSessionFactory(
+            spark_settings=spark_settings,
+            app_name=self._data_job_key.job_id,
+        ).build()

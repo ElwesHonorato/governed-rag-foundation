@@ -4,6 +4,8 @@ from typing import Any
 from chunking.domain.text_chunker import chunk_text
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.helpers.contracts import chunk_id_for
+from pyspark.sql import functions as spark_functions  # type: ignore
+from pyspark.sql import types as spark_types  # type: ignore
 
 
 class ChunkTextProcessor:
@@ -105,19 +107,19 @@ class ChunkTextProcessor:
 
     @staticmethod
     def _build_chunk_records_spark(input_df: Any) -> list[dict[str, Any]]:
-        from pyspark.sql import functions as F  # type: ignore
-        from pyspark.sql import types as T  # type: ignore
-
-        chunker_udf = F.udf(lambda text: chunk_text(str(text)), T.ArrayType(T.StringType()))
+        chunker_udf = spark_functions.udf(
+            lambda text: chunk_text(str(text)),
+            spark_types.ArrayType(spark_types.StringType()),
+        )
         chunked_df = (
-            input_df.withColumn("chunk_texts", chunker_udf(F.col("source_text")))
+            input_df.withColumn("chunk_texts", chunker_udf(spark_functions.col("source_text")))
             .select(
                 "doc_id",
                 "source_type",
                 "timestamp",
                 "security_clearance",
                 "source_key",
-                F.posexplode(F.col("chunk_texts")).alias("chunk_index", "chunk_text"),
+                spark_functions.posexplode(spark_functions.col("chunk_texts")).alias("chunk_index", "chunk_text"),
             )
             .drop("source_text")
         )

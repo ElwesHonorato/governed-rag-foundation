@@ -13,7 +13,7 @@ class WorkerRuntimeContext:
     """Runtime dependencies resolved by startup bootstrap."""
 
     lineage_gateway: LineageRuntimeGateway
-    object_storage_gateway: ObjectStorageGateway
-    stage_queue_gateway: StageQueue
+    object_storage_gateway: ObjectStorageGateway | None
+    stage_queue_gateway: StageQueue | None
     spark_session: Any | None
     job_properties: dict[str, Any]

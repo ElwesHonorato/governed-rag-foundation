@@ -1,5 +1,4 @@
 import logging
-import json
 from typing import Any
 
 from contracts.contracts import EmbedChunksProcessingConfigContract
@@ -37,6 +36,9 @@ class WorkerEmbedChunksService(WorkerService):
         self.processor = EmbedChunksProcessor(
             dimension=self.dimension,
             spark_session=self.spark_session,
+            object_storage=self.object_storage,
+            storage_bucket=self.storage_bucket,
+            output_prefix=self.output_prefix,
         )
 
     def serve(self) -> None:
@@ -75,20 +77,22 @@ class WorkerEmbedChunksService(WorkerService):
         )
         try:
             chunk_payload = self._read_chunk_payload(embed_job["source_key"])
-            embedding_payload = self.processor.build_embedding_payload(chunk_payload)
-            doc_id = str(embedding_payload["doc_id"])
-            chunk_id = str(embedding_payload["chunk_id"])
-            destination_key = self._embedding_object_key(doc_id, chunk_id)
+            if self.spark_session is None:
+                write_result = self.processor.write_embedding_artifact(chunk_payload)
+            else:
+                input_df = self.processor.build_input_dataframe(chunk_payload)
+                write_result = self.processor.write_embedding_artifact_from_dataframe(input_df)
+            doc_id = write_result.doc_id
+            destination_key = write_result.destination_key
             self.lineage.add_output(
                 name=f"{self.storage_bucket}/{destination_key}",
                 platform=DatasetPlatform.S3,
             )
-            if self.object_storage.object_exists(self.storage_bucket, destination_key):
+            if not write_result.wrote:
                 self._send_embed_failure(source_key)
                 self.lineage.fail_run(error_message=f"Embeddings artifact already exists: {destination_key}")
                 return
 
-            self._write_embeddings_object(destination_key, embedding_payload)
             self._enqueue_embeddings_object(destination_key, doc_id)
             self.lineage.complete_run()
             logger.info("Wrote embedding object '%s'", destination_key)
@@ -127,17 +131,6 @@ class WorkerEmbedChunksService(WorkerService):
     def _read_chunk_payload(self, source_key: str) -> dict[str, Any]:
         raw_payload = self.object_storage.read_object(self.storage_bucket, source_key)
         return self.processor.read_chunk_payload(raw_payload)
-
-    def _embedding_object_key(self, doc_id: str, chunk_id: str) -> str:
-        return f"{self.output_prefix}{doc_id}/{chunk_id}.embedding.json"
-
-    def _write_embeddings_object(self, destination_key: str, payload: dict[str, Any]) -> None:
-        self.object_storage.write_object(
-            self.storage_bucket,
-            destination_key,
-            json.dumps(payload, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode("utf-8"),
-            content_type="application/json",
-        )
 
     def _enqueue_embeddings_object(self, destination_key: str, doc_id: str) -> None:
         self.stage_queue.push(

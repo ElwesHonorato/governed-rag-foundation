@@ -71,6 +71,11 @@ graph TD
 3. service_factory builds processing service.
 4. service enters infinite serve loop.
 5. item lifecycle: consume input -> start lineage -> process -> produce output -> complete or fail lineage.
+6. queue settlement policy:
+   - valid + success: `ack()`
+   - invalid payload: publish `index_weaviate.invalid_message` to DLQ, then `ack()`
+   - processing failure: publish `index_weaviate.failure` to DLQ, then `ack()`
+   - if failure DLQ publish fails: `nack(requeue=True)`
 
 Shutdown behavior:
 - No explicit in-module shutdown orchestration.

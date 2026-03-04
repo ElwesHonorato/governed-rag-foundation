@@ -110,16 +110,17 @@ graph TD
 Standard startup path used by worker entrypoints:
 1. Worker entrypoint creates `SettingsProvider(SettingsRequest(...)).bundle`.
 2. Worker builds `RuntimeContextFactory(data_job_key, settings_bundle)`.
-3. Runtime factory builds lineage gateway, resolves job metadata, parses custom properties, and builds storage/queue gateways.
+3. Runtime factory builds lineage gateway, resolves job metadata, parses custom properties, builds storage/queue gateways, and builds optional Spark session.
 4. Worker creates `WorkerRuntimeLauncher(runtime_factory, config_extractor, service_factory)`.
 5. Launcher `start()` reads runtime context.
 6. Launcher calls extractor to build typed worker config.
 7. Launcher calls service factory to construct worker service.
 8. Launcher invokes `service.serve()` and transfers control to worker loop.
+9. Launcher `finally` block stops Spark session when present.
 
 Shutdown/termination behavior:
-- This package does not manage shutdown.
 - Service lifecycle termination is owned by worker service implementation.
+- Shared runtime finalization currently stops Spark session from launcher `finally`.
 
 ```mermaid
 flowchart TD
@@ -157,7 +158,7 @@ flowchart TD
 
 `RuntimeContextFactory`
 - Represents: shared runtime dependency assembler.
-- Why exists: one place to build lineage/storage/queue gateways and parsed job properties.
+- Why exists: one place to build lineage/storage/queue gateways, optional Spark session, and parsed job properties.
 - Depends on: settings bundle, data job key, gateway factories.
 - Depended on by: worker entrypoints and launcher.
 - Safe extension: preserve returned `WorkerRuntimeContext` contract and avoid worker-specific logic.
@@ -167,7 +168,7 @@ flowchart TD
 - Why exists: enforce one bootstrap sequence across workers.
 - Depends on: runtime factory, extractor, service factory.
 - Depended on by: worker entrypoints.
-- Safe extension: maintain startup order unless cross-worker migration is coordinated.
+- Safe extension: maintain startup order and finalization semantics unless cross-worker migration is coordinated.
 
 # 7. Extension Points
 
@@ -203,8 +204,8 @@ Issue: implicit required nested keys in runtime factory.
 - Why problem: `job_properties["job"]["queue"]` can fail if metadata contract is missing/incomplete.
 - Direction: add explicit validation and clearer startup errors near parser/factory boundary.
 
-Issue: launcher has no shutdown/error policy hooks.
-- Why problem: startup flow is fixed to `serve()` and does not expose lifecycle callbacks.
+Issue: launcher has limited shutdown/error policy hooks.
+- Why problem: startup flow finalizes Spark shutdown only; it does not expose generalized lifecycle callbacks.
 - Direction: add optional lifecycle hooks only if multiple workers require them.
 
 # 9. Future Roadmap / Planned Enhancements

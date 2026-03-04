@@ -537,7 +537,7 @@ Rules:
 - Risk:
   - Low
 
-### Implementation Status (as of 2026-03-03)
+### Implementation Status (as of 2026-03-04)
 
 Status labels:
 - `Done`: Implemented in codebase.
@@ -565,8 +565,8 @@ Status labels:
    - Invalid queue payloads are no longer dropped; they are published to stage DLQ (`*.invalid_message`) and then acknowledged. If DLQ publish fails, messages are requeued.
 9. Step 9 (Docker/runtime Spark enablement): `Done` (chunk/embed scope)
    - Spark base image, Spark env vars, and `pyspark` dependency are enabled for `worker_chunk_text` and `worker_embed_chunks`.
-10. Step 10 (Architecture docs sync): `Pending`
-   - Architecture docs have not yet been updated to reflect Spark runtime/engine boundary changes.
+10. Step 10 (Architecture docs sync): `Done`
+   - Updated shared architecture docs and worker architecture docs to reflect Spark runtime lifecycle and explicit queue ack/nack semantics.
 
 ---
 

@@ -127,10 +127,11 @@ graph TD
 
 Primary golden path (worker runtime):
 1. Worker entrypoint loads capability-scoped settings.
-2. Worker runtime factory builds lineage/storage/queue gateways and parsed job properties.
+2. Worker runtime factory builds lineage/storage/queue gateways, optional Spark session, and parsed job properties.
 3. Launcher extracts worker config, builds service, and calls `serve()`.
 4. Worker service processes queue payloads and uses gateways.
-5. Lineage events are emitted to DataHub during run lifecycle.
+5. Queue consumers settle messages explicitly via `ack()` / `nack(requeue=...)` after each processing attempt.
+6. Lineage events are emitted to DataHub during run lifecycle.
 
 Secondary paths:
 - Governance apply path: load definitions -> resolve refs -> apply managers -> persist via DataHub adapter.
@@ -164,10 +165,17 @@ flowchart TD
 
 `RuntimeContextFactory` (`pipeline_common.startup`)
 - Represents: worker runtime dependency assembler.
-- Why exists: centralize gateway construction and job-properties parsing.
+- Why exists: centralize gateway construction, Spark session wiring, and job-properties parsing.
 - Depends on: settings bundle, gateway factories, DataHub job key.
 - Depended on by: worker entrypoints.
 - Safe extension: keep worker-specific logic out of shared factory.
+
+`StageQueue` and `ConsumedMessage` (`pipeline_common.gateways.queue`)
+- Represents: AMQP queue adapter plus explicit message settlement handle.
+- Why exists: prevent eager-ack message loss during longer processing windows.
+- Depends on: broker connection/channel lifecycle and worker-defined failure policy.
+- Depended on by: queue-driven workers (`parse/chunk/embed/index`).
+- Safe extension: preserve one-time settlement semantics and explicit worker-side `ack`/`nack` decisions.
 
 `WorkerRuntimeLauncher` (`pipeline_common.startup`)
 - Represents: standard worker startup orchestrator.

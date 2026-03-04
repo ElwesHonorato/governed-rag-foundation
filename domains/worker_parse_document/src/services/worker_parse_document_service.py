@@ -6,7 +6,7 @@ from contracts.contracts import ParseProcessingConfigContract
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
-from pipeline_common.gateways.queue import Envelope, StageQueue
+from pipeline_common.gateways.queue import ConsumedMessage, Envelope, StageQueue
 from pipeline_common.helpers.contracts import doc_id_from_source_key, utc_now_iso
 from pipeline_common.startup.contracts import WorkerService
 from parsing.registry import ParserRegistry
@@ -48,13 +48,24 @@ class WorkerParseDocumentService(WorkerService):
     def serve(self) -> None:
         """Run the parse worker loop by polling queue messages."""
         while True:
-            source_key = self._pop_queued_source_key()
+            message = self.stage_queue.pop_message()
+            if message is None:
+                continue
+            try:
+                source_key = self._source_key_from_message(message)
+            except Exception:
+                message.nack(requeue=True)
+                logger.exception("Failed parse invalid-message handling; requeued message")
+                continue
             if source_key is None:
                 continue
             try:
                 self._handle_parse_request(source_key)
             except Exception:
-                logger.exception("Failed processing source key '%s'", source_key)
+                message.nack(requeue=True)
+                logger.exception("Failed processing source key '%s'; requeued message", source_key)
+                continue
+            message.ack()
 
     def _handle_parse_request(self, source_key: str) -> None:
         """Orchestrate one parse unit: read -> parse -> write -> enqueue."""
@@ -142,13 +153,25 @@ class WorkerParseDocumentService(WorkerService):
         destination_key = f"{self.output_prefix}{doc_id}.json"
         return ParseWorkItem(source_key=source_key, doc_id=doc_id, destination_key=destination_key)
 
-    def _pop_queued_source_key(self) -> str | None:
-        """Pop one source key from parse queue when available."""
-        raw = self.stage_queue.pop_message()
-        if raw is None:
+    def _source_key_from_message(self, message: ConsumedMessage) -> str | None:
+        """Parse source key from queue payload; route invalid payloads to DLQ."""
+        try:
+            envelope = Envelope.from_dict(message.payload)
+            return str(envelope.payload["storage_key"])
+        except Exception as exc:
+            self.stage_queue.push_dlq(
+                Envelope(
+                    type="parse_document.invalid_message",
+                    payload={
+                        "error": str(exc),
+                        "message_payload": message.payload,
+                        "failed_at": utc_now_iso(),
+                    },
+                ).to_dict()
+            )
+            message.ack()
+            logger.exception("Invalid parse queue message payload; sent to DLQ and acknowledged")
             return None
-        envelope = Envelope.from_dict(raw)
-        return str(envelope.payload["storage_key"])
 
     def _initialize_runtime_config(self, processing_config: ParseProcessingConfigContract) -> None:
         """Internal helper for initialize runtime config."""

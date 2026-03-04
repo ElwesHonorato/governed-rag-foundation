@@ -5,7 +5,8 @@ from typing import Any
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
-from pipeline_common.gateways.queue import Envelope, StageQueue
+from pipeline_common.gateways.queue import ConsumedMessage, Envelope, StageQueue
+from pipeline_common.helpers.contracts import utc_now_iso
 from pipeline_common.startup.contracts import WorkerService
 from contracts.contracts import ChunkTextProcessingConfigContract
 from services.chunk_text_processor import ChunkTextProcessor
@@ -38,14 +39,26 @@ class WorkerChunkTextService(WorkerService):
     def serve(self) -> None:
         """Run the chunking worker loop by polling queue messages."""
         while True:
-            source_key = self._pop_queued_source_key()
+            message = self.stage_queue.pop_message()
+            if message is None:
+                continue
+            try:
+                source_key = self._source_key_from_message(message)
+            except Exception:
+                message.nack(requeue=True)
+                logger.exception("Failed chunk invalid-message handling; requeued message")
+                continue
             if source_key is None:
                 continue
             try:
                 self._handle_chunk_request(source_key)
             except Exception:
-                self._send_chunk_failure(source_key)
-                logger.exception("Failed chunking source key '%s'; sent to DLQ", source_key)
+                if self._handle_chunk_failure(source_key):
+                    message.ack()
+                else:
+                    message.nack(requeue=True)
+                continue
+            message.ack()
 
     def _handle_chunk_request(self, source_key: str) -> None:
         chunk_job = self._build_chunk_job(source_key)
@@ -93,6 +106,19 @@ class WorkerChunkTextService(WorkerService):
             ).to_dict()
         )
 
+    def _handle_chunk_failure(self, source_key: str) -> bool:
+        """Route failed chunk request to DLQ; return True when message can be acked."""
+        try:
+            self._send_chunk_failure(source_key)
+        except Exception:
+            logger.exception(
+                "Failed chunking source key '%s' and failed DLQ publish; requeueing message",
+                source_key,
+            )
+            return False
+        logger.exception("Failed chunking source key '%s'; sent to DLQ", source_key)
+        return True
+
     def _build_chunk_job(self, source_key: str) -> dict[str, str] | None:
         if not source_key.startswith(self.input_prefix) or source_key == self.input_prefix:
             return None
@@ -123,13 +149,25 @@ class WorkerChunkTextService(WorkerService):
             ).to_dict()
         )
 
-    def _pop_queued_source_key(self) -> str | None:
-        """Pop one processed object key from chunking queue when available."""
-        raw = self.stage_queue.pop_message()
-        if raw is None:
+    def _source_key_from_message(self, message: ConsumedMessage) -> str | None:
+        """Parse source key from queue payload; route invalid payloads to DLQ."""
+        try:
+            envelope = Envelope.from_dict(message.payload)
+            return str(envelope.payload["storage_key"])
+        except Exception as exc:
+            self.stage_queue.push_dlq(
+                Envelope(
+                    type="chunk_text.invalid_message",
+                    payload={
+                        "error": str(exc),
+                        "message_payload": message.payload,
+                        "failed_at": utc_now_iso(),
+                    },
+                ).to_dict()
+            )
+            message.ack()
+            logger.exception("Invalid chunk queue message payload; sent to DLQ and acknowledged")
             return None
-        envelope = Envelope.from_dict(raw)
-        return str(envelope.payload["storage_key"])
 
     def _initialize_runtime_config(self, processing_config: ChunkTextProcessingConfigContract) -> None:
         """Load runtime config values into worker state."""

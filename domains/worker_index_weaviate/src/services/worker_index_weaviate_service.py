@@ -6,7 +6,8 @@ from contracts.contracts import IndexWeaviateProcessingConfigContract
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
-from pipeline_common.gateways.queue import Envelope, StageQueue
+from pipeline_common.gateways.queue import ConsumedMessage, Envelope, StageQueue
+from pipeline_common.helpers.contracts import utc_now_iso
 from services.weaviate_gateway import upsert_chunk, verify_query
 from pipeline_common.startup.contracts import WorkerService
 from services.index_weaviate_processor import IndexWeaviateProcessor
@@ -42,15 +43,27 @@ class WorkerIndexWeaviateService(WorkerService):
     def serve(self) -> None:
         """Run the indexing worker loop by polling queue messages."""
         while True:
-            request = self._pop_queued_request()
+            message = self.stage_queue.pop_message()
+            if message is None:
+                continue
+            try:
+                request = self._request_from_message(message)
+            except Exception:
+                message.nack(requeue=True)
+                logger.exception("Failed index invalid-message handling; requeued message")
+                continue
             if request is None:
                 continue
             embeddings_key, doc_id = request
             try:
                 self._handle_index_request(embeddings_key, doc_id)
             except Exception:
-                self._send_index_failure(embeddings_key, doc_id)
-                logger.exception("Failed indexing embeddings key '%s'; sent to DLQ", embeddings_key)
+                if self._handle_index_failure(embeddings_key, doc_id):
+                    message.ack()
+                else:
+                    message.nack(requeue=True)
+                continue
+            message.ack()
 
     def _handle_index_request(self, embeddings_key: str, doc_id: str) -> None:
         index_job = self._build_index_job(embeddings_key, doc_id)
@@ -92,6 +105,19 @@ class WorkerIndexWeaviateService(WorkerService):
             ).to_dict()
         )
 
+    def _handle_index_failure(self, embeddings_key: str, doc_id: str) -> bool:
+        """Route failed index request to DLQ; return True when message can be acked."""
+        try:
+            self._send_index_failure(embeddings_key, doc_id)
+        except Exception:
+            logger.exception(
+                "Failed indexing embeddings key '%s' and failed DLQ publish; requeueing message",
+                embeddings_key,
+            )
+            return False
+        logger.exception("Failed indexing embeddings key '%s'; sent to DLQ", embeddings_key)
+        return True
+
     def _build_index_job(self, embeddings_key: str, doc_id: str) -> dict[str, str] | None:
         if not embeddings_key.startswith(self.input_prefix) or embeddings_key == self.input_prefix:
             return None
@@ -124,13 +150,25 @@ class WorkerIndexWeaviateService(WorkerService):
         result = verify_query(self.weaviate_url, "logistics")
         logger.info("Indexed doc_id '%s' verify=%s", doc_id, bool(result))
 
-    def _pop_queued_request(self) -> tuple[str, str] | None:
-        """Pop one indexing request from queue when available."""
-        raw = self.stage_queue.pop_message()
-        if raw is None:
+    def _request_from_message(self, message: ConsumedMessage) -> tuple[str, str] | None:
+        """Parse index request from queue payload; route invalid payloads to DLQ."""
+        try:
+            envelope = Envelope.from_dict(message.payload)
+            return str(envelope.payload["embeddings_key"]), str(envelope.payload["doc_id"])
+        except Exception as exc:
+            self.stage_queue.push_dlq(
+                Envelope(
+                    type="index_weaviate.invalid_message",
+                    payload={
+                        "error": str(exc),
+                        "message_payload": message.payload,
+                        "failed_at": utc_now_iso(),
+                    },
+                ).to_dict()
+            )
+            message.ack()
+            logger.exception("Invalid index queue message payload; sent to DLQ and acknowledged")
             return None
-        envelope = Envelope.from_dict(raw)
-        return str(envelope.payload["embeddings_key"]), str(envelope.payload["doc_id"])
 
     def _initialize_runtime_config(self, processing_config: IndexWeaviateProcessingConfigContract) -> None:
         """Load runtime config values into worker state."""

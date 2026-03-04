@@ -1,5 +1,4 @@
 import logging
-import json
 from typing import Any
 
 from pipeline_common.gateways.lineage import DatasetPlatform
@@ -34,6 +33,9 @@ class WorkerChunkTextService(WorkerService):
         self._initialize_runtime_config(processing_config)
         self.processor = ChunkTextProcessor(
             spark_session=self.spark_session,
+            object_storage=self.object_storage,
+            storage_bucket=self.storage_bucket,
+            output_prefix=self.output_prefix,
         )
 
     def serve(self) -> None:
@@ -73,19 +75,16 @@ class WorkerChunkTextService(WorkerService):
         try:
             processed = self._read_processed_payload(chunk_job["source_key"])
             doc_id = str(processed["doc_id"])
-            chunk_records = self.processor.build_chunk_records(processed, doc_id)
-            written = 0
-            destination_keys: list[str] = []
-            for chunk_record in chunk_records:
-                destination_key = self._chunk_object_key(doc_id, str(chunk_record["chunk_id"]))
-                destination_keys.append(destination_key)
+            if self.spark_session is None:
+                written, destination_keys = self.processor.write_chunk_artifacts(processed, doc_id=doc_id)
+            else:
+                input_df = self.processor.build_input_dataframe(processed, doc_id=doc_id)
+                written, destination_keys = self.processor.write_chunk_artifacts_from_dataframe(input_df)
+            for destination_key in destination_keys:
                 self.lineage.add_output(
                     name=f"{self.storage_bucket}/{destination_key}",
                     platform=DatasetPlatform.S3,
                 )
-                if not self.object_storage.object_exists(self.storage_bucket, destination_key):
-                    self._write_chunk_object(destination_key, chunk_record)
-                    written += 1
 
             self.lineage.complete_run()
             for destination_key in destination_keys:
@@ -129,17 +128,6 @@ class WorkerChunkTextService(WorkerService):
     def _read_processed_payload(self, source_key: str) -> dict[str, Any]:
         raw_payload = self.object_storage.read_object(self.storage_bucket, source_key)
         return self.processor.read_processed_payload(raw_payload)
-
-    def _chunk_object_key(self, doc_id: str, chunk_id: str) -> str:
-        return f"{self.output_prefix}{doc_id}/{chunk_id}.chunk.json"
-
-    def _write_chunk_object(self, destination_key: str, payload: dict[str, Any]) -> None:
-        self.object_storage.write_object(
-            self.storage_bucket,
-            destination_key,
-            json.dumps(payload, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode("utf-8"),
-            content_type="application/json",
-        )
 
     def _enqueue_chunk_object(self, destination_key: str) -> None:
         self.stage_queue.push(

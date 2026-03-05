@@ -1,9 +1,12 @@
 import hashlib
 import json
+import tempfile
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
+from pipeline_common.gateways.processing_engine import SparkWriteGateway
 from pyspark.sql import functions as spark_functions  # type: ignore
 from pyspark.sql import types as spark_types  # type: ignore
 
@@ -49,25 +52,12 @@ class EmbedChunksProcessor:
 
     def write_embedding_artifact(self, payload: dict[str, Any]) -> EmbeddingWriteResult:
         embedding_payload = self._build_embedding_payload_local(payload)
-        doc_id = str(embedding_payload["doc_id"])
-        chunk_id = str(embedding_payload["chunk_id"])
-        destination_key = self._embedding_object_key(doc_id, chunk_id)
-        if self.object_storage.object_exists(self.storage_bucket, destination_key):
-            return EmbeddingWriteResult(destination_key=destination_key, doc_id=doc_id, chunk_id=chunk_id, wrote=False)
-        self.object_storage.write_object(
-            self.storage_bucket,
-            destination_key,
-            json.dumps(embedding_payload, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode("utf-8"),
-            content_type="application/json",
-        )
-        return EmbeddingWriteResult(destination_key=destination_key, doc_id=doc_id, chunk_id=chunk_id, wrote=True)
+        return self._write_embedding_payload(embedding_payload)
 
-    def build_input_dataframe(self, payload: dict[str, Any]) -> Any:
-        """Create Spark DataFrame input for embedding transforms."""
-        if self.spark_session is None:
-            raise RuntimeError("Spark session is required for DataFrame processing")
+    def build_input_record(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Create one normalized record for Spark dataframe input."""
         text = str(payload["chunk_text"])
-        input_row = {
+        return {
             "doc_id": str(payload.get("doc_id")),
             "chunk_id": str(payload["chunk_id"]),
             "chunk_text": text,
@@ -78,11 +68,20 @@ class EmbedChunksProcessor:
             "chunk_index": payload.get("chunk_index"),
             "dimension": int(self.dimension),
         }
-        return self.spark_session.createDataFrame([input_row])
 
-    def write_embedding_artifact_from_dataframe(self, input_df: Any) -> EmbeddingWriteResult:
-        """Transform Spark DataFrame row into embedding artifact and write output."""
-        embedding_payload = self._build_embedding_payload_spark(input_df)
+    def write_embedding_artifact_from_dataframe(
+        self,
+        input_df: Any,
+        *,
+        write_gateway: SparkWriteGateway,
+    ) -> EmbeddingWriteResult:
+        """Transform dataframe and materialize embedding payload via write gateway."""
+        transformed_df = self._build_embedding_dataframe(input_df)
+        record = self._materialize_first_record(transformed_df, write_gateway=write_gateway)
+        embedding_payload = self._build_embedding_payload_from_record(record)
+        return self._write_embedding_payload(embedding_payload)
+
+    def _write_embedding_payload(self, embedding_payload: dict[str, Any]) -> EmbeddingWriteResult:
         doc_id = str(embedding_payload["doc_id"])
         chunk_id = str(embedding_payload["chunk_id"])
         destination_key = self._embedding_object_key(doc_id, chunk_id)
@@ -107,30 +106,52 @@ class EmbedChunksProcessor:
             "metadata": self._metadata_from_payload(payload, doc_id, text),
         }
 
-    def _build_embedding_payload_spark(self, input_df: Any) -> dict[str, Any]:
+    def _build_embedding_dataframe(self, input_df: Any) -> Any:
         vector_udf = spark_functions.udf(
             lambda value, dim: self._deterministic_embedding_for(str(value), int(dim)),
             spark_types.ArrayType(spark_types.DoubleType()),
         )
-        row = input_df.withColumn(
+        return input_df.withColumn(
             "vector",
             vector_udf(spark_functions.col("chunk_text"), spark_functions.col("dimension")),
-        ).collect()[0]
+        )
+
+    def _materialize_first_record(
+        self,
+        dataframe: Any,
+        *,
+        write_gateway: SparkWriteGateway,
+    ) -> dict[str, Any]:
+        with tempfile.TemporaryDirectory(prefix="worker_embed_chunks_") as temp_dir:
+            write_gateway.write(
+                dataframe,
+                path=temp_dir,
+                format_name="json",
+                mode="overwrite",
+            )
+            json_parts = sorted(Path(temp_dir).glob("part-*"))
+            for part in json_parts:
+                with part.open("r", encoding="utf-8") as handle:
+                    for line in handle:
+                        return dict(json.loads(line))
+        raise RuntimeError("No records produced by Spark embedding transform")
+
+    def _build_embedding_payload_from_record(self, row: dict[str, Any]) -> dict[str, Any]:
         doc_id = str(row["doc_id"])
         chunk_id = str(row["chunk_id"])
         text = str(row["chunk_text"])
         row_payload = {
-            "source_type": row["source_type"],
-            "timestamp": row["timestamp"],
-            "security_clearance": row["security_clearance"],
-            "source_key": row["source_key"],
-            "chunk_index": row["chunk_index"],
+            "source_type": row.get("source_type"),
+            "timestamp": row.get("timestamp"),
+            "security_clearance": row.get("security_clearance"),
+            "source_key": row.get("source_key"),
+            "chunk_index": row.get("chunk_index"),
             "chunk_text": text,
         }
         return {
             "doc_id": doc_id,
             "chunk_id": chunk_id,
-            "vector": list(row["vector"]),
+            "vector": list(row.get("vector", [])),
             "metadata": self._metadata_from_payload(row_payload, doc_id, text),
         }
 

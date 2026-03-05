@@ -5,6 +5,7 @@ from contracts.contracts import EmbedChunksProcessingConfigContract
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
+from pipeline_common.gateways.processing_engine import ReadGateway, WriteGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, StageQueue
 from pipeline_common.helpers.contracts import utc_now_iso
 from pipeline_common.startup.contracts import WorkerService
@@ -31,6 +32,8 @@ class WorkerEmbedChunksService(WorkerService):
         self.object_storage = object_storage
         self.lineage = lineage
         self.spark_session = spark_session
+        self.read_gateway = ReadGateway(spark_session=self.spark_session) if self.spark_session is not None else None
+        self.write_gateway = WriteGateway() if self.spark_session is not None else None
         self._initialize_runtime_config(processing_config)
         self.dimension = dimension
         self.processor = EmbedChunksProcessor(
@@ -80,8 +83,12 @@ class WorkerEmbedChunksService(WorkerService):
             if self.spark_session is None:
                 write_result = self.processor.write_embedding_artifact(chunk_payload)
             else:
-                input_df = self.processor.build_input_dataframe(chunk_payload)
-                write_result = self.processor.write_embedding_artifact_from_dataframe(input_df)
+                input_record = self.processor.build_input_record(chunk_payload)
+                input_df = self.read_gateway.from_records([input_record])
+                write_result = self.processor.write_embedding_artifact_from_dataframe(
+                    input_df,
+                    write_gateway=self.write_gateway,
+                )
             doc_id = write_result.doc_id
             destination_key = write_result.destination_key
             self.lineage.add_output(

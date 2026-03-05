@@ -4,6 +4,7 @@ from typing import Any
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
+from pipeline_common.gateways.processing_engine import ReadGateway, WriteGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, StageQueue
 from pipeline_common.helpers.contracts import utc_now_iso
 from pipeline_common.startup.contracts import WorkerService
@@ -30,6 +31,8 @@ class WorkerChunkTextService(WorkerService):
         self.object_storage = object_storage
         self.lineage = lineage
         self.spark_session = spark_session
+        self.read_gateway = ReadGateway(spark_session=self.spark_session) if self.spark_session is not None else None
+        self.write_gateway = WriteGateway() if self.spark_session is not None else None
         self._initialize_runtime_config(processing_config)
         self.processor = ChunkTextProcessor(
             spark_session=self.spark_session,
@@ -78,8 +81,12 @@ class WorkerChunkTextService(WorkerService):
             if self.spark_session is None:
                 written, destination_keys = self.processor.write_chunk_artifacts(processed, doc_id=doc_id)
             else:
-                input_df = self.processor.build_input_dataframe(processed, doc_id=doc_id)
-                written, destination_keys = self.processor.write_chunk_artifacts_from_dataframe(input_df)
+                input_record = self.processor.build_input_record(processed, doc_id=doc_id)
+                input_df = self.read_gateway.from_records([input_record])
+                written, destination_keys = self.processor.write_chunk_artifacts_from_dataframe(
+                    input_df,
+                    write_gateway=self.write_gateway,
+                )
             for destination_key in destination_keys:
                 self.lineage.add_output(
                     name=f"{self.storage_bucket}/{destination_key}",

@@ -6,6 +6,7 @@ from contracts.contracts import IndexWeaviateProcessingConfigContract
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
+from pipeline_common.gateways.processing_engine import ReadGateway, WriteGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, StageQueue
 from pipeline_common.helpers.contracts import utc_now_iso
 from services.weaviate_gateway import upsert_chunk, verify_query
@@ -33,6 +34,8 @@ class WorkerIndexWeaviateService(WorkerService):
         self.object_storage = object_storage
         self.lineage = lineage
         self.spark_session = spark_session
+        self.read_gateway = ReadGateway(spark_session=self.spark_session) if self.spark_session is not None else None
+        self.write_gateway = WriteGateway() if self.spark_session is not None else None
         self.weaviate_url = weaviate_url
         self._initialize_runtime_config(processing_config)
         self.processor = IndexWeaviateProcessor(
@@ -130,7 +133,15 @@ class WorkerIndexWeaviateService(WorkerService):
         return self.processor.read_embeddings_payload(raw_payload)
 
     def _upsert_embeddings(self, payload: dict[str, Any]) -> None:
-        items = self.processor.build_upsert_items(payload)
+        if self.spark_session is None:
+            items = self.processor.build_upsert_items(payload)
+        else:
+            input_records = self.processor.build_input_records(payload)
+            input_df = self.read_gateway.from_records(input_records)
+            items = self.processor.build_upsert_items_from_dataframe(
+                input_df,
+                write_gateway=self.write_gateway,
+            )
         for item in items:
             upsert_chunk(
                 self.weaviate_url,

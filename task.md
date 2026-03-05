@@ -1,144 +1,170 @@
-# Prompt: Analyze Worker Architecture and Produce Implementation Plan (plan_tasks.md)
+# Prompt: Implement Chunking Registry + Embedding Registry (Enterprise RAG Lineage)
 
-You are an expert Python systems engineer.
+You are a senior platform engineer implementing enterprise-grade provenance for a RAG pipeline.
+We persist chunks to S3 and index embeddings asynchronously in a vector DB.
+We want TWO registries:
+1) Chunking Registry: one row per chunk produced
+2) Embedding Registry: one row per (chunk_id, embedder_version, index_target) produced (and optionally per attempt/run)
 
-Your task is to analyze the repository and produce a structured implementation plan documenting how to introduce Spark as the processing engine for workers.
+Goal: keep DataHub lineage UI readable (dataset-level), while allowing deterministic traceability:
+vector_result(chunk_id) -> chunk registry -> embedding registry -> exact source file version + exact run(s) + exact code/config.
 
-You MUST leverage the following architectural document as primary context:
+## Hard requirements
 
-/home/sultan/repos/governed-rag-foundation/docs/ARCHITECTURE.md
+### Deterministic identity
+- Define `source_content_hash = sha256(source_bytes)`
+- Define `chunk_params_hash = sha256(canonical_json(chunker_params))`
+- Define `chunk_id = sha256(
+    source_dataset_urn
+    + source_content_hash
+    + chunker_name + chunker_version + chunk_params_hash
+    + offsets.start + offsets.end
+  )`
+- Define `embedding_params_hash = sha256(canonical_json(embedder_params))`
+- Define `embedding_id = sha256(
+    chunk_id
+    + embedder_name + embedder_version + embedding_params_hash
+    + index_target
+  )`
 
-Use it to understand intended design principles, layering, responsibilities, and runtime flow.
+IDs must be stable across retries.
 
-However:
+### Registries are authoritative
+- Chunking Registry is the source of truth for “what chunks exist and where”.
+- Embedding Registry is the source of truth for “what got embedded/indexed, with what model, when, and where”.
 
-- Do NOT assume the implementation perfectly matches the document.
-- Validate architecture against actual code.
-- Identify where implementation diverges from documentation.
+### Async embedding
+Embedding workers run independently, out-of-order, with retries. Registry writes must be:
+- idempotent
+- safe under concurrency
+- track status transitions (STARTED -> SUCCEEDED/FAILED), and allow multiple attempts.
 
-This is an analysis + planning task.
-Do NOT modify any source files.
-Do NOT implement Spark yet.
-Do NOT refactor anything.
+## Deliverables
 
-Your output must be a new markdown file:
+### 1) Data model (schemas)
+Implement schemas and storage for both registries (choose one storage option; default: Parquet on S3 with partitioning by date and/or run_id, plus a compacted “latest” table; or Postgres if simpler).
+Provide CREATE TABLE if using SQL.
 
-plan_tasks.md
+#### Chunking Registry schema (minimum)
+- chunk_id (PK)
+- source_dataset_urn
+- source_s3_uri (or canonical source uri)
+- source_content_hash
+- chunk_s3_uri (location of stored chunk object)
+- offsets_start
+- offsets_end
+- breadcrumb (optional)
+- chunk_text_hash (sha256)
+- chunker_name
+- chunker_version
+- chunk_params_hash
+- chunking_run_id
+- created_at (timestamp)
+- observed_at (timestamp)  # last time seen/verified
+- status (ENUM: ACTIVE, DELETED, SUPERSEDED)  # choose minimal status semantics
 
-This file must contain the complete technical analysis and step-by-step migration plan.
+#### Embedding Registry schema (minimum)
+- embedding_id (PK)  # deterministic
+- chunk_id (FK to chunking registry)
+- index_target (e.g. "qdrant://collection=x" or "pgvector://schema.table")
+- embedder_name
+- embedder_version
+- embedding_params_hash
+- embedding_dim
+- embedding_vector_hash (optional)  # hash of embedding bytes if you want
+- embedding_run_id
+- chunking_run_id (copied for convenience)
+- attempt (int)
+- status (ENUM: STARTED, SUCCEEDED, FAILED)
+- error_message (nullable)
+- started_at
+- finished_at (nullable)
+- upserted_at (timestamp)
+- vector_record_id (id used in vector db, typically chunk_id or embedding_id)
 
----
+Add any extra fields you need for your runtime (tenant, domain, namespace, etc).
 
-# Objectives
+### 2) Canonical provenance envelope
+Implement:
+- `build_chunk_envelope(...) -> dict` (for chunk objects and registry writes)
+- `build_embedding_envelope(...) -> dict` (for vector records and embedding registry writes)
+Ensure envelopes contain all fields to join across registries by chunk_id.
 
-You must read the entire repository and produce a detailed plan covering:
+### 3) Writers with idempotency + concurrency safety
+Implement registry writers that support:
+- upsert semantics by PK
+- status transitions with optimistic concurrency (if DB) or “append + compact” (if S3 parquet)
+- ability to query:
+  - by chunk_id
+  - by source_dataset_urn + source_content_hash
+  - by chunking_run_id
+  - embedding latest for a chunk_id and index_target
 
-## 1️⃣ Current Worker Architecture
+If using S3 parquet:
+- Write append-only partitions (e.g., dt=YYYY-MM-DD/run_id=...)
+- Provide a compaction job that materializes “latest state” tables for fast lookup.
 
-- Identify all worker entrypoints.
-- Explain how workers are launched.
-- Map entrypoints to layers described in ARCHITECTURE.md.
-- Describe runtime lifecycle from startup to shutdown.
-- Identify composition roots, factories, builders, and dependency wiring.
+### 4) Pipeline integration
+Update pipeline stages:
 
-## 2️⃣ Runtime Flow
+#### Chunking stage
+For each input file:
+- compute source_content_hash
+- chunk into segments
+- for each segment:
+  - compute chunk_id deterministically
+  - write chunk object to S3 at chunk_s3_uri (include envelope metadata in object)
+  - write row to chunking registry (upsert/append)
+At end of run:
+- produce a run manifest (optional) OR rely on chunking_run_id partition in registry.
 
-Trace the full flow of a single unit of work:
+#### Embedding stage (async workers)
+Each worker receives (chunking_run_id, batch_id) OR queries chunking registry for unembedded chunks:
+- mark embedding registry row as STARTED with attempt increment
+- compute embedding
+- upsert embedding to vector DB with metadata including chunk_id + embedding_id + versions + run ids
+- mark embedding registry row SUCCEEDED with finished_at
+On error:
+- mark FAILED with error_message
 
-- Ingestion
-- Orchestration
-- Processing
-- Storage/output
-- Acknowledgement
+### 5) DataHub modeling (dataset-level only)
+Emit DataHub entities and lineage:
+- Dataset: source file datasets (already)
+- Dataset: chunk_store_dataset (S3 prefix)
+- Dataset: chunking_registry_dataset (table/prefix)
+- Dataset: vector_index_dataset (vector collection)
+- Dataset: embedding_registry_dataset (table/prefix)
 
-Produce a clear text-based flow diagram.
+Static lineage:
+- source_file_dataset -> chunking_job -> chunk_store_dataset
+- chunking_job -> chunking_registry_dataset
+- chunking_registry_dataset -> embedding_job -> vector_index_dataset
+- embedding_job -> embedding_registry_dataset
 
-## 3️⃣ Infrastructure Boundaries
+Runtime lineage (DPI):
+- chunking DPI includes manifest/partition pointer and chunk_count
+- embedding DPI includes processed_count, batch_id, and references to chunking_run_id
 
-- Identify how queue integration is implemented.
-- Identify storage integration layers.
-- Identify processing engine abstraction (if any).
-- Evaluate coupling to the current processing engine.
+IMPORTANT: Do NOT create a DataHub Dataset per chunk.
 
-Map these to architectural contracts defined in ARCHITECTURE.md.
+### 6) Queries / APIs to implement
+Provide functions:
+- `get_chunk_provenance(chunk_id) -> {source_urn, source_hash, chunk_s3_uri, offsets, chunker...}`
+- `get_embedding_provenance(chunk_id, index_target) -> {embedding_id, embedder..., status, run_ids, vector_record_id}`
+- `trace_from_vector_result(chunk_id) -> full chain`
 
-## 4️⃣ Data Processing Engine Assessment
+### 7) Testing
+Add unit tests for:
+- deterministic chunk_id
+- deterministic embedding_id
+- registry upsert/idempotency behavior
+- status transition logic (STARTED->SUCCEEDED, retries)
+- concurrency safety strategy (append+compact or db upsert)
 
-- Determine how data processing is currently implemented.
-- Identify where the processing engine is instantiated.
-- Identify how tightly coupled workers are to the current engine.
-- Determine whether an abstraction layer already exists.
-
-## 5️⃣ Architectural Alignment Analysis
-
-Compare implementation with ARCHITECTURE.md:
-
-- Clean boundaries
-- Violations
-- Missing abstractions
-- Implicit coupling
-- Technical debt impacting migration
-
-Be precise and reference file paths.
-
----
-
-# Migration Plan Section
-
-After the analysis, the second half of plan_tasks.md must include:
-
-## 6️⃣ Spark Integration Strategy
-
-Define:
-
-- Minimal changes required to introduce Spark cluster usage
-- Where SparkSession should be instantiated
-- Whether a processing abstraction is needed
-- Whether current worker lifecycle supports Spark reuse
-- Required Docker changes
-- Required dependency changes
-
-## 7️⃣ Refactor Steps (Ordered Tasks)
-
-Provide a numbered, incremental plan:
-
-- Step 1: ...
-- Step 2: ...
-- Step 3: ...
-
-Each step must include:
-- Files to modify
-- Why the change is needed
-- Expected impact
-- Risk level (Low / Medium / High)
-
-## 8️⃣ Risk & Impact Analysis
-
-- Operational risks
-- Runtime behavior changes
-- Resource impact (memory / CPU)
-- Backward compatibility concerns
-
-## 9️⃣ Final State Architecture Diagram (Text Form)
-
-Show how the system will look after Spark integration, mapped to ARCHITECTURE.md principles.
-
----
-
-# Output Requirements
-
-- Output MUST be written to a new file: plan_tasks.md
-- The file must be well-structured Markdown.
-- Use clear section headers.
-- Include file paths in code blocks when referencing implementation.
-- No speculative assumptions.
-- Base all analysis strictly on repository contents + ARCHITECTURE.md.
-
----
-
-# Critical Constraints
-
-- Do NOT modify any existing code.
-- Do NOT introduce new services in this step.
-- Do NOT implement Spark.
-- Only analyze and produce the implementation plan.
+## Output format
+- Provide file-by-file code blocks with paths.
+- Include a short README explaining:
+  - registry storage choice
+  - how to trace a chunk from vector DB back to source and runs
+  - how async embedding is represented
+  - how DataHub lineage remains readable

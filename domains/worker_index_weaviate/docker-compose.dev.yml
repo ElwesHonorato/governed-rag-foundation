@@ -1,0 +1,6 @@
+services:
+  pipeline-worker-index-weaviate:
+    volumes:
+      - ./domains/worker_index_weaviate/src:/app/src
+      - ./libs/pipeline-common/src:/pipeline-common/src
+      - ./registry:/app/registry

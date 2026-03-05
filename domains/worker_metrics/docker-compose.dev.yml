@@ -1,0 +1,6 @@
+services:
+  pipeline-worker-metrics:
+    volumes:
+      - ./domains/worker_metrics/src:/app/src
+      - ./libs/pipeline-common/src:/pipeline-common/src
+      - ./registry:/app/registry

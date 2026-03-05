@@ -1,0 +1,6 @@
+services:
+  pipeline-worker-chunk-text:
+    volumes:
+      - ./domains/worker_chunk_text/src:/app/src
+      - ./libs/pipeline-common/src:/pipeline-common/src
+      - ./registry:/app/registry

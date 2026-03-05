@@ -1,12 +1,20 @@
 import logging
 import json
 from typing import Any
+from datetime import UTC, datetime
 
 from contracts.contracts import IndexWeaviateProcessingConfigContract
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.processing_engine import ReadGateway, WriteGateway
+from pipeline_common.provenance import (
+    EmbeddingRegistryRow,
+    EmbeddingRegistryStatus,
+    ProvenanceRegistryGateway,
+    build_embedding_envelope,
+    sha256_hex,
+)
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, StageQueue
 from pipeline_common.helpers.contracts import utc_now_iso
 from services.weaviate_gateway import upsert_chunk, verify_query
@@ -25,6 +33,7 @@ class WorkerIndexWeaviateService(WorkerService):
         stage_queue: StageQueue,
         object_storage: ObjectStorageGateway,
         lineage: LineageRuntimeGateway,
+        provenance_registry: ProvenanceRegistryGateway,
         spark_session: Any | None,
         processing_config: IndexWeaviateProcessingConfigContract,
         weaviate_url: str,
@@ -33,10 +42,12 @@ class WorkerIndexWeaviateService(WorkerService):
         self.stage_queue = stage_queue
         self.object_storage = object_storage
         self.lineage = lineage
+        self.provenance_registry = provenance_registry
         self.spark_session = spark_session
         self.read_gateway = ReadGateway(spark_session=self.spark_session) if self.spark_session is not None else None
         self.write_gateway = WriteGateway() if self.spark_session is not None else None
         self.weaviate_url = weaviate_url
+        self.index_target = "weaviate://DocumentChunk"
         self._initialize_runtime_config(processing_config)
         self.processor = IndexWeaviateProcessor(
             output_prefix=self.output_prefix,
@@ -85,6 +96,10 @@ class WorkerIndexWeaviateService(WorkerService):
             destination_key = self.processor.build_indexed_key(resolved_doc_id, resolved_chunk_id)
             self.lineage.add_output(
                 name=f"{self.storage_bucket}/{destination_key}",
+                platform=DatasetPlatform.S3,
+            )
+            self.lineage.add_output(
+                name=f"{self.storage_bucket}/07_metadata/provenance/embedding/latest/",
                 platform=DatasetPlatform.S3,
             )
             if self.object_storage.object_exists(self.storage_bucket, destination_key):
@@ -143,11 +158,60 @@ class WorkerIndexWeaviateService(WorkerService):
                 write_gateway=self.write_gateway,
             )
         for item in items:
+            properties = dict(item.get("properties", {}))
+            vector = list(item.get("vector", []))
+            chunk_id = str(item["chunk_id"])
+            envelope = build_embedding_envelope(
+                chunk_id=chunk_id,
+                index_target=self.index_target,
+                embedder_name=str(properties.get("embedder_name", "unknown_embedder")),
+                embedder_version=str(properties.get("embedder_version", "unknown_version")),
+                embedder_params={"embedding_params_hash": str(properties.get("embedding_params_hash", ""))},
+                embedding_params_hash_value=str(properties.get("embedding_params_hash", "")) or None,
+                embedding_dim=len(vector),
+                embedding_run_id=str(properties.get("embedding_run_id", "")),
+                chunking_run_id=str(properties.get("chunking_run_id", "")),
+                vector=vector,
+                vector_record_id=chunk_id,
+            )
+            properties.update(
+                {
+                    "embedding_id": str(envelope["embedding_id"]),
+                    "index_target": self.index_target,
+                    "embedding_run_id": str(envelope["embedding_run_id"]),
+                    "chunking_run_id": str(envelope["chunking_run_id"]),
+                    "embedder_name": str(envelope["embedder_name"]),
+                    "embedder_version": str(envelope["embedder_version"]),
+                    "embedding_params_hash": str(envelope["embedding_params_hash"]),
+                }
+            )
             upsert_chunk(
                 self.weaviate_url,
-                chunk_id=str(item["chunk_id"]),
-                vector=item.get("vector", []),
-                properties=dict(item.get("properties", {})),
+                chunk_id=chunk_id,
+                vector=vector,
+                properties=properties,
+            )
+            now_iso = datetime.now(tz=UTC).isoformat()
+            self.provenance_registry.upsert_embedding_succeeded(
+                EmbeddingRegistryRow(
+                    embedding_id=str(envelope["embedding_id"]),
+                    chunk_id=chunk_id,
+                    index_target=self.index_target,
+                    embedder_name=str(envelope["embedder_name"]),
+                    embedder_version=str(envelope["embedder_version"]),
+                    embedding_params_hash=str(envelope["embedding_params_hash"]),
+                    embedding_dim=int(envelope["embedding_dim"]),
+                    embedding_vector_hash=sha256_hex(str(vector)),
+                    embedding_run_id=str(envelope["embedding_run_id"]),
+                    chunking_run_id=str(envelope["chunking_run_id"]),
+                    attempt=1,
+                    status=EmbeddingRegistryStatus.SUCCEEDED,
+                    error_message=None,
+                    started_at=now_iso,
+                    finished_at=now_iso,
+                    upserted_at=now_iso,
+                    vector_record_id=chunk_id,
+                )
             )
 
     def _write_indexed_object(self, destination_key: str, doc_id: str, chunk_id: str) -> None:

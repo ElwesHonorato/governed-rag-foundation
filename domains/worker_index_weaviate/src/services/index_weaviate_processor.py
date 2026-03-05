@@ -44,6 +44,11 @@ class IndexWeaviateProcessor:
                     "chunk_text": metadata.get("chunk_text"),
                     "source_key": metadata.get("source_key"),
                     "security_clearance": metadata.get("security_clearance"),
+                    "chunking_run_id": metadata.get("chunking_run_id"),
+                    "embedder_name": metadata.get("embedder_name"),
+                    "embedder_version": metadata.get("embedder_version"),
+                    "embedding_params_hash": metadata.get("embedding_params_hash"),
+                    "embedding_run_id": metadata.get("embedding_run_id"),
                 }
             )
         return records
@@ -73,6 +78,11 @@ class IndexWeaviateProcessor:
                         "chunk_text": row.get("chunk_text"),
                         "source_key": row.get("source_key"),
                         "security_clearance": row.get("security_clearance"),
+                        "chunking_run_id": row.get("chunking_run_id"),
+                        "embedder_name": row.get("embedder_name"),
+                        "embedder_version": row.get("embedder_version"),
+                        "embedding_params_hash": row.get("embedding_params_hash"),
+                        "embedding_run_id": row.get("embedding_run_id"),
                     },
                 }
             )
@@ -87,6 +97,11 @@ class IndexWeaviateProcessor:
             "chunk_text",
             "source_key",
             "security_clearance",
+            "chunking_run_id",
+            "embedder_name",
+            "embedder_version",
+            "embedding_params_hash",
+            "embedding_run_id",
         )
 
     def _materialize_records_from_dataframe(
@@ -134,6 +149,11 @@ class IndexWeaviateProcessor:
                         "chunk_text": metadata.get("chunk_text"),
                         "source_key": metadata.get("source_key"),
                         "security_clearance": metadata.get("security_clearance"),
+                        "chunking_run_id": metadata.get("chunking_run_id"),
+                        "embedder_name": metadata.get("embedder_name"),
+                        "embedder_version": metadata.get("embedder_version"),
+                        "embedding_params_hash": metadata.get("embedding_params_hash"),
+                        "embedding_run_id": metadata.get("embedding_run_id"),
                     },
                 }
             )

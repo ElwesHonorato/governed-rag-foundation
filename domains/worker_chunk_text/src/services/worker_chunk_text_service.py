@@ -1,10 +1,12 @@
 import logging
+import uuid
 from typing import Any
 
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.processing_engine import ReadGateway, WriteGateway
+from pipeline_common.provenance import ProvenanceRegistryGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, StageQueue
 from pipeline_common.helpers.contracts import utc_now_iso
 from pipeline_common.startup.contracts import WorkerService
@@ -23,6 +25,7 @@ class WorkerChunkTextService(WorkerService):
         stage_queue: StageQueue,
         object_storage: ObjectStorageGateway,
         lineage: LineageRuntimeGateway,
+        provenance_registry: ProvenanceRegistryGateway,
         spark_session: Any | None,
         processing_config: ChunkTextProcessingConfigContract,
     ) -> None:
@@ -30,6 +33,7 @@ class WorkerChunkTextService(WorkerService):
         self.stage_queue = stage_queue
         self.object_storage = object_storage
         self.lineage = lineage
+        self.provenance_registry = provenance_registry
         self.spark_session = spark_session
         self.read_gateway = ReadGateway(spark_session=self.spark_session) if self.spark_session is not None else None
         self.write_gateway = WriteGateway() if self.spark_session is not None else None
@@ -37,6 +41,7 @@ class WorkerChunkTextService(WorkerService):
         self.processor = ChunkTextProcessor(
             spark_session=self.spark_session,
             object_storage=self.object_storage,
+            provenance_registry=self.provenance_registry,
             storage_bucket=self.storage_bucket,
             output_prefix=self.output_prefix,
         )
@@ -78,15 +83,26 @@ class WorkerChunkTextService(WorkerService):
         try:
             processed = self._read_processed_payload(chunk_job["source_key"])
             doc_id = str(processed["doc_id"])
+            chunking_run_id = uuid.uuid4().hex
             if self.spark_session is None:
-                written, destination_keys = self.processor.write_chunk_artifacts(processed, doc_id=doc_id)
+                written, destination_keys = self.processor.write_chunk_artifacts(
+                    processed,
+                    doc_id=doc_id,
+                    chunking_run_id=chunking_run_id,
+                )
             else:
-                input_record = self.processor.build_input_record(processed, doc_id=doc_id)
+                input_record = self.processor.build_input_record(
+                    processed,
+                    doc_id=doc_id,
+                    chunking_run_id=chunking_run_id,
+                )
                 input_df = self.read_gateway.from_records([input_record])
                 written, destination_keys = self.processor.write_chunk_artifacts_from_dataframe(
                     input_df,
                     write_gateway=self.write_gateway,
                 )
+            registry_dataset = f"{self.storage_bucket}/07_metadata/provenance/chunking/latest/"
+            self.lineage.add_output(name=registry_dataset, platform=DatasetPlatform.S3)
             for destination_key in destination_keys:
                 self.lineage.add_output(
                     name=f"{self.storage_bucket}/{destination_key}",

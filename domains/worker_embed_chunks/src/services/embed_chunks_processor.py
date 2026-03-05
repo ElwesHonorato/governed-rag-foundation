@@ -7,8 +7,12 @@ from typing import Any
 
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.processing_engine import SparkWriteGateway
+from pipeline_common.provenance import embedding_params_hash
 from pyspark.sql import functions as spark_functions  # type: ignore
 from pyspark.sql import types as spark_types  # type: ignore
+
+EMBEDDER_NAME = "deterministic_sha256"
+EMBEDDER_VERSION = "1.0.0"
 
 
 @dataclass(frozen=True)
@@ -50,13 +54,15 @@ class EmbedChunksProcessor:
     def read_chunk_payload(raw_payload: bytes) -> dict[str, Any]:
         return dict(json.loads(raw_payload.decode("utf-8", errors="ignore")))
 
-    def write_embedding_artifact(self, payload: dict[str, Any]) -> EmbeddingWriteResult:
-        embedding_payload = self._build_embedding_payload_local(payload)
+    def write_embedding_artifact(self, payload: dict[str, Any], *, embedding_run_id: str) -> EmbeddingWriteResult:
+        embedding_payload = self._build_embedding_payload_local(payload, embedding_run_id=embedding_run_id)
         return self._write_embedding_payload(embedding_payload)
 
-    def build_input_record(self, payload: dict[str, Any]) -> dict[str, Any]:
+    def build_input_record(self, payload: dict[str, Any], *, embedding_run_id: str) -> dict[str, Any]:
         """Create one normalized record for Spark dataframe input."""
         text = str(payload["chunk_text"])
+        provenance = dict(payload.get("provenance", {}))
+        embedder_params = {"dimension": int(self.dimension)}
         return {
             "doc_id": str(payload.get("doc_id")),
             "chunk_id": str(payload["chunk_id"]),
@@ -67,6 +73,11 @@ class EmbedChunksProcessor:
             "source_key": payload.get("source_key"),
             "chunk_index": payload.get("chunk_index"),
             "dimension": int(self.dimension),
+            "chunking_run_id": provenance.get("chunking_run_id", ""),
+            "embedder_name": EMBEDDER_NAME,
+            "embedder_version": EMBEDDER_VERSION,
+            "embedding_params_hash": embedding_params_hash(embedder_params),
+            "embedding_run_id": embedding_run_id,
         }
 
     def write_embedding_artifact_from_dataframe(
@@ -95,15 +106,26 @@ class EmbedChunksProcessor:
         )
         return EmbeddingWriteResult(destination_key=destination_key, doc_id=doc_id, chunk_id=chunk_id, wrote=True)
 
-    def _build_embedding_payload_local(self, payload: dict[str, Any]) -> dict[str, Any]:
+    def _build_embedding_payload_local(self, payload: dict[str, Any], *, embedding_run_id: str) -> dict[str, Any]:
         text = str(payload["chunk_text"])
         doc_id = str(payload.get("doc_id"))
         chunk_id = str(payload["chunk_id"])
+        provenance = dict(payload.get("provenance", {}))
+        embedder_params = {"dimension": int(self.dimension)}
         return {
             "doc_id": doc_id,
             "chunk_id": chunk_id,
             "vector": self._deterministic_embedding_for(text, self.dimension),
-            "metadata": self._metadata_from_payload(payload, doc_id, text),
+            "metadata": self._metadata_from_payload(
+                payload,
+                doc_id,
+                text,
+                chunking_run_id=str(provenance.get("chunking_run_id", "")),
+                embedder_name=EMBEDDER_NAME,
+                embedder_version=EMBEDDER_VERSION,
+                embedding_params_hash=embedding_params_hash(embedder_params),
+                embedding_run_id=embedding_run_id,
+            ),
         }
 
     def _build_embedding_dataframe(self, input_df: Any) -> Any:
@@ -140,23 +162,34 @@ class EmbedChunksProcessor:
         doc_id = str(row["doc_id"])
         chunk_id = str(row["chunk_id"])
         text = str(row["chunk_text"])
-        row_payload = {
-            "source_type": row.get("source_type"),
-            "timestamp": row.get("timestamp"),
-            "security_clearance": row.get("security_clearance"),
-            "source_key": row.get("source_key"),
-            "chunk_index": row.get("chunk_index"),
-            "chunk_text": text,
-        }
         return {
             "doc_id": doc_id,
             "chunk_id": chunk_id,
             "vector": list(row.get("vector", [])),
-            "metadata": self._metadata_from_payload(row_payload, doc_id, text),
+            "metadata": self._metadata_from_payload(
+                row,
+                doc_id,
+                text,
+                chunking_run_id=str(row.get("chunking_run_id", "")),
+                embedder_name=str(row.get("embedder_name", EMBEDDER_NAME)),
+                embedder_version=str(row.get("embedder_version", EMBEDDER_VERSION)),
+                embedding_params_hash=str(row.get("embedding_params_hash", "")),
+                embedding_run_id=str(row.get("embedding_run_id", "")),
+            ),
         }
 
     @staticmethod
-    def _metadata_from_payload(payload: dict[str, Any], doc_id: str, text: str) -> dict[str, Any]:
+    def _metadata_from_payload(
+        payload: dict[str, Any],
+        doc_id: str,
+        text: str,
+        *,
+        chunking_run_id: str,
+        embedder_name: str,
+        embedder_version: str,
+        embedding_params_hash: str,
+        embedding_run_id: str,
+    ) -> dict[str, Any]:
         return {
             "source_type": payload.get("source_type"),
             "timestamp": payload.get("timestamp"),
@@ -165,6 +198,11 @@ class EmbedChunksProcessor:
             "source_key": payload.get("source_key"),
             "chunk_index": payload.get("chunk_index"),
             "chunk_text": text,
+            "chunking_run_id": chunking_run_id,
+            "embedder_name": embedder_name,
+            "embedder_version": embedder_version,
+            "embedding_params_hash": embedding_params_hash,
+            "embedding_run_id": embedding_run_id,
         }
 
     def _embedding_object_key(self, doc_id: str, chunk_id: str) -> str:

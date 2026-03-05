@@ -1,4 +1,5 @@
 import logging
+import uuid
 from typing import Any
 
 from contracts.contracts import EmbedChunksProcessingConfigContract
@@ -80,10 +81,17 @@ class WorkerEmbedChunksService(WorkerService):
         )
         try:
             chunk_payload = self._read_chunk_payload(embed_job["source_key"])
+            embedding_run_id = uuid.uuid4().hex
             if self.spark_session is None:
-                write_result = self.processor.write_embedding_artifact(chunk_payload)
+                write_result = self.processor.write_embedding_artifact(
+                    chunk_payload,
+                    embedding_run_id=embedding_run_id,
+                )
             else:
-                input_record = self.processor.build_input_record(chunk_payload)
+                input_record = self.processor.build_input_record(
+                    chunk_payload,
+                    embedding_run_id=embedding_run_id,
+                )
                 input_df = self.read_gateway.from_records([input_record])
                 write_result = self.processor.write_embedding_artifact_from_dataframe(
                     input_df,

@@ -1,5 +1,5 @@
 import logging
-import uuid
+import time
 from typing import Any
 
 from pipeline_common.gateways.lineage import DatasetPlatform
@@ -8,7 +8,7 @@ from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.processing_engine import ReadGateway, WriteGateway
 from pipeline_common.provenance import ProvenanceRegistryGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, StageQueue
-from pipeline_common.helpers.contracts import utc_now_iso
+from pipeline_common.helpers.run_ids import build_source_run_id
 from pipeline_common.startup.contracts import WorkerService
 from contracts.contracts import ChunkTextProcessingConfigContract
 from services.chunk_text_processor import ChunkTextProcessor
@@ -35,11 +35,10 @@ class WorkerChunkTextService(WorkerService):
         self.lineage = lineage
         self.provenance_registry = provenance_registry
         self.spark_session = spark_session
-        self.read_gateway = ReadGateway(spark_session=self.spark_session) if self.spark_session is not None else None
-        self.write_gateway = WriteGateway() if self.spark_session is not None else None
+        self.read_gateway = ReadGateway(spark_session=self.spark_session)
+        self.write_gateway = WriteGateway()
         self._initialize_runtime_config(processing_config)
         self.processor = ChunkTextProcessor(
-            spark_session=self.spark_session,
             object_storage=self.object_storage,
             provenance_registry=self.provenance_registry,
             storage_bucket=self.storage_bucket,
@@ -49,58 +48,42 @@ class WorkerChunkTextService(WorkerService):
     def serve(self) -> None:
         """Run the chunking worker loop by polling queue messages."""
         while True:
-            message = self.stage_queue.pop_message()
-            if message is None:
-                continue
+            message = self._wait_for_next_message()
+            source_key = self._source_key_from_message(message)
             try:
-                source_key = self._source_key_from_message(message)
+                self._process_chunk_job(source_key)
             except Exception:
-                message.nack(requeue=True)
-                logger.exception("Failed chunk invalid-message handling; requeued message")
-                continue
-            if source_key is None:
-                continue
-            try:
-                self._handle_chunk_request(source_key)
-            except Exception:
-                if self._handle_chunk_failure(source_key):
-                    message.ack()
-                else:
-                    message.nack(requeue=True)
+                message.nack(requeue=False)
                 continue
             message.ack()
 
-    def _handle_chunk_request(self, source_key: str) -> None:
-        chunk_job = self._build_chunk_job(source_key)
-        if chunk_job is None:
-            return
+    def _wait_for_next_message(self) -> ConsumedMessage:
+        """Fetch next queue message, waiting until one is available."""
+        while True:
+            message = self.stage_queue.pop_message()
+            if message is not None:
+                return message
+            time.sleep(self.poll_interval_seconds)
 
+    def _process_chunk_job(self, source_key: str) -> None:
+        source_uri = f"s3a://{self.storage_bucket}/{source_key}"
         self.lineage.start_run()
         self.lineage.add_input(
-            name=f"{self.storage_bucket}/{chunk_job['source_key']}",
+            name=source_uri,
             platform=DatasetPlatform.S3,
         )
         try:
-            processed = self._read_processed_payload(chunk_job["source_key"])
-            doc_id = str(processed["doc_id"])
-            chunking_run_id = uuid.uuid4().hex
-            if self.spark_session is None:
-                written, destination_keys = self.processor.write_chunk_artifacts(
-                    processed,
-                    doc_id=doc_id,
-                    chunking_run_id=chunking_run_id,
-                )
-            else:
-                input_record = self.processor.build_input_record(
-                    processed,
-                    doc_id=doc_id,
-                    chunking_run_id=chunking_run_id,
-                )
-                input_df = self.read_gateway.from_records([input_record])
-                written, destination_keys = self.processor.write_chunk_artifacts_from_dataframe(
-                    input_df,
-                    write_gateway=self.write_gateway,
-                )
+            processed_df = self.read(source_uri)
+            chunking_run_id = build_source_run_id(source_uri)
+            input_df = self.processor.build_input_dataframe(
+                processed_df,
+                source_uri=source_uri,
+                chunking_run_id=chunking_run_id,
+            )
+            written, destination_keys = self.processor.write_chunk_artifacts_from_dataframe(
+                input_df,
+                write_gateway=self.write_gateway,
+            )
             registry_dataset = f"{self.storage_bucket}/07_metadata/provenance/chunking/latest/"
             self.lineage.add_output(name=registry_dataset, platform=DatasetPlatform.S3)
             for destination_key in destination_keys:
@@ -141,16 +124,8 @@ class WorkerChunkTextService(WorkerService):
         logger.exception("Failed chunking source key '%s'; sent to DLQ", source_key)
         return True
 
-    def _build_chunk_job(self, source_key: str) -> dict[str, str] | None:
-        if not source_key.startswith(self.input_prefix) or source_key == self.input_prefix:
-            return None
-        if not source_key.endswith(self.processed_suffix):
-            return None
-        return {"source_key": source_key}
-
-    def _read_processed_payload(self, source_key: str) -> dict[str, Any]:
-        raw_payload = self.object_storage.read_object(self.storage_bucket, source_key)
-        return self.processor.read_processed_payload(raw_payload)
+    def read(self, source_uri: str) -> Any:
+        return self.read_gateway.read(path=source_uri, format_name="json")
 
     def _enqueue_chunk_object(self, destination_key: str) -> None:
         self.stage_queue.push(
@@ -160,25 +135,10 @@ class WorkerChunkTextService(WorkerService):
             ).to_dict()
         )
 
-    def _source_key_from_message(self, message: ConsumedMessage) -> str | None:
-        """Parse source key from queue payload; route invalid payloads to DLQ."""
-        try:
-            envelope = Envelope.from_dict(message.payload)
-            return str(envelope.payload["storage_key"])
-        except Exception as exc:
-            self.stage_queue.push_dlq(
-                Envelope(
-                    type="chunk_text.invalid_message",
-                    payload={
-                        "error": str(exc),
-                        "message_payload": message.payload,
-                        "failed_at": utc_now_iso(),
-                    },
-                ).to_dict()
-            )
-            message.ack()
-            logger.exception("Invalid chunk queue message payload; sent to DLQ and acknowledged")
-            return None
+    def _source_key_from_message(self, message: ConsumedMessage) -> str:
+        """Parse source key from queue payload."""
+        envelope = Envelope.from_dict(message.payload)
+        return str(envelope.payload["storage_key"])
 
     def _initialize_runtime_config(self, processing_config: ChunkTextProcessingConfigContract) -> None:
         """Load runtime config values into worker state."""

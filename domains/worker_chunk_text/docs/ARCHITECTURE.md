@@ -35,7 +35,7 @@ Design:
 - Composition root in src/app.py.
 - Startup extension points in src/startup/config_extractor.py and src/startup/service_factory.py.
 - Processing logic in src/services.
-- Chunk compute path uses Spark RDD execution when `spark_session` is available, with local fallback when disabled.
+- Chunk compute path uses Spark dataframe execution (Spark-required runtime).
 
 Patterns:
 - Composition Root.

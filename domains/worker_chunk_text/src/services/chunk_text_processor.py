@@ -11,7 +11,6 @@ from pipeline_common.provenance import (
     ChunkRegistryStatus,
     ProvenanceRegistryGateway,
     build_chunk_envelope,
-    source_content_hash,
 )
 from pipeline_common.helpers.contracts import utc_now_iso
 from pyspark.sql import functions as spark_functions  # type: ignore
@@ -28,51 +27,15 @@ class ChunkTextProcessor:
     def __init__(
         self,
         *,
-        spark_session: Any | None,
         object_storage: ObjectStorageGateway,
         provenance_registry: ProvenanceRegistryGateway,
         storage_bucket: str,
         output_prefix: str,
     ) -> None:
-        self.spark_session = spark_session
         self.object_storage = object_storage
         self.provenance_registry = provenance_registry
         self.storage_bucket = storage_bucket
         self.output_prefix = output_prefix
-
-    @staticmethod
-    def read_processed_payload(raw_payload: bytes) -> dict[str, Any]:
-        return dict(json.loads(raw_payload.decode("utf-8", errors="ignore")))
-
-    def write_chunk_artifacts(
-        self,
-        processed: dict[str, Any],
-        *,
-        doc_id: str,
-        chunking_run_id: str,
-    ) -> tuple[int, list[str]]:
-        """Build chunk rows with local Python path and write chunk objects."""
-        records = self._build_chunk_records_local(processed, doc_id, chunking_run_id=chunking_run_id)
-        return self._write_chunk_records(records)
-
-    def build_input_record(self, processed: dict[str, Any], *, doc_id: str, chunking_run_id: str) -> dict[str, Any]:
-        """Create one normalized record for Spark dataframe input."""
-        parsed_payload = processed.get("parsed")
-        parsed_text = parsed_payload.get("text", "") if isinstance(parsed_payload, dict) else ""
-        source_text = str(parsed_text or processed.get("text", ""))
-        source_key = str(processed.get("source_key", ""))
-        source_dataset_urn = f"s3://{self.storage_bucket}/{source_key}"
-        return {
-            "doc_id": doc_id,
-            "source_text": source_text,
-            "source_type": processed.get("source_type", "html"),
-            "timestamp": processed.get("timestamp"),
-            "security_clearance": processed.get("security_clearance", "internal"),
-            "source_key": source_key,
-            "source_dataset_urn": source_dataset_urn,
-            "source_content_hash": source_content_hash(source_text.encode("utf-8")),
-            "chunking_run_id": chunking_run_id,
-        }
 
     def write_chunk_artifacts_from_dataframe(
         self,
@@ -144,43 +107,6 @@ class ChunkTextProcessor:
             )
         return written, destination_keys
 
-    def _build_chunk_records_local(
-        self,
-        processed: dict[str, Any],
-        doc_id: str,
-        *,
-        chunking_run_id: str,
-    ) -> list[dict[str, Any]]:
-        parsed_payload = processed.get("parsed")
-        parsed_text = parsed_payload.get("text", "") if isinstance(parsed_payload, dict) else ""
-        source_text = str(parsed_text or processed.get("text", ""))
-        source_key = str(processed.get("source_key", ""))
-        source_dataset_urn = f"s3://{self.storage_bucket}/{source_key}"
-        source_hash = source_content_hash(source_text.encode("utf-8"))
-        source_segments = self._chunk_segments(source_text)
-        records: list[dict[str, Any]] = []
-        for chunk_index, chunk_value, start, end in source_segments:
-            records.append(
-                {
-                    "doc_id": doc_id,
-                    "chunk_id": "pending",
-                    "chunk_index": chunk_index,
-                    "chunk_text": chunk_value,
-                    "source_type": processed.get("source_type", "html"),
-                    "timestamp": processed.get("timestamp"),
-                    "security_clearance": processed.get("security_clearance", "internal"),
-                    "source_key": source_key,
-                    "source_dataset_urn": source_dataset_urn,
-                    "source_s3_uri": source_dataset_urn,
-                    "source_content_hash": source_hash,
-                    "offsets_start": start,
-                    "offsets_end": end,
-                    "breadcrumb": f"chunk[{chunk_index}]",
-                    "chunking_run_id": chunking_run_id,
-                }
-            )
-        return records
-
     @staticmethod
     def _chunk_segments(source_text: str) -> list[tuple[int, str, int, int]]:
         chunks = chunk_text(source_text)
@@ -193,6 +119,32 @@ class ChunkTextProcessor:
             segments.append((index, chunk_value, start, end))
             cursor = end
         return segments
+
+    def build_input_dataframe(
+        self,
+        processed_df: Any,
+        *,
+        source_uri: str,
+        chunking_run_id: str,
+    ) -> Any:
+        source_text_col = spark_functions.coalesce(
+            spark_functions.col("parsed.text"),
+            spark_functions.col("text"),
+            spark_functions.lit(""),
+        )
+        return processed_df.select(
+            spark_functions.col("doc_id").cast("string").alias("doc_id"),
+            source_text_col.cast("string").alias("source_text"),
+            spark_functions.coalesce(spark_functions.col("source_type"), spark_functions.lit("html")).alias("source_type"),
+            spark_functions.col("timestamp").alias("timestamp"),
+            spark_functions.coalesce(
+                spark_functions.col("security_clearance"),
+                spark_functions.lit("internal"),
+            ).alias("security_clearance"),
+            spark_functions.lit(source_uri).alias("source_dataset_urn"),
+            spark_functions.sha2(source_text_col.cast("string"), 256).alias("source_content_hash"),
+            spark_functions.lit(chunking_run_id).alias("chunking_run_id"),
+        )
 
     @staticmethod
     def _build_chunk_dataframe(input_df: Any) -> Any:
@@ -224,7 +176,6 @@ class ChunkTextProcessor:
                 "source_type",
                 "timestamp",
                 "security_clearance",
-                "source_key",
                 "source_dataset_urn",
                 "source_content_hash",
                 "chunking_run_id",
@@ -270,7 +221,6 @@ class ChunkTextProcessor:
                             "source_type": row.get("source_type"),
                             "timestamp": row.get("timestamp"),
                             "security_clearance": row.get("security_clearance"),
-                            "source_key": row.get("source_key"),
                             "source_dataset_urn": row.get("source_dataset_urn"),
                             "source_s3_uri": row.get("source_dataset_urn"),
                             "source_content_hash": row.get("source_content_hash"),

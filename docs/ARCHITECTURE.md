@@ -77,6 +77,7 @@ Repository structure (architecture-relevant):
 
 Architecture document index (central references):
 - `docs/ARCHITECTURE.md` (this file)
+- `docs/patterns/chunk-embedding-provenance-registry.md`
 - `domains/docs/ARCHITECTURE.md`
 - `domains/gov_governance/docs/ARCHITECTURE.md`
 - `domains/worker_scan/docs/ARCHITECTURE.md`

@@ -174,6 +174,7 @@ class ChunkTextProcessor:
             self._write_chunk_object(destination_key=destination_key, chunk_record=chunk_record)
             written += 1
         self._set_chunk_write_batch_summary(records_count=len(records), written=written)
+        self._write_chunk_write_batch()
         return written
 
     def _initialize_chunk_write_batch(self) -> None:
@@ -206,6 +207,14 @@ class ChunkTextProcessor:
             "records_written": written,
             "records_existing": records_count - written,
         }
+
+    def _write_chunk_write_batch(self) -> None:
+        self.object_storage.write_object(
+            self.storage_bucket,
+            f"{self.output_prefix}{self.chunk_document_metadata.doc_id}/chunk_write_batch.json",
+            json.dumps(self.chunk_write_batch, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode("utf-8"),
+            content_type="application/json",
+        )
 
     def _chunk_object_key(self, doc_id: str, chunk_id: str) -> str:
         """Build the object storage key for a chunk artifact.

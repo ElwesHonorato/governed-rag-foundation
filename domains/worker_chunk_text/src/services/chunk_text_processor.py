@@ -9,7 +9,16 @@ from pipeline_common.provenance import (
 )
 from pipeline_common.provenance import chunk_params_hash
 from pipeline_common.stages_contracts import ChunkDocumentMetadata, ProcessedDocumentPayload
+from contracts.chunk_manifest import (
+    ChunkerConfig,
+    ChunkManifest,
+    ChunkManifestEntry,
+    ChunkManifestLineage,
+    ChunkManifestOutput,
+    ChunkManifestProcessing,
+)
 from contracts.contracts import ChunkingParamsContract
+
 
 class ChunkTextProcessor:
     """Transform processed document rows into persisted chunk artifacts.
@@ -19,13 +28,17 @@ class ChunkTextProcessor:
     write chunk artifact objects.
     """
     CHUNKER_VERSION: ClassVar[str] = "1.0.0"
+    STAGE_NAME: ClassVar[str] = "chunk_text"
+    CHUNKS_DIR: ClassVar[str] = "chunks"
+    CHUNKS_MANIFEST_DIR: ClassVar[str] = "chunks_manifest"
+    MANIFEST_FILE_NAME: ClassVar[str] = "manifest.json"
 
     def __init__(
         self,
-        *,
         object_storage: ObjectStorageGateway,
         storage_bucket: str,
         output_prefix: str,
+        manifest_prefix: str,
         chunking_params: ChunkingParamsContract,
     ) -> None:
         """Initialize processor dependencies and storage routing configuration.
@@ -34,6 +47,7 @@ class ChunkTextProcessor:
             object_storage: Gateway used to read/write chunk artifacts in object storage.
             storage_bucket: Bucket name where chunk artifacts are persisted.
             output_prefix: Key prefix under the bucket for chunk artifacts.
+            manifest_prefix: Key prefix under the bucket for chunk manifests.
 
         Returns:
             None.
@@ -41,18 +55,20 @@ class ChunkTextProcessor:
         self.object_storage = object_storage
         self.storage_bucket = storage_bucket
         self.output_prefix = output_prefix
+        self.manifest_prefix = manifest_prefix
         self._chunking_params = chunking_params
-        self.chunk_write_batch = {}
         self._splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunking_params.chunk_size,
             chunk_overlap=chunking_params.chunk_overlap,
             add_start_index=chunking_params.add_start_index,
         )
+        self.chunk_entries = []
+        self.written = 0
+        self.chunk_count_expected = 0
 
     def process(
         self,
         processed_payload: ProcessedDocumentPayload,
-        *,
         source_uri: str,
         chunking_run_id: str,
     ) -> int:
@@ -79,7 +95,6 @@ class ChunkTextProcessor:
     def _build_chunk_records_from_payload(
         self,
         payload: ProcessedDocumentPayload,
-        *,
         source_uri: str,
         chunking_run_id: str,
     ) -> list[dict[str, Any]]:
@@ -96,6 +111,8 @@ class ChunkTextProcessor:
         source_text = str(payload.parsed["text"])
         source_content_hash = sha256_hex(source_text)
         resolved_chunk_params_hash = chunk_params_hash(self._chunking_params.to_dict())
+        self._manifest_parser_version = payload.parsed.get("parser_version", "unknown")
+        self._manifest_content_type = payload.parsed.get("content_type", "text/html")
         self.chunk_document_metadata = ChunkDocumentMetadata(
             doc_id=payload.metadata.doc_id,
             timestamp=payload.metadata.timestamp,
@@ -163,33 +180,33 @@ class ChunkTextProcessor:
             - May write JSON chunk artifacts to object storage.
             - Writes one chunk artifact JSON object per chunk record.
         """
-        written = 0
-        self._initialize_chunk_write_batch()
+        self._initialize_manifest_state()
         for chunk_record in records:
+            self.chunk_count_expected += 1
             destination_key = chunk_record["destination_key"]
-            self._add_chunk_to_write_batch(
-                chunk_id=chunk_record["chunk_id"],
-                destination_key=destination_key,
-            )
+            self.add_chunk_to_manifest(chunk_record)
             self._write_chunk_object(destination_key=destination_key, chunk_record=chunk_record)
-            written += 1
-        self._set_chunk_write_batch_summary(records_count=len(records), written=written)
-        self._write_chunk_write_batch()
-        return written
+            self.written += 1
+        manifest = self._build_manifest()
+        self._write_manifest(manifest)
+        return self.written
 
-    def _initialize_chunk_write_batch(self) -> None:
-        self.chunk_write_batch = {
-            "source_metadata": self.chunk_document_metadata.to_dict(),
-            "run_summary": {},
-            "chunks": {},
-        }
+    def _initialize_manifest_state(self) -> None:
+        self.written = 0
+        self.chunk_count_expected = 0
+        self.chunk_entries = []
 
-    def _add_chunk_to_write_batch(self, *, chunk_id: str, destination_key: str) -> None:
-        self.chunk_write_batch["chunks"][chunk_id] = {
-            "destination_key": destination_key,
-        }
+    def add_chunk_to_manifest(self, chunk_record: dict[str, Any]) -> None:
+        self.chunk_entries.append(
+            ChunkManifestEntry(
+                chunk_id=chunk_record["chunk_id"],
+                chunk_index=chunk_record["chunk_index"],
+                chunk_hash=chunk_record["chunk_text_hash"],
+                path=chunk_record["destination_key"],
+            )
+        )
 
-    def _write_chunk_object(self, *, destination_key: str, chunk_record: dict[str, Any]) -> None:
+    def _write_chunk_object(self, destination_key: str, chunk_record: dict[str, Any]) -> None:
         self.object_storage.write_object(
             self.storage_bucket,
             destination_key,
@@ -197,23 +214,45 @@ class ChunkTextProcessor:
             content_type="application/json",
         )
 
-    def _set_chunk_write_batch_summary(self, *, records_count: int, written: int) -> None:
-        self.chunk_write_batch["run_summary"] = {
-            "source_metadata": self.chunk_document_metadata.to_dict(),
-            "processor_class": self.__class__.__name__,
-            "chunker_version": self.CHUNKER_VERSION,
-            "chunking_params": self._chunking_params.to_dict(),
-            "records_total": records_count,
-            "records_written": written,
-            "records_existing": records_count - written,
-        }
-
-    def _write_chunk_write_batch(self) -> None:
+    def _write_manifest(self, manifest: ChunkManifest) -> None:
         self.object_storage.write_object(
             self.storage_bucket,
-            f"{self.output_prefix}{self.chunk_document_metadata.doc_id}/chunk_write_batch.json",
-            json.dumps(self.chunk_write_batch, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode("utf-8"),
+            self._manifest_object_key(self.chunk_document_metadata.doc_id, self.chunk_document_metadata.chunking_run_id),
+            json.dumps(manifest.to_dict(), sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode("utf-8"),
             content_type="application/json",
+        )
+
+    def _build_manifest(self) -> ChunkManifest:
+        source_uri = self.chunk_document_metadata.source_s3_uri
+        lineage = ChunkManifestLineage(
+            source_asset_id=source_uri,
+            source_hash=sha256_hex(source_uri),
+            content_type=self._manifest_content_type,
+            document_hash=self.chunk_document_metadata.source_content_hash,
+            parser_version=self._manifest_parser_version,
+        )
+        processing = ChunkManifestProcessing(
+            run_id=self.chunk_document_metadata.chunking_run_id,
+            stage=self.STAGE_NAME,
+            timestamp=self.chunk_document_metadata.timestamp,
+            chunker_version=self.CHUNKER_VERSION,
+            run_status="complete" if self.written == self.chunk_count_expected else "partial",
+            chunker=ChunkerConfig(
+                strategy=self._chunking_params.strategy,
+                chunk_size=self._chunking_params.chunk_size,
+                chunk_overlap=self._chunking_params.chunk_overlap,
+            ),
+        )
+        output = ChunkManifestOutput(
+            chunk_count_expected=self.chunk_count_expected,
+            chunk_count_written=self.written,
+        )
+        return ChunkManifest.build(
+            doc_id=self.chunk_document_metadata.doc_id,
+            lineage=lineage,
+            processing=processing,
+            output=output,
+            chunks=self.chunk_entries,
         )
 
     def _chunk_object_key(self, doc_id: str, chunk_id: str) -> str:
@@ -225,6 +264,10 @@ class ChunkTextProcessor:
 
         Returns:
             A storage key in the format:
-            `{output_prefix}{doc_id}/{chunk_id}.chunk.json`.
+            `{output_prefix}chunks/{doc_id}/run={run_id}/chunk={chunk_id}.json`.
         """
-        return f"{self.output_prefix}{doc_id}/{chunk_id}.chunk.json"
+        run_id = self.chunk_document_metadata.chunking_run_id
+        return f"{self.output_prefix.rstrip('/')}/{self.CHUNKS_DIR}/{doc_id}/run={run_id}/chunk={chunk_id}.json"
+
+    def _manifest_object_key(self, doc_id: str, run_id: str) -> str:
+        return f"{self.manifest_prefix.rstrip('/')}/{self.CHUNKS_MANIFEST_DIR}/{doc_id}/run={run_id}/{self.MANIFEST_FILE_NAME}"

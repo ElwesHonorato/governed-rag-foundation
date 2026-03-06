@@ -20,7 +20,6 @@ class WorkerChunkTextService(WorkerService):
 
     def __init__(
         self,
-        *,
         stage_queue: StageQueue,
         object_storage: ObjectStorageGateway,
         lineage: LineageRuntimeGateway,
@@ -41,6 +40,7 @@ class WorkerChunkTextService(WorkerService):
             object_storage=self.object_storage,
             storage_bucket=self.storage_bucket,
             output_prefix=self.output_prefix,
+            manifest_prefix=self.output_prefix,
             chunking_params=chunking_params,
         )
 

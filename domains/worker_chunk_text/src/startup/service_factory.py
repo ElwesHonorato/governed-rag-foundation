@@ -23,7 +23,6 @@ class ChunkTextServiceFactory(WorkerServiceFactory[ChunkTextWorkerConfigContract
                 object_storage=runtime.object_storage_gateway,
                 bucket=worker_config.storage.bucket,
             ),
-            spark_session=runtime.spark_session,
             processing_config=ChunkTextProcessingConfigContract(
                 poll_interval_seconds=worker_config.poll_interval_seconds,
                 queue=worker_config.queue_config,

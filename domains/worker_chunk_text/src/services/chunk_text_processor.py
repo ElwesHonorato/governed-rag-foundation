@@ -14,8 +14,6 @@ from pipeline_common.provenance import (
 from pipeline_common.provenance import chunk_params_hash
 from pipeline_common.helpers.contracts import utc_now_iso
 from pipeline_common.stages_contracts import ProcessedDocumentMetadata, ProcessedDocumentPayload
-from pyspark.sql import functions as spark_functions  # type: ignore
-from pyspark.sql import types as spark_types  # type: ignore
 
 CHUNKER_NAME = "text_chunker"
 CHUNKER_VERSION = "1.0.0"
@@ -53,21 +51,18 @@ class ChunkTextProcessor:
         self.provenance_registry = provenance_registry
         self.storage_bucket = storage_bucket
         self.output_prefix = output_prefix
-        self.processed_metadata: ProcessedDocumentMetadata | None = None
 
-    def write_chunk_artifacts_from_dataframe(
+    def write_chunk_artifacts_from_payload(
         self,
-        input_df: Any,
+        processed_payload: dict[str, Any],
         *,
-        doc_id: str,
         source_uri: str,
         chunking_run_id: str,
     ) -> tuple[int, list[str]]:
-        """Run chunk expansion and persistence for an input dataframe.
+        """Run chunk expansion and persistence for a processed-document payload.
 
         Args:
-            input_df: Spark dataframe containing processed payload columns.
-            doc_id: Document identifier used for chunk object path generation.
+            processed_payload: Parsed processed-document payload object.
             source_uri: Canonical source dataset URI.
             chunking_run_id: Run identifier for provenance stamping.
 
@@ -81,13 +76,11 @@ class ChunkTextProcessor:
             Writes chunk artifact objects to object storage (if missing) and upserts
             chunk provenance rows in the registry.
         """
-        transformed_df = self._build_chunk_dataframe(
-            input_df,
-            doc_id=doc_id,
+        records = self._build_chunk_records_from_payload(
+            processed_payload,
             source_uri=source_uri,
             chunking_run_id=chunking_run_id,
         )
-        records = self._materialize_records_from_dataframe(transformed_df)
         return self._write_chunk_records(records)
 
     def _write_chunk_records(self, records: list[dict[str, Any]]) -> tuple[int, list[str]]:
@@ -152,138 +145,41 @@ class ChunkTextProcessor:
             cursor = end
         return segments
 
-    def build_input_dataframe(
+    def _build_chunk_records_from_payload(
         self,
-        processed_df: Any,
-    ) -> Any:
-        """Build minimal input dataframe carrying only parsed payload object.
-
-        Args:
-            processed_df: Raw Spark dataframe read from processed document artifact(s).
-
-        Returns:
-            A Spark dataframe with one column: `ProcessedDocumentPayload.FIELD_PARSED`.
-        """
-        return processed_df.select(
-            spark_functions.col(ProcessedDocumentPayload.FIELD_PARSED).alias(
-                ProcessedDocumentPayload.FIELD_PARSED
-            )
-        )
-
-    def doc_id_from_processed_dataframe(self, processed_df: Any) -> str:
-        """Extract document id from processed payload dataframe."""
-        return self.metadata_from_processed_dataframe(processed_df).doc_id
-
-    def metadata_from_processed_dataframe(self, processed_df: Any) -> ProcessedDocumentMetadata:
-        """Extract processed-document metadata from payload dataframe."""
-        metadata_row = (
-            processed_df.select(
-                ProcessedDocumentMetadata.FIELD_SCHEMA_VERSION,
-                ProcessedDocumentMetadata.FIELD_DOC_ID,
-                ProcessedDocumentMetadata.FIELD_SOURCE_KEY,
-                ProcessedDocumentMetadata.FIELD_TIMESTAMP,
-                ProcessedDocumentMetadata.FIELD_SECURITY_CLEARANCE,
-            ).first()
-        )
-        self.processed_metadata = ProcessedDocumentMetadata(
-            schema_version=metadata_row[ProcessedDocumentMetadata.FIELD_SCHEMA_VERSION],
-            doc_id=metadata_row[ProcessedDocumentMetadata.FIELD_DOC_ID],
-            source_key=metadata_row[ProcessedDocumentMetadata.FIELD_SOURCE_KEY],
-            timestamp=metadata_row[ProcessedDocumentMetadata.FIELD_TIMESTAMP],
-            security_clearance=metadata_row[ProcessedDocumentMetadata.FIELD_SECURITY_CLEARANCE],
-        )
-        return self.processed_metadata
-
-    def _build_chunk_dataframe(
-        self,
-        input_df: Any,
+        payload: dict[str, Any],
         *,
-        doc_id: str,
         source_uri: str,
         chunking_run_id: str,
-    ) -> Any:
-        """Expand normalized input rows into one row per chunk.
+    ) -> list[dict[str, Any]]:
+        """Build chunk record dictionaries from processed-document payload.
 
         Args:
-            input_df: Spark dataframe containing parsed payload object column.
-            doc_id: Document identifier used for artifact key routing.
+            payload: Processed-document payload JSON.
             source_uri: Canonical source dataset URI.
             chunking_run_id: Run identifier for provenance stamping.
 
         Returns:
-            A Spark dataframe where each row represents a chunk and includes:
-            source metadata plus `chunk_index`, `chunk_text`, `offsets_start`,
-            and `offsets_end`.
+            A list of chunk record dictionaries for artifact persistence.
         """
-        source_text_col = spark_functions.col(f"{ProcessedDocumentPayload.FIELD_PARSED}.text").cast("string")
-        chunk_struct_type = spark_types.StructType(
-            [
-                spark_types.StructField("chunk_index", spark_types.IntegerType(), nullable=False),
-                spark_types.StructField("chunk_text", spark_types.StringType(), nullable=False),
-                spark_types.StructField("offsets_start", spark_types.IntegerType(), nullable=False),
-                spark_types.StructField("offsets_end", spark_types.IntegerType(), nullable=False),
-            ]
+        parsed = payload[ProcessedDocumentPayload.FIELD_PARSED]
+        source_text = str(parsed["text"])
+        metadata = ProcessedDocumentMetadata(
+            schema_version=str(payload[ProcessedDocumentMetadata.FIELD_SCHEMA_VERSION]),
+            doc_id=str(payload[ProcessedDocumentMetadata.FIELD_DOC_ID]),
+            source_key=str(payload[ProcessedDocumentMetadata.FIELD_SOURCE_KEY]),
+            timestamp=str(payload[ProcessedDocumentMetadata.FIELD_TIMESTAMP]),
+            security_clearance=str(payload[ProcessedDocumentMetadata.FIELD_SECURITY_CLEARANCE]),
         )
-        chunker_udf = spark_functions.udf(
-            lambda text: [
-                {
-                    "chunk_index": index,
-                    "chunk_text": value,
-                    "offsets_start": start,
-                    "offsets_end": end,
-                }
-                for index, value, start, end in self._chunk_segments(str(text))
-            ],
-            spark_types.ArrayType(chunk_struct_type),
-        )
-        return (
-            input_df.withColumn("source_text", source_text_col)
-            .withColumn("chunk_structs", chunker_udf(spark_functions.col("source_text")))
-            .withColumn("chunk_struct", spark_functions.explode(spark_functions.col("chunk_structs")))
-            .select(
-                spark_functions.lit(doc_id).alias("doc_id"),
-                spark_functions.lit("html").alias("source_type"),
-                spark_functions.lit(None).alias("timestamp"),
-                spark_functions.lit("internal").alias("security_clearance"),
-                spark_functions.lit(source_uri).alias("source_dataset_urn"),
-                spark_functions.sha2(spark_functions.col("source_text"), 256).alias("source_content_hash"),
-                spark_functions.lit(chunking_run_id).alias("chunking_run_id"),
-                spark_functions.col("chunk_struct.chunk_index").alias("chunk_index"),
-                spark_functions.col("chunk_struct.chunk_text").alias("chunk_text"),
-                spark_functions.col("chunk_struct.offsets_start").alias("offsets_start"),
-                spark_functions.col("chunk_struct.offsets_end").alias("offsets_end"),
-            )
-        )
+        doc_id = metadata.doc_id
+        source_content_hash = sha256_hex(source_text)
+        resolved_chunk_params_hash = chunk_params_hash(CHUNKER_PARAMS)
 
-    def _materialize_records_from_dataframe(
-        self,
-        dataframe: Any,
-    ) -> list[dict[str, Any]]:
-        """Materialize a Spark dataframe into Python chunk record dictionaries.
-
-        Args:
-            dataframe: Chunk dataframe to materialize.
-
-        Returns:
-            A list of chunk record dictionaries parsed from dataframe rows.
-
-        Side Effects:
-            Pulls rows from Spark executors to the driver process.
-        """
         records: list[dict[str, Any]] = []
-        for spark_row in dataframe.toLocalIterator():
-            row = spark_row.asDict(recursive=True)
-            doc_id = str(row["doc_id"])
-            chunk_text_value = str(row["chunk_text"])
-            chunk_index = int(row["chunk_index"])
-            source_dataset_urn = str(row.get("source_dataset_urn"))
-            source_content_hash = str(row.get("source_content_hash"))
-            offsets_start = int(row["offsets_start"])
-            offsets_end = int(row["offsets_end"])
-            resolved_chunk_params_hash = chunk_params_hash(CHUNKER_PARAMS)
+        for chunk_index, chunk_text_value, offsets_start, offsets_end in self._chunk_segments(source_text):
             resolved_chunk_text_hash = sha256_hex(chunk_text_value)
             resolved_chunk_id = build_chunk_id(
-                source_dataset_urn=source_dataset_urn,
+                source_dataset_urn=source_uri,
                 source_content_hash_value=source_content_hash,
                 chunker_name=CHUNKER_NAME,
                 chunker_version=CHUNKER_VERSION,
@@ -294,8 +190,8 @@ class ChunkTextProcessor:
             destination_key = self._chunk_object_key(doc_id, resolved_chunk_id)
             envelope = ChunkProvenanceEnvelope(
                 chunk_id=resolved_chunk_id,
-                source_dataset_urn=source_dataset_urn,
-                source_s3_uri=source_dataset_urn,
+                source_dataset_urn=source_uri,
+                source_s3_uri=source_uri,
                 source_content_hash=source_content_hash,
                 chunk_s3_uri=f"s3://{self.storage_bucket}/{destination_key}",
                 offsets_start=int(offsets_start),
@@ -303,7 +199,7 @@ class ChunkTextProcessor:
                 chunk_text_hash=resolved_chunk_text_hash,
                 chunker_name=CHUNKER_NAME,
                 chunker_version=CHUNKER_VERSION,
-                chunking_run_id=str(row.get("chunking_run_id")),
+                chunking_run_id=chunking_run_id,
                 chunk_params_hash=resolved_chunk_params_hash,
                 breadcrumb=f"chunk[{chunk_index}]",
             )
@@ -313,16 +209,16 @@ class ChunkTextProcessor:
                     "chunk_id": envelope.chunk_id,
                     "chunk_index": chunk_index,
                     "chunk_text": chunk_text_value,
-                    "source_type": row.get("source_type"),
-                    "timestamp": row.get("timestamp"),
-                    "security_clearance": row.get("security_clearance"),
-                    "source_dataset_urn": source_dataset_urn,
-                    "source_s3_uri": source_dataset_urn,
-                    "source_content_hash": row.get("source_content_hash"),
-                    "offsets_start": int(row["offsets_start"]),
-                    "offsets_end": int(row["offsets_end"]),
+                    "source_type": "html",
+                    "timestamp": metadata.timestamp,
+                    "security_clearance": metadata.security_clearance,
+                    "source_dataset_urn": source_uri,
+                    "source_s3_uri": source_uri,
+                    "source_content_hash": source_content_hash,
+                    "offsets_start": offsets_start,
+                    "offsets_end": offsets_end,
                     "breadcrumb": envelope.breadcrumb,
-                    "chunking_run_id": row.get("chunking_run_id"),
+                    "chunking_run_id": chunking_run_id,
                     "destination_key": destination_key,
                     "envelope": envelope,
                 }

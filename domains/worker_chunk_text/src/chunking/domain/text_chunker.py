@@ -1,27 +1,11 @@
 
-import re
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
-def chunk_text(text: str, *, target_size: int = 700) -> list[str]:
-    """Execute chunk text."""
-    paragraphs = [p.strip() for p in text.split("\n") if p.strip()]
-    chunks: list[str] = []
-    current = ""
-
-    for paragraph in paragraphs:
-        sentences = re.split(r"(?<=[.!?])\s+", paragraph)
-        for sentence in sentences:
-            sentence = sentence.strip()
-            if not sentence:
-                continue
-            candidate = sentence if not current else f"{current} {sentence}"
-            if len(candidate) > target_size and current:
-                chunks.append(current)
-                current = sentence
-            else:
-                current = candidate
-
-    if current:
-        chunks.append(current)
-
-    return chunks
+def chunk_text(text: str, *, target_size: int = 700, overlap: int = 120) -> list[str]:
+    """Split text using LangChain recursive character chunking."""
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=target_size,
+        chunk_overlap=overlap,
+    )
+    return [chunk for chunk in splitter.split_text(text) if chunk.strip()]

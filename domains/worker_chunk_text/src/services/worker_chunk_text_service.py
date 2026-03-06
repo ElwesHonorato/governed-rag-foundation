@@ -1,11 +1,10 @@
 import logging
+import json
 import time
-from typing import Any
 
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
-from pipeline_common.gateways.processing_engine import ReadGateway
 from pipeline_common.provenance import ProvenanceRegistryGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, StageQueue
 from pipeline_common.helpers.run_ids import build_source_run_id
@@ -26,7 +25,6 @@ class WorkerChunkTextService(WorkerService):
         object_storage: ObjectStorageGateway,
         lineage: LineageRuntimeGateway,
         provenance_registry: ProvenanceRegistryGateway,
-        spark_session: Any | None,
         processing_config: ChunkTextProcessingConfigContract,
     ) -> None:
         """Initialize chunking worker dependencies and runtime settings."""
@@ -34,8 +32,6 @@ class WorkerChunkTextService(WorkerService):
         self.object_storage = object_storage
         self.lineage = lineage
         self.provenance_registry = provenance_registry
-        self.spark_session = spark_session
-        self.read_gateway = ReadGateway(spark_session=self.spark_session)
         self._initialize_runtime_config(processing_config)
         self.processor = ChunkTextProcessor(
             object_storage=self.object_storage,
@@ -72,13 +68,11 @@ class WorkerChunkTextService(WorkerService):
             platform=DatasetPlatform.S3,
         )
         try:
-            processed_df = self.read(source_uri)
+            raw_payload = self.object_storage.read_object(self.storage_bucket, source_key)
+            processed_payload = json.loads(raw_payload.decode("utf-8"))
             chunking_run_id = build_source_run_id(source_uri)
-            payload_df = self.processor.build_input_dataframe(processed_df)
-            processed_metadata = self.processor.metadata_from_processed_dataframe(processed_df)
-            written, destination_keys = self.processor.write_chunk_artifacts_from_dataframe(
-                payload_df,
-                doc_id=processed_metadata.doc_id,
+            written, destination_keys = self.processor.write_chunk_artifacts_from_payload(
+                processed_payload,
                 source_uri=source_uri,
                 chunking_run_id=chunking_run_id,
             )
@@ -121,9 +115,6 @@ class WorkerChunkTextService(WorkerService):
             return False
         logger.exception("Failed chunking source key '%s'; sent to DLQ", source_key)
         return True
-
-    def read(self, source_uri: str) -> Any:
-        return self.read_gateway.read(path=source_uri, format_name="json")
 
     def _enqueue_chunk_object(self, destination_key: str) -> None:
         self.stage_queue.push(

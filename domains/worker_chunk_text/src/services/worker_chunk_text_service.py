@@ -5,7 +5,6 @@ import time
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
-from pipeline_common.provenance import ProvenanceRegistryGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, StageQueue
 from pipeline_common.helpers.run_ids import build_source_run_id
 from pipeline_common.stages_contracts import ProcessedDocumentPayload, SourceDocumentMetadata
@@ -25,14 +24,12 @@ class WorkerChunkTextService(WorkerService):
         stage_queue: StageQueue,
         object_storage: ObjectStorageGateway,
         lineage: LineageRuntimeGateway,
-        provenance_registry: ProvenanceRegistryGateway,
         processing_config: ChunkTextProcessingConfigContract,
     ) -> None:
         """Initialize chunking worker dependencies and runtime settings."""
         self.stage_queue = stage_queue
         self.object_storage = object_storage
         self.lineage = lineage
-        self.provenance_registry = provenance_registry
         self._initialize_runtime_config(processing_config)
         chunking_params = ChunkingParamsContract(
             strategy="recursive_character",
@@ -42,7 +39,6 @@ class WorkerChunkTextService(WorkerService):
         )
         self.processor = ChunkTextProcessor(
             object_storage=self.object_storage,
-            provenance_registry=self.provenance_registry,
             storage_bucket=self.storage_bucket,
             output_prefix=self.output_prefix,
             chunking_params=chunking_params,
@@ -83,22 +79,12 @@ class WorkerChunkTextService(WorkerService):
                 parsed=dict(payload[ProcessedDocumentPayload.FIELD_PARSED]),
             )
             chunking_run_id = build_source_run_id(source_uri)
-            written, destination_keys = self.processor.process(
+            written = self.processor.process(
                 processed_payload,
                 source_uri=source_uri,
                 chunking_run_id=chunking_run_id,
             )
-            registry_dataset = f"{self.storage_bucket}/07_metadata/provenance/chunking/latest/"
-            self.lineage.add_output(name=registry_dataset, platform=DatasetPlatform.S3)
-            for destination_key in destination_keys:
-                self.lineage.add_output(
-                    name=f"{self.storage_bucket}/{destination_key}",
-                    platform=DatasetPlatform.S3,
-                )
-
             self.lineage.complete_run()
-            for destination_key in destination_keys:
-                self._enqueue_chunk_object(destination_key)
         except Exception as exc:
             self.lineage.fail_run(error_message=str(exc))
             raise
@@ -127,14 +113,6 @@ class WorkerChunkTextService(WorkerService):
             return False
         logger.exception("Failed chunking source key '%s'; sent to DLQ", source_key)
         return True
-
-    def _enqueue_chunk_object(self, destination_key: str) -> None:
-        self.stage_queue.push(
-            Envelope(
-                type="embed_chunks.request",
-                payload={"storage_key": destination_key},
-            ).to_dict()
-        )
 
     def _source_key_from_message(self, message: ConsumedMessage) -> str:
         """Parse source key from queue payload."""

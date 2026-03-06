@@ -1,12 +1,15 @@
 """Chunk and embedding provenance registry primitives."""
 
-from pipeline_common.provenance.contracts import (
+from pipeline_common.stages_contracts.stage_30_chunking import (
+    ChunkProvenanceEnvelope,
     ChunkRegistryRow,
     ChunkRegistryStatus,
+)
+from pipeline_common.stages_contracts.stage_40_embedding import (
+    EmbeddingProvenanceEnvelope,
     EmbeddingRegistryRow,
     EmbeddingRegistryStatus,
 )
-from pipeline_common.provenance.envelope import build_chunk_envelope, build_embedding_envelope
 from pipeline_common.provenance.identifiers import (
     build_chunk_id,
     build_embedding_id,
@@ -21,11 +24,11 @@ from pipeline_common.provenance.registry import ProvenanceRegistryGateway
 __all__ = [
     "ChunkRegistryRow",
     "ChunkRegistryStatus",
+    "ChunkProvenanceEnvelope",
     "EmbeddingRegistryRow",
     "EmbeddingRegistryStatus",
     "ProvenanceRegistryGateway",
-    "build_chunk_envelope",
-    "build_embedding_envelope",
+    "EmbeddingProvenanceEnvelope",
     "build_chunk_id",
     "build_embedding_id",
     "canonical_json",

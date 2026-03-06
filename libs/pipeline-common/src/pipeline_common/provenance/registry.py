@@ -6,8 +6,11 @@ import json
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
-from pipeline_common.provenance.contracts import (
+from pipeline_common.stages_contracts.stage_30_chunking import (
     ChunkRegistryRow,
+)
+from pipeline_common.stages_contracts.stage_40_embedding import (
+    EmbeddingProvenanceEnvelope,
     EmbeddingRegistryRow,
     EmbeddingRegistryStatus,
 )
@@ -59,7 +62,7 @@ class ProvenanceRegistryGateway:
             _json_bytes({"embedding_id": str(row.embedding_id), "upserted_at": str(payload["upserted_at"])}),
             content_type="application/json",
         )
-        return EmbeddingRegistryRow(
+        envelope = EmbeddingProvenanceEnvelope(
             embedding_id=str(payload["embedding_id"]),
             chunk_id=str(payload["chunk_id"]),
             index_target=str(payload["index_target"]),
@@ -70,13 +73,16 @@ class ProvenanceRegistryGateway:
             embedding_vector_hash=str(payload["embedding_vector_hash"]) if payload.get("embedding_vector_hash") else None,
             embedding_run_id=str(payload["embedding_run_id"]),
             chunking_run_id=str(payload["chunking_run_id"]),
+            vector_record_id=str(payload["vector_record_id"]) if payload.get("vector_record_id") else None,
+        )
+        return EmbeddingRegistryRow.from_envelope(
+            envelope=envelope,
             attempt=int(payload.get("attempt", 1)),
             status=EmbeddingRegistryStatus.SUCCEEDED,
             error_message=None,
             started_at=str(payload["started_at"]),
             finished_at=str(payload["finished_at"]) if payload.get("finished_at") else None,
             upserted_at=str(payload["upserted_at"]),
-            vector_record_id=str(payload["vector_record_id"]) if payload.get("vector_record_id") else None,
         )
 
     def get_chunk_provenance(self, chunk_id: str) -> dict[str, Any] | None:

@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from parsing.registry import ParserRegistry
+from pipeline_common.stages_contracts import ProcessedDocumentMetadata, ProcessedDocumentPayload
 from pipeline_common.gateways.queue import Envelope
 
 
@@ -31,13 +32,16 @@ class DocumentParserProcessor:
     def build_payload(self, *, source_key: str, doc_id: str, raw_text: str, timestamp: str) -> dict[str, Any]:
         parser = self._parser_registry.resolve(source_key)
         parsed_payload = parser.parse(raw_text)
-        return {
-            "doc_id": doc_id,
-            "source_key": source_key,
-            "timestamp": timestamp,
-            "security_clearance": self._security_clearance,
-            "parsed": parsed_payload,
-        }
+        metadata = ProcessedDocumentMetadata.build(
+            doc_id=doc_id,
+            source_key=source_key,
+            timestamp=timestamp,
+            security_clearance=self._security_clearance,
+        )
+        return ProcessedDocumentPayload(
+            metadata=metadata,
+            parsed=parsed_payload,
+        ).to_dict()
 
 
 class ParseOutputMessageFactory:

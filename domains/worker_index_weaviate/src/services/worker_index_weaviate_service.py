@@ -9,10 +9,12 @@ from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.processing_engine import ReadGateway, WriteGateway
 from pipeline_common.provenance import (
+    EmbeddingProvenanceEnvelope,
     EmbeddingRegistryRow,
     EmbeddingRegistryStatus,
     ProvenanceRegistryGateway,
-    build_embedding_envelope,
+    build_embedding_id,
+    embedding_params_hash,
     sha256_hex,
 )
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, StageQueue
@@ -161,28 +163,40 @@ class WorkerIndexWeaviateService(WorkerService):
             properties = dict(item.get("properties", {}))
             vector = list(item.get("vector", []))
             chunk_id = str(item["chunk_id"])
-            envelope = build_embedding_envelope(
+            resolved_embedder_name = str(properties.get("embedder_name", "unknown_embedder"))
+            resolved_embedder_version = str(properties.get("embedder_version", "unknown_version"))
+            resolved_embedding_params_hash = str(properties.get("embedding_params_hash", "")) or embedding_params_hash(
+                {"embedding_params_hash": str(properties.get("embedding_params_hash", ""))}
+            )
+            resolved_embedding_id = build_embedding_id(
+                chunk_id=chunk_id,
+                embedder_name=resolved_embedder_name,
+                embedder_version=resolved_embedder_version,
+                embedding_params_hash_value=resolved_embedding_params_hash,
+                index_target=self.index_target,
+            )
+            envelope = EmbeddingProvenanceEnvelope(
+                embedding_id=resolved_embedding_id,
                 chunk_id=chunk_id,
                 index_target=self.index_target,
-                embedder_name=str(properties.get("embedder_name", "unknown_embedder")),
-                embedder_version=str(properties.get("embedder_version", "unknown_version")),
-                embedder_params={"embedding_params_hash": str(properties.get("embedding_params_hash", ""))},
-                embedding_params_hash_value=str(properties.get("embedding_params_hash", "")) or None,
-                embedding_dim=len(vector),
+                embedder_name=resolved_embedder_name,
+                embedder_version=resolved_embedder_version,
+                embedding_params_hash=resolved_embedding_params_hash,
+                embedding_dim=int(len(vector)),
+                embedding_vector_hash=sha256_hex(str(vector)),
                 embedding_run_id=str(properties.get("embedding_run_id", "")),
                 chunking_run_id=str(properties.get("chunking_run_id", "")),
-                vector=vector,
                 vector_record_id=chunk_id,
             )
             properties.update(
                 {
-                    "embedding_id": str(envelope["embedding_id"]),
+                    "embedding_id": str(envelope.embedding_id),
                     "index_target": self.index_target,
-                    "embedding_run_id": str(envelope["embedding_run_id"]),
-                    "chunking_run_id": str(envelope["chunking_run_id"]),
-                    "embedder_name": str(envelope["embedder_name"]),
-                    "embedder_version": str(envelope["embedder_version"]),
-                    "embedding_params_hash": str(envelope["embedding_params_hash"]),
+                    "embedding_run_id": str(envelope.embedding_run_id),
+                    "chunking_run_id": str(envelope.chunking_run_id),
+                    "embedder_name": str(envelope.embedder_name),
+                    "embedder_version": str(envelope.embedder_version),
+                    "embedding_params_hash": str(envelope.embedding_params_hash),
                 }
             )
             upsert_chunk(
@@ -193,24 +207,14 @@ class WorkerIndexWeaviateService(WorkerService):
             )
             now_iso = datetime.now(tz=UTC).isoformat()
             self.provenance_registry.upsert_embedding_succeeded(
-                EmbeddingRegistryRow(
-                    embedding_id=str(envelope["embedding_id"]),
-                    chunk_id=chunk_id,
-                    index_target=self.index_target,
-                    embedder_name=str(envelope["embedder_name"]),
-                    embedder_version=str(envelope["embedder_version"]),
-                    embedding_params_hash=str(envelope["embedding_params_hash"]),
-                    embedding_dim=int(envelope["embedding_dim"]),
-                    embedding_vector_hash=sha256_hex(str(vector)),
-                    embedding_run_id=str(envelope["embedding_run_id"]),
-                    chunking_run_id=str(envelope["chunking_run_id"]),
+                EmbeddingRegistryRow.from_envelope(
+                    envelope=envelope,
                     attempt=1,
                     status=EmbeddingRegistryStatus.SUCCEEDED,
                     error_message=None,
                     started_at=now_iso,
                     finished_at=now_iso,
                     upserted_at=now_iso,
-                    vector_record_id=chunk_id,
                 )
             )
 

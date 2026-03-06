@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from pipeline_common.stages_contracts.stage_30_chunking import (
     ChunkRegistryRow,
@@ -42,11 +42,17 @@ class ProvenanceRegistryGateway:
         self._bucket = bucket
         self._base_prefix = base_prefix
 
+    def upsert_latest(self, *, scope: Literal["chunking", "embedding"], record_id: str, payload: dict[str, Any]) -> None:
+        """Generic latest-state upsert for provenance scopes."""
+        if scope == "chunking":
+            key = self._chunk_latest_key(record_id)
+        else:
+            key = self._embedding_latest_key(record_id)
+        self._upsert_latest_json(key, payload)
+
     def upsert_chunk(self, row: ChunkRegistryRow) -> ChunkRegistryRow:
         """Write latest chunk registry state by chunk_id."""
-        latest_key = self._chunk_latest_key(row.chunk_id)
-        payload = row.dump()
-        self._object_storage.write_object(self._bucket, latest_key, _json_bytes(payload), content_type="application/json")
+        self.upsert_latest(scope="chunking", record_id=row.chunk_id, payload=row.dump())
         return row
 
     def upsert_embedding_succeeded(self, row: EmbeddingRegistryRow) -> EmbeddingRegistryRow:
@@ -54,13 +60,10 @@ class ProvenanceRegistryGateway:
         payload = row.dump()
         payload["status"] = EmbeddingRegistryStatus.SUCCEEDED.value
         payload["upserted_at"] = _utc_now_iso()
-        latest_key = self._embedding_latest_key(str(row.embedding_id))
-        self._object_storage.write_object(self._bucket, latest_key, _json_bytes(payload), content_type="application/json")
-        self._object_storage.write_object(
-            self._bucket,
+        self.upsert_latest(scope="embedding", record_id=str(row.embedding_id), payload=payload)
+        self._upsert_latest_json(
             self._embedding_pair_latest_key(str(row.chunk_id), str(row.index_target)),
-            _json_bytes({"embedding_id": str(row.embedding_id), "upserted_at": str(payload["upserted_at"])}),
-            content_type="application/json",
+            {"embedding_id": str(row.embedding_id), "upserted_at": str(payload["upserted_at"])},
         )
         envelope = EmbeddingProvenanceEnvelope(
             embedding_id=str(payload["embedding_id"]),
@@ -122,3 +125,6 @@ class ProvenanceRegistryGateway:
     def _embedding_pair_latest_key(self, chunk_id: str, index_target: str) -> str:
         ref = sha256_hex(f"{chunk_id}|{index_target}")
         return f"{self._base_prefix}embedding/latest_by_pair/{ref}.json"
+
+    def _upsert_latest_json(self, key: str, payload: dict[str, Any]) -> None:
+        self._object_storage.write_object(self._bucket, key, _json_bytes(payload), content_type="application/json")

@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, ClassVar, Mapping
 
-from pipeline_common.stages_contracts.base import ProcessedDocumentMetadata
+from pipeline_common.stages_contracts.base import SourceDocumentMetadata
 
 
 @dataclass(frozen=True)
@@ -14,7 +14,7 @@ class ProcessedDocumentPayload:
 
     FIELD_PARSED: ClassVar[str] = "parsed"
 
-    metadata: ProcessedDocumentMetadata
+    metadata: SourceDocumentMetadata
     parsed: dict[str, Any]
 
     @classmethod
@@ -29,7 +29,7 @@ class ProcessedDocumentPayload:
     ) -> "ProcessedDocumentPayload":
         """Build a versioned processed-document payload."""
         return cls(
-            metadata=ProcessedDocumentMetadata.build(
+            metadata=SourceDocumentMetadata.build(
                 doc_id=doc_id,
                 source_key=source_key,
                 timestamp=timestamp,

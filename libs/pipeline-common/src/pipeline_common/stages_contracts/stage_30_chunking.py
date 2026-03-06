@@ -18,6 +18,24 @@ class ChunkRegistryStatus(StrEnum):
 
 
 @dataclass(frozen=True)
+class ChunkDocumentMetadata:
+    """Stage-30 metadata carried with LangChain split documents."""
+
+    doc_id: str
+    timestamp: str
+    security_clearance: str
+    source_dataset_urn: str
+    source_s3_uri: str
+    source_content_hash: str
+    chunking_run_id: str
+    source_type: str
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize to plain metadata dict expected by splitters/documents."""
+        return asdict(self)
+
+
+@dataclass(frozen=True)
 class ChunkProvenanceEnvelope:
     """Canonical chunk provenance envelope contract."""
 

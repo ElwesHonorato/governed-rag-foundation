@@ -1,7 +1,7 @@
 import json
-from typing import Any
+from typing import Any, ClassVar
 
-from chunking.domain.text_chunker import chunk_text
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.provenance import (
     ChunkProvenanceEnvelope,
@@ -13,12 +13,8 @@ from pipeline_common.provenance import (
 )
 from pipeline_common.provenance import chunk_params_hash
 from pipeline_common.helpers.contracts import utc_now_iso
-from pipeline_common.stages_contracts import ProcessedDocumentMetadata, ProcessedDocumentPayload
-
-CHUNKER_NAME = "text_chunker"
-CHUNKER_VERSION = "1.0.0"
-CHUNKER_PARAMS = {"strategy": "default"}
-
+from pipeline_common.stages_contracts import ChunkDocumentMetadata, ProcessedDocumentPayload
+from contracts.contracts import ChunkingParamsContract
 
 class ChunkTextProcessor:
     """Transform processed document rows into persisted chunk artifacts.
@@ -27,6 +23,7 @@ class ChunkTextProcessor:
     normalize/expand rows into chunk rows, materialize rows into Python records,
     write chunk artifact objects, and upsert chunk provenance registry entries.
     """
+    CHUNKER_VERSION: ClassVar[str] = "1.0.0"
 
     def __init__(
         self,
@@ -35,6 +32,7 @@ class ChunkTextProcessor:
         provenance_registry: ProvenanceRegistryGateway,
         storage_bucket: str,
         output_prefix: str,
+        chunking_params: ChunkingParamsContract,
     ) -> None:
         """Initialize processor dependencies and storage routing configuration.
 
@@ -51,10 +49,16 @@ class ChunkTextProcessor:
         self.provenance_registry = provenance_registry
         self.storage_bucket = storage_bucket
         self.output_prefix = output_prefix
+        self._chunking_params = chunking_params
+        self._splitter = RecursiveCharacterTextSplitter(
+            chunk_size=chunking_params.chunk_size,
+            chunk_overlap=chunking_params.chunk_overlap,
+            add_start_index=chunking_params.add_start_index,
+        )
 
-    def write_chunk_artifacts_from_payload(
+    def process(
         self,
-        processed_payload: dict[str, Any],
+        processed_payload: ProcessedDocumentPayload,
         *,
         source_uri: str,
         chunking_run_id: str,
@@ -132,22 +136,9 @@ class ChunkTextProcessor:
             )
         return written, destination_keys
 
-    def _chunk_segments(self, source_text: str) -> list[tuple[int, str, int, int]]:
-        """Split source text into chunk segments with offsets."""
-        chunks = chunk_text(source_text)
-        cursor = 0
-        segments: list[tuple[int, str, int, int]] = []
-        for index, chunk_value in enumerate(chunks):
-            resolved = source_text.find(chunk_value, cursor)
-            start = resolved if resolved >= 0 else cursor
-            end = start + len(chunk_value)
-            segments.append((index, chunk_value, start, end))
-            cursor = end
-        return segments
-
     def _build_chunk_records_from_payload(
         self,
-        payload: dict[str, Any],
+        payload: ProcessedDocumentPayload,
         *,
         source_uri: str,
         chunking_run_id: str,
@@ -162,63 +153,68 @@ class ChunkTextProcessor:
         Returns:
             A list of chunk record dictionaries for artifact persistence.
         """
-        parsed = payload[ProcessedDocumentPayload.FIELD_PARSED]
-        source_text = str(parsed["text"])
-        metadata = ProcessedDocumentMetadata(
-            schema_version=str(payload[ProcessedDocumentMetadata.FIELD_SCHEMA_VERSION]),
-            doc_id=str(payload[ProcessedDocumentMetadata.FIELD_DOC_ID]),
-            source_key=str(payload[ProcessedDocumentMetadata.FIELD_SOURCE_KEY]),
-            timestamp=str(payload[ProcessedDocumentMetadata.FIELD_TIMESTAMP]),
-            security_clearance=str(payload[ProcessedDocumentMetadata.FIELD_SECURITY_CLEARANCE]),
-        )
-        doc_id = metadata.doc_id
+        source_text = str(payload.parsed["text"])
         source_content_hash = sha256_hex(source_text)
-        resolved_chunk_params_hash = chunk_params_hash(CHUNKER_PARAMS)
+        resolved_chunk_params_hash = chunk_params_hash(self._chunking_params.to_dict())
+        chunk_document_metadata = ChunkDocumentMetadata(
+            doc_id=payload.metadata.doc_id,
+            timestamp=payload.metadata.timestamp,
+            security_clearance=payload.metadata.security_clearance,
+            source_dataset_urn=source_uri,
+            source_s3_uri=source_uri,
+            source_content_hash=source_content_hash,
+            chunking_run_id=chunking_run_id,
+            source_type="html",
+        )
+        documents = self._splitter.create_documents([source_text], metadatas=[chunk_document_metadata.to_dict()])
 
         records: list[dict[str, Any]] = []
-        for chunk_index, chunk_text_value, offsets_start, offsets_end in self._chunk_segments(source_text):
+        for chunk_index, chunk_document in enumerate(documents):
+            chunk_text_value = str(chunk_document.page_content)
+            offsets_start = int(chunk_document.metadata.get("start_index", 0))
+            offsets_end = offsets_start + len(chunk_text_value)
             resolved_chunk_text_hash = sha256_hex(chunk_text_value)
             resolved_chunk_id = build_chunk_id(
-                source_dataset_urn=source_uri,
-                source_content_hash_value=source_content_hash,
-                chunker_name=CHUNKER_NAME,
-                chunker_version=CHUNKER_VERSION,
+                source_dataset_urn=chunk_document_metadata.source_dataset_urn,
+                source_content_hash_value=chunk_document_metadata.source_content_hash,
+                chunker_name=self.__class__.__name__,
+                chunker_version=self.CHUNKER_VERSION,
                 chunk_params_hash_value=resolved_chunk_params_hash,
                 offsets_start=offsets_start,
                 offsets_end=offsets_end,
             )
-            destination_key = self._chunk_object_key(doc_id, resolved_chunk_id)
+            destination_key = self._chunk_object_key(chunk_document_metadata.doc_id, resolved_chunk_id)
             envelope = ChunkProvenanceEnvelope(
                 chunk_id=resolved_chunk_id,
-                source_dataset_urn=source_uri,
-                source_s3_uri=source_uri,
-                source_content_hash=source_content_hash,
+                source_dataset_urn=chunk_document_metadata.source_dataset_urn,
+                source_s3_uri=chunk_document_metadata.source_s3_uri,
+                source_content_hash=chunk_document_metadata.source_content_hash,
                 chunk_s3_uri=f"s3://{self.storage_bucket}/{destination_key}",
                 offsets_start=int(offsets_start),
                 offsets_end=int(offsets_end),
                 chunk_text_hash=resolved_chunk_text_hash,
-                chunker_name=CHUNKER_NAME,
-                chunker_version=CHUNKER_VERSION,
-                chunking_run_id=chunking_run_id,
+                chunker_name=self.__class__.__name__,
+                chunker_version=self.CHUNKER_VERSION,
+                chunking_run_id=chunk_document_metadata.chunking_run_id,
                 chunk_params_hash=resolved_chunk_params_hash,
                 breadcrumb=f"chunk[{chunk_index}]",
             )
             records.append(
                 {
-                    "doc_id": doc_id,
+                    "doc_id": chunk_document_metadata.doc_id,
                     "chunk_id": envelope.chunk_id,
                     "chunk_index": chunk_index,
                     "chunk_text": chunk_text_value,
-                    "source_type": "html",
-                    "timestamp": metadata.timestamp,
-                    "security_clearance": metadata.security_clearance,
-                    "source_dataset_urn": source_uri,
-                    "source_s3_uri": source_uri,
-                    "source_content_hash": source_content_hash,
+                    "source_type": chunk_document_metadata.source_type,
+                    "timestamp": chunk_document_metadata.timestamp,
+                    "security_clearance": chunk_document_metadata.security_clearance,
+                    "source_dataset_urn": chunk_document_metadata.source_dataset_urn,
+                    "source_s3_uri": chunk_document_metadata.source_s3_uri,
+                    "source_content_hash": chunk_document_metadata.source_content_hash,
                     "offsets_start": offsets_start,
                     "offsets_end": offsets_end,
                     "breadcrumb": envelope.breadcrumb,
-                    "chunking_run_id": chunking_run_id,
+                    "chunking_run_id": chunk_document_metadata.chunking_run_id,
                     "destination_key": destination_key,
                     "envelope": envelope,
                 }

@@ -8,8 +8,9 @@ from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.provenance import ProvenanceRegistryGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, StageQueue
 from pipeline_common.helpers.run_ids import build_source_run_id
+from pipeline_common.stages_contracts import ProcessedDocumentPayload, SourceDocumentMetadata
 from pipeline_common.startup.contracts import WorkerService
-from contracts.contracts import ChunkTextProcessingConfigContract
+from contracts.contracts import ChunkTextProcessingConfigContract, ChunkingParamsContract
 from services.chunk_text_processor import ChunkTextProcessor
 
 logger = logging.getLogger(__name__)
@@ -33,11 +34,18 @@ class WorkerChunkTextService(WorkerService):
         self.lineage = lineage
         self.provenance_registry = provenance_registry
         self._initialize_runtime_config(processing_config)
+        chunking_params = ChunkingParamsContract(
+            strategy="recursive_character",
+            chunk_size=700,
+            chunk_overlap=120,
+            add_start_index=True,
+        )
         self.processor = ChunkTextProcessor(
             object_storage=self.object_storage,
             provenance_registry=self.provenance_registry,
             storage_bucket=self.storage_bucket,
             output_prefix=self.output_prefix,
+            chunking_params=chunking_params,
         )
 
     def serve(self) -> None:
@@ -69,9 +77,13 @@ class WorkerChunkTextService(WorkerService):
         )
         try:
             raw_payload = self.object_storage.read_object(self.storage_bucket, source_key)
-            processed_payload = json.loads(raw_payload.decode("utf-8"))
+            payload = json.loads(raw_payload.decode("utf-8"))
+            processed_payload = ProcessedDocumentPayload(
+                metadata=SourceDocumentMetadata.from_payload(payload),
+                parsed=dict(payload[ProcessedDocumentPayload.FIELD_PARSED]),
+            )
             chunking_run_id = build_source_run_id(source_uri)
-            written, destination_keys = self.processor.write_chunk_artifacts_from_payload(
+            written, destination_keys = self.processor.process(
                 processed_payload,
                 source_uri=source_uri,
                 chunking_run_id=chunking_run_id,

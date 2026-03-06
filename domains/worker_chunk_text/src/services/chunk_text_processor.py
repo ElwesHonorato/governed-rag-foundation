@@ -76,33 +76,6 @@ class ChunkTextProcessor:
         )
         return self._write_chunk_records(records)
 
-    def _write_chunk_records(self, records: list[dict[str, Any]]) -> int:
-        """Persist chunk records as artifacts and registry rows.
-
-        Args:
-            records: Chunk record dictionaries with source metadata, chunk content,
-                run context, and destination key.
-
-        Returns:
-            Number of newly written chunk artifacts.
-
-        Side Effects:
-            - May write JSON chunk artifacts to object storage.
-            - Writes one chunk artifact JSON object per chunk record.
-        """
-        written = 0
-        self._initialize_chunk_write_batch()
-        for chunk_record in records:
-            destination_key = chunk_record["destination_key"]
-            self._add_chunk_to_write_batch(
-                chunk_id=chunk_record["chunk_id"],
-                destination_key=destination_key,
-            )
-            self._write_chunk_object(destination_key=destination_key, chunk_record=chunk_record)
-            written += 1
-        self._set_chunk_write_batch_summary(records_count=len(records), written=written)
-        return written
-
     def _build_chunk_records_from_payload(
         self,
         payload: ProcessedDocumentPayload,
@@ -175,6 +148,33 @@ class ChunkTextProcessor:
                 }
             )
         return records
+
+    def _write_chunk_records(self, records: list[dict[str, Any]]) -> int:
+        """Persist chunk records as artifacts and registry rows.
+
+        Args:
+            records: Chunk record dictionaries with source metadata, chunk content,
+                run context, and destination key.
+
+        Returns:
+            Number of newly written chunk artifacts.
+
+        Side Effects:
+            - May write JSON chunk artifacts to object storage.
+            - Writes one chunk artifact JSON object per chunk record.
+        """
+        written = 0
+        self._initialize_chunk_write_batch()
+        for chunk_record in records:
+            destination_key = chunk_record["destination_key"]
+            self._add_chunk_to_write_batch(
+                chunk_id=chunk_record["chunk_id"],
+                destination_key=destination_key,
+            )
+            self._write_chunk_object(destination_key=destination_key, chunk_record=chunk_record)
+            written += 1
+        self._set_chunk_write_batch_summary(records_count=len(records), written=written)
+        return written
 
     def _initialize_chunk_write_batch(self) -> None:
         self.chunk_write_batch = {

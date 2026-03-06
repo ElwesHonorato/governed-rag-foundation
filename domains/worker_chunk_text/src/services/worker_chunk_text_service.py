@@ -5,7 +5,7 @@ from typing import Any
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
-from pipeline_common.gateways.processing_engine import ReadGateway, WriteGateway
+from pipeline_common.gateways.processing_engine import ReadGateway
 from pipeline_common.provenance import ProvenanceRegistryGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, StageQueue
 from pipeline_common.helpers.run_ids import build_source_run_id
@@ -36,7 +36,6 @@ class WorkerChunkTextService(WorkerService):
         self.provenance_registry = provenance_registry
         self.spark_session = spark_session
         self.read_gateway = ReadGateway(spark_session=self.spark_session)
-        self.write_gateway = WriteGateway()
         self._initialize_runtime_config(processing_config)
         self.processor = ChunkTextProcessor(
             object_storage=self.object_storage,
@@ -75,14 +74,13 @@ class WorkerChunkTextService(WorkerService):
         try:
             processed_df = self.read(source_uri)
             chunking_run_id = build_source_run_id(source_uri)
-            input_df = self.processor.build_input_dataframe(
-                processed_df,
+            payload_df = self.processor.build_input_dataframe(processed_df)
+            processed_metadata = self.processor.metadata_from_processed_dataframe(processed_df)
+            written, destination_keys = self.processor.write_chunk_artifacts_from_dataframe(
+                payload_df,
+                doc_id=processed_metadata.doc_id,
                 source_uri=source_uri,
                 chunking_run_id=chunking_run_id,
-            )
-            written, destination_keys = self.processor.write_chunk_artifacts_from_dataframe(
-                input_df,
-                write_gateway=self.write_gateway,
             )
             registry_dataset = f"{self.storage_bucket}/07_metadata/provenance/chunking/latest/"
             self.lineage.add_output(name=registry_dataset, platform=DatasetPlatform.S3)

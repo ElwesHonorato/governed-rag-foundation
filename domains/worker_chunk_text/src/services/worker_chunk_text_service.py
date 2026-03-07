@@ -36,7 +36,6 @@ class WorkerChunkTextService(WorkerService):
             storage_bucket=self.storage_bucket,
             output_prefix=self.output_prefix,
             manifest_prefix=self.output_prefix,
-            chunking_params=CHUNKING_STRATEGIES["STRATEGY_001"],
         )
 
     def serve(self) -> None:
@@ -78,6 +77,7 @@ class WorkerChunkTextService(WorkerService):
                 processed_payload,
                 source_uri=source_uri,
                 chunking_run_id=chunking_run_id,
+                chunking_params=CHUNKING_STRATEGIES["STRATEGY_001"],
             )
             self.lineage.complete_run()
         except Exception as exc:

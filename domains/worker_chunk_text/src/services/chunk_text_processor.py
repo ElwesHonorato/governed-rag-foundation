@@ -15,7 +15,6 @@ from contracts.chunk_manifest import (
     ChunkManifestOutput,
     ChunkManifestProcessing,
 )
-from contracts.chunking_strategy import ChunkingStrategy
 
 
 @dataclass(frozen=True)
@@ -44,21 +43,21 @@ class ChunkTextProcessor:
         storage_bucket: str,
         output_prefix: str,
         manifest_prefix: str,
-        chunking_params: dict[str, Any],
     ) -> None:
         self.object_storage = object_storage
         self.storage_bucket = storage_bucket
         self.output_prefix = output_prefix
         self.manifest_prefix = manifest_prefix
-        self._chunking_params = dict(chunking_params)
-        self._splitter = CentralTextSplitter(**self._chunking_params)
 
     def process(
         self,
         processed_payload: ProcessedDocumentPayload,
         source_uri: str,
         chunking_run_id: str,
+        chunking_params: dict[str, Any],
     ) -> int:
+        resolved_chunking_params = dict(chunking_params)
+        splitter = CentralTextSplitter(**resolved_chunking_params)
         (
             source_text,
             chunk_document_metadata,
@@ -69,9 +68,11 @@ class ChunkTextProcessor:
             payload=processed_payload,
             source_uri=source_uri,
             chunking_run_id=chunking_run_id,
+            chunking_params=resolved_chunking_params,
         )
 
         records = self._build_chunk_records(
+            splitter=splitter,
             source_text=source_text,
             chunk_document_metadata=chunk_document_metadata,
             chunk_params_hash_value=resolved_chunk_params_hash,
@@ -86,6 +87,7 @@ class ChunkTextProcessor:
             written=written,
             chunk_count_expected=len(records),
             chunk_entries=chunk_entries,
+            chunking_params=resolved_chunking_params,
         )
         self._write_manifest(
             manifest=manifest,
@@ -100,10 +102,11 @@ class ChunkTextProcessor:
         payload: ProcessedDocumentPayload,
         source_uri: str,
         chunking_run_id: str,
+        chunking_params: dict[str, Any],
     ) -> tuple[str, ChunkDocumentMetadata, str, str, str]:
         source_text = str(payload.parsed["text"])
         source_content_hash = sha256_hex(source_text)
-        resolved_chunk_params_hash = chunk_params_hash(self._chunking_params["params"])
+        resolved_chunk_params_hash = chunk_params_hash(chunking_params["params"])
         parser_version = str(payload.parsed.get("parser_version", "unknown"))
         content_type = str(payload.parsed.get("content_type", "text/html"))
 
@@ -128,11 +131,12 @@ class ChunkTextProcessor:
 
     def _build_chunk_records(
         self,
+        splitter: CentralTextSplitter,
         source_text: str,
         chunk_document_metadata: ChunkDocumentMetadata,
         chunk_params_hash_value: str,
     ) -> list[ChunkArtifactRecord]:
-        documents = self._splitter.create_documents(
+        documents = splitter.create_documents(
             texts=[source_text],
             metadatas=[chunk_document_metadata.to_dict()],
         )
@@ -237,6 +241,7 @@ class ChunkTextProcessor:
         written: int,
         chunk_count_expected: int,
         chunk_entries: list[ChunkManifestEntry],
+        chunking_params: dict[str, Any],
     ) -> ChunkManifest:
         source_uri = chunk_document_metadata.source_s3_uri
 
@@ -254,11 +259,7 @@ class ChunkTextProcessor:
             timestamp=chunk_document_metadata.timestamp,
             chunker_version=self.CHUNKER_VERSION,
             run_status="complete" if written == chunk_count_expected else "partial",
-            chunker=ChunkerConfig(
-                strategy=ChunkingStrategy(str(self._chunking_params["params"]["strategy"])),
-                chunk_size=int(self._chunking_params["params"]["chunk_size"]),
-                chunk_overlap=int(self._chunking_params["params"]["chunk_overlap"]),
-            ),
+            chunker=ChunkerConfig.from_chunking_params(chunking_params),
         )
 
         output = ChunkManifestOutput(

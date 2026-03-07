@@ -5,8 +5,6 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any, Literal, Mapping
 
-from contracts.chunking_strategy import ChunkingStrategy
-
 CHUNK_MANIFEST_SCHEMA_VERSION = "1.0"
 RunStatus = Literal["partial", "complete", "failed"]
 
@@ -26,16 +24,23 @@ class ChunkManifestLineage:
 
 @dataclass(frozen=True)
 class ChunkerConfig:
-    strategy: ChunkingStrategy
-    chunk_size: int
-    chunk_overlap: int
+    class_name: str
+    params: dict[str, Any]
+
+    @classmethod
+    def from_chunking_params(cls, chunking_params: Mapping[str, Any]) -> "ChunkerConfig":
+        chunker = chunking_params["chunker"]
+        class_name = getattr(chunker, "__name__", str(chunker))
+        return cls(
+            class_name=str(class_name),
+            params=dict(chunking_params["params"]),
+        )
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> "ChunkerConfig":
         return cls(
-            strategy=ChunkingStrategy(str(data["strategy"])),
-            chunk_size=int(data["chunk_size"]),
-            chunk_overlap=int(data["chunk_overlap"]),
+            class_name=str(data["class_name"]),
+            params=dict(data["params"]),
         )
 
 

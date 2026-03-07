@@ -1,9 +1,6 @@
 """Typed startup contracts for worker_chunk_text."""
 
-from dataclasses import asdict, dataclass
-from typing import Any
-
-from contracts.chunking_strategy import ChunkingStrategy
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
@@ -44,31 +41,6 @@ class ChunkTextProcessingConfigContract:
     poll_interval_seconds: int
     queue: ChunkTextQueueConfigContract
     storage: ChunkTextStorageConfigContract
-
-
-@dataclass(frozen=True)
-class ChunkingParamsContract:
-    """Typed chunker runtime parameters for chunk-text processing."""
-
-    chunk_method: ChunkingStrategy
-    strategy: str
-    chunk_size: int
-    chunk_overlap: int
-    add_start_index: bool = False
-
-    @property
-    def splitter_kwargs(self) -> dict[str, Any]:
-        """Keyword args passed to the concrete splitter class."""
-        kwargs = self.to_dict()
-        kwargs.pop("chunk_method", None)
-        return kwargs
-
-    def to_dict(self) -> dict[str, Any]:
-        """Serialize chunking params for hashing/provenance payloads."""
-        return {
-            **asdict(self),
-            "chunk_method": self.chunk_method.value,
-        }
 
 
 @dataclass(frozen=True)

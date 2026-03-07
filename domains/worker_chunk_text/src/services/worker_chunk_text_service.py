@@ -2,6 +2,7 @@ import logging
 import json
 import time
 
+from configs.chunking_strategies import CHUNKING_STRATEGIES
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
@@ -9,8 +10,7 @@ from pipeline_common.gateways.queue import ConsumedMessage, Envelope, StageQueue
 from pipeline_common.helpers.run_ids import build_source_run_id
 from pipeline_common.stages_contracts import ProcessedDocumentPayload, SourceDocumentMetadata
 from pipeline_common.startup.contracts import WorkerService
-from contracts.contracts import ChunkTextProcessingConfigContract, ChunkingParamsContract
-from contracts.chunking_strategy import ChunkingStrategy
+from contracts.contracts import ChunkTextProcessingConfigContract
 from services.chunk_text_processor import ChunkTextProcessor
 
 logger = logging.getLogger(__name__)
@@ -31,19 +31,12 @@ class WorkerChunkTextService(WorkerService):
         self.object_storage = object_storage
         self.lineage = lineage
         self._initialize_runtime_config(processing_config)
-        chunking_params = ChunkingParamsContract(
-            chunk_method=ChunkingStrategy.RECURSIVE_CHARACTER,
-            strategy=ChunkingStrategy.RECURSIVE_CHARACTER.value,
-            chunk_size=700,
-            chunk_overlap=120,
-            add_start_index=True,
-        )
         self.processor = ChunkTextProcessor(
             object_storage=self.object_storage,
             storage_bucket=self.storage_bucket,
             output_prefix=self.output_prefix,
             manifest_prefix=self.output_prefix,
-            chunking_params=chunking_params,
+            chunking_params=CHUNKING_STRATEGIES["STRATEGY_001"],
         )
 
     def serve(self) -> None:

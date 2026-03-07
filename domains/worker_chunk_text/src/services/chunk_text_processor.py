@@ -2,7 +2,7 @@ import json
 from dataclasses import dataclass
 from typing import ClassVar
 
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from chunking.domain.central_text_splitter import CentralTextSplitter
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.provenance import build_chunk_id, chunk_params_hash, sha256_hex
 from pipeline_common.stages_contracts import ChunkArtifactPayload, ChunkDocumentMetadata, ProcessedDocumentPayload
@@ -51,7 +51,7 @@ class ChunkTextProcessor:
         self.output_prefix = output_prefix
         self.manifest_prefix = manifest_prefix
         self._chunking_params = chunking_params
-        self._splitter = RecursiveCharacterTextSplitter(
+        self._splitter = CentralTextSplitter(
             chunk_size=chunking_params.chunk_size,
             chunk_overlap=chunking_params.chunk_overlap,
             add_start_index=chunking_params.add_start_index,

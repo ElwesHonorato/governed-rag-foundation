@@ -108,20 +108,10 @@ class ChunkTextProcessor:
         Returns:
             A list of chunk record dictionaries for artifact persistence.
         """
-        source_text = str(payload.parsed["text"])
-        source_content_hash = sha256_hex(source_text)
-        resolved_chunk_params_hash = chunk_params_hash(self._chunking_params.to_dict())
-        self._manifest_parser_version = payload.parsed.get("parser_version", "unknown")
-        self._manifest_content_type = payload.parsed.get("content_type", "text/html")
-        self.chunk_document_metadata = ChunkDocumentMetadata(
-            doc_id=payload.metadata.doc_id,
-            timestamp=payload.metadata.timestamp,
-            security_clearance=payload.metadata.security_clearance,
-            source_dataset_urn=source_uri,
-            source_s3_uri=source_uri,
-            source_content_hash=source_content_hash,
+        source_text, resolved_chunk_params_hash = self._initialize_chunking_context(
+            payload=payload,
+            source_uri=source_uri,
             chunking_run_id=chunking_run_id,
-            source_type="html",
         )
         documents = self._splitter.create_documents([source_text], metadatas=[self.chunk_document_metadata.to_dict()])
 
@@ -165,6 +155,29 @@ class ChunkTextProcessor:
                 }
             )
         return records
+
+    def _initialize_chunking_context(
+        self,
+        payload: ProcessedDocumentPayload,
+        source_uri: str,
+        chunking_run_id: str,
+    ) -> tuple[str, str]:
+        source_text = str(payload.parsed["text"])
+        source_content_hash = sha256_hex(source_text)
+        resolved_chunk_params_hash = chunk_params_hash(self._chunking_params.to_dict())
+        self._manifest_parser_version = payload.parsed.get("parser_version", "unknown")
+        self._manifest_content_type = payload.parsed.get("content_type", "text/html")
+        self.chunk_document_metadata = ChunkDocumentMetadata(
+            doc_id=payload.metadata.doc_id,
+            timestamp=payload.metadata.timestamp,
+            security_clearance=payload.metadata.security_clearance,
+            source_dataset_urn=source_uri,
+            source_s3_uri=source_uri,
+            source_content_hash=source_content_hash,
+            chunking_run_id=chunking_run_id,
+            source_type="html",
+        )
+        return source_text, resolved_chunk_params_hash
 
     def _write_chunk_records(self, records: list[dict[str, Any]]) -> int:
         """Persist chunk records as artifacts and registry rows.

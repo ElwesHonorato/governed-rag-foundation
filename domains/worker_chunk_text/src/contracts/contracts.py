@@ -56,6 +56,13 @@ class ChunkingParamsContract:
     chunk_overlap: int
     add_start_index: bool = False
 
+    @property
+    def splitter_kwargs(self) -> dict[str, Any]:
+        """Keyword args passed to the concrete splitter class."""
+        kwargs = self.to_dict()
+        kwargs.pop("chunk_method", None)
+        return kwargs
+
     def to_dict(self) -> dict[str, Any]:
         """Serialize chunking params for hashing/provenance payloads."""
         return {

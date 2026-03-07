@@ -27,11 +27,8 @@ class CentralTextSplitter:
         splitter_cls = self._splitter_registry().get(
             chunking_params.chunk_method
         )
-        return splitter_cls(
-            chunk_size=chunking_params.chunk_size,
-            chunk_overlap=chunking_params.chunk_overlap,
-            add_start_index=chunking_params.add_start_index,
-        )
+        splitter_kwargs = chunking_params.splitter_kwargs
+        return splitter_cls(**splitter_kwargs)
 
     def _splitter_registry(self) -> dict[ChunkingStrategy, type[RecursiveCharacterTextSplitter]]:
         return {

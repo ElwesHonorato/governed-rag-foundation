@@ -1,8 +1,9 @@
 import json
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Any, ClassVar
 
 from chunking.domain.central_text_splitter import CentralTextSplitter
+from configs.chunking_scaffold import ChunkingProcessorType, ChunkingStage
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.provenance import build_chunk_id, chunk_params_hash, sha256_hex
 from pipeline_common.stages_contracts import ChunkArtifactPayload, ChunkDocumentMetadata, ProcessedDocumentPayload
@@ -54,10 +55,27 @@ class ChunkTextProcessor:
         processed_payload: ProcessedDocumentPayload,
         source_uri: str,
         chunking_run_id: str,
-        chunking_params: dict[str, Any],
+        chunking_stages: list[ChunkingStage],
+        source_type: str,
     ) -> int:
-        resolved_chunking_params = dict(chunking_params)
-        splitter = CentralTextSplitter(**resolved_chunking_params)
+        return self.process_stage(
+            processed_payload=processed_payload,
+            source_uri=source_uri,
+            chunking_run_id=chunking_run_id,
+            chunking_stages=chunking_stages,
+            source_type=source_type,
+        )
+
+    def process_stage(
+        self,
+        *,
+        processed_payload: ProcessedDocumentPayload,
+        source_uri: str,
+        chunking_run_id: str,
+        chunking_stages: list[ChunkingStage],
+        source_type: str,
+    ) -> int:
+        """Run the golden path once: stage-chain split, persist chunks, persist manifest."""
         (
             source_text,
             chunk_document_metadata,
@@ -68,14 +86,20 @@ class ChunkTextProcessor:
             payload=processed_payload,
             source_uri=source_uri,
             chunking_run_id=chunking_run_id,
-            chunking_params=resolved_chunking_params,
+            chunking_stages=chunking_stages,
+            source_type=source_type,
+        )
+        documents, resolved_chunker_name = self._process_chunking_stages(
+            source_text=source_text,
+            chunking_stages=chunking_stages,
+            chunk_document_metadata=chunk_document_metadata,
         )
 
         records = self._build_chunk_records(
-            splitter=splitter,
-            source_text=source_text,
+            documents=documents,
             chunk_document_metadata=chunk_document_metadata,
             chunk_params_hash_value=resolved_chunk_params_hash,
+            chunker_name=resolved_chunker_name,
         )
 
         written, chunk_entries = self._write_chunk_records(records)
@@ -87,7 +111,8 @@ class ChunkTextProcessor:
             written=written,
             chunk_count_expected=len(records),
             chunk_entries=chunk_entries,
-            chunking_params=resolved_chunking_params,
+            chunking_params=self._serialize_chunking_stages(chunking_stages),
+            chunker_name=resolved_chunker_name,
         )
         self._write_manifest(
             manifest=manifest,
@@ -102,11 +127,13 @@ class ChunkTextProcessor:
         payload: ProcessedDocumentPayload,
         source_uri: str,
         chunking_run_id: str,
-        chunking_params: dict[str, Any],
+        chunking_stages: list[ChunkingStage],
+        source_type: str,
     ) -> tuple[str, ChunkDocumentMetadata, str, str, str]:
+        """Build immutable run context and deterministic params hash for this stage chain."""
         source_text = str(payload.parsed["text"])
         source_content_hash = sha256_hex(source_text)
-        resolved_chunk_params_hash = chunk_params_hash(chunking_params["params"])
+        resolved_chunk_params_hash = chunk_params_hash(self._serialize_chunking_stages(chunking_stages))
         parser_version = str(payload.parsed.get("parser_version", "unknown"))
         content_type = str(payload.parsed.get("content_type", "text/html"))
 
@@ -118,7 +145,7 @@ class ChunkTextProcessor:
             source_s3_uri=source_uri,
             source_content_hash=source_content_hash,
             chunking_run_id=chunking_run_id,
-            source_type="html",
+            source_type=source_type,
         )
 
         return (
@@ -131,16 +158,11 @@ class ChunkTextProcessor:
 
     def _build_chunk_records(
         self,
-        splitter: CentralTextSplitter,
-        source_text: str,
+        documents: list[Any],
         chunk_document_metadata: ChunkDocumentMetadata,
         chunk_params_hash_value: str,
+        chunker_name: str,
     ) -> list[ChunkArtifactRecord]:
-        documents = splitter.create_documents(
-            texts=[source_text],
-            metadatas=[chunk_document_metadata.to_dict()],
-        )
-
         records: list[ChunkArtifactRecord] = []
         for chunk_index, chunk_document in enumerate(documents):
             chunk_text_value = str(chunk_document.page_content)
@@ -151,7 +173,7 @@ class ChunkTextProcessor:
             resolved_chunk_id = build_chunk_id(
                 source_dataset_urn=chunk_document_metadata.source_dataset_urn,
                 source_content_hash_value=chunk_document_metadata.source_content_hash,
-                chunker_name=self.__class__.__name__,
+                chunker_name=chunker_name,
                 chunker_version=self.CHUNKER_VERSION,
                 chunk_params_hash_value=chunk_params_hash_value,
                 offsets_start=offsets_start,
@@ -182,7 +204,7 @@ class ChunkTextProcessor:
                         breadcrumb=f"chunk[{chunk_index}]",
                         chunking_run_id=chunk_document_metadata.chunking_run_id,
                         chunk_text_hash=resolved_chunk_text_hash,
-                        chunker_name=self.__class__.__name__,
+                        chunker_name=chunker_name,
                         chunker_version=self.CHUNKER_VERSION,
                         chunk_params_hash=chunk_params_hash_value,
                     ),
@@ -242,6 +264,7 @@ class ChunkTextProcessor:
         chunk_count_expected: int,
         chunk_entries: list[ChunkManifestEntry],
         chunking_params: dict[str, Any],
+        chunker_name: str,
     ) -> ChunkManifest:
         source_uri = chunk_document_metadata.source_s3_uri
 
@@ -259,7 +282,10 @@ class ChunkTextProcessor:
             timestamp=chunk_document_metadata.timestamp,
             chunker_version=self.CHUNKER_VERSION,
             run_status="complete" if written == chunk_count_expected else "partial",
-            chunker=ChunkerConfig.from_chunking_params(chunking_params),
+            chunker=ChunkerConfig(
+                class_name=chunker_name,
+                params=dict(chunking_params),
+            ),
         )
 
         output = ChunkManifestOutput(
@@ -274,6 +300,66 @@ class ChunkTextProcessor:
             output=output,
             chunks=chunk_entries,
         )
+
+    def _process_chunking_stages(
+        self,
+        *,
+        source_text: str,
+        chunking_stages: list[ChunkingStage],
+        chunk_document_metadata: ChunkDocumentMetadata,
+    ) -> tuple[list[Any], str]:
+        """Apply each LangChain stage sequentially, feeding one stage output into the next.
+
+        Starts from raw source text, then repeatedly splits either:
+        - raw text inputs (via `create_documents`), or
+        - document inputs from a previous stage (via `split_documents`).
+        Returns the final document list plus the last applied chunker class name.
+        """
+        docs: list[Any] = [source_text]
+
+        for stage in chunking_stages:
+            splitter = CentralTextSplitter(
+                chunker=stage.processor.value,
+                params=asdict(stage.params),
+            )
+            docs = self._apply_stage(
+                splitter=splitter,
+                docs=docs,
+                chunk_document_metadata=chunk_document_metadata,
+            )
+        return docs, getattr(chunking_stages[-1].processor.value, "__name__", str(chunking_stages[-1].processor.value))
+
+    def _apply_stage(
+        self,
+        *,
+        splitter: CentralTextSplitter,
+        docs: list[Any],
+        chunk_document_metadata: ChunkDocumentMetadata,
+    ) -> list[Any]:
+        if self._docs_are_documents(docs):
+            return splitter.split_documents(documents=docs)
+        texts = [str(item) for item in docs]
+        return splitter.create_documents(
+            texts=texts,
+            metadatas=[dict(chunk_document_metadata.to_dict()) for _ in texts],
+        )
+
+    def _docs_are_documents(self, docs: list[Any]) -> bool:
+        return bool(docs) and hasattr(docs[0], "page_content")
+
+    def _serialize_chunking_stages(self, chunking_stages: list[ChunkingStage]) -> dict[str, Any]:
+        """Serialize stage chain deterministically for chunk params hashing and manifest provenance."""
+        serialized: list[dict[str, Any]] = []
+        for stage in chunking_stages:
+            processor_value = stage.processor.value
+            processor_name = getattr(processor_value, "__name__", str(processor_value))
+            serialized.append(
+                {
+                    "processor": processor_name,
+                    "params": asdict(stage.params),
+                }
+            )
+        return {"stages": serialized}
 
     def _write_manifest(
         self,

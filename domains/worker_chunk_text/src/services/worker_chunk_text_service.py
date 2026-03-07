@@ -2,7 +2,7 @@ import logging
 import json
 import time
 
-from configs.chunking_strategies import CHUNKING_STRATEGIES
+from configs.chunking_scaffold import ChunkingScaffoldResolver
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
@@ -30,6 +30,7 @@ class WorkerChunkTextService(WorkerService):
         self.stage_queue = stage_queue
         self.object_storage = object_storage
         self.lineage = lineage
+        self._chunking_resolver = ChunkingScaffoldResolver()
         self._initialize_runtime_config(processing_config)
         self.processor = ChunkTextProcessor(
             object_storage=self.object_storage,
@@ -72,12 +73,16 @@ class WorkerChunkTextService(WorkerService):
                 metadata=SourceDocumentMetadata.from_payload(payload),
                 parsed=dict(payload[ProcessedDocumentPayload.FIELD_PARSED]),
             )
+            source_name = processed_payload.metadata.doc_id
+            resolved_chunking_stages = self._chunking_resolver.resolve(source_name)
+            resolved_file_type = self._chunking_resolver.file_type_from_source_key(source_name)
             chunking_run_id = build_source_run_id(source_uri)
             written = self.processor.process(
                 processed_payload,
                 source_uri=source_uri,
                 chunking_run_id=chunking_run_id,
-                chunking_params=CHUNKING_STRATEGIES["STRATEGY_001"],
+                chunking_stages=resolved_chunking_stages,
+                source_type=resolved_file_type.value,
             )
             self.lineage.complete_run()
         except Exception as exc:

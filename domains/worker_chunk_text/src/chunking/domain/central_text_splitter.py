@@ -1,32 +1,25 @@
-"""Central wrapper for recursive text splitting configuration."""
+"""Central wrapper for text splitter configuration."""
 
 from typing import Any
 
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-
-
 class CentralTextSplitter:
-    """Single entrypoint for recursive chunk splitter creation and usage."""
+    """Single entrypoint for chunk splitter creation and usage."""
 
-    def __init__(
-        self,
-        *,
-        chunker: type[RecursiveCharacterTextSplitter],
-        params: dict[str, Any],
-    ) -> None:
-        self._splitter = self._build_splitter(
-            chunker=chunker,
-            params=params,
-        )
+    def __init__(self, *, chunker: type[Any], params: dict[str, Any]) -> None:
+        self._splitter = self._build_splitter(chunker=chunker, params=params)
 
     def _build_splitter(
         self,
         *,
-        chunker: type[RecursiveCharacterTextSplitter],
+        chunker: type[Any],
         params: dict[str, Any],
-    ) -> RecursiveCharacterTextSplitter:
+    ) -> Any:
         return chunker(**params)
 
     def create_documents(self, **kwargs: Any) -> list[Any]:
         """Create LangChain documents from source texts."""
         return self._splitter.create_documents(**kwargs)
+
+    def split_documents(self, **kwargs: Any) -> list[Any]:
+        """Split existing LangChain documents."""
+        return self._splitter.split_documents(**kwargs)

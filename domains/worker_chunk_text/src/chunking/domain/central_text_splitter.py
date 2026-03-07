@@ -25,8 +25,7 @@ class CentralTextSplitter:
         chunking_params: ChunkingParamsContract,
     ) -> RecursiveCharacterTextSplitter:
         splitter_cls = self._splitter_registry().get(
-            chunking_params.chunk_method,
-            RecursiveCharacterTextSplitter,
+            chunking_params.chunk_method
         )
         return splitter_cls(
             chunk_size=chunking_params.chunk_size,

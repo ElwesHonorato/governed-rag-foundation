@@ -1,5 +1,6 @@
 import json
-from typing import Any, ClassVar
+from dataclasses import asdict, dataclass
+from typing import ClassVar
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
@@ -15,6 +16,29 @@ from contracts.chunk_manifest import (
     ChunkManifestProcessing,
 )
 from contracts.contracts import ChunkingParamsContract
+
+
+@dataclass(frozen=True)
+class ChunkArtifactRecord:
+    doc_id: str
+    chunk_id: str
+    chunk_index: int
+    chunk_text: str
+    source_type: str
+    timestamp: str
+    security_clearance: str | None
+    source_dataset_urn: str
+    source_s3_uri: str
+    source_content_hash: str
+    offsets_start: int
+    offsets_end: int
+    breadcrumb: str
+    chunking_run_id: str
+    chunk_text_hash: str
+    chunker_name: str
+    chunker_version: str
+    chunk_params_hash: str
+    destination_key: str
 
 
 class ChunkTextProcessor:
@@ -39,7 +63,6 @@ class ChunkTextProcessor:
         manifest_prefix: str,
         chunking_params: ChunkingParamsContract,
     ) -> None:
-        """Initialize processor dependencies and stable storage configuration."""
         self.object_storage = object_storage
         self.storage_bucket = storage_bucket
         self.output_prefix = output_prefix
@@ -57,11 +80,6 @@ class ChunkTextProcessor:
         source_uri: str,
         chunking_run_id: str,
     ) -> int:
-        """Run chunk expansion and persistence for a processed-document payload.
-
-        Returns:
-            Number of chunk artifacts written for this run.
-        """
         (
             source_text,
             chunk_document_metadata,
@@ -104,7 +122,6 @@ class ChunkTextProcessor:
         source_uri: str,
         chunking_run_id: str,
     ) -> tuple[str, ChunkDocumentMetadata, str, str, str]:
-        """Resolve the per-run chunking context from the processed payload."""
         source_text = str(payload.parsed["text"])
         source_content_hash = sha256_hex(source_text)
         resolved_chunk_params_hash = chunk_params_hash(self._chunking_params.to_dict())
@@ -135,14 +152,13 @@ class ChunkTextProcessor:
         source_text: str,
         chunk_document_metadata: ChunkDocumentMetadata,
         chunk_params_hash_value: str,
-    ) -> list[dict[str, Any]]:
-        """Build chunk record dictionaries from a source text and run metadata."""
+    ) -> list[ChunkArtifactRecord]:
         documents = self._splitter.create_documents(
             [source_text],
             metadatas=[chunk_document_metadata.to_dict()],
         )
 
-        records: list[dict[str, Any]] = []
+        records: list[ChunkArtifactRecord] = []
         for chunk_index, chunk_document in enumerate(documents):
             chunk_text_value = str(chunk_document.page_content)
             offsets_start = int(chunk_document.metadata.get("start_index", 0))
@@ -166,74 +182,62 @@ class ChunkTextProcessor:
             )
 
             records.append(
-                {
-                    "doc_id": chunk_document_metadata.doc_id,
-                    "chunk_id": resolved_chunk_id,
-                    "chunk_index": chunk_index,
-                    "chunk_text": chunk_text_value,
-                    "source_type": chunk_document_metadata.source_type,
-                    "timestamp": chunk_document_metadata.timestamp,
-                    "security_clearance": chunk_document_metadata.security_clearance,
-                    "source_dataset_urn": chunk_document_metadata.source_dataset_urn,
-                    "source_s3_uri": chunk_document_metadata.source_s3_uri,
-                    "source_content_hash": chunk_document_metadata.source_content_hash,
-                    "offsets_start": offsets_start,
-                    "offsets_end": offsets_end,
-                    "breadcrumb": f"chunk[{chunk_index}]",
-                    "chunking_run_id": chunk_document_metadata.chunking_run_id,
-                    "chunk_text_hash": resolved_chunk_text_hash,
-                    "chunker_name": self.__class__.__name__,
-                    "chunker_version": self.CHUNKER_VERSION,
-                    "chunk_params_hash": chunk_params_hash_value,
-                    "destination_key": destination_key,
-                }
+                ChunkArtifactRecord(
+                    doc_id=chunk_document_metadata.doc_id,
+                    chunk_id=resolved_chunk_id,
+                    chunk_index=chunk_index,
+                    chunk_text=chunk_text_value,
+                    source_type=chunk_document_metadata.source_type,
+                    timestamp=chunk_document_metadata.timestamp,
+                    security_clearance=chunk_document_metadata.security_clearance,
+                    source_dataset_urn=chunk_document_metadata.source_dataset_urn,
+                    source_s3_uri=chunk_document_metadata.source_s3_uri,
+                    source_content_hash=chunk_document_metadata.source_content_hash,
+                    offsets_start=offsets_start,
+                    offsets_end=offsets_end,
+                    breadcrumb=f"chunk[{chunk_index}]",
+                    chunking_run_id=chunk_document_metadata.chunking_run_id,
+                    chunk_text_hash=resolved_chunk_text_hash,
+                    chunker_name=self.__class__.__name__,
+                    chunker_version=self.CHUNKER_VERSION,
+                    chunk_params_hash=chunk_params_hash_value,
+                    destination_key=destination_key,
+                )
             )
 
         return records
 
     def _write_chunk_records(
         self,
-        records: list[dict[str, Any]],
+        records: list[ChunkArtifactRecord],
     ) -> tuple[int, list[ChunkManifestEntry]]:
-        """Persist chunk records and return write counters + manifest entries."""
         written = 0
         chunk_entries: list[ChunkManifestEntry] = []
 
         for chunk_record in records:
-            destination_key = str(chunk_record["destination_key"])
-
             chunk_entries.append(self._build_chunk_manifest_entry(chunk_record))
-            self._write_chunk_object(
-                destination_key=destination_key,
-                chunk_record=chunk_record,
-            )
+            self._write_chunk_object(chunk_record)
             written += 1
 
         return written, chunk_entries
 
     def _build_chunk_manifest_entry(
         self,
-        chunk_record: dict[str, Any],
+        chunk_record: ChunkArtifactRecord,
     ) -> ChunkManifestEntry:
-        """Build a manifest entry for a single chunk record."""
         return ChunkManifestEntry(
-            chunk_id=chunk_record["chunk_id"],
-            chunk_index=chunk_record["chunk_index"],
-            chunk_hash=chunk_record["chunk_text_hash"],
-            path=chunk_record["destination_key"],
+            chunk_id=chunk_record.chunk_id,
+            chunk_index=chunk_record.chunk_index,
+            chunk_hash=chunk_record.chunk_text_hash,
+            path=chunk_record.destination_key,
         )
 
-    def _write_chunk_object(
-        self,
-        destination_key: str,
-        chunk_record: dict[str, Any],
-    ) -> None:
-        """Write a single chunk artifact JSON object to object storage."""
+    def _write_chunk_object(self, chunk_record: ChunkArtifactRecord) -> None:
         self.object_storage.write_object(
             self.storage_bucket,
-            destination_key,
+            chunk_record.destination_key,
             json.dumps(
-                chunk_record,
+                asdict(chunk_record),
                 sort_keys=True,
                 ensure_ascii=True,
                 separators=(",", ":"),
@@ -250,7 +254,6 @@ class ChunkTextProcessor:
         chunk_count_expected: int,
         chunk_entries: list[ChunkManifestEntry],
     ) -> ChunkManifest:
-        """Build the chunk manifest for a single processing run."""
         source_uri = chunk_document_metadata.source_s3_uri
 
         lineage = ChunkManifestLineage(
@@ -293,7 +296,6 @@ class ChunkTextProcessor:
         doc_id: str,
         run_id: str,
     ) -> None:
-        """Write the manifest JSON object to object storage."""
         self.object_storage.write_object(
             self.storage_bucket,
             self._manifest_object_key(doc_id=doc_id, run_id=run_id),
@@ -307,14 +309,12 @@ class ChunkTextProcessor:
         )
 
     def _chunk_object_key(self, doc_id: str, run_id: str, chunk_id: str) -> str:
-        """Build the object storage key for a chunk artifact."""
         return (
             f"{self.output_prefix.rstrip('/')}/"
             f"{self.CHUNKS_DIR}/{doc_id}/run={run_id}/chunk={chunk_id}.json"
         )
 
     def _manifest_object_key(self, doc_id: str, run_id: str) -> str:
-        """Build the object storage key for the manifest artifact."""
         return (
             f"{self.manifest_prefix.rstrip('/')}/"
             f"{self.CHUNKS_MANIFEST_DIR}/{doc_id}/run={run_id}/"

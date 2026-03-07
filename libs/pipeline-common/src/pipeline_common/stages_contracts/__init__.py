@@ -7,6 +7,7 @@ from pipeline_common.stages_contracts.base import (
 )
 from pipeline_common.stages_contracts.stage_20_parser import ProcessedDocumentPayload
 from pipeline_common.stages_contracts.stage_30_chunking import (
+    ChunkArtifactPayload,
     ChunkDocumentMetadata,
     ChunkRegistryRow,
     ChunkRegistryStatus,
@@ -23,6 +24,7 @@ __all__ = [
     "SourceDocumentMetadata",
     "ProcessedDocumentPayload",
     "RegistryRowContract",
+    "ChunkArtifactPayload",
     "ChunkDocumentMetadata",
     "ChunkRegistryRow",
     "ChunkRegistryStatus",

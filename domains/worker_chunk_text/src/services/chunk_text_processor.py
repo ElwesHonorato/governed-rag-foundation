@@ -1,11 +1,11 @@
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from typing import ClassVar
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.provenance import build_chunk_id, chunk_params_hash, sha256_hex
-from pipeline_common.stages_contracts import ChunkDocumentMetadata, ProcessedDocumentPayload
+from pipeline_common.stages_contracts import ChunkArtifactPayload, ChunkDocumentMetadata, ProcessedDocumentPayload
 
 from contracts.chunk_manifest import (
     ChunkerConfig,
@@ -20,24 +20,7 @@ from contracts.contracts import ChunkingParamsContract
 
 @dataclass(frozen=True)
 class ChunkArtifactRecord:
-    doc_id: str
-    chunk_id: str
-    chunk_index: int
-    chunk_text: str
-    source_type: str
-    timestamp: str
-    security_clearance: str | None
-    source_dataset_urn: str
-    source_s3_uri: str
-    source_content_hash: str
-    offsets_start: int
-    offsets_end: int
-    breadcrumb: str
-    chunking_run_id: str
-    chunk_text_hash: str
-    chunker_name: str
-    chunker_version: str
-    chunk_params_hash: str
+    payload: ChunkArtifactPayload
     destination_key: str
 
 
@@ -183,24 +166,26 @@ class ChunkTextProcessor:
 
             records.append(
                 ChunkArtifactRecord(
-                    doc_id=chunk_document_metadata.doc_id,
-                    chunk_id=resolved_chunk_id,
-                    chunk_index=chunk_index,
-                    chunk_text=chunk_text_value,
-                    source_type=chunk_document_metadata.source_type,
-                    timestamp=chunk_document_metadata.timestamp,
-                    security_clearance=chunk_document_metadata.security_clearance,
-                    source_dataset_urn=chunk_document_metadata.source_dataset_urn,
-                    source_s3_uri=chunk_document_metadata.source_s3_uri,
-                    source_content_hash=chunk_document_metadata.source_content_hash,
-                    offsets_start=offsets_start,
-                    offsets_end=offsets_end,
-                    breadcrumb=f"chunk[{chunk_index}]",
-                    chunking_run_id=chunk_document_metadata.chunking_run_id,
-                    chunk_text_hash=resolved_chunk_text_hash,
-                    chunker_name=self.__class__.__name__,
-                    chunker_version=self.CHUNKER_VERSION,
-                    chunk_params_hash=chunk_params_hash_value,
+                    payload=ChunkArtifactPayload(
+                        doc_id=chunk_document_metadata.doc_id,
+                        chunk_id=resolved_chunk_id,
+                        chunk_index=chunk_index,
+                        chunk_text=chunk_text_value,
+                        source_type=chunk_document_metadata.source_type,
+                        timestamp=chunk_document_metadata.timestamp,
+                        security_clearance=chunk_document_metadata.security_clearance,
+                        source_dataset_urn=chunk_document_metadata.source_dataset_urn,
+                        source_s3_uri=chunk_document_metadata.source_s3_uri,
+                        source_content_hash=chunk_document_metadata.source_content_hash,
+                        offsets_start=offsets_start,
+                        offsets_end=offsets_end,
+                        breadcrumb=f"chunk[{chunk_index}]",
+                        chunking_run_id=chunk_document_metadata.chunking_run_id,
+                        chunk_text_hash=resolved_chunk_text_hash,
+                        chunker_name=self.__class__.__name__,
+                        chunker_version=self.CHUNKER_VERSION,
+                        chunk_params_hash=chunk_params_hash_value,
+                    ),
                     destination_key=destination_key,
                 )
             )
@@ -226,9 +211,9 @@ class ChunkTextProcessor:
         chunk_record: ChunkArtifactRecord,
     ) -> ChunkManifestEntry:
         return ChunkManifestEntry(
-            chunk_id=chunk_record.chunk_id,
-            chunk_index=chunk_record.chunk_index,
-            chunk_hash=chunk_record.chunk_text_hash,
+            chunk_id=chunk_record.payload.chunk_id,
+            chunk_index=chunk_record.payload.chunk_index,
+            chunk_hash=chunk_record.payload.chunk_text_hash,
             path=chunk_record.destination_key,
         )
 
@@ -237,7 +222,10 @@ class ChunkTextProcessor:
             self.storage_bucket,
             chunk_record.destination_key,
             json.dumps(
-                asdict(chunk_record),
+                {
+                    **chunk_record.payload.to_dict(),
+                    "destination_key": chunk_record.destination_key,
+                },
                 sort_keys=True,
                 ensure_ascii=True,
                 separators=(",", ":"),

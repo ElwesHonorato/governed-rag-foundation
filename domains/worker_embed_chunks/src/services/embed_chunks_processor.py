@@ -8,6 +8,7 @@ from typing import Any
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.processing_engine import SparkWriteGateway
 from pipeline_common.provenance import embedding_params_hash
+from pipeline_common.stages_contracts import ChunkArtifactPayload
 from pyspark.sql import functions as spark_functions  # type: ignore
 from pyspark.sql import types as spark_types  # type: ignore
 
@@ -52,7 +53,8 @@ class EmbedChunksProcessor:
 
     @staticmethod
     def read_chunk_payload(raw_payload: bytes) -> dict[str, Any]:
-        return dict(json.loads(raw_payload.decode("utf-8", errors="ignore")))
+        payload = dict(json.loads(raw_payload.decode("utf-8", errors="ignore")))
+        return ChunkArtifactPayload.from_dict(payload).to_dict()
 
     def write_embedding_artifact(self, payload: dict[str, Any], *, embedding_run_id: str) -> EmbeddingWriteResult:
         embedding_payload = self._build_embedding_payload_local(payload, embedding_run_id=embedding_run_id)

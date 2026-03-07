@@ -35,12 +35,6 @@ class CentralTextSplitter:
             ChunkingStrategy.RECURSIVE_CHARACTER: RecursiveCharacterTextSplitter,
         }
 
-    def chunk_text(
-        self,
-        text: str,
-    ) -> list[str]:
-        return self.split_text(text)
-
     def split_text(self, text: str) -> list[str]:
         """Split plain text into non-empty chunks."""
         return [chunk for chunk in self._splitter.split_text(text) if chunk.strip()]

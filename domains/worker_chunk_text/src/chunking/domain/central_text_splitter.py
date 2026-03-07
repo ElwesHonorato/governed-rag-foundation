@@ -2,6 +2,7 @@
 
 from typing import Any
 
+from contracts.contracts import ChunkingParamsContract
 from contracts.chunking_strategy import ChunkingStrategy
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -12,37 +13,37 @@ class CentralTextSplitter:
     def __init__(
         self,
         *,
-        strategy: ChunkingStrategy,
-        chunk_size: int,
-        chunk_overlap: int,
-        add_start_index: bool = False,
+        chunking_params: ChunkingParamsContract,
     ) -> None:
         self._splitter = self._build_splitter(
-            strategy=strategy,
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
-            add_start_index=add_start_index,
+            chunking_params=chunking_params,
         )
 
     def _build_splitter(
         self,
         *,
-        strategy: ChunkingStrategy,
-        chunk_size: int,
-        chunk_overlap: int,
-        add_start_index: bool,
+        chunking_params: ChunkingParamsContract,
     ) -> RecursiveCharacterTextSplitter:
-        splitter_cls = self._splitter_registry().get(strategy)
+        splitter_cls = self._splitter_registry().get(
+            chunking_params.chunk_method,
+            RecursiveCharacterTextSplitter,
+        )
         return splitter_cls(
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
-            add_start_index=add_start_index,
+            chunk_size=chunking_params.chunk_size,
+            chunk_overlap=chunking_params.chunk_overlap,
+            add_start_index=chunking_params.add_start_index,
         )
 
     def _splitter_registry(self) -> dict[ChunkingStrategy, type[RecursiveCharacterTextSplitter]]:
         return {
             ChunkingStrategy.RECURSIVE_CHARACTER: RecursiveCharacterTextSplitter,
         }
+
+    def chunk_text(
+        self,
+        text: str,
+    ) -> list[str]:
+        return self.split_text(text)
 
     def split_text(self, text: str) -> list[str]:
         """Split plain text into non-empty chunks."""

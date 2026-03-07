@@ -32,7 +32,8 @@ class WorkerChunkTextService(WorkerService):
         self.lineage = lineage
         self._initialize_runtime_config(processing_config)
         chunking_params = ChunkingParamsContract(
-            strategy=ChunkingStrategy.RECURSIVE_CHARACTER,
+            chunk_method=ChunkingStrategy.RECURSIVE_CHARACTER,
+            strategy=ChunkingStrategy.RECURSIVE_CHARACTER.value,
             chunk_size=700,
             chunk_overlap=120,
             add_start_index=True,

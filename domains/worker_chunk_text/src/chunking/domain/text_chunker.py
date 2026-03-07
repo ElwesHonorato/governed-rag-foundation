@@ -1,5 +1,6 @@
 
 from chunking.domain.central_text_splitter import CentralTextSplitter
+from contracts.contracts import ChunkingParamsContract
 from contracts.chunking_strategy import ChunkingStrategy
 
 
@@ -11,8 +12,11 @@ def chunk_text(
 ) -> list[str]:
     """Split text using LangChain recursive character chunking."""
     splitter = CentralTextSplitter(
-        strategy=strategy,
-        chunk_size=target_size,
-        chunk_overlap=overlap,
+        chunking_params=ChunkingParamsContract(
+            chunk_method=strategy,
+            strategy=strategy.value,
+            chunk_size=target_size,
+            chunk_overlap=overlap,
+        ),
     )
-    return splitter.split_text(text)
+    return splitter.chunk_text(text)

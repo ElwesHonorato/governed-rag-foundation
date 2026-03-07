@@ -50,16 +50,17 @@ class ChunkTextProcessingConfigContract:
 class ChunkingParamsContract:
     """Typed chunker runtime parameters for chunk-text processing."""
 
-    strategy: ChunkingStrategy
+    chunk_method: ChunkingStrategy
+    strategy: str
     chunk_size: int
     chunk_overlap: int
-    add_start_index: bool
+    add_start_index: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize chunking params for hashing/provenance payloads."""
         return {
             **asdict(self),
-            "strategy": self.strategy.value,
+            "chunk_method": self.chunk_method.value,
         }
 
 

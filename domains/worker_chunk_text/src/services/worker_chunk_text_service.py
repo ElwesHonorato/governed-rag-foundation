@@ -10,6 +10,7 @@ from pipeline_common.helpers.run_ids import build_source_run_id
 from pipeline_common.stages_contracts import ProcessedDocumentPayload, SourceDocumentMetadata
 from pipeline_common.startup.contracts import WorkerService
 from contracts.contracts import ChunkTextProcessingConfigContract, ChunkingParamsContract
+from contracts.chunking_strategy import ChunkingStrategy
 from services.chunk_text_processor import ChunkTextProcessor
 
 logger = logging.getLogger(__name__)
@@ -31,7 +32,7 @@ class WorkerChunkTextService(WorkerService):
         self.lineage = lineage
         self._initialize_runtime_config(processing_config)
         chunking_params = ChunkingParamsContract(
-            strategy="recursive_character",
+            strategy=ChunkingStrategy.RECURSIVE_CHARACTER,
             chunk_size=700,
             chunk_overlap=120,
             add_start_index=True,

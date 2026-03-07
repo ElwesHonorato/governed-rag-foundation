@@ -52,6 +52,7 @@ class ChunkTextProcessor:
         self.manifest_prefix = manifest_prefix
         self._chunking_params = chunking_params
         self._splitter = CentralTextSplitter(
+            strategy=chunking_params.strategy,
             chunk_size=chunking_params.chunk_size,
             chunk_overlap=chunking_params.chunk_overlap,
             add_start_index=chunking_params.add_start_index,

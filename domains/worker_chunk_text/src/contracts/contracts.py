@@ -3,6 +3,8 @@
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from contracts.chunking_strategy import ChunkingStrategy
+
 
 @dataclass(frozen=True)
 class ChunkTextQueueConfigContract:
@@ -48,14 +50,17 @@ class ChunkTextProcessingConfigContract:
 class ChunkingParamsContract:
     """Typed chunker runtime parameters for chunk-text processing."""
 
-    strategy: str
+    strategy: ChunkingStrategy
     chunk_size: int
     chunk_overlap: int
     add_start_index: bool
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize chunking params for hashing/provenance payloads."""
-        return asdict(self)
+        return {
+            **asdict(self),
+            "strategy": self.strategy.value,
+        }
 
 
 @dataclass(frozen=True)

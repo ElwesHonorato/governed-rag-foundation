@@ -10,12 +10,14 @@ from contracts.chunk_manifest import (
     ChunkManifestProcessing,
     RunStatus,
 )
+from contracts.chunking_strategy import ChunkingStrategy
 from contracts.contracts import (
     ChunkTextJobConfigContract,
     ChunkTextProcessingConfigContract,
     ChunkTextQueueConfigContract,
     ChunkTextStorageConfigContract,
     ChunkTextWorkerConfigContract,
+    ChunkingParamsContract,
 )
 
 __all__ = [
@@ -26,6 +28,8 @@ __all__ = [
     "ChunkManifestLineage",
     "ChunkManifestOutput",
     "ChunkManifestProcessing",
+    "ChunkingParamsContract",
+    "ChunkingStrategy",
     "ChunkTextJobConfigContract",
     "ChunkTextProcessingConfigContract",
     "ChunkTextQueueConfigContract",

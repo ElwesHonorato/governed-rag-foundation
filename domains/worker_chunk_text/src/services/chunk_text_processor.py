@@ -1,5 +1,5 @@
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from typing import Any, ClassVar
 
 from chunking.domain.central_text_splitter import CentralTextSplitter
@@ -266,10 +266,7 @@ class ChunkTextProcessor:
         docs: list[Any] = [source_text]
 
         for stage in chunking_stages:
-            splitter = CentralTextSplitter(
-                chunker=stage.processor.value,
-                params=asdict(stage.params),
-            )
+            splitter = CentralTextSplitter(stage=stage)
             docs = self._apply_stage(
                 splitter=splitter,
                 docs=docs,

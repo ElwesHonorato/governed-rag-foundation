@@ -1,12 +1,19 @@
 """Central wrapper for text splitter configuration."""
 
+from dataclasses import asdict
 from typing import Any
+
+from configs.chunking_scaffold import ChunkingStage
+
 
 class CentralTextSplitter:
     """Single entrypoint for chunk splitter creation and usage."""
 
-    def __init__(self, *, chunker: type[Any], params: dict[str, Any]) -> None:
-        self._splitter = self._build_splitter(chunker=chunker, params=params)
+    def __init__(self, *, stage: ChunkingStage) -> None:
+        self._splitter = self._build_splitter(
+            chunker=stage.processor.value,
+            params=asdict(stage.params),
+        )
 
     def _build_splitter(
         self,

@@ -101,15 +101,18 @@ class ChunkTextProcessor:
 
         return ChunkProcessResult(
             chunk_document_metadata=chunk_document_metadata,
-            processor_metadata=ProcessorMetadata.build(
-                name=self.__class__.__name__,
-                version=self.CHUNKER_VERSION,
-                stage_name=self.STAGE_NAME,
-            ),
+            processor_metadata=self._build_processor_metadata(),
             chunk_count_expected=len(records),
             chunk_count_written=written,
             chunk_entries=chunk_entries,
             chunking_params=serialized_stages,
+        )
+
+    def _build_processor_metadata(self) -> ProcessorMetadata:
+        return ProcessorMetadata.build(
+            name=self.__class__.__name__,
+            version=self.CHUNKER_VERSION,
+            stage_name=self.STAGE_NAME,
         )
 
     def _build_chunk_records(

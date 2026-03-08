@@ -7,7 +7,7 @@ from contracts.chunk_manifest import (
     ChunkManifestOutput,
     ChunkManifestProcessing,
 )
-from services.chunk_text_processor import ChunkProcessResult
+from services.chunk_text_processor import ChunkProcessResult, ChunkTextProcessor
 
 
 class ChunkManifestFactory:
@@ -21,21 +21,21 @@ class ChunkManifestFactory:
             source_hash=sha256_hex(source_uri),
             content_type=source_metadata.content_type,
             document_hash=chunk_document_metadata.input_content_hash,
-            parser_version=process_result.parser_version,
+            parser_version=process_result.processor_metadata.version,
         )
 
         processing = ChunkManifestProcessing(
             run_id=chunk_document_metadata.run_id,
             stage=process_result.stage_name,
             timestamp=source_metadata.timestamp,
-            chunker_version=process_result.chunker_version,
+            chunker_version=ChunkTextProcessor.CHUNKER_VERSION,
             run_status=(
                 "complete"
                 if process_result.chunk_count_written == process_result.chunk_count_expected
                 else "partial"
             ),
             chunker=ChunkerConfig(
-                class_name=process_result.chunker_name,
+                class_name=str(process_result.chunking_params["stages"][-1]["processor"]),
                 params=dict(process_result.chunking_params),
             ),
         )

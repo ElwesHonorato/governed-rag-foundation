@@ -44,7 +44,6 @@ class ChunkProvenanceEnvelope:
     offsets_end: int
     breadcrumb: str | None
     chunk_text_hash: str
-    chunker_name: str
     chunker_version: str
     chunk_params_hash: str
     run_id: str
@@ -73,7 +72,6 @@ class ChunkArtifactPayload:
     breadcrumb: str
     run_id: str
     chunk_text_hash: str
-    chunker_name: str
     chunker_version: str
     chunk_params_hash: str
 
@@ -98,7 +96,6 @@ class ChunkArtifactPayload:
             breadcrumb=str(data["breadcrumb"]),
             run_id=str(data["run_id"]),
             chunk_text_hash=str(data["chunk_text_hash"]),
-            chunker_name=str(data["chunker_name"]),
             chunker_version=str(data["chunker_version"]),
             chunk_params_hash=str(data["chunk_params_hash"]),
         )

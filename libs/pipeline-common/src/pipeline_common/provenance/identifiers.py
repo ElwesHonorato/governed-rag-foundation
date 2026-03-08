@@ -38,7 +38,6 @@ def build_chunk_id(
     *,
     source_dataset_urn: str,
     source_content_hash_value: str,
-    chunker_name: str,
     chunker_version: str,
     chunk_params_hash_value: str,
     offsets_start: int,
@@ -49,7 +48,6 @@ def build_chunk_id(
         [
             source_dataset_urn,
             source_content_hash_value,
-            chunker_name,
             chunker_version,
             chunk_params_hash_value,
             str(offsets_start),

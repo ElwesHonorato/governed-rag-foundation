@@ -6,7 +6,12 @@ from chunking.domain.central_text_splitter import CentralTextSplitter
 from configs.chunking_scaffold import ChunkingStage, ChunkingStages
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.provenance import build_chunk_id, chunk_params_hash, sha256_hex
-from pipeline_common.stages_contracts import ChunkArtifactPayload, ChunkDocumentMetadata, ProcessedDocumentPayload
+from pipeline_common.stages_contracts import (
+    ChunkArtifactPayload,
+    ChunkDocumentMetadata,
+    ProcessedDocumentPayload,
+    ProcessorMetadata,
+)
 
 from contracts.chunk_manifest import ChunkManifestEntry
 
@@ -20,14 +25,12 @@ class ChunkArtifactRecord:
 @dataclass(frozen=True)
 class ChunkProcessResult:
     chunk_document_metadata: ChunkDocumentMetadata
-    parser_version: str
+    processor_metadata: ProcessorMetadata
     chunk_count_expected: int
     chunk_count_written: int
     chunk_entries: list[ChunkManifestEntry]
     chunking_params: dict[str, Any]
-    chunker_name: str
     stage_name: str
-    chunker_version: str
 
 
 class ChunkTextProcessor:
@@ -77,14 +80,13 @@ class ChunkTextProcessor:
         """Run the golden path once: stage-chain split and persist chunk artifacts."""
         serialized_stages = stages.to_serializable_dict()
         source_text = processed_payload.parsed.text
-        parser_version = processed_payload.processor_metadata.version
         chunk_document_metadata = ChunkDocumentMetadata(
             source_metadata=processed_payload.metadata,
             input_dataset_urn=source_uri,
             input_content_hash=sha256_hex(source_text),
             run_id=run_id,
         )
-        documents, resolved_chunker_name = self._process_stages(
+        documents = self._process_stages(
             source_text=source_text,
             stages=stages.stages,
             chunk_document_metadata=chunk_document_metadata,
@@ -94,21 +96,18 @@ class ChunkTextProcessor:
             documents=documents,
             chunk_document_metadata=chunk_document_metadata,
             chunk_params_hash_value=chunk_params_hash(serialized_stages),
-            chunker_name=resolved_chunker_name,
         )
 
         written, chunk_entries = self._write_chunk_records(records)
 
         return ChunkProcessResult(
             chunk_document_metadata=chunk_document_metadata,
-            parser_version=parser_version,
+            processor_metadata=processed_payload.processor_metadata,
             chunk_count_expected=len(records),
             chunk_count_written=written,
             chunk_entries=chunk_entries,
             chunking_params=serialized_stages,
-            chunker_name=resolved_chunker_name,
             stage_name=self.STAGE_NAME,
-            chunker_version=self.CHUNKER_VERSION,
         )
 
     def _build_chunk_records(
@@ -116,7 +115,6 @@ class ChunkTextProcessor:
         documents: list[Any],
         chunk_document_metadata: ChunkDocumentMetadata,
         chunk_params_hash_value: str,
-        chunker_name: str,
     ) -> list[ChunkArtifactRecord]:
         records: list[ChunkArtifactRecord] = []
         for chunk_index, chunk_document in enumerate(documents):
@@ -128,7 +126,6 @@ class ChunkTextProcessor:
             resolved_chunk_id = build_chunk_id(
                 source_dataset_urn=chunk_document_metadata.input_dataset_urn,
                 source_content_hash_value=chunk_document_metadata.input_content_hash,
-                chunker_name=chunker_name,
                 chunker_version=self.CHUNKER_VERSION,
                 chunk_params_hash_value=chunk_params_hash_value,
                 offsets_start=offsets_start,
@@ -159,7 +156,6 @@ class ChunkTextProcessor:
                         breadcrumb=f"chunk[{chunk_index}]",
                         run_id=chunk_document_metadata.run_id,
                         chunk_text_hash=resolved_chunk_text_hash,
-                        chunker_name=chunker_name,
                         chunker_version=self.CHUNKER_VERSION,
                         chunk_params_hash=chunk_params_hash_value,
                     ),
@@ -216,13 +212,13 @@ class ChunkTextProcessor:
         source_text: str,
         stages: list[ChunkingStage],
         chunk_document_metadata: ChunkDocumentMetadata,
-    ) -> tuple[list[Any], str]:
+    ) -> list[Any]:
         """Apply each LangChain stage sequentially, feeding one stage output into the next.
 
         Starts from raw source text, then repeatedly splits either:
         - raw text inputs (via `create_documents`), or
         - document inputs from a previous stage (via `split_documents`).
-        Returns the final document list plus the last applied chunker class name.
+        Returns the final document list.
         """
         docs: list[Any] = [source_text]
 
@@ -233,7 +229,7 @@ class ChunkTextProcessor:
                 docs=docs,
                 chunk_document_metadata=chunk_document_metadata,
             )
-        return docs, getattr(stages[-1].processor.value, "__name__", str(stages[-1].processor.value))
+        return docs
 
     def _apply_stage(
         self,

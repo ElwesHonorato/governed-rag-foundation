@@ -30,7 +30,7 @@ class EmbeddingProvenanceEnvelope:
     embedding_dim: int
     embedding_vector_hash: str | None
     embedding_run_id: str
-    chunking_run_id: str
+    run_id: str
     vector_record_id: str | None
 
     def to_dict(self) -> dict[str, Any]:

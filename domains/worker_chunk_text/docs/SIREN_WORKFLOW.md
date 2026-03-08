@@ -22,7 +22,7 @@ flowchart TD
     E -- yes --> F[start_run + add_input]
 
     F --> G[read processed object from storage]
-    G --> H[build chunking_run_id]
+    G --> H[build run_id]
     H --> K[spark dataframe chunking path]
     K --> L[for each chunk: deterministic chunk_id + chunk object write if missing + registry upsert]
 
@@ -151,7 +151,7 @@ flowchart LR
    - starts lineage run,
    - adds lineage input for source object.
 7. Reads processed JSON object from storage.
-8. Generates `chunking_run_id`.
+8. Generates `run_id`.
 9. Processing path:
    - Spark dataframe path (Spark is required).
 10. For each chunk produced:

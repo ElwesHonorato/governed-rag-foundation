@@ -6,7 +6,7 @@ from dataclasses import asdict, dataclass
 from enum import StrEnum
 from typing import Any, Mapping
 
-from pipeline_common.stages_contracts.base import RegistryRowContract
+from pipeline_common.stages_contracts.base import RegistryRowContract, SourceDocumentMetadata
 
 
 class ChunkRegistryStatus(StrEnum):
@@ -21,14 +21,11 @@ class ChunkRegistryStatus(StrEnum):
 class ChunkDocumentMetadata:
     """Stage-30 metadata carried with LangChain split documents."""
 
-    doc_id: str
-    timestamp: str
-    security_clearance: str
-    source_dataset_urn: str
-    source_s3_uri: str
-    source_content_hash: str
-    chunking_run_id: str
-    source_type: str
+    source_metadata: SourceDocumentMetadata
+    input_dataset_urn: str
+    input_object_uri: str
+    input_content_hash: str
+    run_id: str
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize to plain metadata dict expected by splitters/documents."""
@@ -51,7 +48,7 @@ class ChunkProvenanceEnvelope:
     chunker_name: str
     chunker_version: str
     chunk_params_hash: str
-    chunking_run_id: str
+    run_id: str
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize envelope for artifact persistence."""
@@ -75,7 +72,7 @@ class ChunkArtifactPayload:
     offsets_start: int
     offsets_end: int
     breadcrumb: str
-    chunking_run_id: str
+    run_id: str
     chunk_text_hash: str
     chunker_name: str
     chunker_version: str
@@ -100,7 +97,7 @@ class ChunkArtifactPayload:
             offsets_start=int(data["offsets_start"]),
             offsets_end=int(data["offsets_end"]),
             breadcrumb=str(data["breadcrumb"]),
-            chunking_run_id=str(data["chunking_run_id"]),
+            run_id=str(data["run_id"]),
             chunk_text_hash=str(data["chunk_text_hash"]),
             chunker_name=str(data["chunker_name"]),
             chunker_version=str(data["chunker_version"]),

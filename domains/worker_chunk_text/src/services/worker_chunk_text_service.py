@@ -81,19 +81,19 @@ class WorkerChunkTextService(WorkerService):
                 parsed=dict(payload[ProcessedDocumentPayload.FIELD_PARSED]),
             )
             source_name = processed_payload.metadata.doc_id
-            resolved_chunking_stages = self._chunking_resolver.resolve(source_name)
-            chunking_run_id = build_source_run_id(source_uri)
+            resolved_stages = self._chunking_resolver.resolve(source_name)
+            run_id = build_source_run_id(source_uri)
             process_result = self.processor.process(
                 processed_payload,
                 source_uri=source_uri,
-                chunking_run_id=chunking_run_id,
-                chunking_stages=resolved_chunking_stages,
+                run_id=run_id,
+                stages=resolved_stages,
             )
             manifest = self.manifest_factory.build(process_result)
             self.manifest_writer.write(
                 manifest=manifest,
-                doc_id=process_result.chunk_document_metadata.doc_id,
-                run_id=process_result.chunk_document_metadata.chunking_run_id,
+                doc_id=process_result.chunk_document_metadata.source_metadata.doc_id,
+                run_id=process_result.chunk_document_metadata.run_id,
             )
             self.lineage.complete_run()
         except Exception as exc:

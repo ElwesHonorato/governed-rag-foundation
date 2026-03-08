@@ -185,7 +185,7 @@ class WorkerIndexWeaviateService(WorkerService):
                 embedding_dim=int(len(vector)),
                 embedding_vector_hash=sha256_hex(str(vector)),
                 embedding_run_id=str(properties.get("embedding_run_id", "")),
-                chunking_run_id=str(properties.get("chunking_run_id", "")),
+                run_id=str(properties.get("run_id", "")),
                 vector_record_id=chunk_id,
             )
             properties.update(
@@ -193,7 +193,7 @@ class WorkerIndexWeaviateService(WorkerService):
                     "embedding_id": str(envelope.embedding_id),
                     "index_target": self.index_target,
                     "embedding_run_id": str(envelope.embedding_run_id),
-                    "chunking_run_id": str(envelope.chunking_run_id),
+                    "run_id": str(envelope.run_id),
                     "embedder_name": str(envelope.embedder_name),
                     "embedder_version": str(envelope.embedder_version),
                     "embedding_params_hash": str(envelope.embedding_params_hash),

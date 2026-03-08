@@ -75,7 +75,7 @@ class ProvenanceRegistryGateway:
             embedding_dim=int(payload["embedding_dim"]),
             embedding_vector_hash=str(payload["embedding_vector_hash"]) if payload.get("embedding_vector_hash") else None,
             embedding_run_id=str(payload["embedding_run_id"]),
-            chunking_run_id=str(payload["chunking_run_id"]),
+            run_id=str(payload["run_id"]),
             vector_record_id=str(payload["vector_record_id"]) if payload.get("vector_record_id") else None,
         )
         return EmbeddingRegistryRow.from_envelope(

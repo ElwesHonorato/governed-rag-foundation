@@ -87,20 +87,6 @@ class ProcessorMetadata:
     version: str
     stage_name: str
 
-    @classmethod
-    def build(
-        cls,
-        *,
-        name: str,
-        version: str,
-        stage_name: str,
-    ) -> "ProcessorMetadata":
-        return cls(
-            name=str(name),
-            version=str(version),
-            stage_name=str(stage_name),
-        )
-
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 

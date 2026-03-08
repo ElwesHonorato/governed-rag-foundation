@@ -5,8 +5,8 @@ from typing import Any
 
 from parsing.registry import ParserRegistry
 from pipeline_common.stages_contracts import (
+    BaseProcessor,
     ProcessedDocumentPayload,
-    ProcessorMetadata,
     SourceDocumentMetadata,
 )
 from pipeline_common.gateways.queue import Envelope
@@ -21,8 +21,9 @@ class ParseWorkItem:
     destination_key: str
 
 
-class DocumentParserProcessor:
+class DocumentParserProcessor(BaseProcessor):
     """Transform source text into processed parse payload."""
+    VERSION = "1.0.0"
     STAGE_NAME = "parse_document"
 
     def __init__(
@@ -47,11 +48,7 @@ class DocumentParserProcessor:
             source_type=Path(source_key).suffix.lower().lstrip("."),
             content_type=str(mimetypes.guess_type(source_key)[0] or "application/octet-stream"),
         )
-        processor_metadata = ProcessorMetadata.build(
-            name=parser.__class__.__name__,
-            version=str(getattr(parser, "VERSION", "unknown")),
-            stage_name=self.STAGE_NAME,
-        )
+        processor_metadata = self._build_processor_metadata()
         return ProcessedDocumentPayload(
             metadata=metadata,
             processor_metadata=processor_metadata,

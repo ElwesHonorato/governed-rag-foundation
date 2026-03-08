@@ -7,6 +7,7 @@ from configs.chunking_scaffold import ChunkingStage, ChunkingStages
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.provenance import build_chunk_id, chunk_params_hash, sha256_hex
 from pipeline_common.stages_contracts import (
+    BaseProcessor,
     ChunkArtifactPayload,
     ChunkDocumentMetadata,
     ProcessedDocumentPayload,
@@ -32,7 +33,7 @@ class ChunkProcessResult:
     chunking_params: dict[str, Any]
 
 
-class ChunkTextProcessor:
+class ChunkTextProcessor(BaseProcessor):
     """Transform processed document rows into persisted chunk artifacts.
 
     The processor handles the full chunking pipeline for a single payload:
@@ -40,7 +41,7 @@ class ChunkTextProcessor:
     metadata required by downstream manifest assembly.
     """
 
-    CHUNKER_VERSION: ClassVar[str] = "1.0.0"
+    VERSION: ClassVar[str] = "1.0.0"
     STAGE_NAME: ClassVar[str] = "chunk_text"
     CHUNKS_DIR: ClassVar[str] = "chunks"
 
@@ -108,13 +109,6 @@ class ChunkTextProcessor:
             chunking_params=serialized_stages,
         )
 
-    def _build_processor_metadata(self) -> ProcessorMetadata:
-        return ProcessorMetadata.build(
-            name=self.__class__.__name__,
-            version=self.CHUNKER_VERSION,
-            stage_name=self.STAGE_NAME,
-        )
-
     def _build_chunk_records(
         self,
         documents: list[Any],
@@ -131,7 +125,7 @@ class ChunkTextProcessor:
             resolved_chunk_id = build_chunk_id(
                 source_dataset_urn=chunk_document_metadata.input_dataset_urn,
                 source_content_hash_value=chunk_document_metadata.input_content_hash,
-                chunker_version=self.CHUNKER_VERSION,
+                chunker_version=self.VERSION,
                 chunk_params_hash_value=chunk_params_hash_value,
                 offsets_start=offsets_start,
                 offsets_end=offsets_end,
@@ -161,7 +155,7 @@ class ChunkTextProcessor:
                         breadcrumb=f"chunk[{chunk_index}]",
                         run_id=chunk_document_metadata.run_id,
                         chunk_text_hash=resolved_chunk_text_hash,
-                        chunker_version=self.CHUNKER_VERSION,
+                        chunker_version=self.VERSION,
                         chunk_params_hash=chunk_params_hash_value,
                     ),
                     destination_key=destination_key,

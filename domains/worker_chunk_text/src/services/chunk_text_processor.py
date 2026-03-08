@@ -101,7 +101,7 @@ class ChunkTextProcessor:
 
         return ChunkProcessResult(
             chunk_document_metadata=chunk_document_metadata,
-            processor_metadata=ProcessorMetadata(
+            processor_metadata=ProcessorMetadata.build(
                 name=self.__class__.__name__,
                 version=self.CHUNKER_VERSION,
                 stage_name=self.STAGE_NAME,

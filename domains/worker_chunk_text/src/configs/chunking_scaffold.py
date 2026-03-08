@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Any, TypeAlias
@@ -106,6 +106,22 @@ class ChunkingStage:
     processor: ChunkingProcessorType | CustomChunkingProcessorType
     params: StageParams
 
+    def to_serializable_dict(self) -> dict[str, Any]:
+        processor_value = self.processor.value
+        processor_name = getattr(processor_value, "__name__", str(processor_value))
+        return {
+            "processor": processor_name,
+            "params": asdict(self.params),
+        }
+
+
+@dataclass(slots=True)
+class ChunkingStages:
+    stages: list[ChunkingStage]
+
+    def to_serializable_dict(self) -> dict[str, Any]:
+        return {"stages": [stage.to_serializable_dict() for stage in self.stages]}
+
 
 CHUNKING_SCAFFOLD: dict[FileType, list[ChunkingStage]] = {
     FileType.TXT: [
@@ -175,6 +191,8 @@ CHUNKING_SCAFFOLD: dict[FileType, list[ChunkingStage]] = {
 }
 
 class ChunkingScaffoldResolver:
+    file_type: FileType | None = None
+
     def normalize_file_type(self, file_extension: str) -> FileType:
         normalized_extension = file_extension.lower().lstrip(".")
         return FileType(normalized_extension)
@@ -182,7 +200,10 @@ class ChunkingScaffoldResolver:
     def file_type_from_source_key(self, source_key: str) -> FileType:
         return self.normalize_file_type(Path(source_key).suffix)
 
-    def resolve(self, source_key: str) -> list[ChunkingStage]:
+    def resolve(self, source_key: str) -> ChunkingStages:
         file_type = self.file_type_from_source_key(source_key)
+        ChunkingScaffoldResolver.file_type = file_type
         stages = CHUNKING_SCAFFOLD[file_type]
-        return [stage for stage in stages if isinstance(stage.processor, ChunkingProcessorType)]
+        return ChunkingStages(
+            [stage for stage in stages if isinstance(stage.processor, ChunkingProcessorType)]
+        )

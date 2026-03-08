@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, ClassVar, Mapping
 
 from pipeline_common.stages_contracts.base import SourceDocumentMetadata
@@ -25,15 +26,20 @@ class ProcessedDocumentPayload:
         source_key: str,
         timestamp: str,
         security_clearance: str,
+        source_type: str | None = None,
         parsed: Mapping[str, Any],
     ) -> "ProcessedDocumentPayload":
         """Build a versioned processed-document payload."""
+        resolved_source_type = source_type
+        if resolved_source_type is None:
+            resolved_source_type = Path(source_key).suffix.lower().lstrip(".")
         return cls(
             metadata=SourceDocumentMetadata.build(
                 doc_id=doc_id,
                 source_key=source_key,
                 timestamp=timestamp,
                 security_clearance=security_clearance,
+                source_type=resolved_source_type,
             ),
             parsed=dict(parsed),
         )

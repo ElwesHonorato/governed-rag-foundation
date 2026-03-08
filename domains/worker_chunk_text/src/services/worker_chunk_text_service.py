@@ -11,6 +11,8 @@ from pipeline_common.helpers.run_ids import build_source_run_id
 from pipeline_common.stages_contracts import ProcessedDocumentPayload, SourceDocumentMetadata
 from pipeline_common.startup.contracts import WorkerService
 from contracts.contracts import ChunkTextProcessingConfigContract
+from services.chunk_manifest_factory import ChunkManifestFactory
+from services.chunk_manifest_writer import ChunkManifestWriter
 from services.chunk_text_processor import ChunkTextProcessor
 
 logger = logging.getLogger(__name__)
@@ -36,6 +38,11 @@ class WorkerChunkTextService(WorkerService):
             object_storage=self.object_storage,
             storage_bucket=self.storage_bucket,
             output_prefix=self.output_prefix,
+        )
+        self.manifest_factory = ChunkManifestFactory()
+        self.manifest_writer = ChunkManifestWriter(
+            object_storage=self.object_storage,
+            storage_bucket=self.storage_bucket,
             manifest_prefix=self.output_prefix,
         )
 
@@ -75,23 +82,31 @@ class WorkerChunkTextService(WorkerService):
             )
             source_name = processed_payload.metadata.doc_id
             resolved_chunking_stages = self._chunking_resolver.resolve(source_name)
-            resolved_file_type = self._chunking_resolver.file_type_from_source_key(source_name)
             chunking_run_id = build_source_run_id(source_uri)
-            written = self.processor.process(
+            process_result = self.processor.process(
                 processed_payload,
                 source_uri=source_uri,
                 chunking_run_id=chunking_run_id,
                 chunking_stages=resolved_chunking_stages,
-                source_type=resolved_file_type.value,
+            )
+            manifest = self.manifest_factory.build(process_result)
+            self.manifest_writer.write(
+                manifest=manifest,
+                doc_id=process_result.chunk_document_metadata.doc_id,
+                run_id=process_result.chunk_document_metadata.chunking_run_id,
             )
             self.lineage.complete_run()
         except Exception as exc:
             self.lineage.fail_run(error_message=str(exc))
             raise
 
-        if written is not None:
+        if process_result.chunk_count_written is not None:
             doc_id = source_key.split("/")[-1].replace(self.processed_suffix, "")
-            logger.info("Wrote %d chunk objects for doc_id '%s'", written, doc_id)
+            logger.info(
+                "Wrote %d chunk objects for doc_id '%s'",
+                process_result.chunk_count_written,
+                doc_id,
+            )
 
     def _send_chunk_failure(self, source_key: str) -> None:
         self.stage_queue.push_dlq(

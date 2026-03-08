@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from parsing.registry import ParserRegistry
@@ -37,6 +38,7 @@ class DocumentParserProcessor:
             source_key=source_key,
             timestamp=timestamp,
             security_clearance=self._security_clearance,
+            source_type=Path(source_key).suffix.lower().lstrip("."),
         )
         return ProcessedDocumentPayload(
             metadata=metadata,

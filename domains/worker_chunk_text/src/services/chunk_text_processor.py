@@ -3,19 +3,12 @@ from dataclasses import asdict, dataclass
 from typing import Any, ClassVar
 
 from chunking.domain.central_text_splitter import CentralTextSplitter
-from configs.chunking_scaffold import ChunkingProcessorType, ChunkingStage
+from configs.chunking_scaffold import ChunkingStage, ChunkingStages
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.provenance import build_chunk_id, chunk_params_hash, sha256_hex
 from pipeline_common.stages_contracts import ChunkArtifactPayload, ChunkDocumentMetadata, ProcessedDocumentPayload
 
-from contracts.chunk_manifest import (
-    ChunkerConfig,
-    ChunkManifest,
-    ChunkManifestEntry,
-    ChunkManifestLineage,
-    ChunkManifestOutput,
-    ChunkManifestProcessing,
-)
+from contracts.chunk_manifest import ChunkManifestEntry
 
 
 @dataclass(frozen=True)
@@ -24,46 +17,54 @@ class ChunkArtifactRecord:
     destination_key: str
 
 
+@dataclass(frozen=True)
+class ChunkProcessResult:
+    chunk_document_metadata: ChunkDocumentMetadata
+    parser_version: str
+    content_type: str
+    chunk_count_expected: int
+    chunk_count_written: int
+    chunk_entries: list[ChunkManifestEntry]
+    chunking_params: dict[str, Any]
+    chunker_name: str
+    stage_name: str
+    chunker_version: str
+
+
 class ChunkTextProcessor:
     """Transform processed document rows into persisted chunk artifacts.
 
     The processor handles the full chunking pipeline for a single payload:
-    normalize source text into chunk records, write chunk artifacts, and write
-    a manifest describing the output of the run.
+    normalize source text into chunk records, write chunk artifacts, and return
+    metadata required by downstream manifest assembly.
     """
 
     CHUNKER_VERSION: ClassVar[str] = "1.0.0"
     STAGE_NAME: ClassVar[str] = "chunk_text"
     CHUNKS_DIR: ClassVar[str] = "chunks"
-    CHUNKS_MANIFEST_DIR: ClassVar[str] = "chunks_manifest"
-    MANIFEST_FILE_NAME: ClassVar[str] = "manifest.json"
 
     def __init__(
         self,
         object_storage: ObjectStorageGateway,
         storage_bucket: str,
         output_prefix: str,
-        manifest_prefix: str,
     ) -> None:
         self.object_storage = object_storage
         self.storage_bucket = storage_bucket
         self.output_prefix = output_prefix
-        self.manifest_prefix = manifest_prefix
 
     def process(
         self,
         processed_payload: ProcessedDocumentPayload,
         source_uri: str,
         chunking_run_id: str,
-        chunking_stages: list[ChunkingStage],
-        source_type: str,
-    ) -> int:
+        chunking_stages: ChunkingStages,
+    ) -> ChunkProcessResult:
         return self.process_stage(
             processed_payload=processed_payload,
             source_uri=source_uri,
             chunking_run_id=chunking_run_id,
             chunking_stages=chunking_stages,
-            source_type=source_type,
         )
 
     def process_stage(
@@ -72,10 +73,10 @@ class ChunkTextProcessor:
         processed_payload: ProcessedDocumentPayload,
         source_uri: str,
         chunking_run_id: str,
-        chunking_stages: list[ChunkingStage],
-        source_type: str,
-    ) -> int:
-        """Run the golden path once: stage-chain split, persist chunks, persist manifest."""
+        chunking_stages: ChunkingStages,
+    ) -> ChunkProcessResult:
+        """Run the golden path once: stage-chain split and persist chunk artifacts."""
+        serialized_chunking_stages = chunking_stages.to_serializable_dict()
         (
             source_text,
             chunk_document_metadata,
@@ -86,12 +87,11 @@ class ChunkTextProcessor:
             payload=processed_payload,
             source_uri=source_uri,
             chunking_run_id=chunking_run_id,
-            chunking_stages=chunking_stages,
-            source_type=source_type,
+            serialized_chunking_stages=serialized_chunking_stages,
         )
         documents, resolved_chunker_name = self._process_chunking_stages(
             source_text=source_text,
-            chunking_stages=chunking_stages,
+            chunking_stages=chunking_stages.stages,
             chunk_document_metadata=chunk_document_metadata,
         )
 
@@ -104,36 +104,30 @@ class ChunkTextProcessor:
 
         written, chunk_entries = self._write_chunk_records(records)
 
-        manifest = self._build_manifest(
+        return ChunkProcessResult(
             chunk_document_metadata=chunk_document_metadata,
             parser_version=parser_version,
             content_type=content_type,
-            written=written,
             chunk_count_expected=len(records),
+            chunk_count_written=written,
             chunk_entries=chunk_entries,
-            chunking_params=self._serialize_chunking_stages(chunking_stages),
+            chunking_params=serialized_chunking_stages,
             chunker_name=resolved_chunker_name,
+            stage_name=self.STAGE_NAME,
+            chunker_version=self.CHUNKER_VERSION,
         )
-        self._write_manifest(
-            manifest=manifest,
-            doc_id=chunk_document_metadata.doc_id,
-            run_id=chunk_document_metadata.chunking_run_id,
-        )
-
-        return written
 
     def _initialize_chunking_context(
         self,
         payload: ProcessedDocumentPayload,
         source_uri: str,
         chunking_run_id: str,
-        chunking_stages: list[ChunkingStage],
-        source_type: str,
+        serialized_chunking_stages: dict[str, Any],
     ) -> tuple[str, ChunkDocumentMetadata, str, str, str]:
         """Build immutable run context and deterministic params hash for this stage chain."""
         source_text = str(payload.parsed["text"])
         source_content_hash = sha256_hex(source_text)
-        resolved_chunk_params_hash = chunk_params_hash(self._serialize_chunking_stages(chunking_stages))
+        resolved_chunk_params_hash = chunk_params_hash(serialized_chunking_stages)
         parser_version = str(payload.parsed.get("parser_version", "unknown"))
         content_type = str(payload.parsed.get("content_type", "text/html"))
 
@@ -145,7 +139,7 @@ class ChunkTextProcessor:
             source_s3_uri=source_uri,
             source_content_hash=source_content_hash,
             chunking_run_id=chunking_run_id,
-            source_type=source_type,
+            source_type=payload.metadata.source_type,
         )
 
         return (
@@ -255,52 +249,6 @@ class ChunkTextProcessor:
             content_type="application/json",
         )
 
-    def _build_manifest(
-        self,
-        chunk_document_metadata: ChunkDocumentMetadata,
-        parser_version: str,
-        content_type: str,
-        written: int,
-        chunk_count_expected: int,
-        chunk_entries: list[ChunkManifestEntry],
-        chunking_params: dict[str, Any],
-        chunker_name: str,
-    ) -> ChunkManifest:
-        source_uri = chunk_document_metadata.source_s3_uri
-
-        lineage = ChunkManifestLineage(
-            source_asset_id=source_uri,
-            source_hash=sha256_hex(source_uri),
-            content_type=content_type,
-            document_hash=chunk_document_metadata.source_content_hash,
-            parser_version=parser_version,
-        )
-
-        processing = ChunkManifestProcessing(
-            run_id=chunk_document_metadata.chunking_run_id,
-            stage=self.STAGE_NAME,
-            timestamp=chunk_document_metadata.timestamp,
-            chunker_version=self.CHUNKER_VERSION,
-            run_status="complete" if written == chunk_count_expected else "partial",
-            chunker=ChunkerConfig(
-                class_name=chunker_name,
-                params=dict(chunking_params),
-            ),
-        )
-
-        output = ChunkManifestOutput(
-            chunk_count_expected=chunk_count_expected,
-            chunk_count_written=written,
-        )
-
-        return ChunkManifest.build(
-            doc_id=chunk_document_metadata.doc_id,
-            lineage=lineage,
-            processing=processing,
-            output=output,
-            chunks=chunk_entries,
-        )
-
     def _process_chunking_stages(
         self,
         *,
@@ -347,47 +295,8 @@ class ChunkTextProcessor:
     def _docs_are_documents(self, docs: list[Any]) -> bool:
         return bool(docs) and hasattr(docs[0], "page_content")
 
-    def _serialize_chunking_stages(self, chunking_stages: list[ChunkingStage]) -> dict[str, Any]:
-        """Serialize stage chain deterministically for chunk params hashing and manifest provenance."""
-        serialized: list[dict[str, Any]] = []
-        for stage in chunking_stages:
-            processor_value = stage.processor.value
-            processor_name = getattr(processor_value, "__name__", str(processor_value))
-            serialized.append(
-                {
-                    "processor": processor_name,
-                    "params": asdict(stage.params),
-                }
-            )
-        return {"stages": serialized}
-
-    def _write_manifest(
-        self,
-        manifest: ChunkManifest,
-        doc_id: str,
-        run_id: str,
-    ) -> None:
-        self.object_storage.write_object(
-            self.storage_bucket,
-            self._manifest_object_key(doc_id=doc_id, run_id=run_id),
-            json.dumps(
-                manifest.to_dict(),
-                sort_keys=True,
-                ensure_ascii=True,
-                separators=(",", ":"),
-            ).encode("utf-8"),
-            content_type="application/json",
-        )
-
     def _chunk_object_key(self, doc_id: str, run_id: str, chunk_id: str) -> str:
         return (
             f"{self.output_prefix.rstrip('/')}/"
             f"{self.CHUNKS_DIR}/{doc_id}/run={run_id}/chunk={chunk_id}.json"
-        )
-
-    def _manifest_object_key(self, doc_id: str, run_id: str) -> str:
-        return (
-            f"{self.manifest_prefix.rstrip('/')}/"
-            f"{self.CHUNKS_MANIFEST_DIR}/{doc_id}/run={run_id}/"
-            f"{self.MANIFEST_FILE_NAME}"
         )

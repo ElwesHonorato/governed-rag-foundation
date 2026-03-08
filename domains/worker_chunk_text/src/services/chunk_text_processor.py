@@ -37,6 +37,7 @@ class ChunkProcessResult:
 class ChunkBuildContext:
     run_id: str
     chunk_params_hash: str
+    chunking_params: dict[str, Any]
 
 
 class ChunkTextProcessor(BaseProcessor):
@@ -94,6 +95,7 @@ class ChunkTextProcessor(BaseProcessor):
         chunk_build_context = ChunkBuildContext(
             run_id=run_id,
             chunk_params_hash=chunk_params_hash(serialized_stages),
+            chunking_params=serialized_stages,
         )
         documents = self._process_stages(
             source_text=source_text,
@@ -117,7 +119,7 @@ class ChunkTextProcessor(BaseProcessor):
                 chunk_count_expected=len(records),
                 chunk_count_written=written,
                 chunk_entries=chunk_entries,
-                chunking_params=serialized_stages,
+                chunking_params=chunk_build_context.chunking_params,
             ),
         )
 

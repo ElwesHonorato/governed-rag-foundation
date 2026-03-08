@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Any, Mapping
 
 from pipeline_common.stages_contracts.base import SourceDocumentMetadata
@@ -38,12 +38,23 @@ class ProcessorMetadata:
 
 
 @dataclass(frozen=True)
+class ParsedTextPayload:
+    """Canonical parsed text payload exchanged parse -> chunk workers."""
+
+    title: str
+    text: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
 class ProcessedDocumentPayload:
     """Full processed-document payload contract exchanged parse -> chunk workers."""
 
     metadata: SourceDocumentMetadata
     processor_metadata: ProcessorMetadata
-    parsed: dict[str, Any]
+    parsed: ParsedTextPayload
 
     @classmethod
     def build(
@@ -51,28 +62,31 @@ class ProcessedDocumentPayload:
         *,
         metadata: SourceDocumentMetadata,
         processor_metadata: ProcessorMetadata,
-        parsed: Mapping[str, Any],
+        parsed: ParsedTextPayload,
     ) -> "ProcessedDocumentPayload":
         """Build a versioned processed-document payload."""
         return cls(
             metadata=metadata,
             processor_metadata=processor_metadata,
-            parsed=dict(parsed),
+            parsed=parsed,
         )
 
     @classmethod
     def from_dict(cls, payload: Mapping[str, Any]) -> "ProcessedDocumentPayload":
         """Parse payload dict into typed processed-document contract."""
+        metadata_payload = payload["metadata"]
+        processor_metadata_payload = payload["processor_metadata"]
+        parsed_payload = payload["parsed"]
         return cls(
-            metadata=SourceDocumentMetadata.from_payload(payload),
-            processor_metadata=ProcessorMetadata.from_payload(payload),
-            parsed=dict(payload["parsed"]),
+            metadata=SourceDocumentMetadata(**dict(metadata_payload)),
+            processor_metadata=ProcessorMetadata(**dict(processor_metadata_payload)),
+            parsed=ParsedTextPayload(**dict(parsed_payload)),
         )
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize payload for object storage persistence."""
         return {
-            **self.metadata.to_dict(),
+            "metadata": self.metadata.to_dict(),
             "processor_metadata": self.processor_metadata.to_dict(),
-            "parsed": dict(self.parsed),
+            "parsed": self.parsed.to_dict(),
         }

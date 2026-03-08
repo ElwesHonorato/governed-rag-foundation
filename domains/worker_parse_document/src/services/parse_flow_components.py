@@ -4,7 +4,11 @@ from pathlib import Path
 from typing import Any
 
 from parsing.registry import ParserRegistry
-from pipeline_common.stages_contracts import ProcessedDocumentPayload, ProcessorMetadata, SourceDocumentMetadata
+from pipeline_common.stages_contracts import (
+    ProcessedDocumentPayload,
+    ProcessorMetadata,
+    SourceDocumentMetadata,
+)
 from pipeline_common.gateways.queue import Envelope
 
 

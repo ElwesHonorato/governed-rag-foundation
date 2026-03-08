@@ -6,6 +6,7 @@ from pipeline_common.stages_contracts.base import (
     RegistryRowContract,
 )
 from pipeline_common.stages_contracts.stage_20_parser import ProcessedDocumentPayload
+from pipeline_common.stages_contracts.stage_20_parser import ParsedTextPayload
 from pipeline_common.stages_contracts.stage_20_parser import ProcessorMetadata
 from pipeline_common.stages_contracts.stage_30_chunking import (
     ChunkArtifactPayload,
@@ -24,6 +25,7 @@ __all__ = [
     "PROCESSED_DOCUMENT_SCHEMA_VERSION",
     "SourceDocumentMetadata",
     "ProcessorMetadata",
+    "ParsedTextPayload",
     "ProcessedDocumentPayload",
     "RegistryRowContract",
     "ChunkArtifactPayload",

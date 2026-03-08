@@ -14,6 +14,7 @@ from pipeline_common.stages_contracts import (
     ProcessorMetadata,
 )
 
+from contracts.chunk_process_output import ChunkProcessOutput
 from contracts.chunk_manifest import ChunkManifestEntry
 
 
@@ -27,10 +28,7 @@ class ChunkArtifactRecord:
 class ChunkProcessResult:
     chunk_document_metadata: ChunkDocumentMetadata
     processor_metadata: ProcessorMetadata
-    chunk_count_expected: int
-    chunk_count_written: int
-    chunk_entries: list[ChunkManifestEntry]
-    chunking_params: dict[str, Any]
+    output: ChunkProcessOutput
 
 
 class ChunkTextProcessor(BaseProcessor):
@@ -103,10 +101,12 @@ class ChunkTextProcessor(BaseProcessor):
         return ChunkProcessResult(
             chunk_document_metadata=chunk_document_metadata,
             processor_metadata=self._build_processor_metadata(),
-            chunk_count_expected=len(records),
-            chunk_count_written=written,
-            chunk_entries=chunk_entries,
-            chunking_params=serialized_stages,
+            output=ChunkProcessOutput(
+                chunk_count_expected=len(records),
+                chunk_count_written=written,
+                chunk_entries=chunk_entries,
+                chunking_params=serialized_stages,
+            ),
         )
 
     def _build_chunk_records(

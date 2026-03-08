@@ -95,11 +95,11 @@ class WorkerChunkTextService(WorkerService):
             self.lineage.fail_run(error_message=str(exc))
             raise
 
-        if process_result.chunk_count_written is not None:
+        if process_result.output.chunk_count_written is not None:
             doc_id = source_key.split("/")[-1].replace(self.processed_suffix, "")
             logger.info(
                 "Wrote %d chunk objects for doc_id '%s'",
-                process_result.chunk_count_written,
+                process_result.output.chunk_count_written,
                 doc_id,
             )
 

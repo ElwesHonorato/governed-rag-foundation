@@ -28,21 +28,21 @@ class ChunkManifestFactory:
             run_id=chunk_document_metadata.run_id,
             stage=process_result.processor_metadata.stage_name,
             timestamp=source_metadata.timestamp,
-            chunker_version=ChunkTextProcessor.CHUNKER_VERSION,
+            chunker_version=ChunkTextProcessor.VERSION,
             run_status=(
                 "complete"
-                if process_result.chunk_count_written == process_result.chunk_count_expected
+                if process_result.output.chunk_count_written == process_result.output.chunk_count_expected
                 else "partial"
             ),
             chunker=ChunkerConfig(
-                class_name=str(process_result.chunking_params["stages"][-1]["processor"]),
-                params=dict(process_result.chunking_params),
+                class_name=str(process_result.output.chunking_params["stages"][-1]["processor"]),
+                params=dict(process_result.output.chunking_params),
             ),
         )
 
         output = ChunkManifestOutput(
-            chunk_count_expected=process_result.chunk_count_expected,
-            chunk_count_written=process_result.chunk_count_written,
+            chunk_count_expected=process_result.output.chunk_count_expected,
+            chunk_count_written=process_result.output.chunk_count_written,
         )
 
         return ChunkManifest.build(
@@ -50,5 +50,5 @@ class ChunkManifestFactory:
             lineage=lineage,
             processing=processing,
             output=output,
-            chunks=process_result.chunk_entries,
+            chunks=process_result.output.chunk_entries,
         )

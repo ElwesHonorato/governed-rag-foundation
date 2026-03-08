@@ -40,6 +40,14 @@ class ChunkBuildContext:
     chunking_params: dict[str, Any]
 
 
+@dataclass(frozen=True)
+class ResolvedChunkContent:
+    chunk_text: str
+    offsets_start: int
+    offsets_end: int
+    chunk_text_hash: str
+
+
 class ChunkTextProcessor(BaseProcessor):
     """Transform processed document rows into persisted chunk artifacts.
 
@@ -131,21 +139,18 @@ class ChunkTextProcessor(BaseProcessor):
     ) -> list[ChunkArtifactRecord]:
         records: list[ChunkArtifactRecord] = []
         for chunk_index, chunk_document in enumerate(documents):
-            chunk_text_value = str(chunk_document.page_content)
-            offsets_start = int(chunk_document.metadata.get("start_index", 0))
-            offsets_end = offsets_start + len(chunk_text_value)
-            resolved_chunk_text_hash = sha256_hex(chunk_text_value)
+            resolved_content = self._resolve_chunk_content(chunk_document)
 
             resolved_chunk_id = build_chunk_id(
                 source_dataset_urn=chunking_input_metadata.input_dataset_urn,
                 source_content_hash_value=chunking_input_metadata.input_content_hash,
                 chunker_version=self.VERSION,
                 chunk_params_hash_value=chunk_build_context.chunk_params_hash,
-                offsets_start=offsets_start,
-                offsets_end=offsets_end,
+                offsets_start=resolved_content.offsets_start,
+                offsets_end=resolved_content.offsets_end,
             )
 
-            destination_key = self._chunk_object_key(
+            chunk_object_key = self._chunk_object_key(
                 doc_id=chunking_input_metadata.source_metadata.doc_id,
                 run_id=chunk_build_context.run_id,
                 chunk_id=resolved_chunk_id,
@@ -160,23 +165,33 @@ class ChunkTextProcessor(BaseProcessor):
                             source_dataset_urn=chunking_input_metadata.input_dataset_urn,
                             source_s3_uri=chunking_input_metadata.input_dataset_urn,
                             source_content_hash=chunking_input_metadata.input_content_hash,
-                            chunk_s3_uri=f"s3a://{self.storage_bucket}/{destination_key}",
-                            offsets_start=offsets_start,
-                            offsets_end=offsets_end,
+                            chunk_s3_uri=f"s3a://{self.storage_bucket}/{chunk_object_key}",
+                            offsets_start=resolved_content.offsets_start,
+                            offsets_end=resolved_content.offsets_end,
                             breadcrumb=f"chunk[{chunk_index}]",
-                            chunk_text_hash=resolved_chunk_text_hash,
+                            chunk_text_hash=resolved_content.chunk_text_hash,
                             chunker_version=self.VERSION,
                             chunk_params_hash=chunk_build_context.chunk_params_hash,
                             run_id=chunk_build_context.run_id,
                         ),
                         chunk_index=chunk_index,
-                        chunk_text=chunk_text_value,
+                        chunk_text=resolved_content.chunk_text,
                     ),
-                    destination_key=destination_key,
+                    destination_key=chunk_object_key,
                 )
             )
 
         return records
+
+    def _resolve_chunk_content(self, chunk_document: Any) -> ResolvedChunkContent:
+        chunk_text = str(chunk_document.page_content)
+        offsets_start = int(chunk_document.metadata.get("start_index", 0))
+        return ResolvedChunkContent(
+            chunk_text=chunk_text,
+            offsets_start=offsets_start,
+            offsets_end=offsets_start + len(chunk_text),
+            chunk_text_hash=sha256_hex(chunk_text),
+        )
 
     def _write_chunk_records(
         self,

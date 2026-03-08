@@ -82,11 +82,10 @@ class WorkerChunkTextService(WorkerService):
             )
             source_name = processed_payload.metadata.doc_id
             resolved_stages = self._chunking_resolver.resolve(source_name)
-            run_id = build_source_run_id(source_uri)
             process_result = self.processor.process(
                 processed_payload,
                 source_uri=source_uri,
-                run_id=run_id,
+                run_id=build_source_run_id(source_uri),
                 stages=resolved_stages,
             )
             manifest = self.manifest_factory.build(process_result)

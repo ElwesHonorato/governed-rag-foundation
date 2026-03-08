@@ -77,7 +77,7 @@ class ChunkTextProcessor:
         """Run the golden path once: stage-chain split and persist chunk artifacts."""
         serialized_stages = stages.to_serializable_dict()
         source_text = processed_payload.parsed.text
-        parser_version = processed_payload.processor_metadata.parser_version
+        parser_version = processed_payload.processor_metadata.version
         chunk_document_metadata = ChunkDocumentMetadata(
             source_metadata=processed_payload.metadata,
             input_dataset_urn=source_uri,

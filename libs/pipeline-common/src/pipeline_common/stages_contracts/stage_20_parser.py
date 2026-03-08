@@ -12,29 +12,31 @@ from pipeline_common.stages_contracts.base import SourceDocumentMetadata
 class ProcessorMetadata:
     """Parser runtime metadata attached to processed-document payloads."""
 
-    parser_version: str
+    name: str
+    version: str
 
     @classmethod
     def build(
         cls,
         *,
-        parser_version: str,
+        name: str,
+        version: str,
     ) -> "ProcessorMetadata":
         return cls(
-            parser_version=str(parser_version),
+            name=str(name),
+            version=str(version),
         )
 
     @classmethod
     def from_payload(cls, payload: Mapping[str, Any]) -> "ProcessorMetadata":
         raw_processor_metadata = payload["processor_metadata"]
         return cls.build(
-            parser_version=str(raw_processor_metadata["parser_version"]),
+            name=str(raw_processor_metadata["name"]),
+            version=str(raw_processor_metadata["version"]),
         )
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "parser_version": self.parser_version,
-        }
+        return asdict(self)
 
 
 @dataclass(frozen=True)

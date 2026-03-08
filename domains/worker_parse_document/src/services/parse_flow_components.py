@@ -47,7 +47,8 @@ class DocumentParserProcessor:
             content_type=str(mimetypes.guess_type(source_key)[0] or "application/octet-stream"),
         )
         processor_metadata = ProcessorMetadata.build(
-            parser_version=str(getattr(parser, "VERSION", "unknown")),
+            name=parser.__class__.__name__,
+            version=str(getattr(parser, "VERSION", "unknown")),
         )
         return ProcessedDocumentPayload(
             metadata=metadata,

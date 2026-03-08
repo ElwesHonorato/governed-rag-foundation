@@ -8,7 +8,7 @@ from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, StageQueue
 from pipeline_common.helpers.run_ids import build_source_run_id
-from pipeline_common.stages_contracts import ProcessedDocumentPayload, SourceDocumentMetadata
+from pipeline_common.stages_contracts import ProcessedDocumentPayload
 from pipeline_common.startup.contracts import WorkerService
 from contracts.contracts import ChunkTextProcessingConfigContract
 from services.chunk_manifest_factory import ChunkManifestFactory
@@ -76,10 +76,7 @@ class WorkerChunkTextService(WorkerService):
         try:
             raw_payload = self.object_storage.read_object(self.storage_bucket, source_key)
             payload = json.loads(raw_payload.decode("utf-8"))
-            processed_payload = ProcessedDocumentPayload(
-                metadata=SourceDocumentMetadata.from_payload(payload),
-                parsed=dict(payload[ProcessedDocumentPayload.FIELD_PARSED]),
-            )
+            processed_payload = ProcessedDocumentPayload.from_dict(payload)
             source_name = processed_payload.metadata.doc_id
             resolved_stages = self._chunking_resolver.resolve(source_name)
             process_result = self.processor.process(

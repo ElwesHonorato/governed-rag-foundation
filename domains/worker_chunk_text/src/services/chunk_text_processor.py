@@ -10,7 +10,7 @@ from pipeline_common.stages_contracts.base import ProcessorMetadata
 from pipeline_common.stages_contracts import (
     BaseProcessor,
     ChunkArtifactPayload,
-    ChunkDocumentMetadata,
+    ChunkingInputMetadata,
     ChunkProvenanceEnvelope,
     ProcessedDocumentPayload,
 )
@@ -28,7 +28,7 @@ class ChunkArtifactRecord:
 @dataclass(frozen=True)
 class ChunkProcessResult:
     run_id: str
-    chunk_document_metadata: ChunkDocumentMetadata
+    chunking_input_metadata: ChunkingInputMetadata
     processor_metadata: ProcessorMetadata
     output: ChunkProcessOutput
 
@@ -86,7 +86,7 @@ class ChunkTextProcessor(BaseProcessor):
         """Run the golden path once: stage-chain split and persist chunk artifacts."""
         serialized_stages = stages.to_serializable_dict()
         source_text = processed_payload.parsed.text
-        chunk_document_metadata = ChunkDocumentMetadata(
+        chunking_input_metadata = ChunkingInputMetadata(
             source_metadata=processed_payload.metadata,
             input_dataset_urn=source_uri,
             input_content_hash=sha256_hex(source_text),
@@ -98,12 +98,12 @@ class ChunkTextProcessor(BaseProcessor):
         documents = self._process_stages(
             source_text=source_text,
             stages=stages.stages,
-            chunk_document_metadata=chunk_document_metadata,
+            chunking_input_metadata=chunking_input_metadata,
         )
 
         records = self._build_chunk_records(
             documents=documents,
-            chunk_document_metadata=chunk_document_metadata,
+            chunking_input_metadata=chunking_input_metadata,
             chunk_build_context=chunk_build_context,
         )
 
@@ -111,7 +111,7 @@ class ChunkTextProcessor(BaseProcessor):
 
         return ChunkProcessResult(
             run_id=run_id,
-            chunk_document_metadata=chunk_document_metadata,
+            chunking_input_metadata=chunking_input_metadata,
             processor_metadata=self._build_processor_metadata(),
             output=ChunkProcessOutput(
                 chunk_count_expected=len(records),
@@ -124,7 +124,7 @@ class ChunkTextProcessor(BaseProcessor):
     def _build_chunk_records(
         self,
         documents: list[Any],
-        chunk_document_metadata: ChunkDocumentMetadata,
+        chunking_input_metadata: ChunkingInputMetadata,
         chunk_build_context: ChunkBuildContext,
     ) -> list[ChunkArtifactRecord]:
         records: list[ChunkArtifactRecord] = []
@@ -135,8 +135,8 @@ class ChunkTextProcessor(BaseProcessor):
             resolved_chunk_text_hash = sha256_hex(chunk_text_value)
 
             resolved_chunk_id = build_chunk_id(
-                source_dataset_urn=chunk_document_metadata.input_dataset_urn,
-                source_content_hash_value=chunk_document_metadata.input_content_hash,
+                source_dataset_urn=chunking_input_metadata.input_dataset_urn,
+                source_content_hash_value=chunking_input_metadata.input_content_hash,
                 chunker_version=self.VERSION,
                 chunk_params_hash_value=chunk_build_context.chunk_params_hash,
                 offsets_start=offsets_start,
@@ -144,7 +144,7 @@ class ChunkTextProcessor(BaseProcessor):
             )
 
             destination_key = self._chunk_object_key(
-                doc_id=chunk_document_metadata.source_metadata.doc_id,
+                doc_id=chunking_input_metadata.source_metadata.doc_id,
                 run_id=chunk_build_context.run_id,
                 chunk_id=resolved_chunk_id,
             )
@@ -152,12 +152,12 @@ class ChunkTextProcessor(BaseProcessor):
             records.append(
                 ChunkArtifactRecord(
                     payload=ChunkArtifactPayload(
-                        source_metadata=chunk_document_metadata.source_metadata,
+                        source_metadata=chunking_input_metadata.source_metadata,
                         provenance=ChunkProvenanceEnvelope(
                             chunk_id=resolved_chunk_id,
-                            source_dataset_urn=chunk_document_metadata.input_dataset_urn,
-                            source_s3_uri=chunk_document_metadata.input_dataset_urn,
-                            source_content_hash=chunk_document_metadata.input_content_hash,
+                            source_dataset_urn=chunking_input_metadata.input_dataset_urn,
+                            source_s3_uri=chunking_input_metadata.input_dataset_urn,
+                            source_content_hash=chunking_input_metadata.input_content_hash,
                             chunk_s3_uri=f"s3a://{self.storage_bucket}/{destination_key}",
                             offsets_start=offsets_start,
                             offsets_end=offsets_end,
@@ -222,7 +222,7 @@ class ChunkTextProcessor(BaseProcessor):
         *,
         source_text: str,
         stages: list[ChunkingStage],
-        chunk_document_metadata: ChunkDocumentMetadata,
+        chunking_input_metadata: ChunkingInputMetadata,
     ) -> list[Any]:
         """Apply each LangChain stage sequentially, feeding one stage output into the next.
 
@@ -238,7 +238,7 @@ class ChunkTextProcessor(BaseProcessor):
             docs = self._apply_stage(
                 splitter=splitter,
                 docs=docs,
-                chunk_document_metadata=chunk_document_metadata,
+                chunking_input_metadata=chunking_input_metadata,
             )
         return docs
 
@@ -247,14 +247,14 @@ class ChunkTextProcessor(BaseProcessor):
         *,
         splitter: CentralTextSplitter,
         docs: list[Any],
-        chunk_document_metadata: ChunkDocumentMetadata,
+        chunking_input_metadata: ChunkingInputMetadata,
     ) -> list[Any]:
         if self._docs_are_documents(docs):
             return splitter.split_documents(documents=docs)
         texts = [str(item) for item in docs]
         return splitter.create_documents(
             texts=texts,
-            metadatas=[dict(chunk_document_metadata.to_dict()) for _ in texts],
+            metadatas=[dict(chunking_input_metadata.to_dict()) for _ in texts],
         )
 
     def _docs_are_documents(self, docs: list[Any]) -> bool:

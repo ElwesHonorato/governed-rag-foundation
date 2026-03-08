@@ -18,7 +18,7 @@ class ChunkRegistryStatus(StrEnum):
 
 
 @dataclass(frozen=True)
-class ChunkDocumentMetadata:
+class ChunkingInputMetadata:
     """Stage-30 metadata carried with LangChain split documents."""
 
     source_metadata: SourceDocumentMetadata

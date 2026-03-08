@@ -87,7 +87,7 @@ class WorkerChunkTextService(WorkerService):
             manifest = self.manifest_factory.build(process_result)
             self.manifest_writer.write(
                 manifest=manifest,
-                doc_id=process_result.chunk_document_metadata.source_metadata.doc_id,
+                doc_id=process_result.chunking_input_metadata.source_metadata.doc_id,
                 run_id=process_result.run_id,
             )
             self.lineage.complete_run()

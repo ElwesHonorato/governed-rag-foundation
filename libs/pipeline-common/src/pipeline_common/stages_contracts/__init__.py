@@ -11,7 +11,7 @@ from pipeline_common.stages_contracts.stage_20_parser import ProcessedDocumentPa
 from pipeline_common.stages_contracts.stage_20_parser import ParsedTextPayload
 from pipeline_common.stages_contracts.stage_30_chunking import (
     ChunkArtifactPayload,
-    ChunkDocumentMetadata,
+    ChunkingInputMetadata,
     ChunkRegistryRow,
     ChunkRegistryStatus,
     ChunkProvenanceEnvelope,
@@ -31,7 +31,7 @@ __all__ = [
     "RegistryRowContract",
     "BaseProcessor",
     "ChunkArtifactPayload",
-    "ChunkDocumentMetadata",
+    "ChunkingInputMetadata",
     "ChunkRegistryRow",
     "ChunkRegistryStatus",
     "ChunkProvenanceEnvelope",

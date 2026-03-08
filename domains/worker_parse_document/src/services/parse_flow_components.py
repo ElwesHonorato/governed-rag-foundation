@@ -1,9 +1,10 @@
 from dataclasses import dataclass
+import mimetypes
 from pathlib import Path
 from typing import Any
 
 from parsing.registry import ParserRegistry
-from pipeline_common.stages_contracts import SourceDocumentMetadata, ProcessedDocumentPayload
+from pipeline_common.stages_contracts import ProcessedDocumentPayload, ProcessorMetadata, SourceDocumentMetadata
 from pipeline_common.gateways.queue import Envelope
 
 
@@ -39,9 +40,14 @@ class DocumentParserProcessor:
             timestamp=timestamp,
             security_clearance=self._security_clearance,
             source_type=Path(source_key).suffix.lower().lstrip("."),
+            content_type=str(mimetypes.guess_type(source_key)[0] or "application/octet-stream"),
+        )
+        processor_metadata = ProcessorMetadata.build(
+            parser_version=str(getattr(parser, "VERSION", "unknown")),
         )
         return ProcessedDocumentPayload(
             metadata=metadata,
+            processor_metadata=processor_metadata,
             parsed=parsed_payload,
         ).to_dict()
 

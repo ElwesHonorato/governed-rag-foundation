@@ -128,8 +128,8 @@ class ChunkTextProcessor:
         source_text = str(payload.parsed["text"])
         source_content_hash = sha256_hex(source_text)
         resolved_chunk_params_hash = chunk_params_hash(serialized_stages)
-        parser_version = str(payload.parsed.get("parser_version", "unknown"))
-        content_type = str(payload.parsed.get("content_type", "unknown"))
+        parser_version = payload.processor_metadata.parser_version
+        content_type = payload.metadata.content_type
 
         chunk_document_metadata = ChunkDocumentMetadata(
             source_metadata=payload.metadata,

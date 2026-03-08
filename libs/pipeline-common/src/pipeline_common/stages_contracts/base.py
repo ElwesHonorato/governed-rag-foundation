@@ -19,6 +19,7 @@ class SourceDocumentMetadata:
     FIELD_TIMESTAMP: ClassVar[str] = "timestamp"
     FIELD_SECURITY_CLEARANCE: ClassVar[str] = "security_clearance"
     FIELD_SOURCE_TYPE: ClassVar[str] = "source_type"
+    FIELD_CONTENT_TYPE: ClassVar[str] = "content_type"
 
     schema_version: str
     doc_id: str
@@ -26,6 +27,7 @@ class SourceDocumentMetadata:
     timestamp: str
     security_clearance: str
     source_type: str
+    content_type: str
 
     @classmethod
     def build(
@@ -36,6 +38,7 @@ class SourceDocumentMetadata:
         timestamp: str,
         security_clearance: str,
         source_type: str,
+        content_type: str,
     ) -> "SourceDocumentMetadata":
         """Build versioned processed-document metadata."""
         return cls(
@@ -45,6 +48,7 @@ class SourceDocumentMetadata:
             timestamp=str(timestamp),
             security_clearance=str(security_clearance),
             source_type=str(source_type),
+            content_type=str(content_type),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -56,6 +60,7 @@ class SourceDocumentMetadata:
             self.FIELD_TIMESTAMP: self.timestamp,
             self.FIELD_SECURITY_CLEARANCE: self.security_clearance,
             self.FIELD_SOURCE_TYPE: self.source_type,
+            self.FIELD_CONTENT_TYPE: self.content_type,
         }
 
     @classmethod
@@ -69,6 +74,7 @@ class SourceDocumentMetadata:
                 "timestamp": str(payload[cls.FIELD_TIMESTAMP]),
                 "security_clearance": str(payload[cls.FIELD_SECURITY_CLEARANCE]),
                 "source_type": str(payload[cls.FIELD_SOURCE_TYPE]),
+                "content_type": str(payload[cls.FIELD_CONTENT_TYPE]),
             }
         )
 

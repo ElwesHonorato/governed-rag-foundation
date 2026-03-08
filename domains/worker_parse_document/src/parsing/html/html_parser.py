@@ -10,6 +10,7 @@ DEFAULT_TITLE = "Untitled"
 
 class HtmlParser:
     """HTML parser adapter backed by trafilatura content extraction."""
+    VERSION = "1.0.0"
 
     def supported_extensions(self) -> tuple[str, ...]:
         """Execute supported extensions."""

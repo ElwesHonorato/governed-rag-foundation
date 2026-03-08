@@ -14,7 +14,7 @@ class ChunkManifestFactory:
     def build(self, process_result: ChunkProcessResult) -> ChunkManifest:
         chunk_document_metadata = process_result.chunk_document_metadata
         source_metadata = chunk_document_metadata.source_metadata
-        source_uri = chunk_document_metadata.input_object_uri
+        source_uri = chunk_document_metadata.input_dataset_urn
 
         lineage = ChunkManifestLineage(
             source_asset_id=source_uri,

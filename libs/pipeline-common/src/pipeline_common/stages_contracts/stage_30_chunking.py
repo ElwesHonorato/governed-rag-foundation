@@ -23,7 +23,6 @@ class ChunkDocumentMetadata:
 
     source_metadata: SourceDocumentMetadata
     input_dataset_urn: str
-    input_object_uri: str
     input_content_hash: str
     run_id: str
 

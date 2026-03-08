@@ -134,7 +134,6 @@ class ChunkTextProcessor:
         chunk_document_metadata = ChunkDocumentMetadata(
             source_metadata=payload.metadata,
             input_dataset_urn=source_uri,
-            input_object_uri=source_uri,
             input_content_hash=source_content_hash,
             run_id=run_id,
         )
@@ -188,7 +187,7 @@ class ChunkTextProcessor:
                         timestamp=chunk_document_metadata.source_metadata.timestamp,
                         security_clearance=chunk_document_metadata.source_metadata.security_clearance,
                         source_dataset_urn=chunk_document_metadata.input_dataset_urn,
-                        source_s3_uri=chunk_document_metadata.input_object_uri,
+                        source_s3_uri=chunk_document_metadata.input_dataset_urn,
                         source_content_hash=chunk_document_metadata.input_content_hash,
                         offsets_start=offsets_start,
                         offsets_end=offsets_end,

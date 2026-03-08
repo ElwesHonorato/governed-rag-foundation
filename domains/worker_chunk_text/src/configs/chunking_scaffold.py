@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 from enum import Enum
-from pathlib import Path
 from typing import Any, TypeAlias
 
 from langchain_text_splitters import (
@@ -13,7 +12,7 @@ from langchain_text_splitters import (
 )
 
 
-class FileType(str, Enum):
+class ChunkingScaffoldKey(str, Enum):
     TXT = "txt"
     MD = "md"
     HTML = "html"
@@ -123,26 +122,26 @@ class ChunkingStages:
         return {"stages": [stage.to_serializable_dict() for stage in self.stages]}
 
 
-CHUNKING_SCAFFOLD: dict[FileType, list[ChunkingStage]] = {
-    FileType.TXT: [
+CHUNKING_SCAFFOLD: dict[ChunkingScaffoldKey, list[ChunkingStage]] = {
+    ChunkingScaffoldKey.TXT: [
         ChunkingStage(
             processor=ChunkingProcessorType.RECURSIVE,
             params=RecursiveParams(),
         )
     ],
-    FileType.MD: [
+    ChunkingScaffoldKey.MD: [
         ChunkingStage(
             processor=ChunkingProcessorType.RECURSIVE,
             params=RecursiveParams(),
         )
     ],
-    FileType.HTML: [
+    ChunkingScaffoldKey.HTML: [
         ChunkingStage(
             processor=ChunkingProcessorType.RECURSIVE,
             params=RecursiveParams(),
         )
     ],
-    FileType.PDF: [
+    ChunkingScaffoldKey.PDF: [
         ChunkingStage(
             processor=CustomChunkingProcessorType.PAGE,
             params=PageSplitParams(),
@@ -152,7 +151,7 @@ CHUNKING_SCAFFOLD: dict[FileType, list[ChunkingStage]] = {
             params=RecursiveParams(),
         ),
     ],
-    FileType.PY: [
+    ChunkingScaffoldKey.PY: [
         ChunkingStage(
             processor=CustomChunkingProcessorType.CODE,
             params=CodeParams(language="python"),
@@ -162,7 +161,7 @@ CHUNKING_SCAFFOLD: dict[FileType, list[ChunkingStage]] = {
             params=TokenParams(),
         ),
     ],
-    FileType.JSON: [
+    ChunkingScaffoldKey.JSON: [
         ChunkingStage(
             processor=CustomChunkingProcessorType.JSON_OBJECTS,
             params=JsonObjectParams(),
@@ -172,13 +171,13 @@ CHUNKING_SCAFFOLD: dict[FileType, list[ChunkingStage]] = {
             params=RecursiveParams(chunk_overlap=100),
         ),
     ],
-    FileType.CSV: [
+    ChunkingScaffoldKey.CSV: [
         ChunkingStage(
             processor=CustomChunkingProcessorType.ROW_GROUPS,
             params=RowGroupParams(),
         ),
     ],
-    FileType.EML: [
+    ChunkingScaffoldKey.EML: [
         ChunkingStage(
             processor=CustomChunkingProcessorType.EMAIL_PARTS,
             params=EmailPartsParams(),
@@ -191,19 +190,13 @@ CHUNKING_SCAFFOLD: dict[FileType, list[ChunkingStage]] = {
 }
 
 class ChunkingScaffoldResolver:
-    file_type: FileType | None = None
+    scaffold_key: str | None = None
 
-    def normalize_file_type(self, file_extension: str) -> FileType:
-        normalized_extension = file_extension.lower().lstrip(".")
-        return FileType(normalized_extension)
-
-    def file_type_from_source_key(self, source_key: str) -> FileType:
-        return self.normalize_file_type(Path(source_key).suffix)
-
-    def resolve(self, source_key: str) -> ChunkingStages:
-        file_type = self.file_type_from_source_key(source_key)
-        ChunkingScaffoldResolver.file_type = file_type
-        stages = CHUNKING_SCAFFOLD[file_type]
+    def resolve(self, scaffold_key: str) -> ChunkingStages:
+        normalized_scaffold_key = scaffold_key.lower().lstrip(".")
+        scaffold_type = ChunkingScaffoldKey(normalized_scaffold_key)
+        ChunkingScaffoldResolver.scaffold_key = normalized_scaffold_key
+        stages = CHUNKING_SCAFFOLD[scaffold_type]
         return ChunkingStages(
             [stage for stage in stages if isinstance(stage.processor, ChunkingProcessorType)]
         )

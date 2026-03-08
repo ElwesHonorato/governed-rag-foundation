@@ -77,8 +77,7 @@ class WorkerChunkTextService(WorkerService):
             raw_payload = self.object_storage.read_object(self.storage_bucket, source_key)
             payload = json.loads(raw_payload.decode("utf-8"))
             processed_payload = ProcessedDocumentPayload.from_dict(payload)
-            source_name = processed_payload.metadata.doc_id
-            resolved_stages = self._chunking_resolver.resolve(source_name)
+            resolved_stages = self._chunking_resolver.resolve(processed_payload.metadata.source_type)
             process_result = self.processor.process(
                 processed_payload,
                 source_uri=source_uri,

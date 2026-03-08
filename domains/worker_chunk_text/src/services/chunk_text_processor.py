@@ -30,7 +30,6 @@ class ChunkProcessResult:
     chunk_count_written: int
     chunk_entries: list[ChunkManifestEntry]
     chunking_params: dict[str, Any]
-    stage_name: str
 
 
 class ChunkTextProcessor:
@@ -102,12 +101,15 @@ class ChunkTextProcessor:
 
         return ChunkProcessResult(
             chunk_document_metadata=chunk_document_metadata,
-            processor_metadata=processed_payload.processor_metadata,
+            processor_metadata=ProcessorMetadata(
+                name=self.__class__.__name__,
+                version=self.CHUNKER_VERSION,
+                stage_name=self.STAGE_NAME,
+            ),
             chunk_count_expected=len(records),
             chunk_count_written=written,
             chunk_entries=chunk_entries,
             chunking_params=serialized_stages,
-            stage_name=self.STAGE_NAME,
         )
 
     def _build_chunk_records(

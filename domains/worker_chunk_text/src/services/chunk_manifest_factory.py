@@ -26,7 +26,7 @@ class ChunkManifestFactory:
 
         processing = ChunkManifestProcessing(
             run_id=chunk_document_metadata.run_id,
-            stage=process_result.stage_name,
+            stage=process_result.processor_metadata.stage_name,
             timestamp=source_metadata.timestamp,
             chunker_version=ChunkTextProcessor.CHUNKER_VERSION,
             run_status=(

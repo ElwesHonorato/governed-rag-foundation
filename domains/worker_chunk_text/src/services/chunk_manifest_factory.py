@@ -19,7 +19,7 @@ class ChunkManifestFactory:
         lineage = ChunkManifestLineage(
             source_asset_id=source_uri,
             source_hash=sha256_hex(source_uri),
-            content_type=process_result.content_type,
+            content_type=source_metadata.content_type,
             document_hash=chunk_document_metadata.input_content_hash,
             parser_version=process_result.parser_version,
         )

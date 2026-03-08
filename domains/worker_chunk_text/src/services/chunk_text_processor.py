@@ -21,7 +21,6 @@ class ChunkArtifactRecord:
 class ChunkProcessResult:
     chunk_document_metadata: ChunkDocumentMetadata
     parser_version: str
-    content_type: str
     chunk_count_expected: int
     chunk_count_written: int
     chunk_entries: list[ChunkManifestEntry]
@@ -77,17 +76,13 @@ class ChunkTextProcessor:
     ) -> ChunkProcessResult:
         """Run the golden path once: stage-chain split and persist chunk artifacts."""
         serialized_stages = stages.to_serializable_dict()
-        (
-            source_text,
-            chunk_document_metadata,
-            resolved_chunk_params_hash,
-            parser_version,
-            content_type,
-        ) = self._initialize_chunking_context(
-            payload=processed_payload,
-            source_uri=source_uri,
+        source_text = str(processed_payload.parsed["text"])
+        parser_version = processed_payload.processor_metadata.parser_version
+        chunk_document_metadata = ChunkDocumentMetadata(
+            source_metadata=processed_payload.metadata,
+            input_dataset_urn=source_uri,
+            input_content_hash=sha256_hex(source_text),
             run_id=run_id,
-            serialized_stages=serialized_stages,
         )
         documents, resolved_chunker_name = self._process_stages(
             source_text=source_text,
@@ -98,7 +93,7 @@ class ChunkTextProcessor:
         records = self._build_chunk_records(
             documents=documents,
             chunk_document_metadata=chunk_document_metadata,
-            chunk_params_hash_value=resolved_chunk_params_hash,
+            chunk_params_hash_value=chunk_params_hash(serialized_stages),
             chunker_name=resolved_chunker_name,
         )
 
@@ -107,7 +102,6 @@ class ChunkTextProcessor:
         return ChunkProcessResult(
             chunk_document_metadata=chunk_document_metadata,
             parser_version=parser_version,
-            content_type=content_type,
             chunk_count_expected=len(records),
             chunk_count_written=written,
             chunk_entries=chunk_entries,
@@ -115,35 +109,6 @@ class ChunkTextProcessor:
             chunker_name=resolved_chunker_name,
             stage_name=self.STAGE_NAME,
             chunker_version=self.CHUNKER_VERSION,
-        )
-
-    def _initialize_chunking_context(
-        self,
-        payload: ProcessedDocumentPayload,
-        source_uri: str,
-        run_id: str,
-        serialized_stages: dict[str, Any],
-    ) -> tuple[str, ChunkDocumentMetadata, str, str, str]:
-        """Build immutable run context and deterministic params hash for this stage chain."""
-        source_text = str(payload.parsed["text"])
-        source_content_hash = sha256_hex(source_text)
-        resolved_chunk_params_hash = chunk_params_hash(serialized_stages)
-        parser_version = payload.processor_metadata.parser_version
-        content_type = payload.metadata.content_type
-
-        chunk_document_metadata = ChunkDocumentMetadata(
-            source_metadata=payload.metadata,
-            input_dataset_urn=source_uri,
-            input_content_hash=source_content_hash,
-            run_id=run_id,
-        )
-
-        return (
-            source_text,
-            chunk_document_metadata,
-            resolved_chunk_params_hash,
-            parser_version,
-            content_type,
         )
 
     def _build_chunk_records(

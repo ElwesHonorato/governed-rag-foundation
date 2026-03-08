@@ -88,7 +88,7 @@ class WorkerChunkTextService(WorkerService):
             self.manifest_writer.write(
                 manifest=manifest,
                 doc_id=process_result.chunk_document_metadata.source_metadata.doc_id,
-                run_id=process_result.chunk_document_metadata.run_id,
+                run_id=process_result.run_id,
             )
             self.lineage.complete_run()
         except Exception as exc:

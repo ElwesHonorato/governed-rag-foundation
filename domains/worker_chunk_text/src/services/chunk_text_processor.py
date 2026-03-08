@@ -6,12 +6,13 @@ from chunking.domain.central_text_splitter import CentralTextSplitter
 from configs.chunking_scaffold import ChunkingStage, ChunkingStages
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.provenance import build_chunk_id, chunk_params_hash, sha256_hex
+from pipeline_common.stages_contracts.base import ProcessorMetadata
 from pipeline_common.stages_contracts import (
     BaseProcessor,
     ChunkArtifactPayload,
     ChunkDocumentMetadata,
+    ChunkProvenanceEnvelope,
     ProcessedDocumentPayload,
-    ProcessorMetadata,
 )
 
 from contracts.chunk_process_output import ChunkProcessOutput
@@ -26,9 +27,16 @@ class ChunkArtifactRecord:
 
 @dataclass(frozen=True)
 class ChunkProcessResult:
+    run_id: str
     chunk_document_metadata: ChunkDocumentMetadata
     processor_metadata: ProcessorMetadata
     output: ChunkProcessOutput
+
+
+@dataclass(frozen=True)
+class ChunkBuildContext:
+    run_id: str
+    chunk_params_hash: str
 
 
 class ChunkTextProcessor(BaseProcessor):
@@ -82,7 +90,10 @@ class ChunkTextProcessor(BaseProcessor):
             source_metadata=processed_payload.metadata,
             input_dataset_urn=source_uri,
             input_content_hash=sha256_hex(source_text),
+        )
+        chunk_build_context = ChunkBuildContext(
             run_id=run_id,
+            chunk_params_hash=chunk_params_hash(serialized_stages),
         )
         documents = self._process_stages(
             source_text=source_text,
@@ -93,12 +104,13 @@ class ChunkTextProcessor(BaseProcessor):
         records = self._build_chunk_records(
             documents=documents,
             chunk_document_metadata=chunk_document_metadata,
-            chunk_params_hash_value=chunk_params_hash(serialized_stages),
+            chunk_build_context=chunk_build_context,
         )
 
         written, chunk_entries = self._write_chunk_records(records)
 
         return ChunkProcessResult(
+            run_id=run_id,
             chunk_document_metadata=chunk_document_metadata,
             processor_metadata=self._build_processor_metadata(),
             output=ChunkProcessOutput(
@@ -113,7 +125,7 @@ class ChunkTextProcessor(BaseProcessor):
         self,
         documents: list[Any],
         chunk_document_metadata: ChunkDocumentMetadata,
-        chunk_params_hash_value: str,
+        chunk_build_context: ChunkBuildContext,
     ) -> list[ChunkArtifactRecord]:
         records: list[ChunkArtifactRecord] = []
         for chunk_index, chunk_document in enumerate(documents):
@@ -126,37 +138,37 @@ class ChunkTextProcessor(BaseProcessor):
                 source_dataset_urn=chunk_document_metadata.input_dataset_urn,
                 source_content_hash_value=chunk_document_metadata.input_content_hash,
                 chunker_version=self.VERSION,
-                chunk_params_hash_value=chunk_params_hash_value,
+                chunk_params_hash_value=chunk_build_context.chunk_params_hash,
                 offsets_start=offsets_start,
                 offsets_end=offsets_end,
             )
 
             destination_key = self._chunk_object_key(
                 doc_id=chunk_document_metadata.source_metadata.doc_id,
-                run_id=chunk_document_metadata.run_id,
+                run_id=chunk_build_context.run_id,
                 chunk_id=resolved_chunk_id,
             )
 
             records.append(
                 ChunkArtifactRecord(
                     payload=ChunkArtifactPayload(
-                        doc_id=chunk_document_metadata.source_metadata.doc_id,
-                        chunk_id=resolved_chunk_id,
+                        source_metadata=chunk_document_metadata.source_metadata,
+                        provenance=ChunkProvenanceEnvelope(
+                            chunk_id=resolved_chunk_id,
+                            source_dataset_urn=chunk_document_metadata.input_dataset_urn,
+                            source_s3_uri=chunk_document_metadata.input_dataset_urn,
+                            source_content_hash=chunk_document_metadata.input_content_hash,
+                            chunk_s3_uri=f"s3a://{self.storage_bucket}/{destination_key}",
+                            offsets_start=offsets_start,
+                            offsets_end=offsets_end,
+                            breadcrumb=f"chunk[{chunk_index}]",
+                            chunk_text_hash=resolved_chunk_text_hash,
+                            chunker_version=self.VERSION,
+                            chunk_params_hash=chunk_build_context.chunk_params_hash,
+                            run_id=chunk_build_context.run_id,
+                        ),
                         chunk_index=chunk_index,
                         chunk_text=chunk_text_value,
-                        source_type=chunk_document_metadata.source_metadata.source_type,
-                        timestamp=chunk_document_metadata.source_metadata.timestamp,
-                        security_clearance=chunk_document_metadata.source_metadata.security_clearance,
-                        source_dataset_urn=chunk_document_metadata.input_dataset_urn,
-                        source_s3_uri=chunk_document_metadata.input_dataset_urn,
-                        source_content_hash=chunk_document_metadata.input_content_hash,
-                        offsets_start=offsets_start,
-                        offsets_end=offsets_end,
-                        breadcrumb=f"chunk[{chunk_index}]",
-                        run_id=chunk_document_metadata.run_id,
-                        chunk_text_hash=resolved_chunk_text_hash,
-                        chunker_version=self.VERSION,
-                        chunk_params_hash=chunk_params_hash_value,
                     ),
                     destination_key=destination_key,
                 )
@@ -183,9 +195,9 @@ class ChunkTextProcessor(BaseProcessor):
         chunk_record: ChunkArtifactRecord,
     ) -> ChunkManifestEntry:
         return ChunkManifestEntry(
-            chunk_id=chunk_record.payload.chunk_id,
+            chunk_id=chunk_record.payload.provenance.chunk_id,
             chunk_index=chunk_record.payload.chunk_index,
-            chunk_hash=chunk_record.payload.chunk_text_hash,
+            chunk_hash=chunk_record.payload.provenance.chunk_text_hash,
             path=chunk_record.destination_key,
         )
 

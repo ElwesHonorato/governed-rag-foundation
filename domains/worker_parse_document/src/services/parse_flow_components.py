@@ -23,6 +23,7 @@ class ParseWorkItem:
 
 class DocumentParserProcessor:
     """Transform source text into processed parse payload."""
+    STAGE_NAME = "parse_document"
 
     def __init__(
         self,
@@ -49,6 +50,7 @@ class DocumentParserProcessor:
         processor_metadata = ProcessorMetadata.build(
             name=parser.__class__.__name__,
             version=str(getattr(parser, "VERSION", "unknown")),
+            stage_name=self.STAGE_NAME,
         )
         return ProcessedDocumentPayload(
             metadata=metadata,

@@ -79,6 +79,32 @@ class SourceDocumentMetadata:
         )
 
 
+@dataclass(frozen=True)
+class ProcessorMetadata:
+    """Common processor metadata contract shared across pipeline stages."""
+
+    name: str
+    version: str
+    stage_name: str
+
+    @classmethod
+    def build(
+        cls,
+        *,
+        name: str,
+        version: str,
+        stage_name: str,
+    ) -> "ProcessorMetadata":
+        return cls(
+            name=str(name),
+            version=str(version),
+            stage_name=str(stage_name),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
 class RegistryRowContract:
     """Shared behavior for provenance registry row contracts."""
 

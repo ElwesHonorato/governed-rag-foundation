@@ -5,38 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any, Mapping
 
-from pipeline_common.stages_contracts.base import SourceDocumentMetadata
-
-
-@dataclass(frozen=True)
-class ProcessorMetadata:
-    """Parser runtime metadata attached to processed-document payloads."""
-
-    name: str
-    version: str
-
-    @classmethod
-    def build(
-        cls,
-        *,
-        name: str,
-        version: str,
-    ) -> "ProcessorMetadata":
-        return cls(
-            name=str(name),
-            version=str(version),
-        )
-
-    @classmethod
-    def from_payload(cls, payload: Mapping[str, Any]) -> "ProcessorMetadata":
-        raw_processor_metadata = payload["processor_metadata"]
-        return cls.build(
-            name=str(raw_processor_metadata["name"]),
-            version=str(raw_processor_metadata["version"]),
-        )
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+from pipeline_common.stages_contracts.base import ProcessorMetadata, SourceDocumentMetadata
 
 
 @dataclass(frozen=True)

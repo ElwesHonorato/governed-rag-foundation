@@ -99,8 +99,8 @@ class ChunkProcessResult:
     source_metadata: SourceDocumentMetadata
     source_uri: str
     input_content_hash: str
-    processor_metadata: ProcessorMetadata
-    output: ChunkingExecutionResult
+    processor: ProcessorMetadata
+    result: ChunkingExecutionResult
 
 
 @dataclass(frozen=True)

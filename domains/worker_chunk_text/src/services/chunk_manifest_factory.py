@@ -12,9 +12,9 @@ class ChunkManifestFactory:
             "schema_version": CHUNK_MANIFEST_SCHEMA_VERSION,
             "doc_id": str(source_metadata.doc_id),
             "output": {
-                "status": process_result.output.status.value,
-                "chunk_count_expected": process_result.output.chunk_count_expected,
-                "chunk_count_written": process_result.output.chunk_count_written,
+                "status": process_result.result.status.value,
+                "chunk_count_expected": process_result.result.chunk_count_expected,
+                "chunk_count_written": process_result.result.chunk_count_written,
             },
-            "chunks": list(process_result.output.chunk_entries),
+            "chunks": list(process_result.result.chunk_entries),
         }

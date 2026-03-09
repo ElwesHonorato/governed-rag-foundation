@@ -97,8 +97,8 @@ class ChunkTextProcessor(BaseProcessor):
             source_metadata=source_metadata,
             source_uri=source_uri,
             input_content_hash=input_content_hash,
-            processor_metadata=self._build_processor_metadata(),
-            output=ChunkingExecutionResult(
+            processor=self._build_processor_metadata(),
+            result=ChunkingExecutionResult(
                 chunk_count_expected=len(records),
                 chunk_count_written=written,
                 chunk_entries=chunk_entries,

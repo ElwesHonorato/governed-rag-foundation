@@ -1,8 +1,9 @@
 import json
-from typing import Any, ClassVar
+from typing import Any, ClassVar, TypeGuard
 
 from chunking.domain.central_text_splitter import CentralTextSplitter
 from configs.chunking_scaffold import ChunkingStage, ChunkingStages
+from langchain_core.documents import Document
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.provenance import build_id, chunk_params_hash, sha256_hex
 from pipeline_common.stages_contracts import (
@@ -107,7 +108,7 @@ class ChunkTextProcessor(BaseProcessor):
 
     def _build_chunk_records(
         self,
-        documents: list[Any],
+        documents: list[Document],
         run_id: str,
         source_metadata: SourceDocumentMetadata,
         source_uri: str,
@@ -148,7 +149,7 @@ class ChunkTextProcessor(BaseProcessor):
     def _resolve_chunk_content(
         self,
         *,
-        chunk_document: Any,
+        chunk_document: Document,
         source_uri: str,
         input_content_hash: str,
         chunk_build_context: ChunkBuildContext,
@@ -217,7 +218,7 @@ class ChunkTextProcessor(BaseProcessor):
         *,
         source_text: str,
         stages: list[ChunkingStage],
-    ) -> list[Any]:
+    ) -> list[Document]:
         """Apply each LangChain stage sequentially, feeding one stage output into the next.
 
         Starts from raw source text, then repeatedly splits either:
@@ -225,7 +226,7 @@ class ChunkTextProcessor(BaseProcessor):
         - document inputs from a previous stage (via `split_documents`).
         Returns the final document list.
         """
-        docs: list[Any] = [source_text]
+        docs: list[str] | list[Document] = [source_text]
 
         for stage in stages:
             splitter = CentralTextSplitter(stage=stage)
@@ -239,14 +240,14 @@ class ChunkTextProcessor(BaseProcessor):
         self,
         *,
         splitter: CentralTextSplitter,
-        docs: list[Any],
-    ) -> list[Any]:
+        docs: list[str] | list[Document],
+    ) -> list[Document]:
         if self._docs_are_documents(docs):
             return splitter.split_documents(documents=docs)
         texts = [str(item) for item in docs]
         return splitter.create_documents(texts=texts)
 
-    def _docs_are_documents(self, docs: list[Any]) -> bool:
+    def _docs_are_documents(self, docs: list[str] | list[Document]) -> TypeGuard[list[Document]]:
         return bool(docs) and hasattr(docs[0], "page_content")
 
     def _chunk_object_key(self, doc_id: str, run_id: str, chunk_id: str) -> str:

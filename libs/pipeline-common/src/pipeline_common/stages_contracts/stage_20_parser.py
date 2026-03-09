@@ -20,7 +20,7 @@ class ParsedTextPayload:
 
 
 @dataclass(frozen=True)
-class ProcessedDocumentPayload:
+class ParsedArtifactPayload:
     """Full processed-document payload contract exchanged parse -> chunk workers."""
 
     metadata: SourceDocumentMetadata
@@ -34,7 +34,7 @@ class ProcessedDocumentPayload:
         metadata: SourceDocumentMetadata,
         processor_metadata: ProcessorMetadata,
         parsed: ParsedTextPayload,
-    ) -> "ProcessedDocumentPayload":
+    ) -> "ParsedArtifactPayload":
         """Build a versioned processed-document payload."""
         return cls(
             metadata=metadata,
@@ -43,7 +43,7 @@ class ProcessedDocumentPayload:
         )
 
     @classmethod
-    def from_dict(cls, payload: Mapping[str, Any]) -> "ProcessedDocumentPayload":
+    def from_dict(cls, payload: Mapping[str, Any]) -> "ParsedArtifactPayload":
         """Parse payload dict into typed processed-document contract."""
         metadata_payload = payload["metadata"]
         processor_metadata_payload = payload["processor_metadata"]

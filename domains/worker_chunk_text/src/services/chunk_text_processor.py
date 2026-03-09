@@ -11,7 +11,7 @@ from pipeline_common.stages_contracts import (
     BaseProcessor,
     ChunkArtifactPayload,
     ChunkProvenanceEnvelope,
-    ProcessedDocumentPayload,
+    ParsedArtifactPayload,
 )
 
 from contracts.chunk_process_output import ChunkProcessOutput
@@ -74,7 +74,7 @@ class ChunkTextProcessor(BaseProcessor):
 
     def process(
         self,
-        processed_payload: ProcessedDocumentPayload,
+        processed_payload: ParsedArtifactPayload,
         source_uri: str,
         run_id: str,
         stages: ChunkingStages,
@@ -89,7 +89,7 @@ class ChunkTextProcessor(BaseProcessor):
     def process_stage(
         self,
         *,
-        processed_payload: ProcessedDocumentPayload,
+        processed_payload: ParsedArtifactPayload,
         source_uri: str,
         run_id: str,
         stages: ChunkingStages,

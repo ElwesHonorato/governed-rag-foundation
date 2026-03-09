@@ -1,7 +1,6 @@
 """Service graph assembly for worker_index_weaviate startup."""
 
 from contracts.contracts import IndexWeaviateProcessingConfigContract, IndexWeaviateWorkerConfigContract
-from pipeline_common.provenance import ProvenanceRegistryGateway
 from pipeline_common.startup import WorkerRuntimeContext, WorkerServiceFactory
 from services.weaviate_gateway import ensure_schema
 from services.worker_index_weaviate_service import WorkerIndexWeaviateService
@@ -24,10 +23,6 @@ class IndexWeaviateServiceFactory(WorkerServiceFactory[IndexWeaviateWorkerConfig
             stage_queue=runtime.stage_queue_gateway,
             object_storage=runtime.object_storage_gateway,
             lineage=runtime.lineage_gateway,
-            provenance_registry=ProvenanceRegistryGateway(
-                object_storage=runtime.object_storage_gateway,
-                bucket=worker_config.storage.bucket,
-            ),
             spark_session=runtime.spark_session,
             processing_config=IndexWeaviateProcessingConfigContract(
                 poll_interval_seconds=worker_config.poll_interval_seconds,

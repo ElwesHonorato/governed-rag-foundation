@@ -42,6 +42,7 @@ class ChunkBuildContext:
 
 @dataclass(frozen=True)
 class ResolvedChunkContent:
+    chunk_id: str
     chunk_text: str
     offsets_start: int
     offsets_end: int
@@ -140,26 +141,19 @@ class ChunkTextProcessor(BaseProcessor):
         records: list[ChunkArtifactRecord] = []
         for chunk_index, chunk_document in enumerate(documents):
             resolved_content: ResolvedChunkContent = self._resolve_chunk_content(
-                chunk_document
-            )
-
-            resolved_chunk_id = build_chunk_id(
-                source_dataset_urn=chunking_input_metadata.input_dataset_urn,
-                source_content_hash_value=chunking_input_metadata.input_content_hash,
-                chunker_version=self.VERSION,
-                chunk_params_hash_value=chunk_build_context.chunk_params_hash,
-                offsets_start=resolved_content.offsets_start,
-                offsets_end=resolved_content.offsets_end,
+                chunk_document=chunk_document,
+                chunking_input_metadata=chunking_input_metadata,
+                chunk_build_context=chunk_build_context,
             )
 
             chunk_object_key = self._chunk_object_key(
                 doc_id=chunking_input_metadata.source_metadata.doc_id,
                 run_id=chunk_build_context.run_id,
-                chunk_id=resolved_chunk_id,
+                chunk_id=resolved_content.chunk_id,
             )
 
             provenance: ChunkProvenanceEnvelope = ChunkProvenanceEnvelope(
-                chunk_id=resolved_chunk_id,
+                chunk_id=resolved_content.chunk_id,
                 source_dataset_urn=chunking_input_metadata.input_dataset_urn,
                 source_s3_uri=chunking_input_metadata.input_dataset_urn,
                 source_content_hash=chunking_input_metadata.input_content_hash,
@@ -186,13 +180,28 @@ class ChunkTextProcessor(BaseProcessor):
 
         return records
 
-    def _resolve_chunk_content(self, chunk_document: Any) -> ResolvedChunkContent:
+    def _resolve_chunk_content(
+        self,
+        *,
+        chunk_document: Any,
+        chunking_input_metadata: ChunkingInputMetadata,
+        chunk_build_context: ChunkBuildContext,
+    ) -> ResolvedChunkContent:
         chunk_text = str(chunk_document.page_content)
         offsets_start = int(chunk_document.metadata.get("start_index", 0))
+        offsets_end = offsets_start + len(chunk_text)
         return ResolvedChunkContent(
+            chunk_id=build_chunk_id(
+                source_dataset_urn=chunking_input_metadata.input_dataset_urn,
+                source_content_hash_value=chunking_input_metadata.input_content_hash,
+                chunker_version=self.VERSION,
+                chunk_params_hash_value=chunk_build_context.chunk_params_hash,
+                offsets_start=offsets_start,
+                offsets_end=offsets_end,
+            ),
             chunk_text=chunk_text,
             offsets_start=offsets_start,
-            offsets_end=offsets_start + len(chunk_text),
+            offsets_end=offsets_end,
             chunk_text_hash=sha256_hex(chunk_text),
         )
 

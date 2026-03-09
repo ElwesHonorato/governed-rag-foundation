@@ -16,9 +16,9 @@ from contracts.contracts import (
     ChunkArtifactPayload,
     ChunkArtifactRecord,
     ChunkBuildContext,
+    ChunkResult,
     ChunkingExecutionResult,
     ProcessResult,
-    ResolvedChunkContent,
     SourceDocumentMetadata,
 )
 
@@ -76,18 +76,17 @@ class ChunkTextProcessor(BaseProcessor):
             chunk_params_hash=chunk_params_hash(serialized_stages),
             chunking_params=serialized_stages,
         )
-        documents = self._process_stages(
+        resolved_chunks = self._process_stages(
             source_text=source_text,
             stages=stages.stages,
+            source_uri=source_uri,
+            source_metadata=source_metadata,
         )
 
         records = self._build_chunk_records(
-            documents=documents,
+            resolved_chunks=resolved_chunks,
             run_id=run_id,
             source_metadata=source_metadata,
-            source_uri=source_uri,
-            input_content_hash=input_content_hash,
-            chunk_build_context=chunk_build_context,
         )
 
         written, chunk_entries = self._write_chunk_records(records)
@@ -97,7 +96,7 @@ class ChunkTextProcessor(BaseProcessor):
             source_metadata=source_metadata,
             source_uri=source_uri,
             input_content_hash=input_content_hash,
-            processor=self._build_processor_metadata(),
+            processor=self.processor_metadata,
             result=ChunkingExecutionResult(
                 chunk_count_expected=len(records),
                 chunk_count_written=written,
@@ -108,22 +107,12 @@ class ChunkTextProcessor(BaseProcessor):
 
     def _build_chunk_records(
         self,
-        documents: list[Document],
+        resolved_chunks: list[ChunkResult],
         run_id: str,
         source_metadata: SourceDocumentMetadata,
-        source_uri: str,
-        input_content_hash: str,
-        chunk_build_context: ChunkBuildContext,
     ) -> list[ChunkArtifactRecord]:
         records: list[ChunkArtifactRecord] = []
-        for chunk_index, chunk_document in enumerate(documents):
-            resolved_content: ResolvedChunkContent = self._resolve_chunk_content(
-                chunk_document=chunk_document,
-                source_uri=source_uri,
-                input_content_hash=input_content_hash,
-                chunk_build_context=chunk_build_context,
-            )
-
+        for chunk_index, resolved_content in enumerate(resolved_chunks):
             chunk_object_key = self._chunk_object_key(
                 doc_id=source_metadata.doc_id,
                 run_id=run_id,
@@ -132,7 +121,7 @@ class ChunkTextProcessor(BaseProcessor):
 
             payload: ChunkArtifactPayload = ChunkArtifactPayload(
                 source_metadata=source_metadata,
-                processor_metadata=self._build_processor_metadata(),
+                processor_metadata=self.processor_metadata,
                 content=ParsedTextPayload(title="", text=resolved_content.chunk_text),
             )
             chunk_record: ChunkArtifactRecord = ChunkArtifactRecord(
@@ -145,32 +134,6 @@ class ChunkTextProcessor(BaseProcessor):
             records.append(chunk_record)
 
         return records
-
-    def _resolve_chunk_content(
-        self,
-        *,
-        chunk_document: Document,
-        source_uri: str,
-        input_content_hash: str,
-        chunk_build_context: ChunkBuildContext,
-    ) -> ResolvedChunkContent:
-        chunk_text = str(chunk_document.page_content)
-        offsets_start = int(chunk_document.metadata.get("start_index", 0))
-        offsets_end = offsets_start + len(chunk_text)
-        return ResolvedChunkContent(
-            chunk_id=build_id(
-                source_dataset_urn=source_uri,
-                source_content_hash_value=input_content_hash,
-                chunker_version=self.VERSION,
-                chunk_params_hash_value=chunk_build_context.chunk_params_hash,
-                offsets_start=offsets_start,
-                offsets_end=offsets_end,
-            ),
-            chunk_text=chunk_text,
-            offsets_start=offsets_start,
-            offsets_end=offsets_end,
-            chunk_text_hash=sha256_hex(chunk_text),
-        )
 
     def _write_chunk_records(
         self,
@@ -218,7 +181,9 @@ class ChunkTextProcessor(BaseProcessor):
         *,
         source_text: str,
         stages: list[ChunkingStage],
-    ) -> list[Document]:
+        source_uri: str,
+        source_metadata: SourceDocumentMetadata,
+    ) -> list[ChunkResult]:
         """Apply each LangChain stage sequentially, feeding one stage output into the next.
 
         Starts from raw source text, then repeatedly splits either:
@@ -234,7 +199,49 @@ class ChunkTextProcessor(BaseProcessor):
                 splitter=splitter,
                 docs=docs,
             )
-        return docs
+        return self._build_chunk_results(
+            docs=docs,
+            stages=stages,
+            source_uri=source_uri,
+            source_metadata=source_metadata,
+        )
+
+    def _build_chunk_results(
+        self,
+        *,
+        docs: list[Document],
+        stages: list[ChunkingStage],
+        source_uri: str,
+        source_metadata: SourceDocumentMetadata,
+    ) -> list[ChunkResult]:
+        source_metadata_payload = source_metadata.to_dict()
+        processor_metadata_payload = self.processor_metadata.to_dict()
+        stages_payload = [stage.to_serializable_dict() for stage in stages]
+        resolved_chunks: list[ChunkResult] = []
+        for doc in docs:
+            chunk_text = str(doc.page_content)
+            offsets_start = int(doc.metadata.get("start_index", 0))
+            offsets_end = offsets_start + len(chunk_text)
+            resolved_chunks.append(
+                ChunkResult(
+                    chunk_id=build_id(
+                        source_uri=source_uri,
+                        source_metadata=source_metadata_payload,
+                        processor=processor_metadata_payload,
+                        params=stages_payload,
+                        content={
+                            "chunk_text": chunk_text,
+                            "offsets_start": offsets_start,
+                            "offsets_end": offsets_end,
+                        },
+                    ),
+                    chunk_text=chunk_text,
+                    offsets_start=offsets_start,
+                    offsets_end=offsets_end,
+                    chunk_text_hash=sha256_hex(chunk_text),
+                )
+            )
+        return resolved_chunks
 
     def _apply_stage(
         self,

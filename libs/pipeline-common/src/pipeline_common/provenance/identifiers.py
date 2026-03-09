@@ -34,6 +34,6 @@ def embedding_params_hash(embedder_params: dict[str, Any]) -> str:
     return sha256_hex(canonical_json(embedder_params))
 
 
-def build_id(**kwargs: str | int) -> str:
+def build_id(**kwargs: Any) -> str:
     """Build deterministic identifier from keyword payload."""
     return sha256_hex(canonical_json(kwargs))

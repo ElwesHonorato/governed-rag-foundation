@@ -1,3 +1,4 @@
+from functools import cached_property
 from typing import ClassVar
 
 from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata
@@ -13,3 +14,7 @@ class BaseProcessor:
             version=self.VERSION,
             stage_name=self.STAGE_NAME,
         )
+
+    @cached_property
+    def processor_metadata(self) -> ProcessorMetadata:
+        return self._build_processor_metadata()

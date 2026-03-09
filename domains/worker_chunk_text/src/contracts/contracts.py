@@ -110,7 +110,7 @@ class ChunkBuildContext:
 
 
 @dataclass(frozen=True)
-class ResolvedChunkContent:
+class ChunkResult:
     chunk_id: str
     chunk_text: str
     offsets_start: int

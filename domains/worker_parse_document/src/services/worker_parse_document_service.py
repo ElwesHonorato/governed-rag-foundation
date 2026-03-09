@@ -8,6 +8,7 @@ from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, StageQueue
 from pipeline_common.helpers.contracts import doc_id_from_source_key, utc_now_iso
+from pipeline_common.provenance import source_content_hash
 from pipeline_common.startup.contracts import WorkerService
 from parsing.registry import ParserRegistry
 from services.parse_flow_components import (
@@ -106,13 +107,13 @@ class WorkerParseDocumentService(WorkerService):
         return True
 
     def _build_processed_payload(self, parse_job: ParseWorkItem) -> dict[str, Any]:
-        raw_text = self.object_storage.read_object(self.storage_bucket, parse_job.source_key).decode(
-            "utf-8", errors="ignore"
-        )
+        raw_payload = self.object_storage.read_object(self.storage_bucket, parse_job.source_key)
+        raw_text = raw_payload.decode("utf-8", errors="ignore")
         return self.parser_processor.build_payload(
             source_key=parse_job.source_key,
             doc_id=parse_job.doc_id,
             raw_text=raw_text,
+            raw_content_hash=source_content_hash(raw_payload),
             timestamp=utc_now_iso(),
         )
 

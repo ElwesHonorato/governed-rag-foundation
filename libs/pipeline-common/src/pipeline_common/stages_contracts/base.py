@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from enum import StrEnum
-from typing import Any, ClassVar, Mapping
+from typing import Any, ClassVar
 
 PROCESSED_DOCUMENT_SCHEMA_VERSION = "1.0"
 
@@ -20,6 +20,7 @@ class SourceDocumentMetadata:
     FIELD_SECURITY_CLEARANCE: ClassVar[str] = "security_clearance"
     FIELD_SOURCE_TYPE: ClassVar[str] = "source_type"
     FIELD_CONTENT_TYPE: ClassVar[str] = "content_type"
+    FIELD_SOURCE_CONTENT_HASH: ClassVar[str] = "source_content_hash"
 
     schema_version: str
     doc_id: str
@@ -28,6 +29,7 @@ class SourceDocumentMetadata:
     security_clearance: str
     source_type: str
     content_type: str
+    source_content_hash: str
 
     @classmethod
     def build(
@@ -39,6 +41,7 @@ class SourceDocumentMetadata:
         security_clearance: str,
         source_type: str,
         content_type: str,
+        source_content_hash: str,
     ) -> "SourceDocumentMetadata":
         """Build versioned processed-document metadata."""
         return cls(
@@ -49,6 +52,7 @@ class SourceDocumentMetadata:
             security_clearance=str(security_clearance),
             source_type=str(source_type),
             content_type=str(content_type),
+            source_content_hash=str(source_content_hash),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -61,23 +65,8 @@ class SourceDocumentMetadata:
             self.FIELD_SECURITY_CLEARANCE: self.security_clearance,
             self.FIELD_SOURCE_TYPE: self.source_type,
             self.FIELD_CONTENT_TYPE: self.content_type,
+            self.FIELD_SOURCE_CONTENT_HASH: self.source_content_hash,
         }
-
-    @classmethod
-    def from_payload(cls, payload: Mapping[str, Any]) -> "SourceDocumentMetadata":
-        """Parse metadata fields from a flat processed-document payload."""
-        return cls(
-            **{
-                "schema_version": str(payload[cls.FIELD_SCHEMA_VERSION]),
-                "doc_id": str(payload[cls.FIELD_DOC_ID]),
-                "source_key": str(payload[cls.FIELD_SOURCE_KEY]),
-                "timestamp": str(payload[cls.FIELD_TIMESTAMP]),
-                "security_clearance": str(payload[cls.FIELD_SECURITY_CLEARANCE]),
-                "source_type": str(payload[cls.FIELD_SOURCE_TYPE]),
-                "content_type": str(payload[cls.FIELD_CONTENT_TYPE]),
-            }
-        )
-
 
 @dataclass(frozen=True)
 class ProcessorMetadata:

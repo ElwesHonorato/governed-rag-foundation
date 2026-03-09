@@ -12,15 +12,14 @@ from services.chunk_text_processor import ChunkProcessResult, ChunkTextProcessor
 
 class ChunkManifestFactory:
     def build(self, process_result: ChunkProcessResult) -> ChunkManifest:
-        chunking_input_metadata = process_result.chunking_input_metadata
-        source_metadata = chunking_input_metadata.source_metadata
-        source_uri = chunking_input_metadata.input_dataset_urn
+        source_metadata = process_result.source_metadata
+        source_uri = process_result.source_uri
 
         lineage = ChunkManifestLineage(
             source_asset_id=source_uri,
             source_hash=sha256_hex(source_uri),
             content_type=source_metadata.content_type,
-            document_hash=chunking_input_metadata.input_content_hash,
+            document_hash=process_result.input_content_hash,
             parser_version=process_result.processor_metadata.version,
         )
 

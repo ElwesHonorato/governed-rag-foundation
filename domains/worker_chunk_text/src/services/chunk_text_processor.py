@@ -139,7 +139,9 @@ class ChunkTextProcessor(BaseProcessor):
     ) -> list[ChunkArtifactRecord]:
         records: list[ChunkArtifactRecord] = []
         for chunk_index, chunk_document in enumerate(documents):
-            resolved_content = self._resolve_chunk_content(chunk_document)
+            resolved_content: ResolvedChunkContent = self._resolve_chunk_content(
+                chunk_document
+            )
 
             resolved_chunk_id = build_chunk_id(
                 source_dataset_urn=chunking_input_metadata.input_dataset_urn,
@@ -156,30 +158,31 @@ class ChunkTextProcessor(BaseProcessor):
                 chunk_id=resolved_chunk_id,
             )
 
-            records.append(
-                ChunkArtifactRecord(
-                    payload=ChunkArtifactPayload(
-                        source_metadata=chunking_input_metadata.source_metadata,
-                        provenance=ChunkProvenanceEnvelope(
-                            chunk_id=resolved_chunk_id,
-                            source_dataset_urn=chunking_input_metadata.input_dataset_urn,
-                            source_s3_uri=chunking_input_metadata.input_dataset_urn,
-                            source_content_hash=chunking_input_metadata.input_content_hash,
-                            chunk_s3_uri=f"s3a://{self.storage_bucket}/{chunk_object_key}",
-                            offsets_start=resolved_content.offsets_start,
-                            offsets_end=resolved_content.offsets_end,
-                            breadcrumb=f"chunk[{chunk_index}]",
-                            chunk_text_hash=resolved_content.chunk_text_hash,
-                            chunker_version=self.VERSION,
-                            chunk_params_hash=chunk_build_context.chunk_params_hash,
-                            run_id=chunk_build_context.run_id,
-                        ),
-                        chunk_index=chunk_index,
-                        chunk_text=resolved_content.chunk_text,
-                    ),
-                    destination_key=chunk_object_key,
-                )
+            provenance: ChunkProvenanceEnvelope = ChunkProvenanceEnvelope(
+                chunk_id=resolved_chunk_id,
+                source_dataset_urn=chunking_input_metadata.input_dataset_urn,
+                source_s3_uri=chunking_input_metadata.input_dataset_urn,
+                source_content_hash=chunking_input_metadata.input_content_hash,
+                chunk_s3_uri=f"s3a://{self.storage_bucket}/{chunk_object_key}",
+                offsets_start=resolved_content.offsets_start,
+                offsets_end=resolved_content.offsets_end,
+                breadcrumb=f"chunk[{chunk_index}]",
+                chunk_text_hash=resolved_content.chunk_text_hash,
+                chunker_version=self.VERSION,
+                chunk_params_hash=chunk_build_context.chunk_params_hash,
+                run_id=chunk_build_context.run_id,
             )
+            payload: ChunkArtifactPayload = ChunkArtifactPayload(
+                source_metadata=chunking_input_metadata.source_metadata,
+                provenance=provenance,
+                chunk_index=chunk_index,
+                chunk_text=resolved_content.chunk_text,
+            )
+            chunk_record: ChunkArtifactRecord = ChunkArtifactRecord(
+                payload=payload,
+                destination_key=chunk_object_key,
+            )
+            records.append(chunk_record)
 
         return records
 

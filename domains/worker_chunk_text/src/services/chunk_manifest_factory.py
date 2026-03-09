@@ -1,36 +1,19 @@
 from contracts.contracts import (
-    ChunkManifest,
-    ChunkManifestOutput,
-    ChunkManifestProcessing,
+    CHUNK_MANIFEST_SCHEMA_VERSION,
     ChunkProcessResult,
 )
-from services.chunk_text_processor import ChunkTextProcessor
 
 
 class ChunkManifestFactory:
-    def build(self, process_result: ChunkProcessResult) -> ChunkManifest:
+    def build(self, process_result: ChunkProcessResult) -> dict[str, object]:
         source_metadata = process_result.source_metadata
 
-        processing = ChunkManifestProcessing(
-            run_id=process_result.run_id,
-            stage=process_result.processor_metadata.stage_name,
-            timestamp=source_metadata.timestamp,
-            chunker_version=ChunkTextProcessor.VERSION,
-            run_status=(
-                "complete"
-                if process_result.output.chunk_count_written == process_result.output.chunk_count_expected
-                else "partial"
-            ),
-        )
-
-        output = ChunkManifestOutput(
-            chunk_count_expected=process_result.output.chunk_count_expected,
-            chunk_count_written=process_result.output.chunk_count_written,
-        )
-
-        return ChunkManifest.build(
-            doc_id=source_metadata.doc_id,
-            processing=processing,
-            output=output,
-            chunks=process_result.output.chunk_entries,
-        )
+        return {
+            "schema_version": CHUNK_MANIFEST_SCHEMA_VERSION,
+            "doc_id": str(source_metadata.doc_id),
+            "output": {
+                "chunk_count_expected": process_result.output.chunk_count_expected,
+                "chunk_count_written": process_result.output.chunk_count_written,
+            },
+            "chunks": list(process_result.output.chunk_entries),
+        }

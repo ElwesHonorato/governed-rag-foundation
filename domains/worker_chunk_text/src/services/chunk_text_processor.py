@@ -15,7 +15,6 @@ from contracts.contracts import (
     ChunkArtifactPayload,
     ChunkArtifactRecord,
     ChunkBuildContext,
-    ChunkManifestEntry,
     ChunkProcessOutput,
     ChunkProcessResult,
     ResolvedChunkContent,
@@ -175,9 +174,9 @@ class ChunkTextProcessor(BaseProcessor):
     def _write_chunk_records(
         self,
         records: list[ChunkArtifactRecord],
-    ) -> tuple[int, list[ChunkManifestEntry]]:
+    ) -> tuple[int, list[dict[str, Any]]]:
         written = 0
-        chunk_entries: list[ChunkManifestEntry] = []
+        chunk_entries: list[dict[str, Any]] = []
 
         for chunk_record in records:
             chunk_entries.append(self._build_chunk_manifest_entry(chunk_record))
@@ -189,13 +188,13 @@ class ChunkTextProcessor(BaseProcessor):
     def _build_chunk_manifest_entry(
         self,
         chunk_record: ChunkArtifactRecord,
-    ) -> ChunkManifestEntry:
-        return ChunkManifestEntry(
-            chunk_id=chunk_record.chunk_id,
-            chunk_index=chunk_record.chunk_index,
-            chunk_hash=chunk_record.chunk_text_hash,
-            path=chunk_record.destination_key,
-        )
+    ) -> dict[str, Any]:
+        return {
+            "chunk_id": chunk_record.chunk_id,
+            "chunk_index": chunk_record.chunk_index,
+            "chunk_hash": chunk_record.chunk_text_hash,
+            "path": chunk_record.destination_key,
+        }
 
     def _write_chunk_object(self, chunk_record: ChunkArtifactRecord) -> None:
         self.object_storage.write_object(

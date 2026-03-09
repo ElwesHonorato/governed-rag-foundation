@@ -1,8 +1,7 @@
 import json
+from typing import Mapping
 
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
-
-from contracts.contracts import ChunkManifest
 
 
 class ChunkManifestWriter:
@@ -19,12 +18,12 @@ class ChunkManifestWriter:
         self.storage_bucket = storage_bucket
         self.manifest_prefix = manifest_prefix
 
-    def write(self, *, manifest: ChunkManifest, doc_id: str, run_id: str) -> None:
+    def write(self, *, manifest: Mapping[str, object], doc_id: str, run_id: str) -> None:
         self.object_storage.write_object(
             self.storage_bucket,
             self._manifest_object_key(doc_id=doc_id, run_id=run_id),
             json.dumps(
-                manifest.to_dict(),
+                dict(manifest),
                 sort_keys=True,
                 ensure_ascii=True,
                 separators=(",", ":"),

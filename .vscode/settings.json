@@ -1,0 +1,10 @@
+{
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/domains/worker_chunk_text/src",
+    "${workspaceFolder}/libs/pipeline-common/src",
+    "${workspaceFolder}/registry"
+  ],
+  "codex.commands": [
+    "/home/sultan/.codex/commands/commit-review.md"
+  ]
+}

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from enum import StrEnum
 from typing import Any, ClassVar
 
 PROCESSED_DOCUMENT_SCHEMA_VERSION = "1.0"
@@ -79,14 +78,3 @@ class ProcessorMetadata:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
-
-
-class RegistryRowContract:
-    """Shared behavior for provenance registry row contracts."""
-
-    status: StrEnum
-
-    def dump(self) -> dict[str, Any]:
-        payload = asdict(self)
-        payload["status"] = self.status.value
-        return payload

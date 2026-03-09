@@ -55,24 +55,3 @@ def build_chunk_id(
         ]
     )
     return sha256_hex(payload)
-
-
-def build_embedding_id(
-    *,
-    chunk_id: str,
-    embedder_name: str,
-    embedder_version: str,
-    embedding_params_hash_value: str,
-    index_target: str,
-) -> str:
-    """Build deterministic embedding identifier."""
-    payload = "|".join(
-        [
-            chunk_id,
-            embedder_name,
-            embedder_version,
-            embedding_params_hash_value,
-            index_target,
-        ]
-    )
-    return sha256_hex(payload)

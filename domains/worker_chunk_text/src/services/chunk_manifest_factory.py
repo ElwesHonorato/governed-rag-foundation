@@ -1,5 +1,4 @@
 from contracts.contracts import (
-    ChunkerConfig,
     ChunkManifest,
     ChunkManifestOutput,
     ChunkManifestProcessing,
@@ -21,10 +20,6 @@ class ChunkManifestFactory:
                 "complete"
                 if process_result.output.chunk_count_written == process_result.output.chunk_count_expected
                 else "partial"
-            ),
-            chunker=ChunkerConfig(
-                class_name=str(process_result.output.chunking_params["stages"][-1]["processor"]),
-                params=dict(process_result.output.chunking_params),
             ),
         )
 

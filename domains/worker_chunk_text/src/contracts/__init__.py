@@ -17,7 +17,6 @@ from contracts.contracts import (
     ChunkTextStorageConfigContract,
     ChunkTextWorkerConfigContract,
     ResolvedChunkContent,
-    ChunkerConfig,
     RunStatus,
 )
 
@@ -25,7 +24,6 @@ __all__ = [
     "CHUNK_MANIFEST_SCHEMA_VERSION",
     "ChunkArtifactRecord",
     "ChunkBuildContext",
-    "ChunkerConfig",
     "ChunkManifest",
     "ChunkManifestEntry",
     "ChunkManifestOutput",

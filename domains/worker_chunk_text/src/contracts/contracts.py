@@ -52,35 +52,12 @@ class ChunkTextWorkerConfigContract:
 
 
 @dataclass(frozen=True)
-class ChunkerConfig:
-    class_name: str
-    params: dict[str, Any]
-
-    @classmethod
-    def from_chunking_params(cls, chunking_params: Mapping[str, Any]) -> "ChunkerConfig":
-        chunker = chunking_params["chunker"]
-        class_name = getattr(chunker, "__name__", str(chunker))
-        return cls(
-            class_name=str(class_name),
-            params=dict(chunking_params["params"]),
-        )
-
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "ChunkerConfig":
-        return cls(
-            class_name=str(data["class_name"]),
-            params=dict(data["params"]),
-        )
-
-
-@dataclass(frozen=True)
 class ChunkManifestProcessing:
     run_id: str
     stage: str
     timestamp: str
     chunker_version: str
     run_status: RunStatus
-    chunker: ChunkerConfig
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> "ChunkManifestProcessing":
@@ -90,7 +67,6 @@ class ChunkManifestProcessing:
             timestamp=str(data["timestamp"]),
             chunker_version=str(data["chunker_version"]),
             run_status=data["run_status"],
-            chunker=ChunkerConfig.from_dict(data["chunker"]),
         )
 
 

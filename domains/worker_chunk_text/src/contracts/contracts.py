@@ -62,7 +62,7 @@ class ChunkingExecutionResult:
     chunk_count_expected: int
     chunk_count_written: int
     chunk_entries: list[dict[str, Any]]
-    chunking_params: dict[str, Any]
+    processor_context: ProcessorContext
     status: ChunkExecutionStatus = field(init=False)
 
     def __post_init__(self) -> None:
@@ -98,15 +98,14 @@ class ProcessResult:
     run_id: str
     source_metadata: SourceDocumentMetadata
     source_uri: str
-    input_content_hash: str
     processor: ProcessorMetadata
     result: ChunkingExecutionResult
 
 
 @dataclass(frozen=True)
-class ChunkBuildContext:
-    chunk_params_hash: str
-    chunking_params: dict[str, Any]
+class ProcessorContext:
+    params_hash: str
+    params: list[dict[str, Any]]
 
 
 @dataclass(frozen=True)

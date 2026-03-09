@@ -118,8 +118,8 @@ class ChunkingStage:
 class ChunkingStages:
     stages: list[ChunkingStage]
 
-    def to_serializable_dict(self) -> dict[str, Any]:
-        return {"stages": [stage.to_serializable_dict() for stage in self.stages]}
+    def to_serializable_dict(self) -> list[dict[str, Any]]:
+        return [stage.to_serializable_dict() for stage in self.stages]
 
 
 CHUNKING_SCAFFOLD: dict[ChunkingScaffoldKey, list[ChunkingStage]] = {

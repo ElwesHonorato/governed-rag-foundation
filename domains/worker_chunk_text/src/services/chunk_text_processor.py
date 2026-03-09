@@ -15,10 +15,10 @@ from pipeline_common.stages_contracts import (
 from contracts.contracts import (
     ChunkArtifactPayload,
     ChunkArtifactRecord,
-    ChunkBuildContext,
     ChunkResult,
     ChunkingExecutionResult,
     ProcessResult,
+    ProcessorContext,
     SourceDocumentMetadata,
 )
 
@@ -69,22 +69,24 @@ class ChunkTextProcessor(BaseProcessor):
     ) -> ProcessResult:
         """Run the golden path once: stage-chain split and persist chunk artifacts."""
         serialized_stages = stages.to_serializable_dict()
-        source_text = processed_payload.content.text
         source_metadata = processed_payload.source_metadata
-        input_content_hash = source_metadata.source_content_hash
-        chunk_build_context = ChunkBuildContext(
-            chunk_params_hash=chunk_params_hash(serialized_stages),
-            chunking_params=serialized_stages,
+        processor_context = ProcessorContext(
+            params_hash=chunk_params_hash(serialized_stages),
+            params=serialized_stages,
         )
-        resolved_chunks = self._process_stages(
-            source_text=source_text,
+        docs = self._process_stages(
+            source_text=processed_payload.content.text,
             stages=stages.stages,
+        )
+        chunk_artifacts = self._build_chunk_artifacts(
+            docs=docs,
+            serialized_stages=serialized_stages,
             source_uri=source_uri,
             source_metadata=source_metadata,
         )
 
         records = self._build_chunk_records(
-            resolved_chunks=resolved_chunks,
+            resolved_chunks=chunk_artifacts,
             run_id=run_id,
             source_metadata=source_metadata,
         )
@@ -95,13 +97,12 @@ class ChunkTextProcessor(BaseProcessor):
             run_id=run_id,
             source_metadata=source_metadata,
             source_uri=source_uri,
-            input_content_hash=input_content_hash,
             processor=self.processor_metadata,
             result=ChunkingExecutionResult(
-                chunk_count_expected=len(records),
+                chunk_count_expected=len(chunk_artifacts),
                 chunk_count_written=written,
                 chunk_entries=chunk_entries,
-                chunking_params=chunk_build_context.chunking_params,
+                processor_context=processor_context,
             ),
         )
 
@@ -181,9 +182,7 @@ class ChunkTextProcessor(BaseProcessor):
         *,
         source_text: str,
         stages: list[ChunkingStage],
-        source_uri: str,
-        source_metadata: SourceDocumentMetadata,
-    ) -> list[ChunkResult]:
+    ) -> list[Document]:
         """Apply each LangChain stage sequentially, feeding one stage output into the next.
 
         Starts from raw source text, then repeatedly splits either:
@@ -199,24 +198,18 @@ class ChunkTextProcessor(BaseProcessor):
                 splitter=splitter,
                 docs=docs,
             )
-        return self._build_chunk_results(
-            docs=docs,
-            stages=stages,
-            source_uri=source_uri,
-            source_metadata=source_metadata,
-        )
+        return docs
 
-    def _build_chunk_results(
+    def _build_chunk_artifacts(
         self,
         *,
         docs: list[Document],
-        stages: list[ChunkingStage],
+        serialized_stages: list[dict[str, Any]],
         source_uri: str,
         source_metadata: SourceDocumentMetadata,
     ) -> list[ChunkResult]:
         source_metadata_payload = source_metadata.to_dict()
         processor_metadata_payload = self.processor_metadata.to_dict()
-        stages_payload = [stage.to_serializable_dict() for stage in stages]
         resolved_chunks: list[ChunkResult] = []
         for doc in docs:
             chunk_text = str(doc.page_content)
@@ -228,7 +221,7 @@ class ChunkTextProcessor(BaseProcessor):
                         source_uri=source_uri,
                         source_metadata=source_metadata_payload,
                         processor=processor_metadata_payload,
-                        params=stages_payload,
+                        params=serialized_stages,
                         content={
                             "chunk_text": chunk_text,
                             "offsets_start": offsets_start,

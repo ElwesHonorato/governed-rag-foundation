@@ -16,7 +16,7 @@ from contracts.contracts import (
     ChunkArtifactRecord,
     ChunkBuildContext,
     ChunkingExecutionResult,
-    ChunkProcessResult,
+    ProcessResult,
     ResolvedChunkContent,
     SourceDocumentMetadata,
 )
@@ -50,7 +50,7 @@ class ChunkTextProcessor(BaseProcessor):
         source_uri: str,
         run_id: str,
         stages: ChunkingStages,
-    ) -> ChunkProcessResult:
+    ) -> ProcessResult:
         return self.process_stage(
             processed_payload=processed_payload,
             source_uri=source_uri,
@@ -65,7 +65,7 @@ class ChunkTextProcessor(BaseProcessor):
         source_uri: str,
         run_id: str,
         stages: ChunkingStages,
-    ) -> ChunkProcessResult:
+    ) -> ProcessResult:
         """Run the golden path once: stage-chain split and persist chunk artifacts."""
         serialized_stages = stages.to_serializable_dict()
         source_text = processed_payload.content.text
@@ -92,7 +92,7 @@ class ChunkTextProcessor(BaseProcessor):
 
         written, chunk_entries = self._write_chunk_records(records)
 
-        return ChunkProcessResult(
+        return ProcessResult(
             run_id=run_id,
             source_metadata=source_metadata,
             source_uri=source_uri,

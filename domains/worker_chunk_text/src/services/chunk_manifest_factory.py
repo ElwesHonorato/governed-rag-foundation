@@ -1,11 +1,11 @@
 from contracts.contracts import (
     CHUNK_MANIFEST_SCHEMA_VERSION,
-    ChunkProcessResult,
+    ProcessResult,
 )
 
 
 class ChunkManifestFactory:
-    def build(self, process_result: ChunkProcessResult) -> dict[str, object]:
+    def build(self, process_result: ProcessResult) -> dict[str, object]:
         source_metadata = process_result.source_metadata
 
         return {

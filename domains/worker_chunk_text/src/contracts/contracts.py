@@ -94,7 +94,7 @@ class ChunkArtifactRecord:
 
 
 @dataclass(frozen=True)
-class ChunkProcessResult:
+class ProcessResult:
     run_id: str
     source_metadata: SourceDocumentMetadata
     source_uri: str

@@ -78,7 +78,6 @@ class ChunkTextProcessor(BaseProcessor):
         documents = self._process_stages(
             source_text=source_text,
             stages=stages.stages,
-            source_metadata=source_metadata,
         )
 
         records = self._build_chunk_records(
@@ -218,7 +217,6 @@ class ChunkTextProcessor(BaseProcessor):
         *,
         source_text: str,
         stages: list[ChunkingStage],
-        source_metadata: SourceDocumentMetadata,
     ) -> list[Any]:
         """Apply each LangChain stage sequentially, feeding one stage output into the next.
 
@@ -234,7 +232,6 @@ class ChunkTextProcessor(BaseProcessor):
             docs = self._apply_stage(
                 splitter=splitter,
                 docs=docs,
-                source_metadata=source_metadata,
             )
         return docs
 
@@ -243,15 +240,11 @@ class ChunkTextProcessor(BaseProcessor):
         *,
         splitter: CentralTextSplitter,
         docs: list[Any],
-        source_metadata: SourceDocumentMetadata,
     ) -> list[Any]:
         if self._docs_are_documents(docs):
             return splitter.split_documents(documents=docs)
         texts = [str(item) for item in docs]
-        return splitter.create_documents(
-            texts=texts,
-            metadatas=[dict(source_metadata.to_dict()) for _ in texts],
-        )
+        return splitter.create_documents(texts=texts)
 
     def _docs_are_documents(self, docs: list[Any]) -> bool:
         return bool(docs) and hasattr(docs[0], "page_content")

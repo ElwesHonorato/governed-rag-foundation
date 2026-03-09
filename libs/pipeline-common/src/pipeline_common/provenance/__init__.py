@@ -1,7 +1,6 @@
 """Chunk and embedding provenance registry primitives."""
 
 from pipeline_common.stages_contracts.step_20_chunk import (
-    ChunkRegistryRow,
     ChunkRegistryStatus,
 )
 from pipeline_common.stages_contracts.step_30_embed import (
@@ -20,7 +19,6 @@ from pipeline_common.provenance.identifiers import (
 )
 
 __all__ = [
-    "ChunkRegistryRow",
     "ChunkRegistryStatus",
     "EmbeddingRegistryRow",
     "EmbeddingRegistryStatus",

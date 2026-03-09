@@ -9,7 +9,6 @@ from pipeline_common.stages_contracts.step_00_common import (
 from pipeline_common.stages_contracts.base_processor import BaseProcessor
 from pipeline_common.stages_contracts.step_10_artifact_payloads import ArtifactPayload, ParsedTextPayload
 from pipeline_common.stages_contracts.step_20_chunk import (
-    ChunkRegistryRow,
     ChunkRegistryStatus,
 )
 from pipeline_common.stages_contracts.step_30_embed import (
@@ -26,7 +25,6 @@ __all__ = [
     "ArtifactPayload",
     "RegistryRowContract",
     "BaseProcessor",
-    "ChunkRegistryRow",
     "ChunkRegistryStatus",
     "EmbeddingRegistryRow",
     "EmbeddingRegistryStatus",

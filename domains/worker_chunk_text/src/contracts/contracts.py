@@ -105,7 +105,6 @@ class ProcessResult:
 
 @dataclass(frozen=True)
 class ChunkBuildContext:
-    run_id: str
     chunk_params_hash: str
     chunking_params: dict[str, Any]
 

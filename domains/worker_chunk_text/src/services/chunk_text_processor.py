@@ -72,7 +72,6 @@ class ChunkTextProcessor(BaseProcessor):
         source_metadata = processed_payload.source_metadata
         input_content_hash = source_metadata.source_content_hash
         chunk_build_context = ChunkBuildContext(
-            run_id=run_id,
             chunk_params_hash=chunk_params_hash(serialized_stages),
             chunking_params=serialized_stages,
         )
@@ -84,6 +83,7 @@ class ChunkTextProcessor(BaseProcessor):
 
         records = self._build_chunk_records(
             documents=documents,
+            run_id=run_id,
             source_metadata=source_metadata,
             source_uri=source_uri,
             input_content_hash=input_content_hash,
@@ -109,6 +109,7 @@ class ChunkTextProcessor(BaseProcessor):
     def _build_chunk_records(
         self,
         documents: list[Any],
+        run_id: str,
         source_metadata: SourceDocumentMetadata,
         source_uri: str,
         input_content_hash: str,
@@ -125,7 +126,7 @@ class ChunkTextProcessor(BaseProcessor):
 
             chunk_object_key = self._chunk_object_key(
                 doc_id=source_metadata.doc_id,
-                run_id=chunk_build_context.run_id,
+                run_id=run_id,
                 chunk_id=resolved_content.chunk_id,
             )
 

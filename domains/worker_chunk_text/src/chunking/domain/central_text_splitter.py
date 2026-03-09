@@ -3,6 +3,7 @@
 from dataclasses import asdict
 from typing import Any
 
+from langchain_core.documents import Document
 from configs.chunking_scaffold import ChunkingStage
 
 
@@ -23,10 +24,10 @@ class CentralTextSplitter:
     ) -> Any:
         return chunker(**params)
 
-    def create_documents(self, **kwargs: Any) -> list[Any]:
+    def create_documents(self, **kwargs: Any) -> list[Document]:
         """Create LangChain documents from source texts."""
         return self._splitter.create_documents(**kwargs)
 
-    def split_documents(self, **kwargs: Any) -> list[Any]:
+    def split_documents(self, **kwargs: Any) -> list[Document]:
         """Split existing LangChain documents."""
         return self._splitter.split_documents(**kwargs)

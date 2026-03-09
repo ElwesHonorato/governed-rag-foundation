@@ -2,13 +2,20 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any
 
 from pipeline_common.stages_contracts import ChunkArtifactPayload
 from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata, SourceDocumentMetadata
 
 CHUNK_MANIFEST_SCHEMA_VERSION = "1.0"
+
+
+class ChunkExecutionStatus(str, Enum):
+    FAIL = "fail"
+    SUCCESS = "success"
+    PARTIAL = "partial"
 
 
 @dataclass(frozen=True)
@@ -51,11 +58,30 @@ class ChunkTextWorkerConfigContract:
 
 
 @dataclass(frozen=True)
-class ChunkProcessOutput:
+class ChunkingExecutionResult:
     chunk_count_expected: int
     chunk_count_written: int
     chunk_entries: list[dict[str, Any]]
     chunking_params: dict[str, Any]
+    status: ChunkExecutionStatus = field(init=False)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "status",
+            self.resolve_status(
+                chunk_count_expected=self.chunk_count_expected,
+                chunk_count_written=self.chunk_count_written,
+            ),
+        )
+
+    @classmethod
+    def resolve_status(cls, *, chunk_count_expected: int, chunk_count_written: int) -> ChunkExecutionStatus:
+        if chunk_count_written == chunk_count_expected:
+            return ChunkExecutionStatus.SUCCESS
+        if chunk_count_written > 0:
+            return ChunkExecutionStatus.PARTIAL
+        return ChunkExecutionStatus.FAIL
 
 
 @dataclass(frozen=True)
@@ -74,7 +100,7 @@ class ChunkProcessResult:
     source_uri: str
     input_content_hash: str
     processor_metadata: ProcessorMetadata
-    output: ChunkProcessOutput
+    output: ChunkingExecutionResult
 
 
 @dataclass(frozen=True)

@@ -15,7 +15,7 @@ from contracts.contracts import (
     ChunkArtifactPayload,
     ChunkArtifactRecord,
     ChunkBuildContext,
-    ChunkProcessOutput,
+    ChunkingExecutionResult,
     ChunkProcessResult,
     ResolvedChunkContent,
     SourceDocumentMetadata,
@@ -98,7 +98,7 @@ class ChunkTextProcessor(BaseProcessor):
             source_uri=source_uri,
             input_content_hash=input_content_hash,
             processor_metadata=self._build_processor_metadata(),
-            output=ChunkProcessOutput(
+            output=ChunkingExecutionResult(
                 chunk_count_expected=len(records),
                 chunk_count_written=written,
                 chunk_entries=chunk_entries,

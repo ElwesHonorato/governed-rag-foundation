@@ -6,11 +6,10 @@ from chunking.domain.central_text_splitter import CentralTextSplitter
 from configs.chunking_scaffold import ChunkingStage, ChunkingStages
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.provenance import build_chunk_id, chunk_params_hash, sha256_hex
-from pipeline_common.stages_contracts.base import ProcessorMetadata, SourceDocumentMetadata
+from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata, SourceDocumentMetadata
 from pipeline_common.stages_contracts import (
     ArtifactPayload,
     BaseProcessor,
-    ChunkProvenanceEnvelope,
     ParsedTextPayload,
 )
 
@@ -160,20 +159,6 @@ class ChunkTextProcessor(BaseProcessor):
                 chunk_id=resolved_content.chunk_id,
             )
 
-            provenance: ChunkProvenanceEnvelope = ChunkProvenanceEnvelope(
-                chunk_id=resolved_content.chunk_id,
-                source_dataset_urn=source_uri,
-                source_s3_uri=source_uri,
-                source_content_hash=input_content_hash,
-                chunk_s3_uri=f"s3a://{self.storage_bucket}/{chunk_object_key}",
-                offsets_start=resolved_content.offsets_start,
-                offsets_end=resolved_content.offsets_end,
-                breadcrumb=f"chunk[{chunk_index}]",
-                chunk_text_hash=resolved_content.chunk_text_hash,
-                chunker_version=self.VERSION,
-                chunk_params_hash=chunk_build_context.chunk_params_hash,
-                run_id=chunk_build_context.run_id,
-            )
             payload: ArtifactPayload[ParsedTextPayload] = ArtifactPayload(
                 source_metadata=source_metadata,
                 processor_metadata=self._build_processor_metadata(),

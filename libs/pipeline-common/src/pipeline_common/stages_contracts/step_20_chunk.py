@@ -18,8 +18,8 @@ class ChunkRegistryStatus(StrEnum):
 
 
 @dataclass(frozen=True)
-class ChunkProvenanceEnvelope:
-    """Canonical chunk provenance envelope contract."""
+class ChunkRegistryRow(RegistryRowContract):
+    """Authoritative chunking registry row contract."""
 
     chunk_id: str
     source_dataset_urn: str
@@ -33,33 +33,9 @@ class ChunkProvenanceEnvelope:
     chunker_version: str
     chunk_params_hash: str
     run_id: str
-
-    def to_dict(self) -> dict[str, Any]:
-        """Serialize envelope for artifact persistence."""
-        return asdict(self)
-
-
-@dataclass(frozen=True)
-class ChunkRegistryRow(ChunkProvenanceEnvelope, RegistryRowContract):
-    """Authoritative chunking registry row contract."""
-
     created_at: str
     observed_at: str
     status: ChunkRegistryStatus
 
-    @classmethod
-    def from_envelope(
-        cls,
-        *,
-        envelope: ChunkProvenanceEnvelope,
-        created_at: str,
-        observed_at: str,
-        status: ChunkRegistryStatus,
-    ) -> "ChunkRegistryRow":
-        """Build a registry row from a canonical chunk provenance envelope."""
-        return cls(
-            **envelope.to_dict(),
-            created_at=created_at,
-            observed_at=observed_at,
-            status=status,
-        )
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)

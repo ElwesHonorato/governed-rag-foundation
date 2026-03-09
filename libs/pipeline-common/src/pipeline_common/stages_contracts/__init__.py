@@ -11,7 +11,6 @@ from pipeline_common.stages_contracts.step_10_artifact_payloads import ArtifactP
 from pipeline_common.stages_contracts.step_20_chunk import (
     ChunkRegistryRow,
     ChunkRegistryStatus,
-    ChunkProvenanceEnvelope,
 )
 from pipeline_common.stages_contracts.step_30_embed import (
     EmbeddingProvenanceEnvelope,
@@ -29,7 +28,6 @@ __all__ = [
     "BaseProcessor",
     "ChunkRegistryRow",
     "ChunkRegistryStatus",
-    "ChunkProvenanceEnvelope",
     "EmbeddingRegistryRow",
     "EmbeddingRegistryStatus",
     "EmbeddingProvenanceEnvelope",

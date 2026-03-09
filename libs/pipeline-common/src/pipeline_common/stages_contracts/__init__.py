@@ -6,7 +6,11 @@ from pipeline_common.stages_contracts.step_00_common import (
     SourceDocumentMetadata,
 )
 from pipeline_common.stages_contracts.base_processor import BaseProcessor
-from pipeline_common.stages_contracts.step_10_artifact_payloads import ArtifactPayload, ParsedTextPayload
+from pipeline_common.stages_contracts.step_10_artifact_payloads import (
+    ArtifactPayload,
+    ChunkArtifactPayload,
+    ParsedTextPayload,
+)
 
 __all__ = [
     "PROCESSED_DOCUMENT_SCHEMA_VERSION",
@@ -14,5 +18,6 @@ __all__ = [
     "ProcessorMetadata",
     "ParsedTextPayload",
     "ArtifactPayload",
+    "ChunkArtifactPayload",
     "BaseProcessor",
 ]

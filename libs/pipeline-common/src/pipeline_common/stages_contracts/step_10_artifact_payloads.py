@@ -65,3 +65,8 @@ class ArtifactPayload(Generic[ContentT]):
     def to_dict(self) -> dict[str, Any]:
         """Serialize payload for object storage persistence."""
         return asdict(self)
+
+
+@dataclass(frozen=True)
+class ChunkArtifactPayload(ArtifactPayload[ParsedTextPayload]):
+    """Typed chunk artifact payload contract."""

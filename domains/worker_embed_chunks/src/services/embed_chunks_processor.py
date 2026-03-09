@@ -8,7 +8,7 @@ from typing import Any
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.processing_engine import SparkWriteGateway
 from pipeline_common.provenance import embedding_params_hash
-from pipeline_common.stages_contracts import ArtifactPayload, ParsedTextPayload
+from pipeline_common.stages_contracts import ChunkArtifactPayload, ParsedTextPayload
 from pyspark.sql import functions as spark_functions  # type: ignore
 from pyspark.sql import types as spark_types  # type: ignore
 
@@ -52,20 +52,20 @@ class EmbedChunksProcessor:
         return values
 
     @staticmethod
-    def read_chunk_payload(raw_payload: bytes) -> ArtifactPayload[ParsedTextPayload]:
+    def read_chunk_payload(raw_payload: bytes) -> ChunkArtifactPayload:
         payload = dict(json.loads(raw_payload.decode("utf-8", errors="ignore")))
-        return ArtifactPayload.from_dict(payload, content_type=ParsedTextPayload)
+        return ChunkArtifactPayload.from_dict(payload, content_type=ParsedTextPayload)
 
     def write_embedding_artifact(
         self,
-        payload: ArtifactPayload[ParsedTextPayload],
+        payload: ChunkArtifactPayload,
         *,
         embedding_run_id: str,
     ) -> EmbeddingWriteResult:
         embedding_payload = self._build_embedding_payload_local(payload, embedding_run_id=embedding_run_id)
         return self._write_embedding_payload(embedding_payload)
 
-    def build_input_record(self, payload: ArtifactPayload[ParsedTextPayload], *, embedding_run_id: str) -> dict[str, Any]:
+    def build_input_record(self, payload: ChunkArtifactPayload, *, embedding_run_id: str) -> dict[str, Any]:
         """Create one normalized record for Spark dataframe input."""
         text = payload.content.text
         source_metadata = payload.source_metadata
@@ -116,7 +116,7 @@ class EmbedChunksProcessor:
 
     def _build_embedding_payload_local(
         self,
-        payload: ArtifactPayload[ParsedTextPayload],
+        payload: ChunkArtifactPayload,
         *,
         embedding_run_id: str,
     ) -> dict[str, Any]:

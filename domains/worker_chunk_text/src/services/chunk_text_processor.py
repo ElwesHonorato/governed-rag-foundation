@@ -10,6 +10,7 @@ from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata, S
 from pipeline_common.stages_contracts import (
     ArtifactPayload,
     BaseProcessor,
+    ChunkArtifactPayload,
     ParsedTextPayload,
 )
 
@@ -19,7 +20,7 @@ from contracts.chunk_manifest import ChunkManifestEntry
 
 @dataclass(frozen=True)
 class ChunkArtifactRecord:
-    payload: ArtifactPayload[ParsedTextPayload]
+    payload: ChunkArtifactPayload
     destination_key: str
     chunk_id: str
     chunk_index: int
@@ -159,7 +160,7 @@ class ChunkTextProcessor(BaseProcessor):
                 chunk_id=resolved_content.chunk_id,
             )
 
-            payload: ArtifactPayload[ParsedTextPayload] = ArtifactPayload(
+            payload: ChunkArtifactPayload = ChunkArtifactPayload(
                 source_metadata=source_metadata,
                 processor_metadata=self._build_processor_metadata(),
                 content=ParsedTextPayload(title="", text=resolved_content.chunk_text),

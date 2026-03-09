@@ -10,7 +10,7 @@ from pipeline_common.gateways.processing_engine import ReadGateway, WriteGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, StageQueue
 from pipeline_common.helpers.contracts import utc_now_iso
 from pipeline_common.startup.contracts import WorkerService
-from pipeline_common.stages_contracts import ArtifactPayload, ParsedTextPayload
+from pipeline_common.stages_contracts import ChunkArtifactPayload
 from services.embed_chunks_processor import EmbedChunksProcessor
 
 logger = logging.getLogger(__name__)
@@ -144,7 +144,7 @@ class WorkerEmbedChunksService(WorkerService):
             return None
         return {"source_key": source_key}
 
-    def _read_chunk_payload(self, source_key: str) -> ArtifactPayload[ParsedTextPayload]:
+    def _read_chunk_payload(self, source_key: str) -> ChunkArtifactPayload:
         raw_payload = self.object_storage.read_object(self.storage_bucket, source_key)
         return self.processor.read_chunk_payload(raw_payload)
 

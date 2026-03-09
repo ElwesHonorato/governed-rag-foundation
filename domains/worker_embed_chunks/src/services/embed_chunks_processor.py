@@ -8,7 +8,7 @@ from typing import Any
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.processing_engine import SparkWriteGateway
 from pipeline_common.provenance import embedding_params_hash
-from pipeline_common.stages_contracts import ChunkArtifactPayload
+from pipeline_common.stages_contracts import ArtifactPayload, ParsedTextPayload
 from pyspark.sql import functions as spark_functions  # type: ignore
 from pyspark.sql import types as spark_types  # type: ignore
 
@@ -52,36 +52,36 @@ class EmbedChunksProcessor:
         return values
 
     @staticmethod
-    def read_chunk_payload(raw_payload: bytes) -> ChunkArtifactPayload:
+    def read_chunk_payload(raw_payload: bytes) -> ArtifactPayload[ParsedTextPayload]:
         payload = dict(json.loads(raw_payload.decode("utf-8", errors="ignore")))
-        return ChunkArtifactPayload.from_dict(payload)
+        return ArtifactPayload.from_dict(payload, content_type=ParsedTextPayload)
 
     def write_embedding_artifact(
         self,
-        payload: ChunkArtifactPayload,
+        payload: ArtifactPayload[ParsedTextPayload],
         *,
         embedding_run_id: str,
     ) -> EmbeddingWriteResult:
         embedding_payload = self._build_embedding_payload_local(payload, embedding_run_id=embedding_run_id)
         return self._write_embedding_payload(embedding_payload)
 
-    def build_input_record(self, payload: ChunkArtifactPayload, *, embedding_run_id: str) -> dict[str, Any]:
+    def build_input_record(self, payload: ArtifactPayload[ParsedTextPayload], *, embedding_run_id: str) -> dict[str, Any]:
         """Create one normalized record for Spark dataframe input."""
-        text = payload.chunk_text
+        text = payload.content.text
         source_metadata = payload.source_metadata
-        provenance = payload.provenance
+        chunk_id = hashlib.sha256(f"{source_metadata.doc_id}:{text}".encode("utf-8")).hexdigest()
         embedder_params = {"dimension": int(self.dimension)}
         return {
             "doc_id": source_metadata.doc_id,
-            "chunk_id": provenance.chunk_id,
+            "chunk_id": chunk_id,
             "chunk_text": text,
             "source_type": source_metadata.source_type,
             "timestamp": source_metadata.timestamp,
             "security_clearance": source_metadata.security_clearance,
             "source_key": source_metadata.source_key,
-            "chunk_index": payload.chunk_index,
+            "chunk_index": 0,
             "dimension": int(self.dimension),
-            "run_id": provenance.run_id,
+            "run_id": "",
             "embedder_name": EMBEDDER_NAME,
             "embedder_version": EMBEDDER_VERSION,
             "embedding_params_hash": embedding_params_hash(embedder_params),
@@ -116,13 +116,13 @@ class EmbedChunksProcessor:
 
     def _build_embedding_payload_local(
         self,
-        payload: ChunkArtifactPayload,
+        payload: ArtifactPayload[ParsedTextPayload],
         *,
         embedding_run_id: str,
     ) -> dict[str, Any]:
-        text = payload.chunk_text
+        text = payload.content.text
         doc_id = payload.source_metadata.doc_id
-        chunk_id = payload.provenance.chunk_id
+        chunk_id = hashlib.sha256(f"{doc_id}:{text}".encode("utf-8")).hexdigest()
         embedder_params = {"dimension": int(self.dimension)}
         return {
             "doc_id": doc_id,
@@ -134,9 +134,9 @@ class EmbedChunksProcessor:
                 security_clearance=payload.source_metadata.security_clearance,
                 doc_id=doc_id,
                 source_key=payload.source_metadata.source_key,
-                chunk_index=payload.chunk_index,
+                chunk_index=0,
                 text=text,
-                run_id=payload.provenance.run_id,
+                run_id="",
                 embedder_name=EMBEDDER_NAME,
                 embedder_version=EMBEDDER_VERSION,
                 embedding_params_hash=embedding_params_hash(embedder_params),

@@ -6,10 +6,10 @@ import json
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Literal
 
-from pipeline_common.stages_contracts.stage_30_chunking import (
+from pipeline_common.stages_contracts.step_20_chunk import (
     ChunkRegistryRow,
 )
-from pipeline_common.stages_contracts.stage_40_embedding import (
+from pipeline_common.stages_contracts.step_30_embed import (
     EmbeddingProvenanceEnvelope,
     EmbeddingRegistryRow,
     EmbeddingRegistryStatus,

@@ -1,21 +1,19 @@
 """Numbered stage contracts for cross-worker payloads."""
 
-from pipeline_common.stages_contracts.base import (
+from pipeline_common.stages_contracts.step_00_common import (
     PROCESSED_DOCUMENT_SCHEMA_VERSION,
     ProcessorMetadata,
     SourceDocumentMetadata,
     RegistryRowContract,
 )
 from pipeline_common.stages_contracts.base_processor import BaseProcessor
-from pipeline_common.stages_contracts.stage_20_parser import ParsedArtifactPayload
-from pipeline_common.stages_contracts.stage_20_parser import ParsedTextPayload
-from pipeline_common.stages_contracts.stage_30_chunking import (
-    ChunkArtifactPayload,
+from pipeline_common.stages_contracts.step_10_artifact_payloads import ArtifactPayload, ParsedTextPayload
+from pipeline_common.stages_contracts.step_20_chunk import (
     ChunkRegistryRow,
     ChunkRegistryStatus,
     ChunkProvenanceEnvelope,
 )
-from pipeline_common.stages_contracts.stage_40_embedding import (
+from pipeline_common.stages_contracts.step_30_embed import (
     EmbeddingProvenanceEnvelope,
     EmbeddingRegistryRow,
     EmbeddingRegistryStatus,
@@ -26,10 +24,9 @@ __all__ = [
     "SourceDocumentMetadata",
     "ProcessorMetadata",
     "ParsedTextPayload",
-    "ParsedArtifactPayload",
+    "ArtifactPayload",
     "RegistryRowContract",
     "BaseProcessor",
-    "ChunkArtifactPayload",
     "ChunkRegistryRow",
     "ChunkRegistryStatus",
     "ChunkProvenanceEnvelope",

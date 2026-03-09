@@ -1,4 +1,4 @@
-"""Base contracts shared across stage payload contracts."""
+"""Step 00 shared stage contracts."""
 
 from __future__ import annotations
 
@@ -67,6 +67,7 @@ class SourceDocumentMetadata:
             self.FIELD_CONTENT_TYPE: self.content_type,
             self.FIELD_SOURCE_CONTENT_HASH: self.source_content_hash,
         }
+
 
 @dataclass(frozen=True)
 class ProcessorMetadata:

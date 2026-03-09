@@ -5,8 +5,8 @@ from typing import Any
 
 from parsing.registry import ParserRegistry
 from pipeline_common.stages_contracts import (
+    ArtifactPayload,
     BaseProcessor,
-    ParsedArtifactPayload,
     SourceDocumentMetadata,
 )
 from pipeline_common.gateways.queue import Envelope
@@ -58,10 +58,10 @@ class DocumentParserProcessor(BaseProcessor):
             source_content_hash=raw_content_hash,
         )
         processor_metadata = self._build_processor_metadata()
-        return ParsedArtifactPayload(
-            metadata=metadata,
+        return ArtifactPayload(
+            source_metadata=metadata,
             processor_metadata=processor_metadata,
-            parsed=parsed_payload,
+            content=parsed_payload,
         ).to_dict()
 
 

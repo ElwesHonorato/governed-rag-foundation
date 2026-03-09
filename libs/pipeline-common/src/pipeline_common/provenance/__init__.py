@@ -1,11 +1,11 @@
 """Chunk and embedding provenance registry primitives."""
 
-from pipeline_common.stages_contracts.stage_30_chunking import (
+from pipeline_common.stages_contracts.step_20_chunk import (
     ChunkProvenanceEnvelope,
     ChunkRegistryRow,
     ChunkRegistryStatus,
 )
-from pipeline_common.stages_contracts.stage_40_embedding import (
+from pipeline_common.stages_contracts.step_30_embed import (
     EmbeddingProvenanceEnvelope,
     EmbeddingRegistryRow,
     EmbeddingRegistryStatus,

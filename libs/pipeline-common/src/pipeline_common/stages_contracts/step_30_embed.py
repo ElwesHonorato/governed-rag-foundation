@@ -1,4 +1,4 @@
-"""Stage 40 embedding contracts."""
+"""Step 30 embedding-stage contracts."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from dataclasses import asdict, dataclass
 from enum import StrEnum
 from typing import Any
 
-from pipeline_common.stages_contracts.base import RegistryRowContract
+from pipeline_common.stages_contracts.step_00_common import RegistryRowContract
 
 
 class EmbeddingRegistryStatus(StrEnum):

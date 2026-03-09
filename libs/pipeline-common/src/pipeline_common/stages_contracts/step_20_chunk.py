@@ -1,12 +1,12 @@
-"""Stage 30 chunking contracts."""
+"""Step 20 chunk-stage contracts."""
 
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from enum import StrEnum
-from typing import Any, Mapping
+from typing import Any
 
-from pipeline_common.stages_contracts.base import RegistryRowContract, SourceDocumentMetadata
+from pipeline_common.stages_contracts.step_00_common import RegistryRowContract
 
 
 class ChunkRegistryStatus(StrEnum):
@@ -37,35 +37,6 @@ class ChunkProvenanceEnvelope:
     def to_dict(self) -> dict[str, Any]:
         """Serialize envelope for artifact persistence."""
         return asdict(self)
-
-
-@dataclass(frozen=True)
-class ChunkArtifactPayload:
-    """Canonical chunk artifact payload persisted by stage-30 worker."""
-
-    source_metadata: SourceDocumentMetadata
-    provenance: ChunkProvenanceEnvelope
-    chunk_index: int
-    chunk_text: str
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "source_metadata": self.source_metadata.to_dict(),
-            "provenance": self.provenance.to_dict(),
-            "chunk_index": self.chunk_index,
-            "chunk_text": self.chunk_text,
-        }
-
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "ChunkArtifactPayload":
-        source_metadata_payload = data["source_metadata"]
-        provenance_payload = data["provenance"]
-        return cls(
-            source_metadata=SourceDocumentMetadata(**dict(source_metadata_payload)),
-            provenance=ChunkProvenanceEnvelope(**dict(provenance_payload)),
-            chunk_index=int(data["chunk_index"]),
-            chunk_text=str(data["chunk_text"]),
-        )
 
 
 @dataclass(frozen=True)

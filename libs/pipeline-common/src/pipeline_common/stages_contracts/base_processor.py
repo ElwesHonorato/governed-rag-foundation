@@ -1,6 +1,6 @@
 from typing import ClassVar
 
-from pipeline_common.stages_contracts.base import ProcessorMetadata
+from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata
 
 
 class BaseProcessor:

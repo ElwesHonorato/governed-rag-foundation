@@ -1,56 +1,26 @@
 import json
-from dataclasses import dataclass
 from typing import Any, ClassVar
 
 from chunking.domain.central_text_splitter import CentralTextSplitter
 from configs.chunking_scaffold import ChunkingStage, ChunkingStages
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.provenance import build_id, chunk_params_hash, sha256_hex
-from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata, SourceDocumentMetadata
 from pipeline_common.stages_contracts import (
     ArtifactPayload,
     BaseProcessor,
-    ChunkArtifactPayload,
     ParsedTextPayload,
 )
 
-from contracts.chunk_process_output import ChunkProcessOutput
-from contracts.chunk_manifest import ChunkManifestEntry
-
-
-@dataclass(frozen=True)
-class ChunkArtifactRecord:
-    payload: ChunkArtifactPayload
-    destination_key: str
-    chunk_id: str
-    chunk_index: int
-    chunk_text_hash: str
-
-
-@dataclass(frozen=True)
-class ChunkProcessResult:
-    run_id: str
-    source_metadata: SourceDocumentMetadata
-    source_uri: str
-    input_content_hash: str
-    processor_metadata: ProcessorMetadata
-    output: ChunkProcessOutput
-
-
-@dataclass(frozen=True)
-class ChunkBuildContext:
-    run_id: str
-    chunk_params_hash: str
-    chunking_params: dict[str, Any]
-
-
-@dataclass(frozen=True)
-class ResolvedChunkContent:
-    chunk_id: str
-    chunk_text: str
-    offsets_start: int
-    offsets_end: int
-    chunk_text_hash: str
+from contracts.contracts import (
+    ChunkArtifactPayload,
+    ChunkArtifactRecord,
+    ChunkBuildContext,
+    ChunkManifestEntry,
+    ChunkProcessOutput,
+    ChunkProcessResult,
+    ResolvedChunkContent,
+    SourceDocumentMetadata,
+)
 
 
 class ChunkTextProcessor(BaseProcessor):

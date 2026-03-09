@@ -2,7 +2,7 @@ import json
 
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 
-from contracts.chunk_manifest import ChunkManifest
+from contracts.contracts import ChunkManifest
 
 
 class ChunkManifestWriter:

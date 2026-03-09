@@ -1,37 +1,43 @@
 """Contracts package for worker_chunk_text."""
 
-from contracts.chunk_manifest import (
-    CHUNK_MANIFEST_SCHEMA_VERSION,
-    ChunkerConfig,
-    ChunkManifest,
-    ChunkManifestEntry,
-    ChunkManifestLineage,
-    ChunkManifestOutput,
-    ChunkManifestProcessing,
-    RunStatus,
-)
 from contracts.chunking_strategy import ChunkingStrategy
 from contracts.contracts import (
+    CHUNK_MANIFEST_SCHEMA_VERSION,
+    ChunkArtifactRecord,
+    ChunkBuildContext,
+    ChunkManifest,
+    ChunkManifestEntry,
+    ChunkManifestOutput,
+    ChunkManifestProcessing,
+    ChunkProcessOutput,
+    ChunkProcessResult,
     ChunkTextJobConfigContract,
     ChunkTextProcessingConfigContract,
     ChunkTextQueueConfigContract,
     ChunkTextStorageConfigContract,
     ChunkTextWorkerConfigContract,
+    ResolvedChunkContent,
+    ChunkerConfig,
+    RunStatus,
 )
 
 __all__ = [
     "CHUNK_MANIFEST_SCHEMA_VERSION",
+    "ChunkArtifactRecord",
+    "ChunkBuildContext",
     "ChunkerConfig",
     "ChunkManifest",
     "ChunkManifestEntry",
-    "ChunkManifestLineage",
     "ChunkManifestOutput",
     "ChunkManifestProcessing",
+    "ChunkProcessOutput",
+    "ChunkProcessResult",
     "ChunkingStrategy",
     "ChunkTextJobConfigContract",
     "ChunkTextProcessingConfigContract",
     "ChunkTextQueueConfigContract",
     "ChunkTextStorageConfigContract",
     "ChunkTextWorkerConfigContract",
+    "ResolvedChunkContent",
     "RunStatus",
 ]

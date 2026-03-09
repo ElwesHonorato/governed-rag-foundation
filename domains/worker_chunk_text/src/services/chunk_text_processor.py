@@ -5,7 +5,7 @@ from typing import Any, ClassVar
 from chunking.domain.central_text_splitter import CentralTextSplitter
 from configs.chunking_scaffold import ChunkingStage, ChunkingStages
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
-from pipeline_common.provenance import build_chunk_id, chunk_params_hash, sha256_hex
+from pipeline_common.provenance import build_id, chunk_params_hash, sha256_hex
 from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata, SourceDocumentMetadata
 from pipeline_common.stages_contracts import (
     ArtifactPayload,
@@ -187,7 +187,7 @@ class ChunkTextProcessor(BaseProcessor):
         offsets_start = int(chunk_document.metadata.get("start_index", 0))
         offsets_end = offsets_start + len(chunk_text)
         return ResolvedChunkContent(
-            chunk_id=build_chunk_id(
+            chunk_id=build_id(
                 source_dataset_urn=source_uri,
                 source_content_hash_value=input_content_hash,
                 chunker_version=self.VERSION,

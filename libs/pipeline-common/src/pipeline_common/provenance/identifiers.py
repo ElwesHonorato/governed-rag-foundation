@@ -34,24 +34,6 @@ def embedding_params_hash(embedder_params: dict[str, Any]) -> str:
     return sha256_hex(canonical_json(embedder_params))
 
 
-def build_chunk_id(
-    *,
-    source_dataset_urn: str,
-    source_content_hash_value: str,
-    chunker_version: str,
-    chunk_params_hash_value: str,
-    offsets_start: int,
-    offsets_end: int,
-) -> str:
-    """Build deterministic chunk identifier."""
-    payload = "|".join(
-        [
-            source_dataset_urn,
-            source_content_hash_value,
-            chunker_version,
-            chunk_params_hash_value,
-            str(offsets_start),
-            str(offsets_end),
-        ]
-    )
-    return sha256_hex(payload)
+def build_id(**kwargs: str | int) -> str:
+    """Build deterministic identifier from keyword payload."""
+    return sha256_hex(canonical_json(kwargs))

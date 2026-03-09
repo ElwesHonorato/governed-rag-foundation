@@ -1,7 +1,7 @@
 """Chunk and embedding provenance registry primitives."""
 
 from pipeline_common.provenance.identifiers import (
-    build_chunk_id,
+    build_id,
     canonical_json,
     chunk_params_hash,
     embedding_params_hash,
@@ -10,7 +10,7 @@ from pipeline_common.provenance.identifiers import (
 )
 
 __all__ = [
-    "build_chunk_id",
+    "build_id",
     "canonical_json",
     "chunk_params_hash",
     "embedding_params_hash",

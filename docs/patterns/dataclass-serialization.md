@@ -94,6 +94,22 @@ Use consistent serialization names across the repository:
 | `to_payload` | Transport or storage body |
 | `from_dict()` | Reconstruct object from serialized form |
 
+## Deserialization Rule
+
+In `from_dict`, unpack directly from mapping entries when input fields are already dictionaries.
+
+Preferred:
+
+```python
+return cls(
+    source_metadata=SourceDocumentMetadata(**payload["source_metadata"]),
+    content=content_type(**payload["content"]),
+    processor_metadata=ProcessorMetadata(**payload["processor_metadata"]),
+)
+```
+
+Avoid redundant wrappers like `dict(payload["source_metadata"])` unless you explicitly need to force a copy or normalize a non-dict mapping type.
+
 ## Anti-Patterns
 
 ### Rebuilding dictionaries at write sites

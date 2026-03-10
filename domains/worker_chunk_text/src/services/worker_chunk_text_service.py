@@ -2,7 +2,7 @@ import logging
 import json
 import time
 
-from configs.chunking_scaffold import ChunkingScaffoldResolver
+from configs.chunking_scaffold import ChunkingStagesResolver
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
@@ -34,7 +34,7 @@ class WorkerChunkTextService(WorkerService):
         self._processing_config = processing_config
 
     def _init_runtime_components(self) -> None:
-        self._chunking_resolver = ChunkingScaffoldResolver()
+        self._chunking_resolver = ChunkingStagesResolver()
         self._initialize_runtime_config(self._processing_config)
         self.processor = ChunkTextProcessor(
             object_storage=self.object_storage,

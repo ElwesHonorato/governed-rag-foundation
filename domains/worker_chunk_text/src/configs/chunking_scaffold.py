@@ -191,13 +191,13 @@ CHUNKING_SCAFFOLD: dict[ChunkingScaffoldKey, list[ChunkingStage]] = {
     ],
 }
 
-class ChunkingScaffoldResolver:
+class ChunkingStagesResolver:
     scaffold_key: str | None = None
 
     def resolve(self, scaffold_key: str) -> ChunkingStages:
         normalized_scaffold_key = scaffold_key.lower().lstrip(".")
         scaffold_type = ChunkingScaffoldKey(normalized_scaffold_key)
-        ChunkingScaffoldResolver.scaffold_key = normalized_scaffold_key
+        ChunkingStagesResolver.scaffold_key = normalized_scaffold_key
         stages = CHUNKING_SCAFFOLD[scaffold_type]
         return ChunkingStages(
             [stage for stage in stages if isinstance(stage.processor, ChunkingProcessorType)]

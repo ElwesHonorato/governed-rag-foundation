@@ -6,6 +6,7 @@ from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Any
 
+from pipeline_common.stages_contracts import StageArtifact
 from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata, SourceDocumentMetadata
 
 CHUNK_MANIFEST_SCHEMA_VERSION = "1.0"
@@ -108,9 +109,14 @@ class ChunkRecord:
     offsets_end: int
     chunk_text_hash: str
 
+    @property
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
 
 @dataclass(frozen=True)
 class ChunkArtifact:
+    artifact: StageArtifact[Any]
     chunk_record: ChunkRecord
     destination_key: str
 
@@ -123,8 +129,15 @@ class ChunkArtifact:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, payload: dict[str, Any], *, destination_key: str) -> ChunkArtifact:
+    def from_dict(
+        cls,
+        payload: dict[str, Any],
+        *,
+        destination_key: str,
+        artifact: StageArtifact[Any],
+    ) -> ChunkArtifact:
         return cls(
+            artifact=artifact,
             chunk_record=ChunkRecord(**dict(payload)),
             destination_key=destination_key,
         )

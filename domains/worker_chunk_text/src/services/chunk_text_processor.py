@@ -7,8 +7,8 @@ from langchain_core.documents import Document
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.provenance import build_id, chunk_params_hash, sha256_hex
 from pipeline_common.stages_contracts import (
-    ArtifactPayload,
     BaseProcessor,
+    StageArtifact,
 )
 
 from contracts.contracts import (
@@ -46,7 +46,7 @@ class ChunkTextProcessor(BaseProcessor):
     def process(
         self,
         *,
-        processed_payload: ArtifactPayload,
+        processed_payload: StageArtifact,
         source_uri: str,
         run_id: str,
         stages: ChunkingStages,
@@ -170,6 +170,11 @@ class ChunkTextProcessor(BaseProcessor):
                 params=serialized_stages,
             )
             chunk_artifact = ChunkArtifact(
+                artifact=StageArtifact(
+                    source_metadata=source_metadata,
+                    processor_metadata=self.processor_metadata,
+                    content=chunk_record.to_dict,
+                ),
                 chunk_record=chunk_record,
                 destination_key=self._chunk_object_key(
                     doc_id=source_metadata.doc_id,

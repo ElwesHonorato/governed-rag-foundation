@@ -24,7 +24,7 @@ ContentT = TypeVar("ContentT")
 
 
 @dataclass(frozen=True)
-class ArtifactPayload(Generic[ContentT]):
+class StageArtifact(Generic[ContentT]):
     """Shared base payload for cross-worker artifact contracts."""
 
     source_metadata: SourceDocumentMetadata
@@ -32,35 +32,17 @@ class ArtifactPayload(Generic[ContentT]):
     processor_metadata: ProcessorMetadata
 
     @classmethod
-    def build(
-        cls,
-        *,
-        source_metadata: SourceDocumentMetadata,
-        processor_metadata: ProcessorMetadata,
-        content: ContentT,
-    ) -> "ArtifactPayload[ContentT]":
-        """Build a versioned processed-document payload."""
-        return cls(
-            source_metadata=source_metadata,
-            content=content,
-            processor_metadata=processor_metadata,
-        )
-
-    @classmethod
     def from_dict(
         cls,
         payload: Mapping[str, Any],
         *,
         content_type: type[ContentT],
-    ) -> "ArtifactPayload[ContentT]":
+    ) -> "StageArtifact[ContentT]":
         """Parse payload dict into typed processed-document contract."""
-        source_metadata_payload = payload["source_metadata"]
-        processor_metadata_payload = payload["processor_metadata"]
-        content_payload = payload["content"]
         return cls(
-            source_metadata=SourceDocumentMetadata(**dict(source_metadata_payload)),
-            content=content_type(**dict(content_payload)),
-            processor_metadata=ProcessorMetadata(**dict(processor_metadata_payload)),
+            source_metadata=SourceDocumentMetadata(**payload["source_metadata"]),
+            content=content_type(**payload["content"]),
+            processor_metadata=ProcessorMetadata(**payload["processor_metadata"]),
         )
 
     @property

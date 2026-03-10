@@ -7,7 +7,7 @@ from pipeline_common.stages_contracts.step_00_common import (
 )
 from pipeline_common.stages_contracts.base_processor import BaseProcessor
 from pipeline_common.stages_contracts.step_10_artifact_payloads import (
-    ArtifactPayload,
+    StageArtifact,
     ParsedTextPayload,
 )
 
@@ -16,6 +16,6 @@ __all__ = [
     "SourceDocumentMetadata",
     "ProcessorMetadata",
     "ParsedTextPayload",
-    "ArtifactPayload",
+    "StageArtifact",
     "BaseProcessor",
 ]

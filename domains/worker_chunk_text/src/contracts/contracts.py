@@ -114,8 +114,12 @@ class ChunkArtifact:
     chunk_record: ChunkRecord
     destination_key: str
 
-    def to_dict(self) -> dict[str, Any]:
+    @property
+    def payload(self) -> dict[str, Any]:
         return asdict(self.chunk_record)
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any], *, destination_key: str) -> ChunkArtifact:

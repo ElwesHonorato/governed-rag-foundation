@@ -128,10 +128,10 @@ class ChunkTextProcessor(BaseProcessor):
 
     def _write_chunk_object(self, chunk_artifact: ChunkArtifact) -> None:
         self.object_storage.write_object(
-            self.storage_bucket,
-            chunk_artifact.destination_key,
-            json.dumps(
-                chunk_artifact.to_dict(),
+            bucket=self.storage_bucket,
+            key=chunk_artifact.destination_key,
+            payload=json.dumps(
+                chunk_artifact.payload,
                 sort_keys=True,
                 ensure_ascii=True,
                 separators=(",", ":"),

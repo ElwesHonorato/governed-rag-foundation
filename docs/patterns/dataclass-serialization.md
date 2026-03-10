@@ -213,6 +213,38 @@ Serialization should be:
 - Reusable — callers reuse serialization views instead of rebuilding structures.
 - Stable — schema changes occur in one place and propagate safely.
 
+## Compatibility Rule
+
+Do not add backward-compatibility shims inside serialization logic.
+
+- No dual-read or dual-write payload handling in `to_payload()` / `from_dict()`.
+- No fallback parsing for old keys or alternate shapes.
+- Validate the current contract shape and fail fast when data does not match.
+
+Bad:
+
+```python
+if "metadata" in payload:
+    ...
+elif "source_metadata" in payload:
+    ...
+```
+
+Good:
+
+```python
+metadata_payload = payload["metadata"]
+return cls(
+    metadata=StageArtifactMetadata(
+        processor=ProcessorMetadata(**metadata_payload["processor"]),
+        source=SourceDocumentMetadata(**metadata_payload["source"]),
+        content=metadata_payload["content"],
+        params=metadata_payload["params"],
+    ),
+    content=content_type(**payload["content"]),
+)
+```
+
 ## Notes
 
 - Contract breaks are acceptable when explicitly requested; update all call sites in the same change.

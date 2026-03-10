@@ -1,5 +1,5 @@
 import json
-from typing import Any, ClassVar, Iterator, TypeGuard
+from typing import Any, ClassVar, Iterator
 
 from chunking.domain.central_text_splitter import CentralTextSplitter
 from configs.chunking_scaffold import ChunkingStage, ChunkingStages
@@ -8,6 +8,7 @@ from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.provenance import build_id, chunk_params_hash, sha256_hex
 from pipeline_common.stages_contracts import (
     BaseProcessor,
+    Content,
     StageArtifact,
     StageArtifactMetadata,
 )
@@ -55,13 +56,12 @@ class ChunkTextProcessor(BaseProcessor):
         """Run the golden path once: stage-chain split and persist chunk artifacts."""
         serialized_stages: list[dict[str, Any]] = stages.to_serializable_dict()
         source_metadata: SourceDocumentMetadata = input_artifact.source_metadata
-        input_content = input_artifact.content
         processor_context: ProcessorContext = ProcessorContext(
             params_hash=chunk_params_hash(serialized_stages),
             params=serialized_stages,
         )
         docs: list[Document] = self._process_stages(
-            source_text=input_content.text,
+            input_text=input_artifact.content.data,
             stages=stages.stages,
         )
         execution_result: ChunkingExecutionResult = self._write_chunk_artifacts(
@@ -85,7 +85,7 @@ class ChunkTextProcessor(BaseProcessor):
     def _process_stages(
         self,
         *,
-        source_text: str,
+        input_text: str,
         stages: list[ChunkingStage],
     ) -> list[Document]:
         """Apply each LangChain stage sequentially, feeding one stage output into the next.
@@ -95,29 +95,26 @@ class ChunkTextProcessor(BaseProcessor):
         - document inputs from a previous stage (via `split_documents`).
         Returns the final document list.
         """
-        docs: list[str] | list[Document] = [source_text]
+        docs = self.process_first_stage(
+            input_text=input_text,
+            first_stage=stages[0],
+        )
+        if len(stages) == 1:
+            return docs
+        return self._process_next_stage(
+            docs=docs,
+            stages=stages[1:],
+        )
 
+    def process_first_stage(self, *, input_text: str, first_stage: ChunkingStage) -> list[Document]:
+        splitter = CentralTextSplitter(stage=first_stage)
+        return splitter.create_documents(texts=[input_text])
+
+    def _process_next_stage(self, *, docs: list[Document], stages: list[ChunkingStage]) -> list[Document]:
         for stage in stages:
             splitter = CentralTextSplitter(stage=stage)
-            docs = self._apply_stage(
-                splitter=splitter,
-                docs=docs,
-            )
+            docs = splitter.split_documents(documents=docs)
         return docs
-
-    def _apply_stage(
-        self,
-        *,
-        splitter: CentralTextSplitter,
-        docs: list[str] | list[Document],
-    ) -> list[Document]:
-        if self._docs_are_documents(docs):
-            return splitter.split_documents(documents=docs)
-        texts = [str(item) for item in docs]
-        return splitter.create_documents(texts=texts)
-
-    def _docs_are_documents(self, docs: list[str] | list[Document]) -> TypeGuard[list[Document]]:
-        return bool(docs) and hasattr(docs[0], "page_content")
 
     def _write_chunk_artifacts(
         self,
@@ -179,7 +176,7 @@ class ChunkTextProcessor(BaseProcessor):
                         params=serialized_stages,
                         content=chunk_metadata,
                     ),
-                    content=doc.page_content,
+                    content=Content(data=doc.page_content),
                 ),
                 destination_key=self._chunk_object_key(
                     doc_id=source_metadata.doc_id,

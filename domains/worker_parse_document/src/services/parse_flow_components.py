@@ -63,7 +63,7 @@ class DocumentParserProcessor(BaseProcessor):
             metadata=StageArtifactMetadata(
                 processor=processor_metadata,
                 source=metadata,
-                content={"contract": "ParsedTextPayload"},
+                content={"contract": "Content"},
                 params=[],
             ),
             content=parsed_payload,

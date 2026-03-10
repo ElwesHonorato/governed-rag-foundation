@@ -9,11 +9,10 @@ from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata, S
 
 
 @dataclass(frozen=True)
-class ParsedTextPayload:
-    """Canonical parsed text payload exchanged parse -> chunk workers."""
+class Content:
+    """Standard stage content contract with one data entry."""
 
-    title: str
-    text: str
+    data: Any
 
     @property
     def to_dict(self) -> dict[str, Any]:

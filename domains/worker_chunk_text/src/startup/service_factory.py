@@ -15,9 +15,9 @@ class ChunkTextServiceFactory(WorkerServiceFactory[ChunkTextWorkerConfigContract
     ) -> WorkerChunkTextService:
         """Construct worker chunk_text service object graph."""
         return WorkerChunkTextService(
-            stage_queue=runtime.stage_queue_gateway,
-            object_storage=runtime.object_storage_gateway,
-            lineage=runtime.lineage_gateway,
+            queue_gateway=runtime.stage_queue_gateway,
+            storage_gateway=runtime.object_storage_gateway,
+            lineage_gateway=runtime.lineage_gateway,
             poll_interval_seconds=worker_config.poll_interval_seconds,
             storage=worker_config.storage,
         )

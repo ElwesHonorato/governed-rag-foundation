@@ -6,7 +6,7 @@ from configs.chunking_scaffold import ChunkingStagesResolver
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
-from pipeline_common.gateways.queue import ConsumedMessage, Envelope, StageQueueGateway
+from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGateway
 from pipeline_common.helpers.run_ids import build_source_run_id
 from pipeline_common.stages_contracts import Content, StageArtifact
 from pipeline_common.startup.contracts import WorkerService
@@ -22,16 +22,16 @@ class WorkerChunkTextService(WorkerService):
 
     def __init__(
         self,
-        stage_queue: StageQueueGateway,
-        object_storage: ObjectStorageGateway,
-        lineage: LineageRuntimeGateway,
+        queue_gateway: QueueGateway,
+        storage_gateway: ObjectStorageGateway,
+        lineage_gateway: LineageRuntimeGateway,
         poll_interval_seconds: int,
         storage: ChunkTextStorageConfigContract,
     ) -> None:
         """Initialize chunking worker dependencies and runtime settings."""
-        self.stage_queue = stage_queue
-        self.object_storage = object_storage
-        self.lineage = lineage
+        self.queue_gateway = queue_gateway
+        self.storage_gateway = storage_gateway
+        self.lineage_gateway = lineage_gateway
         self.poll_interval_seconds = poll_interval_seconds
         self.storage_bucket = storage.bucket
         self.input_prefix = storage.input_prefix
@@ -40,12 +40,12 @@ class WorkerChunkTextService(WorkerService):
     def _init_runtime_components(self) -> None:
         self._chunking_resolver = ChunkingStagesResolver()
         self.processor = ChunkTextProcessor(
-            object_storage=self.object_storage,
+            object_storage=self.storage_gateway,
             storage_bucket=self.storage_bucket,
             output_prefix=self.output_prefix,
         )
         self.manifest_writer = ChunkManifestWriter(
-            object_storage=self.object_storage,
+            object_storage=self.storage_gateway,
             storage_bucket=self.storage_bucket,
             manifest_prefix=self.output_prefix,
         )
@@ -66,20 +66,20 @@ class WorkerChunkTextService(WorkerService):
     def _wait_for_next_message(self) -> ConsumedMessage:
         """Fetch next queue message, waiting until one is available."""
         while True:
-            message = self.stage_queue.pop_message()
+            message = self.queue_gateway.pop_message()
             if message is not None:
                 return message
             time.sleep(self.poll_interval_seconds)
 
     def _process_chunk_job(self, source_key: str) -> None:
         source_uri = f"s3a://{self.storage_bucket}/{source_key}"
-        self.lineage.start_run()
-        self.lineage.add_input(
+        self.lineage_gateway.start_run()
+        self.lineage_gateway.add_input(
             name=source_uri,
             platform=DatasetPlatform.S3,
         )
         try:
-            raw_payload = self.object_storage.read_object(self.storage_bucket, source_key)
+            raw_payload = self.storage_gateway.read_object(self.storage_bucket, source_key)
             input_artifact = StageArtifact.from_dict(
                 json.loads(raw_payload.decode("utf-8")),
                 content_type=Content,
@@ -92,13 +92,13 @@ class WorkerChunkTextService(WorkerService):
                 stages=resolved_stages,
             )
             self.manifest_writer.write(process_result=process_result)
-            self.lineage.complete_run()
+            self.lineage_gateway.complete_run()
         except Exception as exc:
-            self.lineage.fail_run(error_message=str(exc))
+            self.lineage_gateway.fail_run(error_message=str(exc))
             raise
 
     def _send_chunk_failure(self, source_key: str) -> None:
-        self.stage_queue.push_dlq(
+        self.queue_gateway.push_dlq(
             Envelope(
                 type="chunk_text.failure",
                 payload={"source_key": source_key},

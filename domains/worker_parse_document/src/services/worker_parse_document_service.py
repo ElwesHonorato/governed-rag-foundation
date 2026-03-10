@@ -6,7 +6,7 @@ from contracts.contracts import ParseProcessingConfigContract
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
-from pipeline_common.gateways.queue import ConsumedMessage, Envelope, StageQueueGateway
+from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGateway
 from pipeline_common.helpers.contracts import doc_id_from_source_key, utc_now_iso
 from pipeline_common.provenance import source_content_hash
 from pipeline_common.startup.contracts import WorkerService
@@ -26,7 +26,7 @@ class WorkerParseDocumentService(WorkerService):
     def __init__(
         self,
         *,
-        stage_queue: StageQueueGateway,
+        stage_queue: QueueGateway,
         object_storage: ObjectStorageGateway,
         lineage: LineageRuntimeGateway,
         spark_session: Any | None,

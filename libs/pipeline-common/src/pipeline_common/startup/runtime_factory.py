@@ -18,7 +18,7 @@ Non-goals:
 from pipeline_common.gateways.lineage.contracts import DataHubDataJobKey
 from pipeline_common.gateways.factories.lineage_gateway_factory import DataHubLineageGatewayFactory
 from pipeline_common.gateways.factories.object_storage_gateway_factory import ObjectStorageGatewayFactory
-from pipeline_common.gateways.factories.queue_gateway_factory import StageQueueGatewayFactory
+from pipeline_common.gateways.factories.queue_gateway_factory import QueueGatewayFactory
 from pipeline_common.gateways.factories.spark_session_factory import SparkSessionFactory
 from pipeline_common.settings import SettingsBundle
 from pipeline_common.startup.job_properties import JobPropertiesParser
@@ -91,7 +91,7 @@ class RuntimeContextFactory:
         queue_config = job_properties.get("job", {}).get("queue")
         if queue_config is None:
             return None
-        return StageQueueGatewayFactory(
+        return QueueGatewayFactory(
             queue_settings=queue_settings,
             queue_config=queue_config,
         ).build()

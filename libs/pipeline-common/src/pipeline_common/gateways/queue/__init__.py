@@ -1,5 +1,5 @@
 from pipeline_common.gateways.queue.envelope import Envelope
-from pipeline_common.gateways.queue.queue import ConsumedMessage, StageQueue
+from pipeline_common.gateways.queue.queue import ConsumedMessage, StageQueueGateway
 
 
-__all__ = ["Envelope", "StageQueue", "ConsumedMessage"]
+__all__ = ["Envelope", "StageQueueGateway", "ConsumedMessage"]

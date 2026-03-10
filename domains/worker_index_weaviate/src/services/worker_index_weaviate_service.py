@@ -7,7 +7,7 @@ from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.processing_engine import ReadGateway, WriteGateway
-from pipeline_common.gateways.queue import ConsumedMessage, Envelope, StageQueue
+from pipeline_common.gateways.queue import ConsumedMessage, Envelope, StageQueueGateway
 from pipeline_common.helpers.contracts import utc_now_iso
 from services.weaviate_gateway import upsert_chunk, verify_query
 from pipeline_common.startup.contracts import WorkerService
@@ -22,7 +22,7 @@ class WorkerIndexWeaviateService(WorkerService):
     def __init__(
         self,
         *,
-        stage_queue: StageQueue,
+        stage_queue: StageQueueGateway,
         object_storage: ObjectStorageGateway,
         lineage: LineageRuntimeGateway,
         spark_session: Any | None,

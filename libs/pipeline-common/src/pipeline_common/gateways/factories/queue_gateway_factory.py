@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from pipeline_common.gateways.queue import StageQueue
+from pipeline_common.gateways.queue import StageQueueGateway
 from pipeline_common.gateways.queue.settings import QueueRuntimeSettings
 
 
@@ -13,9 +13,9 @@ class StageQueueGatewayFactory:
         self.queue_settings = queue_settings
         self.queue_config = queue_config
 
-    def build(self) -> StageQueue:
+    def build(self) -> StageQueueGateway:
         """Create stage queue gateway for one worker."""
-        return StageQueue(
+        return StageQueueGateway(
             self.queue_settings.broker_url,
             queue_config=self.queue_config,
         )

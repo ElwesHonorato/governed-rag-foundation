@@ -5,7 +5,7 @@ from typing import Any
 
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
-from pipeline_common.gateways.queue import StageQueue
+from pipeline_common.gateways.queue import StageQueueGateway
 
 
 @dataclass(frozen=True)
@@ -14,6 +14,6 @@ class WorkerRuntimeContext:
 
     lineage_gateway: LineageRuntimeGateway
     object_storage_gateway: ObjectStorageGateway | None
-    stage_queue_gateway: StageQueue | None
+    stage_queue_gateway: StageQueueGateway | None
     spark_session: Any | None
     job_properties: dict[str, Any]

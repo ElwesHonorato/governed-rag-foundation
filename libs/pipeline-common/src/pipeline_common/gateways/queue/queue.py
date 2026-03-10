@@ -32,7 +32,7 @@ class ConsumedMessage:
 
     payload: dict[str, Any]
     delivery_tag: int
-    _queue: "StageQueue" = field(repr=False)
+    _queue: "StageQueueGateway" = field(repr=False)
     _settled: bool = field(default=False, init=False, repr=False)
 
     def ack(self) -> None:
@@ -50,7 +50,7 @@ class ConsumedMessage:
         self._settled = True
 
 
-class StageQueue:
+class StageQueueGateway:
     """Runtime facade for stage queue interactions.
 
     Layer:

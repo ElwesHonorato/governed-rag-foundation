@@ -6,7 +6,7 @@ from configs.chunking_scaffold import ChunkingScaffoldResolver
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
-from pipeline_common.gateways.queue import ConsumedMessage, Envelope, StageQueue
+from pipeline_common.gateways.queue import ConsumedMessage, Envelope, StageQueueGateway
 from pipeline_common.helpers.run_ids import build_source_run_id
 from pipeline_common.stages_contracts import Content, StageArtifact
 from pipeline_common.startup.contracts import WorkerService
@@ -22,7 +22,7 @@ class WorkerChunkTextService(WorkerService):
 
     def __init__(
         self,
-        stage_queue: StageQueue,
+        stage_queue: StageQueueGateway,
         object_storage: ObjectStorageGateway,
         lineage: LineageRuntimeGateway,
         processing_config: ChunkTextProcessingConfigContract,
@@ -31,6 +31,9 @@ class WorkerChunkTextService(WorkerService):
         self.stage_queue = stage_queue
         self.object_storage = object_storage
         self.lineage = lineage
+        self._processing_config = processing_config
+
+    def _init_runtime_components(self, *, processing_config: ChunkTextProcessingConfigContract) -> None:
         self._chunking_resolver = ChunkingScaffoldResolver()
         self._initialize_runtime_config(processing_config)
         self.processor = ChunkTextProcessor(
@@ -46,6 +49,7 @@ class WorkerChunkTextService(WorkerService):
 
     def serve(self) -> None:
         """Run the chunking worker loop by polling queue messages."""
+        self._init_runtime_components(processing_config=self._processing_config)
         while True:
             message = self._wait_for_next_message()
             source_key = self._source_key_from_message(message)

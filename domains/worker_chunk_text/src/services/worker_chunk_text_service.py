@@ -10,7 +10,7 @@ from pipeline_common.gateways.queue import ConsumedMessage, Envelope, StageQueue
 from pipeline_common.helpers.run_ids import build_source_run_id
 from pipeline_common.stages_contracts import Content, StageArtifact
 from pipeline_common.startup.contracts import WorkerService
-from contracts.contracts import ChunkTextProcessingConfigContract
+from contracts.contracts import ChunkTextStorageConfigContract
 from services.chunk_manifest_writer import ChunkManifestWriter
 from services.chunk_text_processor import ChunkTextProcessor
 
@@ -25,13 +25,17 @@ class WorkerChunkTextService(WorkerService):
         stage_queue: StageQueueGateway,
         object_storage: ObjectStorageGateway,
         lineage: LineageRuntimeGateway,
-        processing_config: ChunkTextProcessingConfigContract,
+        poll_interval_seconds: int,
+        storage: ChunkTextStorageConfigContract,
     ) -> None:
         """Initialize chunking worker dependencies and runtime settings."""
         self.stage_queue = stage_queue
         self.object_storage = object_storage
         self.lineage = lineage
-        self._processing_config = processing_config
+        self.poll_interval_seconds = poll_interval_seconds
+        self.storage_bucket = storage.bucket
+        self.input_prefix = storage.input_prefix
+        self.output_prefix = storage.output_prefix
 
     def _init_runtime_components(self) -> None:
         self._chunking_resolver = ChunkingStagesResolver()
@@ -45,7 +49,6 @@ class WorkerChunkTextService(WorkerService):
             storage_bucket=self.storage_bucket,
             manifest_prefix=self.output_prefix,
         )
-        self._initialize_runtime_config(self._processing_config)
 
     def serve(self) -> None:
         """Run the chunking worker loop by polling queue messages."""
@@ -94,14 +97,6 @@ class WorkerChunkTextService(WorkerService):
             self.lineage.fail_run(error_message=str(exc))
             raise
 
-        if process_result.result.chunk_count_written is not None:
-            doc_id = source_key.split("/")[-1].replace(self.processed_suffix, "")
-            logger.info(
-                "Wrote %d chunk objects for doc_id '%s'",
-                process_result.result.chunk_count_written,
-                doc_id,
-            )
-
     def _send_chunk_failure(self, source_key: str) -> None:
         self.stage_queue.push_dlq(
             Envelope(
@@ -127,11 +122,3 @@ class WorkerChunkTextService(WorkerService):
         """Parse source key from queue payload."""
         envelope = Envelope.from_dict(message.payload)
         return str(envelope.payload["storage_key"])
-
-    def _initialize_runtime_config(self, processing_config: ChunkTextProcessingConfigContract) -> None:
-        """Load runtime config values into worker state."""
-        self.poll_interval_seconds = processing_config.poll_interval_seconds
-        self.storage_bucket = processing_config.storage.bucket
-        self.input_prefix = processing_config.storage.input_prefix
-        self.output_prefix = processing_config.storage.output_prefix
-        self.processed_suffix = ".json"

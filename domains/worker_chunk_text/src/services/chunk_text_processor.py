@@ -9,11 +9,12 @@ from pipeline_common.provenance import build_id, chunk_params_hash, sha256_hex
 from pipeline_common.stages_contracts import (
     BaseProcessor,
     StageArtifact,
+    StageArtifactMetadata,
 )
 
 from contracts.contracts import (
     ChunkArtifact,
-    ChunkRecord,
+    ChunkMetadata,
     ChunkingExecutionResult,
     ProcessResult,
     ProcessorContext,
@@ -46,20 +47,21 @@ class ChunkTextProcessor(BaseProcessor):
     def process(
         self,
         *,
-        processed_payload: StageArtifact,
+        input_artifact: StageArtifact,
         source_uri: str,
         run_id: str,
         stages: ChunkingStages,
     ) -> ProcessResult:
         """Run the golden path once: stage-chain split and persist chunk artifacts."""
         serialized_stages: list[dict[str, Any]] = stages.to_serializable_dict()
-        source_metadata: SourceDocumentMetadata = processed_payload.source_metadata
+        source_metadata: SourceDocumentMetadata = input_artifact.source_metadata
+        input_content = input_artifact.content
         processor_context: ProcessorContext = ProcessorContext(
             params_hash=chunk_params_hash(serialized_stages),
             params=serialized_stages,
         )
         docs: list[Document] = self._process_stages(
-            source_text=processed_payload.content.text,
+            source_text=input_content.text,
             stages=stages.stages,
         )
         execution_result: ChunkingExecutionResult = self._write_chunk_artifacts(
@@ -161,7 +163,7 @@ class ChunkTextProcessor(BaseProcessor):
         processor_metadata_payload = self.processor_metadata.to_dict
 
         for chunk_index, doc in enumerate(docs):
-            chunk_record: ChunkRecord = self._build_chunk_result(
+            chunk_metadata: ChunkMetadata = self._build_chunk_metadata(
                 chunk_index=chunk_index,
                 doc=doc,
                 source_uri=source_uri,
@@ -171,20 +173,24 @@ class ChunkTextProcessor(BaseProcessor):
             )
             chunk_artifact = ChunkArtifact(
                 artifact=StageArtifact(
-                    source_metadata=source_metadata,
-                    processor_metadata=self.processor_metadata,
-                    content=chunk_record.to_dict,
+                    metadata=StageArtifactMetadata(
+                        processor=self.processor_metadata,
+                        source=source_metadata,
+                        content={"contract": "ChunkMetadata"},
+                        params=serialized_stages,
+                    ),
+                    content=doc.page_content,
                 ),
-                chunk_record=chunk_record,
+                chunk_metadata=chunk_metadata,
                 destination_key=self._chunk_object_key(
                     doc_id=source_metadata.doc_id,
                     run_id=run_id,
-                    chunk_id=chunk_record.chunk_id,
+                    chunk_id=chunk_metadata.chunk_id,
                 ),
             )
             yield chunk_artifact
 
-    def _build_chunk_result(
+    def _build_chunk_metadata(
         self,
         *,
         chunk_index: int,
@@ -193,8 +199,9 @@ class ChunkTextProcessor(BaseProcessor):
         source_metadata: dict[str, Any],
         processor: dict[str, Any],
         params: list[dict[str, Any]],
-    ) -> ChunkRecord:
+    ) -> ChunkMetadata:
         chunk_text = str(doc.page_content)
+        chunk_text_hash = sha256_hex(chunk_text)
         offsets_start = int(doc.metadata.get("start_index", 0))
         offsets_end = offsets_start + len(chunk_text)
         chunk_id = build_id(
@@ -203,19 +210,19 @@ class ChunkTextProcessor(BaseProcessor):
             processor=processor,
             params=params,
             content={
-                "chunk_text": chunk_text,
                 "offsets_start": offsets_start,
                 "offsets_end": offsets_end,
+                "chunk_text_hash": chunk_text_hash,
             },
         )
-        return ChunkRecord(
+        chunk_metadata: ChunkMetadata = ChunkMetadata(
             index=chunk_index,
             chunk_id=chunk_id,
-            chunk_text=chunk_text,
             offsets_start=offsets_start,
             offsets_end=offsets_end,
-            chunk_text_hash=sha256_hex(chunk_text),
+            chunk_text_hash=chunk_text_hash,
         )
+        return chunk_metadata
 
     def _chunk_object_key(self, doc_id: str, run_id: str, chunk_id: str) -> str:
         return (

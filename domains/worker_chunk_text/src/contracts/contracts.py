@@ -101,10 +101,9 @@ class ProcessorContext:
 
 
 @dataclass(frozen=True)
-class ChunkRecord:
+class ChunkMetadata:
     index: int
     chunk_id: str
-    chunk_text: str
     offsets_start: int
     offsets_end: int
     chunk_text_hash: str
@@ -117,12 +116,12 @@ class ChunkRecord:
 @dataclass(frozen=True)
 class ChunkArtifact:
     artifact: StageArtifact[Any]
-    chunk_record: ChunkRecord
+    chunk_metadata: ChunkMetadata
     destination_key: str
 
     @property
     def to_payload(self) -> dict[str, Any]:
-        return asdict(self.chunk_record)
+        return asdict(self.chunk_metadata)
 
     @property
     def to_dict(self) -> dict[str, Any]:
@@ -138,6 +137,6 @@ class ChunkArtifact:
     ) -> ChunkArtifact:
         return cls(
             artifact=artifact,
-            chunk_record=ChunkRecord(**dict(payload)),
+            chunk_metadata=ChunkMetadata(**dict(payload)),
             destination_key=destination_key,
         )

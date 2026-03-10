@@ -75,11 +75,11 @@ class WorkerChunkTextService(WorkerService):
         )
         try:
             raw_payload = self.object_storage.read_object(self.storage_bucket, source_key)
-            payload = json.loads(raw_payload.decode("utf-8"))
-            processed_payload = StageArtifact.from_dict(payload, content_type=ParsedTextPayload)
-            resolved_stages = self._chunking_resolver.resolve(processed_payload.source_metadata.source_type)
+            payload_dict = json.loads(raw_payload.decode("utf-8"))
+            input_artifact = StageArtifact.from_dict(payload_dict, content_type=ParsedTextPayload)
+            resolved_stages = self._chunking_resolver.resolve(input_artifact.source_metadata.source_type)
             process_result = self.processor.process(
-                processed_payload=processed_payload,
+                input_artifact=input_artifact,
                 source_uri=source_uri,
                 run_id=build_source_run_id(source_uri),
                 stages=resolved_stages,

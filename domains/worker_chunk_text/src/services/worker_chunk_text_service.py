@@ -33,9 +33,9 @@ class WorkerChunkTextService(WorkerService):
         self.lineage = lineage
         self._processing_config = processing_config
 
-    def _init_runtime_components(self, *, processing_config: ChunkTextProcessingConfigContract) -> None:
+    def _init_runtime_components(self) -> None:
         self._chunking_resolver = ChunkingScaffoldResolver()
-        self._initialize_runtime_config(processing_config)
+        self._initialize_runtime_config(self._processing_config)
         self.processor = ChunkTextProcessor(
             object_storage=self.object_storage,
             storage_bucket=self.storage_bucket,
@@ -49,7 +49,7 @@ class WorkerChunkTextService(WorkerService):
 
     def serve(self) -> None:
         """Run the chunking worker loop by polling queue messages."""
-        self._init_runtime_components(processing_config=self._processing_config)
+        self._init_runtime_components()
         while True:
             message = self._wait_for_next_message()
             source_key = self._source_key_from_message(message)

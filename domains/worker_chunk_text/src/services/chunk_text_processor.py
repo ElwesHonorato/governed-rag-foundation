@@ -176,8 +176,8 @@ class ChunkTextProcessor(BaseProcessor):
                     metadata=StageArtifactMetadata(
                         processor=self.processor_metadata,
                         source=source_metadata,
-                        content=chunk_metadata,
                         params=serialized_stages,
+                        content=chunk_metadata,
                     ),
                     content=doc.page_content,
                 ),

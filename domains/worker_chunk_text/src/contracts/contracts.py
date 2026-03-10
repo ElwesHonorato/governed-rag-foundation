@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Any
 
-from pipeline_common.stages_contracts import ChunkArtifactPayload
 from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata, SourceDocumentMetadata
 
 CHUNK_MANIFEST_SCHEMA_VERSION = "1.0"
@@ -61,7 +60,7 @@ class ChunkTextWorkerConfigContract:
 class ChunkingExecutionResult:
     chunk_count_expected: int
     chunk_count_written: int
-    chunk_entries: list[dict[str, Any]]
+    chunk_entries: list[ChunkManifestEntry]
     processor_context: ProcessorContext
     status: ChunkExecutionStatus = field(init=False)
 
@@ -85,12 +84,19 @@ class ChunkingExecutionResult:
 
 
 @dataclass(frozen=True)
-class ChunkArtifactRecord:
-    payload: ChunkArtifactPayload
-    destination_key: str
-    chunk_id: str
+class ChunkManifestEntry:
+    entry: ChunkRecord
     chunk_index: int
-    chunk_text_hash: str
+    path: str
+
+    def to_dict(self) -> dict[str, Any]:
+        entry_dict = asdict(self.entry)
+        return {
+            "chunk_id": entry_dict["chunk_id"],
+            "chunk_index": self.chunk_index,
+            "chunk_hash": entry_dict["chunk_text_hash"],
+            "path": self.path,
+        }
 
 
 @dataclass(frozen=True)
@@ -98,6 +104,7 @@ class ProcessResult:
     run_id: str
     source_metadata: SourceDocumentMetadata
     source_uri: str
+    params: list[dict[str, Any]]
     processor: ProcessorMetadata
     result: ChunkingExecutionResult
 
@@ -109,9 +116,28 @@ class ProcessorContext:
 
 
 @dataclass(frozen=True)
-class ChunkResult:
+class ChunkRecord:
     chunk_id: str
     chunk_text: str
     offsets_start: int
     offsets_end: int
     chunk_text_hash: str
+
+
+@dataclass(frozen=True)
+class ChunkArtifact:
+    chunk_record: ChunkRecord
+    destination_key: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "chunk_record": asdict(self.chunk_record),
+            "destination_key": self.destination_key,
+        }
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> ChunkArtifact:
+        return cls(
+            chunk_record=ChunkRecord(**dict(payload["chunk_record"])),
+            destination_key=str(payload["destination_key"]),
+        )

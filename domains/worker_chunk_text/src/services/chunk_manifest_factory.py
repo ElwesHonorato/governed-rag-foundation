@@ -1,7 +1,4 @@
-from contracts.contracts import (
-    CHUNK_MANIFEST_SCHEMA_VERSION,
-    ProcessResult,
-)
+from contracts.contracts import ProcessResult
 
 
 class ChunkManifestFactory:
@@ -9,7 +6,7 @@ class ChunkManifestFactory:
         source_metadata = process_result.source_metadata
 
         return {
-            "schema_version": CHUNK_MANIFEST_SCHEMA_VERSION,
+            "schema_version": process_result.schema_version,
             "doc_id": str(source_metadata.doc_id),
             "output": {
                 "status": process_result.result.status.value,

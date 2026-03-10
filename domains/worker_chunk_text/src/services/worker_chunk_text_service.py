@@ -11,7 +11,6 @@ from pipeline_common.helpers.run_ids import build_source_run_id
 from pipeline_common.stages_contracts import Content, StageArtifact
 from pipeline_common.startup.contracts import WorkerService
 from contracts.contracts import ChunkTextProcessingConfigContract
-from services.chunk_manifest_factory import ChunkManifestFactory
 from services.chunk_manifest_writer import ChunkManifestWriter
 from services.chunk_text_processor import ChunkTextProcessor
 
@@ -39,7 +38,6 @@ class WorkerChunkTextService(WorkerService):
             storage_bucket=self.storage_bucket,
             output_prefix=self.output_prefix,
         )
-        self.manifest_factory = ChunkManifestFactory()
         self.manifest_writer = ChunkManifestWriter(
             object_storage=self.object_storage,
             storage_bucket=self.storage_bucket,
@@ -86,12 +84,7 @@ class WorkerChunkTextService(WorkerService):
                 run_id=build_source_run_id(source_uri),
                 stages=resolved_stages,
             )
-            manifest = self.manifest_factory.build(process_result)
-            self.manifest_writer.write(
-                manifest=manifest,
-                doc_id=process_result.source_metadata.doc_id,
-                run_id=process_result.run_id,
-            )
+            self.manifest_writer.write(process_result=process_result)
             self.lineage.complete_run()
         except Exception as exc:
             self.lineage.fail_run(error_message=str(exc))

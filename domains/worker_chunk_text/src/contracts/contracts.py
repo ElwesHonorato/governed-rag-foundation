@@ -4,12 +4,10 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 from enum import Enum
-from typing import Any
+from typing import Any, ClassVar
 
 from pipeline_common.stages_contracts import StageArtifact
 from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata, SourceDocumentMetadata
-
-CHUNK_MANIFEST_SCHEMA_VERSION = "1.0"
 
 
 class ChunkExecutionStatus(str, Enum):
@@ -85,6 +83,8 @@ class ChunkingExecutionResult:
 
 @dataclass(frozen=True)
 class ProcessResult:
+    SCHEMA_VERSION: ClassVar[str] = "1.0"
+    schema_version: str = field(init=False)
     run_id: str
     source_metadata: SourceDocumentMetadata
     source_uri: str
@@ -92,6 +92,13 @@ class ProcessResult:
     params: list[dict[str, Any]]
     processor: ProcessorMetadata
     result: ChunkingExecutionResult
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "schema_version", self.SCHEMA_VERSION)
+
+    @property
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
 
 
 @dataclass(frozen=True)

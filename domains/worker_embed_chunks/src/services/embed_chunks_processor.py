@@ -25,6 +25,7 @@ class EmbeddingWriteResult:
 
 @dataclass(frozen=True)
 class ChunkRecordPayload:
+    index: int
     chunk_id: str
     chunk_text: str
     offsets_start: int
@@ -38,10 +39,10 @@ class ChunkArtifactPayload:
     destination_key: str
 
     @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> "ChunkArtifactPayload":
+    def from_dict(cls, payload: dict[str, Any], *, destination_key: str) -> "ChunkArtifactPayload":
         return cls(
-            chunk_record=ChunkRecordPayload(**dict(payload["chunk_record"])),
-            destination_key=str(payload["destination_key"]),
+            chunk_record=ChunkRecordPayload(**dict(payload)),
+            destination_key=destination_key,
         )
 
 
@@ -73,9 +74,9 @@ class EmbedChunksProcessor:
         return values
 
     @staticmethod
-    def read_chunk_payload(raw_payload: bytes) -> ChunkArtifactPayload:
+    def read_chunk_payload(raw_payload: bytes, *, source_key: str) -> ChunkArtifactPayload:
         payload = dict(json.loads(raw_payload.decode("utf-8", errors="ignore")))
-        return ChunkArtifactPayload.from_dict(payload)
+        return ChunkArtifactPayload.from_dict(payload, destination_key=source_key)
 
     def write_embedding_artifact(
         self,
@@ -102,7 +103,7 @@ class EmbedChunksProcessor:
             "timestamp": None,
             "security_clearance": None,
             "source_key": payload.destination_key,
-            "chunk_index": 0,
+            "chunk_index": payload.chunk_record.index,
             "dimension": int(self.dimension),
             "run_id": "",
             "embedder_name": EMBEDDER_NAME,
@@ -157,7 +158,7 @@ class EmbedChunksProcessor:
                 security_clearance=None,
                 doc_id=doc_id,
                 source_key=payload.destination_key,
-                chunk_index=0,
+                chunk_index=payload.chunk_record.index,
                 text=text,
                 run_id="",
                 embedder_name=EMBEDDER_NAME,

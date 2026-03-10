@@ -16,5 +16,5 @@ class ChunkManifestFactory:
                 "chunk_count_expected": process_result.result.chunk_count_expected,
                 "chunk_count_written": process_result.result.chunk_count_written,
             },
-            "chunks": [entry.to_dict() for entry in process_result.result.chunk_entries],
+            "chunks": process_result.result.chunk_entries,
         }

@@ -13,7 +13,6 @@ from pipeline_common.stages_contracts import (
 
 from contracts.contracts import (
     ChunkArtifact,
-    ChunkManifestEntry,
     ChunkRecord,
     ChunkingExecutionResult,
     ProcessResult,
@@ -43,6 +42,7 @@ class ChunkTextProcessor(BaseProcessor):
         self.object_storage = object_storage
         self.storage_bucket = storage_bucket
         self.output_prefix = output_prefix
+
 
     def process(
         self,
@@ -107,28 +107,20 @@ class ChunkTextProcessor(BaseProcessor):
         source_uri: str,
         run_id: str,
         source_metadata: SourceDocumentMetadata,
-    ) -> tuple[int, int, list[ChunkManifestEntry]]:
+    ) -> tuple[int, int, list[str]]:
         chunk_count_expected = 0
         written = 0
-        chunk_entries: list[ChunkManifestEntry] = []
+        chunk_entries: list[str] = []
 
-        for chunk_index, chunk_artifact in enumerate(
-            self._build_chunk_artifacts(
-                docs=docs,
-                serialized_stages=serialized_stages,
-                source_uri=source_uri,
-                run_id=run_id,
-                source_metadata=source_metadata,
-            )
+        for chunk_artifact in self._build_chunk_artifacts(
+            docs=docs,
+            serialized_stages=serialized_stages,
+            source_uri=source_uri,
+            run_id=run_id,
+            source_metadata=source_metadata,
         ):
             chunk_count_expected += 1
-            chunk_entries.append(
-                ChunkManifestEntry(
-                    entry=chunk_artifact.chunk_record,
-                    chunk_index=chunk_index,
-                    path=chunk_artifact.destination_key,
-                )
-            )
+            chunk_entries.append(chunk_artifact.destination_key)
             self._write_chunk_object(chunk_artifact)
             written += 1
 
@@ -184,26 +176,27 @@ class ChunkTextProcessor(BaseProcessor):
 
         for chunk_index, doc in enumerate(docs):
             chunk_record: ChunkRecord = self._build_chunk_result(
+                chunk_index=chunk_index,
                 doc=doc,
                 source_uri=source_uri,
                 source_metadata=source_metadata_payload,
                 processor=processor_metadata_payload,
                 params=serialized_stages,
             )
-            destination_key: str = self._chunk_object_key(
-                doc_id=source_metadata.doc_id,
-                run_id=run_id,
-                chunk_id=chunk_record.chunk_id,
-            )
             chunk_artifact = ChunkArtifact(
                 chunk_record=chunk_record,
-                destination_key=destination_key,
+                destination_key=self._chunk_object_key(
+                    doc_id=source_metadata.doc_id,
+                    run_id=run_id,
+                    chunk_id=chunk_record.chunk_id,
+                ),
             )
             yield chunk_artifact
 
     def _build_chunk_result(
         self,
         *,
+        chunk_index: int,
         doc: Document,
         source_uri: str,
         source_metadata: dict[str, Any],
@@ -225,6 +218,7 @@ class ChunkTextProcessor(BaseProcessor):
             },
         )
         return ChunkRecord(
+            index=chunk_index,
             chunk_id=chunk_id,
             chunk_text=chunk_text,
             offsets_start=offsets_start,

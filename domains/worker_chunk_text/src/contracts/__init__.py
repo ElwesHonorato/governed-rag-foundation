@@ -4,7 +4,6 @@ from contracts.chunking_strategy import ChunkingStrategy
 from contracts.contracts import (
     CHUNK_MANIFEST_SCHEMA_VERSION,
     ChunkArtifact,
-    ChunkManifestEntry,
     ProcessorContext,
     ChunkExecutionStatus,
     ChunkingExecutionResult,
@@ -20,7 +19,6 @@ from contracts.contracts import (
 __all__ = [
     "CHUNK_MANIFEST_SCHEMA_VERSION",
     "ChunkArtifact",
-    "ChunkManifestEntry",
     "ProcessorContext",
     "ChunkExecutionStatus",
     "ChunkingExecutionResult",

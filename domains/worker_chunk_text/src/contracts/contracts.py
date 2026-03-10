@@ -60,7 +60,7 @@ class ChunkTextWorkerConfigContract:
 class ChunkingExecutionResult:
     chunk_count_expected: int
     chunk_count_written: int
-    chunk_entries: list[ChunkManifestEntry]
+    chunk_entries: list[str]
     processor_context: ProcessorContext
     status: ChunkExecutionStatus = field(init=False)
 
@@ -84,22 +84,6 @@ class ChunkingExecutionResult:
 
 
 @dataclass(frozen=True)
-class ChunkManifestEntry:
-    entry: ChunkRecord
-    chunk_index: int
-    path: str
-
-    def to_dict(self) -> dict[str, Any]:
-        entry_dict = asdict(self.entry)
-        return {
-            "chunk_id": entry_dict["chunk_id"],
-            "chunk_index": self.chunk_index,
-            "chunk_hash": entry_dict["chunk_text_hash"],
-            "path": self.path,
-        }
-
-
-@dataclass(frozen=True)
 class ProcessResult:
     run_id: str
     source_metadata: SourceDocumentMetadata
@@ -117,6 +101,7 @@ class ProcessorContext:
 
 @dataclass(frozen=True)
 class ChunkRecord:
+    index: int
     chunk_id: str
     chunk_text: str
     offsets_start: int
@@ -130,14 +115,11 @@ class ChunkArtifact:
     destination_key: str
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "chunk_record": asdict(self.chunk_record),
-            "destination_key": self.destination_key,
-        }
+        return asdict(self.chunk_record)
 
     @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> ChunkArtifact:
+    def from_dict(cls, payload: dict[str, Any], *, destination_key: str) -> ChunkArtifact:
         return cls(
-            chunk_record=ChunkRecord(**dict(payload["chunk_record"])),
-            destination_key=str(payload["destination_key"]),
+            chunk_record=ChunkRecord(**dict(payload)),
+            destination_key=destination_key,
         )

@@ -34,6 +34,7 @@ class ChunkTextProcessor(BaseProcessor):
     VERSION: ClassVar[str] = "1.0.0"
     STAGE_NAME: ClassVar[str] = "chunk_text"
     CHUNKS_DIR: ClassVar[str] = "chunks"
+    CHUNK_OBJECT_KEY_PATTERN: ClassVar[str] = "{stage_name}/{dir}/{doc_id}/run={run_id}/chunk={chunk_id}.json"
 
     def __init__(
         self,
@@ -221,9 +222,12 @@ class ChunkTextProcessor(BaseProcessor):
         return chunk_metadata
 
     def _chunk_object_key(self, doc_id: str, run_id: str, chunk_id: str) -> str:
-        return (
-            f"{self.output_prefix.rstrip('/')}/"
-            f"{self.CHUNKS_DIR}/{doc_id}/run={run_id}/chunk={chunk_id}.json"
+        return self.CHUNK_OBJECT_KEY_PATTERN.format(
+            stage_name=self.output_prefix.rstrip("/"),
+            dir=self.CHUNKS_DIR,
+            doc_id=doc_id,
+            run_id=run_id,
+            chunk_id=chunk_id,
         )
 
     def _write_chunk_object(self, chunk_artifact: StorageStageArtifact) -> None:

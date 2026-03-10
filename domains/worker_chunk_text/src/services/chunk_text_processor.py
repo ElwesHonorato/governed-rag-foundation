@@ -13,7 +13,7 @@ from pipeline_common.stages_contracts import (
 )
 
 from contracts.contracts import (
-    ChunkArtifact,
+    StorageStageArtifact,
     ChunkMetadata,
     ChunkingExecutionResult,
     ProcessResult,
@@ -158,7 +158,7 @@ class ChunkTextProcessor(BaseProcessor):
         source_uri: str,
         run_id: str,
         source_metadata: SourceDocumentMetadata,
-    ) -> Iterator[ChunkArtifact]:
+    ) -> Iterator[StorageStageArtifact]:
         source_metadata_payload = source_metadata.to_dict
         processor_metadata_payload = self.processor_metadata.to_dict
 
@@ -171,17 +171,16 @@ class ChunkTextProcessor(BaseProcessor):
                 processor=processor_metadata_payload,
                 params=serialized_stages,
             )
-            chunk_artifact = ChunkArtifact(
+            chunk_artifact = StorageStageArtifact(
                 artifact=StageArtifact(
                     metadata=StageArtifactMetadata(
                         processor=self.processor_metadata,
                         source=source_metadata,
-                        content={"contract": "ChunkMetadata"},
+                        content=chunk_metadata,
                         params=serialized_stages,
                     ),
                     content=doc.page_content,
                 ),
-                chunk_metadata=chunk_metadata,
                 destination_key=self._chunk_object_key(
                     doc_id=source_metadata.doc_id,
                     run_id=run_id,
@@ -230,7 +229,7 @@ class ChunkTextProcessor(BaseProcessor):
             f"{self.CHUNKS_DIR}/{doc_id}/run={run_id}/chunk={chunk_id}.json"
         )
 
-    def _write_chunk_object(self, chunk_artifact: ChunkArtifact) -> None:
+    def _write_chunk_object(self, chunk_artifact: StorageStageArtifact) -> None:
         self.object_storage.write_object(
             bucket=self.storage_bucket,
             key=chunk_artifact.destination_key,

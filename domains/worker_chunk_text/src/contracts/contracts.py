@@ -114,14 +114,13 @@ class ChunkMetadata:
 
 
 @dataclass(frozen=True)
-class ChunkArtifact:
+class StorageStageArtifact:
     artifact: StageArtifact[Any]
-    chunk_metadata: ChunkMetadata
     destination_key: str
 
     @property
     def to_payload(self) -> dict[str, Any]:
-        return asdict(self.chunk_metadata)
+        return self.artifact.content_metadata.to_dict
 
     @property
     def to_dict(self) -> dict[str, Any]:
@@ -134,9 +133,9 @@ class ChunkArtifact:
         *,
         destination_key: str,
         artifact: StageArtifact[Any],
-    ) -> ChunkArtifact:
+    ) -> StorageStageArtifact:
+        _ = payload
         return cls(
             artifact=artifact,
-            chunk_metadata=ChunkMetadata(**dict(payload)),
             destination_key=destination_key,
         )

@@ -43,22 +43,7 @@ class ChunkTextProcessor(BaseProcessor):
         self.storage_bucket = storage_bucket
         self.output_prefix = output_prefix
 
-
     def process(
-        self,
-        processed_payload: ArtifactPayload,
-        source_uri: str,
-        run_id: str,
-        stages: ChunkingStages,
-    ) -> ProcessResult:
-        return self.process_stage(
-            processed_payload=processed_payload,
-            source_uri=source_uri,
-            run_id=run_id,
-            stages=stages,
-        )
-
-    def process_stage(
         self,
         *,
         processed_payload: ArtifactPayload,
@@ -77,7 +62,7 @@ class ChunkTextProcessor(BaseProcessor):
             source_text=processed_payload.content.text,
             stages=stages.stages,
         )
-        chunk_count_expected, written, chunk_entries = self._write_chunk_artifacts(
+        execution_result: ChunkingExecutionResult = self._write_chunk_artifacts(
             docs=docs,
             serialized_stages=serialized_stages,
             source_uri=source_uri,
@@ -89,54 +74,10 @@ class ChunkTextProcessor(BaseProcessor):
             run_id=run_id,
             source_metadata=source_metadata,
             source_uri=source_uri,
+            processor_context=processor_context,
             params=serialized_stages,
             processor=self.processor_metadata,
-            result=ChunkingExecutionResult(
-                chunk_count_expected=chunk_count_expected,
-                chunk_count_written=written,
-                chunk_entries=chunk_entries,
-                processor_context=processor_context,
-            ),
-        )
-
-    def _write_chunk_artifacts(
-        self,
-        *,
-        docs: list[Document],
-        serialized_stages: list[dict[str, Any]],
-        source_uri: str,
-        run_id: str,
-        source_metadata: SourceDocumentMetadata,
-    ) -> tuple[int, int, list[str]]:
-        chunk_count_expected = 0
-        written = 0
-        chunk_entries: list[str] = []
-
-        for chunk_artifact in self._build_chunk_artifacts(
-            docs=docs,
-            serialized_stages=serialized_stages,
-            source_uri=source_uri,
-            run_id=run_id,
-            source_metadata=source_metadata,
-        ):
-            chunk_count_expected += 1
-            chunk_entries.append(chunk_artifact.destination_key)
-            self._write_chunk_object(chunk_artifact)
-            written += 1
-
-        return chunk_count_expected, written, chunk_entries
-
-    def _write_chunk_object(self, chunk_artifact: ChunkArtifact) -> None:
-        self.object_storage.write_object(
-            bucket=self.storage_bucket,
-            key=chunk_artifact.destination_key,
-            payload=json.dumps(
-                chunk_artifact.to_payload,
-                sort_keys=True,
-                ensure_ascii=True,
-                separators=(",", ":"),
-            ).encode("utf-8"),
-            content_type="application/json",
+            result=execution_result,
         )
 
     def _process_stages(
@@ -161,6 +102,51 @@ class ChunkTextProcessor(BaseProcessor):
                 docs=docs,
             )
         return docs
+
+    def _apply_stage(
+        self,
+        *,
+        splitter: CentralTextSplitter,
+        docs: list[str] | list[Document],
+    ) -> list[Document]:
+        if self._docs_are_documents(docs):
+            return splitter.split_documents(documents=docs)
+        texts = [str(item) for item in docs]
+        return splitter.create_documents(texts=texts)
+
+    def _docs_are_documents(self, docs: list[str] | list[Document]) -> TypeGuard[list[Document]]:
+        return bool(docs) and hasattr(docs[0], "page_content")
+
+    def _write_chunk_artifacts(
+        self,
+        *,
+        docs: list[Document],
+        serialized_stages: list[dict[str, Any]],
+        source_uri: str,
+        run_id: str,
+        source_metadata: SourceDocumentMetadata,
+    ) -> ChunkingExecutionResult:
+        chunk_count_expected = 0
+        written = 0
+        chunk_entries: list[str] = []
+
+        for chunk_artifact in self._build_chunk_artifacts(
+            docs=docs,
+            serialized_stages=serialized_stages,
+            source_uri=source_uri,
+            run_id=run_id,
+            source_metadata=source_metadata,
+        ):
+            chunk_count_expected += 1
+            chunk_entries.append(chunk_artifact.destination_key)
+            self._write_chunk_object(chunk_artifact)
+            written += 1
+
+        return ChunkingExecutionResult(
+            chunk_count_expected=chunk_count_expected,
+            chunk_count_written=written,
+            chunk_entries=chunk_entries,
+        )
 
     def _build_chunk_artifacts(
         self,
@@ -226,22 +212,21 @@ class ChunkTextProcessor(BaseProcessor):
             chunk_text_hash=sha256_hex(chunk_text),
         )
 
-    def _apply_stage(
-        self,
-        *,
-        splitter: CentralTextSplitter,
-        docs: list[str] | list[Document],
-    ) -> list[Document]:
-        if self._docs_are_documents(docs):
-            return splitter.split_documents(documents=docs)
-        texts = [str(item) for item in docs]
-        return splitter.create_documents(texts=texts)
-
-    def _docs_are_documents(self, docs: list[str] | list[Document]) -> TypeGuard[list[Document]]:
-        return bool(docs) and hasattr(docs[0], "page_content")
-
     def _chunk_object_key(self, doc_id: str, run_id: str, chunk_id: str) -> str:
         return (
             f"{self.output_prefix.rstrip('/')}/"
             f"{self.CHUNKS_DIR}/{doc_id}/run={run_id}/chunk={chunk_id}.json"
+        )
+
+    def _write_chunk_object(self, chunk_artifact: ChunkArtifact) -> None:
+        self.object_storage.write_object(
+            bucket=self.storage_bucket,
+            key=chunk_artifact.destination_key,
+            payload=json.dumps(
+                chunk_artifact.to_payload,
+                sort_keys=True,
+                ensure_ascii=True,
+                separators=(",", ":"),
+            ).encode("utf-8"),
+            content_type="application/json",
         )

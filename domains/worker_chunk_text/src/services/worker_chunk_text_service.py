@@ -79,7 +79,7 @@ class WorkerChunkTextService(WorkerService):
             processed_payload = ArtifactPayload.from_dict(payload, content_type=ParsedTextPayload)
             resolved_stages = self._chunking_resolver.resolve(processed_payload.source_metadata.source_type)
             process_result = self.processor.process(
-                processed_payload,
+                processed_payload=processed_payload,
                 source_uri=source_uri,
                 run_id=build_source_run_id(source_uri),
                 stages=resolved_stages,

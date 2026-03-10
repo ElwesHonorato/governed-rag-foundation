@@ -10,8 +10,7 @@ from pipeline_common.gateways.processing_engine import ReadGateway, WriteGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, StageQueue
 from pipeline_common.helpers.contracts import utc_now_iso
 from pipeline_common.startup.contracts import WorkerService
-from pipeline_common.stages_contracts import ChunkArtifactPayload
-from services.embed_chunks_processor import EmbedChunksProcessor
+from services.embed_chunks_processor import ChunkArtifactPayload, EmbedChunksProcessor
 
 logger = logging.getLogger(__name__)
 

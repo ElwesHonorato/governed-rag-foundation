@@ -8,7 +8,6 @@ from typing import Any
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.processing_engine import SparkWriteGateway
 from pipeline_common.provenance import embedding_params_hash
-from pipeline_common.stages_contracts import ChunkArtifactPayload, ParsedTextPayload
 from pyspark.sql import functions as spark_functions  # type: ignore
 from pyspark.sql import types as spark_types  # type: ignore
 
@@ -22,6 +21,28 @@ class EmbeddingWriteResult:
     doc_id: str
     chunk_id: str
     wrote: bool
+
+
+@dataclass(frozen=True)
+class ChunkRecordPayload:
+    chunk_id: str
+    chunk_text: str
+    offsets_start: int
+    offsets_end: int
+    chunk_text_hash: str
+
+
+@dataclass(frozen=True)
+class ChunkArtifactPayload:
+    chunk_record: ChunkRecordPayload
+    destination_key: str
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> "ChunkArtifactPayload":
+        return cls(
+            chunk_record=ChunkRecordPayload(**dict(payload["chunk_record"])),
+            destination_key=str(payload["destination_key"]),
+        )
 
 
 class EmbedChunksProcessor:
@@ -54,7 +75,7 @@ class EmbedChunksProcessor:
     @staticmethod
     def read_chunk_payload(raw_payload: bytes) -> ChunkArtifactPayload:
         payload = dict(json.loads(raw_payload.decode("utf-8", errors="ignore")))
-        return ChunkArtifactPayload.from_dict(payload, content_type=ParsedTextPayload)
+        return ChunkArtifactPayload.from_dict(payload)
 
     def write_embedding_artifact(
         self,
@@ -65,20 +86,22 @@ class EmbedChunksProcessor:
         embedding_payload = self._build_embedding_payload_local(payload, embedding_run_id=embedding_run_id)
         return self._write_embedding_payload(embedding_payload)
 
-    def build_input_record(self, payload: ChunkArtifactPayload, *, embedding_run_id: str) -> dict[str, Any]:
+    def build_input_record(
+        self, payload: ChunkArtifactPayload, *, embedding_run_id: str
+    ) -> dict[str, Any]:
         """Create one normalized record for Spark dataframe input."""
-        text = payload.content.text
-        source_metadata = payload.source_metadata
-        chunk_id = hashlib.sha256(f"{source_metadata.doc_id}:{text}".encode("utf-8")).hexdigest()
+        text = payload.chunk_record.chunk_text
+        chunk_id = payload.chunk_record.chunk_id
+        doc_id = self._doc_id_from_destination_key(payload.destination_key)
         embedder_params = {"dimension": int(self.dimension)}
         return {
-            "doc_id": source_metadata.doc_id,
+            "doc_id": doc_id,
             "chunk_id": chunk_id,
             "chunk_text": text,
-            "source_type": source_metadata.source_type,
-            "timestamp": source_metadata.timestamp,
-            "security_clearance": source_metadata.security_clearance,
-            "source_key": source_metadata.source_key,
+            "source_type": None,
+            "timestamp": None,
+            "security_clearance": None,
+            "source_key": payload.destination_key,
             "chunk_index": 0,
             "dimension": int(self.dimension),
             "run_id": "",
@@ -120,20 +143,20 @@ class EmbedChunksProcessor:
         *,
         embedding_run_id: str,
     ) -> dict[str, Any]:
-        text = payload.content.text
-        doc_id = payload.source_metadata.doc_id
-        chunk_id = hashlib.sha256(f"{doc_id}:{text}".encode("utf-8")).hexdigest()
+        text = payload.chunk_record.chunk_text
+        doc_id = self._doc_id_from_destination_key(payload.destination_key)
+        chunk_id = payload.chunk_record.chunk_id
         embedder_params = {"dimension": int(self.dimension)}
         return {
             "doc_id": doc_id,
             "chunk_id": chunk_id,
             "vector": self._deterministic_embedding_for(text, self.dimension),
             "metadata": self._metadata_from_payload(
-                source_type=payload.source_metadata.source_type,
-                timestamp=payload.source_metadata.timestamp,
-                security_clearance=payload.source_metadata.security_clearance,
+                source_type=None,
+                timestamp=None,
+                security_clearance=None,
                 doc_id=doc_id,
-                source_key=payload.source_metadata.source_key,
+                source_key=payload.destination_key,
                 chunk_index=0,
                 text=text,
                 run_id="",
@@ -231,3 +254,12 @@ class EmbedChunksProcessor:
 
     def _embedding_object_key(self, doc_id: str, chunk_id: str) -> str:
         return f"{self.output_prefix}{doc_id}/{chunk_id}.embedding.json"
+
+    @staticmethod
+    def _doc_id_from_destination_key(destination_key: str) -> str:
+        parts = [part for part in destination_key.split("/") if part]
+        try:
+            chunks_index = parts.index("chunks")
+            return parts[chunks_index + 1]
+        except (ValueError, IndexError) as exc:
+            raise ValueError(f"Could not extract doc_id from chunk destination key: {destination_key}") from exc

@@ -132,7 +132,7 @@ class ChunkTextProcessor(BaseProcessor):
         written = 0
         chunk_entries: list[str] = []
 
-        for chunk_artifact in self._build_chunk_artifacts(
+        for storage_stage_artifact in self._build_chunk_artifacts(
             docs=docs,
             serialized_stages=serialized_stages,
             source_uri=source_uri,
@@ -140,8 +140,8 @@ class ChunkTextProcessor(BaseProcessor):
             source_metadata=source_metadata,
         ):
             chunk_count_expected += 1
-            chunk_entries.append(chunk_artifact.destination_key)
-            self._write_chunk_object(chunk_artifact)
+            chunk_entries.append(storage_stage_artifact.destination_key)
+            self._write_chunk_object(storage_stage_artifact)
             written += 1
 
         return ChunkingExecutionResult(

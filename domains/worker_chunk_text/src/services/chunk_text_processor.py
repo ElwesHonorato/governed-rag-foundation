@@ -54,7 +54,7 @@ class ChunkTextProcessor(BaseProcessor):
         stages: ChunkingStages,
     ) -> ProcessResult:
         """Run the golden path once: stage-chain split and persist chunk artifacts."""
-        serialized_stages: list[dict[str, Any]] = stages.to_serializable_dict()
+        serialized_stages: list[dict[str, Any]] = stages.dict
         source_metadata: SourceDocumentMetadata = input_artifact.source_metadata
         processor_context: ProcessorContext = ProcessorContext(
             params_hash=chunk_params_hash(serialized_stages),

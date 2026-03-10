@@ -105,7 +105,8 @@ class ChunkingStage:
     processor: ChunkingProcessorType | CustomChunkingProcessorType
     params: StageParams
 
-    def to_serializable_dict(self) -> dict[str, Any]:
+    @property
+    def dict(self) -> dict[str, Any]:
         processor_value = self.processor.value
         processor_name = getattr(processor_value, "__name__", str(processor_value))
         return {
@@ -118,8 +119,9 @@ class ChunkingStage:
 class ChunkingStages:
     stages: list[ChunkingStage]
 
-    def to_serializable_dict(self) -> list[dict[str, Any]]:
-        return [stage.to_serializable_dict() for stage in self.stages]
+    @property
+    def dict(self) -> list[dict[str, Any]]:
+        return [stage.dict for stage in self.stages]
 
 
 CHUNKING_SCAFFOLD: dict[ChunkingScaffoldKey, list[ChunkingStage]] = {

@@ -118,6 +118,7 @@ class ChunkArtifact:
     def payload(self) -> dict[str, Any]:
         return asdict(self.chunk_record)
 
+    @property
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 

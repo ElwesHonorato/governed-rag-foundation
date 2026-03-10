@@ -60,6 +60,7 @@ Patterns used:
 - Factory: runtime context and gateway factories.
 - Ports & Adapters (partial): lineage gateway and governance catalog writer port.
 - Registry: job-key registry used by worker composition roots.
+- Dataclass Serialization: contract models expose explicit full-object and payload dictionary views.
 
 Why chosen:
 - Keep runtime paths explicit and testable.
@@ -78,6 +79,7 @@ Repository structure (architecture-relevant):
 Architecture document index (central references):
 - `docs/ARCHITECTURE.md` (this file)
 - `docs/patterns/chunk-embedding-provenance-registry.md`
+- `docs/patterns/dataclass-serialization.md`
 - `domains/docs/ARCHITECTURE.md`
 - `domains/gov_governance/docs/ARCHITECTURE.md`
 - `domains/worker_scan/docs/ARCHITECTURE.md`

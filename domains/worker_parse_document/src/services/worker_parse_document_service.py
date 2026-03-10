@@ -130,7 +130,7 @@ class WorkerParseDocumentService(WorkerService):
         )
 
     def _publish_parse_output(self, parse_job: ParseWorkItem) -> None:
-        self.stage_queue.push(ParseOutputMessageFactory.build(destination_key=parse_job.destination_key).to_dict())
+        self.stage_queue.push(ParseOutputMessageFactory.build(destination_key=parse_job.destination_key).to_payload)
 
     def _handle_parse_failure(self, parse_job: ParseWorkItem, error_message: str) -> None:
         self.stage_queue.push_dlq(
@@ -143,7 +143,7 @@ class WorkerParseDocumentService(WorkerService):
                     "failed_at": utc_now_iso(),
                 },
             )
-            .to_dict()
+            .to_payload
         )
         self.lineage.fail_run(error_message=error_message)
 
@@ -168,7 +168,7 @@ class WorkerParseDocumentService(WorkerService):
                         "message_payload": message.payload,
                         "failed_at": utc_now_iso(),
                     },
-                ).to_dict()
+                ).to_payload
             )
             message.ack()
             logger.exception("Invalid parse queue message payload; sent to DLQ and acknowledged")

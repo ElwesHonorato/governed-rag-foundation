@@ -15,6 +15,7 @@ class ParsedTextPayload:
     title: str
     text: str
 
+    @property
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
@@ -62,6 +63,7 @@ class ArtifactPayload(Generic[ContentT]):
             processor_metadata=ProcessorMetadata(**dict(processor_metadata_payload)),
         )
 
+    @property
     def to_dict(self) -> dict[str, Any]:
         """Serialize payload for object storage persistence."""
         return asdict(self)

@@ -73,7 +73,7 @@ class WorkerScanService(WorkerService):
                 Envelope(
                     type="parse_document.request",
                     payload={"storage_key": destination_key},
-                ).to_dict()
+                ).to_payload
             )
             self.object_storage.delete(self.processor.bucket, source_key)
             logger.info(

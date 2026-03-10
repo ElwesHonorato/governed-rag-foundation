@@ -120,7 +120,7 @@ class WorkerEmbedChunksService(WorkerService):
             Envelope(
                 type="embed_chunks.failure",
                 payload={"source_key": source_key},
-            ).to_dict()
+            ).to_payload
         )
 
     def _handle_embed_failure(self, source_key: str) -> bool:
@@ -152,7 +152,7 @@ class WorkerEmbedChunksService(WorkerService):
             Envelope(
                 type="index_weaviate.request",
                 payload={"embeddings_key": destination_key, "doc_id": doc_id},
-            ).to_dict()
+            ).to_payload
         )
 
     def _source_key_from_message(self, message: ConsumedMessage) -> str | None:
@@ -169,7 +169,7 @@ class WorkerEmbedChunksService(WorkerService):
                         "message_payload": message.payload,
                         "failed_at": utc_now_iso(),
                     },
-                ).to_dict()
+                ).to_payload
             )
             message.ack()
             logger.exception("Invalid embed queue message payload; sent to DLQ and acknowledged")

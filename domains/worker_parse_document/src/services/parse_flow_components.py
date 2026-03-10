@@ -62,7 +62,7 @@ class DocumentParserProcessor(BaseProcessor):
             source_metadata=metadata,
             processor_metadata=processor_metadata,
             content=parsed_payload,
-        ).to_dict()
+        ).to_dict
 
 
 class ParseOutputMessageFactory:

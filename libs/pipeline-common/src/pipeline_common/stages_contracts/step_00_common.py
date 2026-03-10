@@ -54,18 +54,10 @@ class SourceDocumentMetadata:
             source_content_hash=str(source_content_hash),
         )
 
+    @property
     def to_dict(self) -> dict[str, Any]:
         """Serialize metadata to flat key/value payload fields."""
-        return {
-            self.FIELD_SCHEMA_VERSION: self.schema_version,
-            self.FIELD_DOC_ID: self.doc_id,
-            self.FIELD_SOURCE_KEY: self.source_key,
-            self.FIELD_TIMESTAMP: self.timestamp,
-            self.FIELD_SECURITY_CLEARANCE: self.security_clearance,
-            self.FIELD_SOURCE_TYPE: self.source_type,
-            self.FIELD_CONTENT_TYPE: self.content_type,
-            self.FIELD_SOURCE_CONTENT_HASH: self.source_content_hash,
-        }
+        return asdict(self)
 
 
 @dataclass(frozen=True)
@@ -76,5 +68,6 @@ class ProcessorMetadata:
     version: str
     stage_name: str
 
+    @property
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

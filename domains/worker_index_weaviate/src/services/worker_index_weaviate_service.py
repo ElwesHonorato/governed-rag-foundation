@@ -106,7 +106,7 @@ class WorkerIndexWeaviateService(WorkerService):
             Envelope(
                 type="index_weaviate.failure",
                 payload={"embeddings_key": embeddings_key, "doc_id": doc_id},
-            ).to_dict()
+            ).to_payload
         )
 
     def _handle_index_failure(self, embeddings_key: str, doc_id: str) -> bool:
@@ -179,7 +179,7 @@ class WorkerIndexWeaviateService(WorkerService):
                         "message_payload": message.payload,
                         "failed_at": utc_now_iso(),
                     },
-                ).to_dict()
+                ).to_payload
             )
             message.ack()
             logger.exception("Invalid index queue message payload; sent to DLQ and acknowledged")

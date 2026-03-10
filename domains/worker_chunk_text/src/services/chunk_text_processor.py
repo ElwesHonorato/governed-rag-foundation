@@ -131,7 +131,7 @@ class ChunkTextProcessor(BaseProcessor):
             bucket=self.storage_bucket,
             key=chunk_artifact.destination_key,
             payload=json.dumps(
-                chunk_artifact.payload,
+                chunk_artifact.to_payload,
                 sort_keys=True,
                 ensure_ascii=True,
                 separators=(",", ":"),
@@ -171,8 +171,8 @@ class ChunkTextProcessor(BaseProcessor):
         run_id: str,
         source_metadata: SourceDocumentMetadata,
     ) -> Iterator[ChunkArtifact]:
-        source_metadata_payload = source_metadata.to_dict()
-        processor_metadata_payload = self.processor_metadata.to_dict()
+        source_metadata_payload = source_metadata.to_dict
+        processor_metadata_payload = self.processor_metadata.to_dict
 
         for chunk_index, doc in enumerate(docs):
             chunk_record: ChunkRecord = self._build_chunk_result(

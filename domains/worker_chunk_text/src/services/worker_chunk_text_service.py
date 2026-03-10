@@ -108,7 +108,7 @@ class WorkerChunkTextService(WorkerService):
             Envelope(
                 type="chunk_text.failure",
                 payload={"source_key": source_key},
-            ).to_dict()
+            ).to_payload
         )
 
     def _handle_chunk_failure(self, source_key: str) -> bool:

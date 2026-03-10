@@ -115,7 +115,7 @@ class ChunkArtifact:
     destination_key: str
 
     @property
-    def payload(self) -> dict[str, Any]:
+    def to_payload(self) -> dict[str, Any]:
         return asdict(self.chunk_record)
 
     @property

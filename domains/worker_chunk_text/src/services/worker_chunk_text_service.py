@@ -53,10 +53,18 @@ class WorkerChunkTextService(WorkerService):
         self._init_runtime_components()
         while True:
             message = self._wait_for_next_message()
-            source_uri = self._source_uri_from_message(message)
             try:
-                self._process_chunk_job(source_uri)
+                source_uri = self._source_uri_from_message(message)
             except Exception:
+                message.nack(requeue=False)
+                continue
+
+            try:
+                self._register_lineage_input(source_uri)
+                self._process_chunk_job(source_uri)
+                self._lineage_gateway.complete_run()
+            except Exception as exc:
+                self._lineage_gateway.fail_run(error_message=str(exc))
                 message.nack(requeue=False)
                 continue
             message.ack()
@@ -70,26 +78,23 @@ class WorkerChunkTextService(WorkerService):
             time.sleep(self._poll_interval_seconds)
 
     def _process_chunk_job(self, source_uri: str) -> None:
+        raw_payload = self._storage_gateway.read_object(source_uri)
+        input_artifact = StageArtifact.from_dict(json.loads(raw_payload.decode("utf-8")))
+        resolved_stages = self._chunking_resolver.resolve(input_artifact.source_metadata.source_type)
+        process_result = self.processor.process(
+            input_artifact=input_artifact,
+            source_uri=source_uri,
+            run_id=build_source_run_id(source_uri),
+            stages=resolved_stages,
+        )
+        self.manifest_writer.write(process_result=process_result)
+
+    def _register_lineage_input(self, source_uri: str) -> None:
         self._lineage_gateway.start_run()
         self._lineage_gateway.add_input(
             name=source_uri,
             platform=DatasetPlatform.S3,
         )
-        try:
-            raw_payload = self._storage_gateway.read_object(source_uri)
-            input_artifact = StageArtifact.from_dict(json.loads(raw_payload.decode("utf-8")))
-            resolved_stages = self._chunking_resolver.resolve(input_artifact.source_metadata.source_type)
-            process_result = self.processor.process(
-                input_artifact=input_artifact,
-                source_uri=source_uri,
-                run_id=build_source_run_id(source_uri),
-                stages=resolved_stages,
-            )
-            self.manifest_writer.write(process_result=process_result)
-            self._lineage_gateway.complete_run()
-        except Exception as exc:
-            self._lineage_gateway.fail_run(error_message=str(exc))
-            raise
 
     def _send_chunk_failure(self, source_key: str) -> None:
         self._queue_gateway.push_dlq(

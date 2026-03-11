@@ -1,7 +1,7 @@
 {
   "python.analysis.extraPaths": [
-    "${workspaceFolder}/domains/worker_chunk_text/src",
-    "${workspaceFolder}/libs/pipeline-common/src",
+    "${workspaceFolder}/domains/",
+    "${workspaceFolder}/libs/",
     "${workspaceFolder}/registry",
     "${workspaceFolder}/contracts"
   ],

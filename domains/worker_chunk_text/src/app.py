@@ -13,11 +13,12 @@ from startup.service_factory import ChunkTextServiceFactory
 def run() -> None:
     """Start chunk_text worker."""
     settings: SettingsBundle = SettingsProvider(SettingsRequest(datahub=True, storage=True, queue=True)).bundle
-    runtime_factory = RuntimeContextFactory(
+
+    runtime_context: WorkerRuntimeContext = RuntimeContextFactory(
         data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job(GovernedRagJobId.WORKER_CHUNK_TEXT),
         settings_bundle=settings,
-    )
-    runtime_context: WorkerRuntimeContext = runtime_factory.build_runtime_context()
+    ).build_runtime_context()
+
     WorkerRuntimeLauncher[ChunkTextWorkerConfigContract, WorkerChunkTextService](
         runtime_context=runtime_context,
         config_extractor=ChunkTextConfigExtractor(),

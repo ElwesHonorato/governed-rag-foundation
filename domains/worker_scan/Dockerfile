@@ -1,4 +1,4 @@
-FROM apache/spark:3.5.1
+FROM python:3.11-slim
 
 ENV POETRY_VIRTUALENVS_CREATE=false \
     POETRY_NO_INTERACTION=1 \
@@ -13,7 +13,6 @@ WORKDIR /app
 RUN python3 -m pip install --no-cache-dir poetry
 
 COPY domains/worker_scan/pyproject.toml /app/pyproject.toml
-COPY domains/worker_scan/poetry.lock /app/poetry.lock
 RUN poetry install --only main --no-root
 
 COPY domains/worker_scan/src /app/src

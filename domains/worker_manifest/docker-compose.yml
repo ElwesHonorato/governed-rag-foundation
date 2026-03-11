@@ -11,7 +11,6 @@ services:
       DATAHUB_GMS_SERVER: ${DATAHUB_GMS_SERVER:-${DATAHUB_GMS_URL:-http://datahub-gms:8080}}
       ENV: ${ENV:?ENV is required}
       DATAHUB_TOKEN: ${DATAHUB_TOKEN:-}
-      SPARK_MASTER_URL: ${SPARK_MASTER_URL:-local[*]}
 
 networks:
   default:

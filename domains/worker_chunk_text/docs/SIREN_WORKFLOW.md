@@ -21,7 +21,7 @@ flowchart TD
 
     F --> G[read processed object from storage]
     G --> H[build run_id]
-    H --> K[spark dataframe chunking path]
+    H --> K[dataframe chunking path]
     K --> L[for each chunk: deterministic chunk_id + chunk object write if missing + registry upsert]
 
     L --> M[add lineage output for registry prefix]
@@ -62,15 +62,15 @@ stateDiagram-v2
 
     Parsing --> Running: valid source_key
 
-    Running --> ChunkingSpark: spark available
-    ChunkingSpark --> Persisting
+    Running --> Chunking: chunking requested
+    Chunking --> Persisting
 
     Persisting --> LineageComplete: chunk writes + registry upserts + lineage outputs
     LineageComplete --> EnqueueNext: emit embed_chunks.request per chunk
     EnqueueNext --> Acked: ack
 
     Running --> Failed: exception
-    ChunkingSpark --> Failed: exception
+    Chunking --> Failed: exception
     Persisting --> Failed: exception
 
     Failed --> DLQFailure: push failure
@@ -99,7 +99,7 @@ flowchart LR
         S1[parse envelope]
         S2[filter by prefix/suffix]
         S3[start_run + add_input]
-        S4[spark dataframe path]
+        S4[dataframe path]
         S5[complete_run]
         S6[fail_run]
     end
@@ -150,7 +150,7 @@ flowchart LR
 6. Reads processed JSON object from storage.
 7. Generates `run_id`.
 8. Processing path:
-   - Spark dataframe path (Spark is required).
+   - Dataframe path.
 9. For each chunk produced:
    - computes deterministic `chunk_id` from provenance fields,
    - writes chunk artifact if object key does not already exist,

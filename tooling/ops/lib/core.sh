@@ -15,7 +15,6 @@ readonly DOMAINS=(
   infra_storage
   infra_vector
   infra_queue
-  infra_spark
   infra_lineage
   infra_portainer
   infra_llm

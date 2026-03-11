@@ -35,7 +35,7 @@ Design:
 - Composition root in src/app.py.
 - Startup extension points in src/startup/config_extractor.py and src/startup/service_factory.py.
 - Processing logic in src/services.
-- Embedding-vector compute path uses Spark RDD execution when `spark_session` is available, with local deterministic fallback when disabled.
+- Embedding-vector compute path uses local deterministic execution.
 
 Patterns:
 - Composition Root.

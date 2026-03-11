@@ -1,7 +1,17 @@
 {
+  "editor.multiCursorModifier": "alt",
   "python.analysis.extraPaths": [
-    "${workspaceFolder}/domains/",
-    "${workspaceFolder}/libs/",
+    "${workspaceFolder}/domains/app_rag_api/src",
+    "${workspaceFolder}/domains/app_vector_ui/src",
+    "${workspaceFolder}/domains/gov_governance/src",
+    "${workspaceFolder}/domains/worker_chunk_text/src",
+    "${workspaceFolder}/domains/worker_embed_chunks/src",
+    "${workspaceFolder}/domains/worker_index_weaviate/src",
+    "${workspaceFolder}/domains/worker_manifest/src",
+    "${workspaceFolder}/domains/worker_metrics/src",
+    "${workspaceFolder}/domains/worker_parse_document/src",
+    "${workspaceFolder}/domains/worker_scan/src",
+    "${workspaceFolder}/libs/pipeline-common/src",
     "${workspaceFolder}/registry",
     "${workspaceFolder}/contracts"
   ],

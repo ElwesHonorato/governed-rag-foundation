@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import mimetypes
 from pathlib import Path
+from typing import Any
 
 from parsing.registry import ParserRegistry
 from pipeline_common.stages_contracts import (

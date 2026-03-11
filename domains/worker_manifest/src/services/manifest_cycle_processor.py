@@ -10,14 +10,14 @@ class ManifestCycleProcessor:
         processed_prefix: str,
         manifest_prefix: str,
     ) -> None:
-        self.processed_prefix = processed_prefix
-        self.manifest_prefix = manifest_prefix
+        self._processed_prefix = processed_prefix
+        self._manifest_prefix = manifest_prefix
 
     def list_doc_ids(self, processed_keys: list[str]) -> list[str]:
         return [
             key.split("/")[-1].replace(".json", "")
             for key in processed_keys
-            if key != self.processed_prefix and key.endswith(".json")
+            if key != self._processed_prefix and key.endswith(".json")
         ]
 
     @staticmethod
@@ -25,7 +25,7 @@ class ManifestCycleProcessor:
         return any(key != doc_prefix and key.endswith(suffixes) for key in stage_keys)
 
     def build_manifest_key(self, doc_id: str) -> str:
-        return f"{self.manifest_prefix}{doc_id}.json"
+        return f"{self._manifest_prefix}{doc_id}.json"
 
     @staticmethod
     def build_manifest_status(

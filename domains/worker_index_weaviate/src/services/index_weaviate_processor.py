@@ -10,7 +10,7 @@ class IndexWeaviateProcessor:
         *,
         output_prefix: str,
     ) -> None:
-        self.output_prefix = output_prefix
+        self._output_prefix = output_prefix
 
     @staticmethod
     def read_embeddings_payload(raw_payload: bytes) -> dict[str, Any]:
@@ -51,8 +51,8 @@ class IndexWeaviateProcessor:
 
     def build_indexed_key(self, doc_id: str, chunk_id: str) -> str:
         if chunk_id:
-            return f"{self.output_prefix}{doc_id}/{chunk_id}.indexed.json"
-        return f"{self.output_prefix}{doc_id}.indexed.json"
+            return f"{self._output_prefix}{doc_id}/{chunk_id}.indexed.json"
+        return f"{self._output_prefix}{doc_id}.indexed.json"
 
     @staticmethod
     def build_index_status_payload(doc_id: str, chunk_id: str) -> dict[str, Any]:

@@ -52,10 +52,10 @@ class EmbedChunksProcessor:
         storage_bucket: str,
         output_prefix: str,
     ) -> None:
-        self.dimension = dimension
-        self.object_storage = object_storage
-        self.storage_bucket = storage_bucket
-        self.output_prefix = output_prefix
+        self._dimension = dimension
+        self._storage_gateway = object_storage
+        self._storage_bucket = storage_bucket
+        self._output_prefix = output_prefix
 
     @staticmethod
     def _deterministic_embedding_for(text: str, dimension: int) -> list[float]:
@@ -84,10 +84,10 @@ class EmbedChunksProcessor:
         doc_id = str(embedding_payload["doc_id"])
         chunk_id = str(embedding_payload["chunk_id"])
         destination_key = self._embedding_object_key(doc_id, chunk_id)
-        if self.object_storage.object_exists(self.storage_bucket, destination_key):
+        if self._storage_gateway.object_exists(self._storage_bucket, destination_key):
             return EmbeddingWriteResult(destination_key=destination_key, doc_id=doc_id, chunk_id=chunk_id, wrote=False)
-        self.object_storage.write_object(
-            self.storage_bucket,
+        self._storage_gateway.write_object(
+            self._storage_bucket,
             destination_key,
             json.dumps(embedding_payload, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode("utf-8"),
             content_type="application/json",
@@ -103,11 +103,11 @@ class EmbedChunksProcessor:
         text = payload.chunk_record.chunk_text
         doc_id = self._doc_id_from_destination_key(payload.destination_key)
         chunk_id = payload.chunk_record.chunk_id
-        embedder_params = {"dimension": int(self.dimension)}
+        embedder_params = {"dimension": int(self._dimension)}
         return {
             "doc_id": doc_id,
             "chunk_id": chunk_id,
-            "vector": self._deterministic_embedding_for(text, self.dimension),
+            "vector": self._deterministic_embedding_for(text, self._dimension),
             "metadata": self._metadata_from_payload(
                 source_type=None,
                 timestamp=None,
@@ -156,7 +156,7 @@ class EmbedChunksProcessor:
         }
 
     def _embedding_object_key(self, doc_id: str, chunk_id: str) -> str:
-        return f"{self.output_prefix}{doc_id}/{chunk_id}.embedding.json"
+        return f"{self._output_prefix}{doc_id}/{chunk_id}.embedding.json"
 
     @staticmethod
     def _doc_id_from_destination_key(destination_key: str) -> str:

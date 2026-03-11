@@ -63,6 +63,7 @@ class SettingsRequest:
 class SettingsBundle:
     """Bundle of loaded settings based on a requested capability set."""
 
+    env: str | None = None
     db: DBSettings | None = None
     storage: StorageSettings | None = None
     queue: QueueSettings | None = None
@@ -101,6 +102,12 @@ def load_spark_settings_from_env() -> SparkSettings:
     return SparkSettings(
         master_url=_optional_env("SPARK_MASTER_URL", "local[*]"),
     )
+
+
+def load_env_name_from_env() -> str | None:
+    """Load runtime environment name from environment."""
+    env_name = _optional_env("ENV", "")
+    return env_name or None
 
 
 class SettingsProvider:
@@ -171,6 +178,7 @@ class SettingsProvider:
     def bundle(self) -> SettingsBundle:
         """Return the loaded settings bundle."""
         return SettingsBundle(
+            env=load_env_name_from_env(),
             db=self.db,
             storage=self.storage,
             queue=self.queue,

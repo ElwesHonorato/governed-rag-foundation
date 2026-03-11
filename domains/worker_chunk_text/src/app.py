@@ -5,7 +5,7 @@ from registry import DataHubPipelineJobs, GovernedRagJobId
 from pipeline_common.settings import SettingsBundle, SettingsProvider, SettingsRequest
 from pipeline_common.startup import RuntimeContextFactory, WorkerRuntimeLauncher
 from pipeline_common.startup.runtime_context import WorkerRuntimeContext
-from services.worker_chunk_text_service import WorkerChunkTextService
+from services.worker_chunking_service import WorkerChunkingService
 from startup.config_extractor import ChunkTextConfigExtractor
 from startup.service_factory import ChunkTextServiceFactory
 
@@ -19,7 +19,7 @@ def run() -> None:
         settings_bundle=settings,
     ).build_runtime_context()
 
-    WorkerRuntimeLauncher[ChunkTextWorkerConfigContract, WorkerChunkTextService](
+    WorkerRuntimeLauncher[ChunkTextWorkerConfigContract, WorkerChunkingService](
         runtime_context=runtime_context,
         config_extractor=ChunkTextConfigExtractor(),
         service_factory=ChunkTextServiceFactory(),

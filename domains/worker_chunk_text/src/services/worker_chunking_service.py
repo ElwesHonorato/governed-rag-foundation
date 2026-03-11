@@ -18,7 +18,7 @@ from services.chunk_text_processor import ChunkTextProcessor
 logger = logging.getLogger(__name__)
 
 
-class WorkerChunkTextService(WorkerService):
+class WorkerChunkingService(WorkerService):
     """Transform processed document payloads into chunk artifacts."""
 
     def __init__(

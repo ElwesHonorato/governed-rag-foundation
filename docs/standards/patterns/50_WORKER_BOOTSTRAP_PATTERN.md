@@ -106,8 +106,6 @@ def run() -> None:
    - `worker_chunk_text`
    - `worker_embed_chunks`
    - `worker_index_weaviate`
-   - `worker_manifest`
-   - `worker_metrics`
 4. Remove old function-based startup API after all workers migrate.
 
 ## Adversarial review gates

@@ -20,8 +20,6 @@ class GovernedRagJobId(Enum):
     WORKER_CHUNK_TEXT = "worker_chunk_text"
     WORKER_EMBED_CHUNKS = "worker_embed_chunks"
     WORKER_INDEX_WEAVIATE = "worker_index_weaviate"
-    WORKER_MANIFEST = "worker_manifest"
-    WORKER_METRICS = "worker_metrics"
 
 
 class DataHubPipelineJobs(Enum):
@@ -33,8 +31,6 @@ class DataHubPipelineJobs(Enum):
         GovernedRagJobId.WORKER_CHUNK_TEXT: DataHubDataJobKey("governed-rag", "worker_chunk_text", "custom"),
         GovernedRagJobId.WORKER_EMBED_CHUNKS: DataHubDataJobKey("governed-rag", "worker_embed_chunks", "custom"),
         GovernedRagJobId.WORKER_INDEX_WEAVIATE: DataHubDataJobKey("governed-rag", "worker_index_weaviate", "custom"),
-        GovernedRagJobId.WORKER_MANIFEST: DataHubDataJobKey("governed-rag", "worker_manifest", "custom"),
-        GovernedRagJobId.WORKER_METRICS: DataHubDataJobKey("governed-rag", "worker_metrics", "custom"),
     }
 
     @property

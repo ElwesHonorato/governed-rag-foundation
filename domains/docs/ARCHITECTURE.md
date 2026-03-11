@@ -62,7 +62,7 @@ Why chosen:
 # 4. Module Structure
 
 Top-level structure under `domains/`:
-- `worker_scan`, `worker_parse_document`, `worker_manifest`, `worker_chunk_text`, `worker_embed_chunks`, `worker_index_weaviate`, `worker_metrics`
+- `worker_scan`, `worker_parse_document`, `worker_chunk_text`, `worker_embed_chunks`, `worker_index_weaviate`
 - `app_rag_api`, `app_vector_ui`
 - `gov_governance`
 - `infra_lineage`, `infra_llm`, `infra_portainer`, `infra_queue`, `infra_storage`, `infra_vector`

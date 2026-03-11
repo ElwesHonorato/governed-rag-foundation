@@ -87,8 +87,6 @@ Architecture document index (central references):
 - `domains/worker_chunk_text/docs/ARCHITECTURE.md`
 - `domains/worker_embed_chunks/docs/ARCHITECTURE.md`
 - `domains/worker_index_weaviate/docs/ARCHITECTURE.md`
-- `domains/worker_manifest/docs/ARCHITECTURE.md`
-- `domains/worker_metrics/docs/ARCHITECTURE.md`
 - `domains/app_rag_api/docs/ARCHITECTURE.md`
 - `domains/app_vector_ui/docs/ARCHITECTURE.md`
 - `libs/pipeline-common/src/pipeline_common/startup/docs/ARCHITECTURE.md`

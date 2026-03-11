@@ -80,29 +80,3 @@ jobs:
       job.storage.bucket: rag-data
       job.storage.output_prefix: 06_indexes/
       job.storage.manifest_prefix: 07_metadata/manifest/
-
-  - id: worker_manifest
-    domain: rag-platform
-    owners: [daedalus]
-    custom_properties:
-      job.version: "0.0.1"
-      job.poll_interval_seconds: "30"
-      job.storage.bucket: rag-data
-      job.storage.processed_prefix: 03_processed/
-      job.storage.chunks_prefix: 04_chunks/
-      job.storage.embeddings_prefix: 05_embeddings/
-      job.storage.indexes_prefix: 06_indexes/
-      job.storage.manifest_prefix: 07_metadata/manifest/
-
-  - id: worker_metrics
-    domain: rag-platform
-    owners: [daedalus]
-    custom_properties:
-      job.version: "0.0.1"
-      job.poll_interval_seconds: "30"
-      job.storage.bucket: rag-data
-      job.storage.processed_prefix: 03_processed/
-      job.storage.chunks_prefix: 04_chunks/
-      job.storage.embeddings_prefix: 05_embeddings/
-      job.storage.indexes_prefix: 06_indexes/
-      job.storage.manifest_prefix: 07_metadata/manifest/

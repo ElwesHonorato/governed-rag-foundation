@@ -25,8 +25,6 @@ readonly DOMAINS=(
   worker_chunk_text
   worker_embed_chunks
   worker_index_weaviate
-  worker_manifest
-  worker_metrics
 )
 
 ui_use_color() {

@@ -1,6 +1,0 @@
-services:
-  pipeline-worker-manifest:
-    volumes:
-      - ./domains/worker_manifest/src:/app/src
-      - ./libs/pipeline-common/src:/pipeline-common/src
-      - ./registry:/app/registry

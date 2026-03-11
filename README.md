@@ -23,8 +23,6 @@ Core infrastructure image tags are hardcoded in the domain compose files.
   - `worker_chunk_text`
   - `worker_embed_chunks`
   - `worker_index_weaviate`
-  - `worker_manifest`
-  - `worker_metrics`
 - `tooling/ops/`: Shared stack lifecycle helpers used by `stack.sh`.
 - `stack.sh`: Entry point for bringing the local stack up/down.
 
@@ -66,8 +64,6 @@ Recommended first-run order from repository root:
 ./stack.sh up worker_chunk_text
 ./stack.sh up worker_embed_chunks
 ./stack.sh up worker_index_weaviate
-./stack.sh up worker_manifest
-./stack.sh up worker_metrics
 ```
 
 Then check status/logs:

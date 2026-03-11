@@ -54,10 +54,9 @@ class WorkerRuntimeLauncher(Generic[TWorkerConfig, TWorkerService]):
 
     def start(self) -> None:
         """Execute the standard worker startup pipeline."""
-        runtime_context: WorkerRuntimeContext = self._runtime_context
         try:
-            worker_config = self._config_extractor.extract(runtime_context.job_properties)
-            service = self._service_factory.build(runtime_context, worker_config)
+            worker_config = self._config_extractor.extract(self._runtime_context.job_properties)
+            service = self._service_factory.build(self._runtime_context, worker_config)
             service.serve()
         finally:
-            stop_spark_session(runtime_context.spark_session)
+            stop_spark_session(self._runtime_context.spark_session)

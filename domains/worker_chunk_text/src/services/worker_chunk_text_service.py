@@ -26,28 +26,26 @@ class WorkerChunkTextService(WorkerService):
         storage_gateway: ObjectStorageGateway,
         lineage_gateway: LineageRuntimeGateway,
         poll_interval_seconds: int,
-        storage: ChunkTextStorageConfigContract,
+        storage_config: ChunkTextStorageConfigContract,
     ) -> None:
         """Initialize chunking worker dependencies and runtime settings."""
         self.queue_gateway = queue_gateway
         self.storage_gateway = storage_gateway
         self.lineage_gateway = lineage_gateway
         self.poll_interval_seconds = poll_interval_seconds
-        self.storage_bucket = storage.bucket
-        self.input_prefix = storage.input_prefix
-        self.output_prefix = storage.output_prefix
+        self.storage_config = storage_config
 
     def _init_runtime_components(self) -> None:
         self._chunking_resolver = ChunkingStagesResolver()
         self.processor = ChunkTextProcessor(
             object_storage=self.storage_gateway,
-            storage_bucket=self.storage_bucket,
-            output_prefix=self.output_prefix,
+            storage_bucket=self.storage_config.bucket,
+            output_prefix=self.storage_config.output_prefix,
         )
         self.manifest_writer = ChunkManifestWriter(
             object_storage=self.storage_gateway,
-            storage_bucket=self.storage_bucket,
-            manifest_prefix=self.output_prefix,
+            storage_bucket=self.storage_config.bucket,
+            manifest_prefix=self.storage_config.manifest_prefix,
         )
 
     def serve(self) -> None:
@@ -72,14 +70,14 @@ class WorkerChunkTextService(WorkerService):
             time.sleep(self.poll_interval_seconds)
 
     def _process_chunk_job(self, source_key: str) -> None:
-        source_uri = f"s3a://{self.storage_bucket}/{source_key}"
+        source_uri = f"s3a://{self.storage_config.bucket}/{source_key}"
         self.lineage_gateway.start_run()
         self.lineage_gateway.add_input(
             name=source_uri,
             platform=DatasetPlatform.S3,
         )
         try:
-            raw_payload = self.storage_gateway.read_object(self.storage_bucket, source_key)
+            raw_payload = self.storage_gateway.read_object(self.storage_config.bucket, source_key)
             input_artifact = StageArtifact.from_dict(
                 json.loads(raw_payload.decode("utf-8")),
                 content_type=Content,

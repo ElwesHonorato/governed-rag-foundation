@@ -25,13 +25,25 @@ class ChunkTextQueueConfigContract:
     produce: str
     dlq: str
 
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> ChunkTextQueueConfigContract:
+        normalized_payload = dict(payload)
+        normalized_payload["queue_pop_timeout_seconds"] = int(normalized_payload["queue_pop_timeout_seconds"])
+        normalized_payload["pop_timeout_seconds"] = int(normalized_payload["pop_timeout_seconds"])
+        return cls(**normalized_payload)
+
 
 @dataclass(frozen=True)
 class ChunkTextJobConfigContract:
-    bucket: str
-    input_prefix: str
-    output_prefix: str
+    storage: ChunkTextStorageConfigContract
     poll_interval_seconds: int
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> ChunkTextJobConfigContract:
+        return cls(
+            storage=ChunkTextStorageConfigContract.from_dict(payload["storage"]),
+            poll_interval_seconds=int(payload["poll_interval_seconds"]),
+        )
 
 
 @dataclass(frozen=True)
@@ -39,6 +51,11 @@ class ChunkTextStorageConfigContract:
     bucket: str
     input_prefix: str
     output_prefix: str
+    manifest_prefix: str
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> ChunkTextStorageConfigContract:
+        return cls(**payload)
 
 
 @dataclass(frozen=True)
@@ -53,6 +70,14 @@ class ChunkTextWorkerConfigContract:
     storage: ChunkTextStorageConfigContract
     poll_interval_seconds: int
     queue_config: ChunkTextQueueConfigContract
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> ChunkTextWorkerConfigContract:
+        return cls(
+            storage=ChunkTextStorageConfigContract.from_dict(payload["storage"]),
+            poll_interval_seconds=int(payload["poll_interval_seconds"]),
+            queue_config=ChunkTextQueueConfigContract.from_dict(payload["queue_config"]),
+        )
 
 
 @dataclass(frozen=True)

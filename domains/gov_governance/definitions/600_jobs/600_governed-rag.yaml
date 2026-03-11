@@ -47,6 +47,7 @@ jobs:
       job.storage.bucket: rag-data
       job.storage.input_prefix: 03_processed/
       job.storage.output_prefix: 04_chunks/
+      job.storage.manifest_prefix: 07_metadata/manifest/
 
   - id: worker_embed_chunks
     domain: rag-embeddings

@@ -2,7 +2,6 @@ import logging
 import uuid
 import time
 
-from contracts.contracts import EmbedChunksProcessingConfigContract
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
@@ -23,27 +22,22 @@ class WorkerEmbedChunksService(WorkerService):
         stage_queue: QueueGateway,
         object_storage: ObjectStorageGateway,
         lineage: LineageRuntimeGateway,
-        processing_config: EmbedChunksProcessingConfigContract,
-        dimension: int,
+        poll_interval_seconds: int,
+        storage_bucket: str,
+        processor: EmbedChunksProcessor,
+        chunks_suffix: str = ".chunk.json",
     ) -> None:
         """Initialize embedding worker dependencies and runtime settings."""
         self._queue_gateway = stage_queue
         self._storage_gateway = object_storage
         self._lineage_gateway = lineage
-        self._initialize_runtime_config(processing_config)
-        self._dimension = dimension
-
-    def _init_runtime_components(self) -> None:
-        self._processor = EmbedChunksProcessor(
-            dimension=self._dimension,
-            object_storage=self._storage_gateway,
-            storage_bucket=self._storage_bucket,
-            output_prefix=self._output_prefix,
-        )
+        self._poll_interval_seconds = poll_interval_seconds
+        self._storage_bucket = storage_bucket
+        self._processor = processor
+        self._chunks_suffix = chunks_suffix
 
     def serve(self) -> None:
         """Run the embedding worker loop by polling queue messages."""
-        self._init_runtime_components()
         while True:
             message = self._wait_for_next_message()
             source_key = self._source_key_from_message(message)
@@ -166,10 +160,3 @@ class WorkerEmbedChunksService(WorkerService):
             message.ack()
             logger.exception("Invalid embed queue message payload; sent to DLQ and acknowledged")
             return None
-
-    def _initialize_runtime_config(self, processing_config: EmbedChunksProcessingConfigContract) -> None:
-        """Load runtime config values into worker state."""
-        self._poll_interval_seconds = processing_config.poll_interval_seconds
-        self._storage_bucket = processing_config.storage.bucket
-        self._output_prefix = processing_config.storage.output_prefix
-        self._chunks_suffix = ".chunk.json"

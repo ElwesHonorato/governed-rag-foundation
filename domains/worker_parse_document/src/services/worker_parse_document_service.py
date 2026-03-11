@@ -3,7 +3,6 @@ import json
 import time
 from typing import Any
 
-from contracts.contracts import ParseProcessingConfigContract
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
@@ -11,7 +10,6 @@ from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGatew
 from pipeline_common.helpers.contracts import doc_id_from_source_key, utc_now_iso
 from pipeline_common.provenance import source_content_hash
 from pipeline_common.startup.contracts import WorkerService
-from parsing.registry import ParserRegistry
 from services.parse_flow_components import (
     DocumentParserProcessor,
     ParseOutputMessageFactory,
@@ -30,25 +28,22 @@ class WorkerParseDocumentService(WorkerService):
         stage_queue: QueueGateway,
         object_storage: ObjectStorageGateway,
         lineage: LineageRuntimeGateway,
-        processing_config: ParseProcessingConfigContract,
-        parser_registry: ParserRegistry,
+        poll_interval_seconds: int,
+        storage_bucket: str,
+        output_prefix: str,
+        parser_processor: DocumentParserProcessor,
     ) -> None:
         """Initialize parse worker dependencies and runtime settings."""
         self._queue_gateway = stage_queue
         self._storage_gateway = object_storage
         self._lineage_gateway = lineage
-        self._parser_registry = parser_registry
-        self._initialize_runtime_config(processing_config)
-
-    def _init_runtime_components(self) -> None:
-        self._parser_processor = DocumentParserProcessor(
-            parser_registry=self._parser_registry,
-            security_clearance=self._security_clearance,
-        )
+        self._poll_interval_seconds = poll_interval_seconds
+        self._storage_bucket = storage_bucket
+        self._output_prefix = output_prefix
+        self._parser_processor = parser_processor
 
     def serve(self) -> None:
         """Run the parse worker loop by polling queue messages."""
-        self._init_runtime_components()
         while True:
             message = self._wait_for_next_message()
             source_key = self._source_key_from_message(message)
@@ -181,10 +176,3 @@ class WorkerParseDocumentService(WorkerService):
             message.ack()
             logger.exception("Invalid parse queue message payload; sent to DLQ and acknowledged")
             return None
-
-    def _initialize_runtime_config(self, processing_config: ParseProcessingConfigContract) -> None:
-        """Internal helper for initialize runtime config."""
-        self._poll_interval_seconds = processing_config.poll_interval_seconds
-        self._storage_bucket = processing_config.storage.bucket
-        self._output_prefix = processing_config.storage.output_prefix
-        self._security_clearance = processing_config.security.clearance

@@ -19,9 +19,21 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
         storage_contract: ScanStorageContract,
     ) -> None:
         """Initialize instance state and dependencies."""
-        self.bucket = storage_contract.bucket
-        self.source_prefix = storage_contract.source_prefix
-        self.destination_prefix = storage_contract.output_prefix
+        self._bucket = storage_contract.bucket
+        self._source_prefix = storage_contract.source_prefix
+        self._destination_prefix = storage_contract.output_prefix
+
+    @property
+    def bucket(self) -> str:
+        return self._bucket
+
+    @property
+    def source_prefix(self) -> str:
+        return self._source_prefix
+
+    @property
+    def destination_prefix(self) -> str:
+        return self._destination_prefix
 
     def scan(self) -> int:
         """Compatibility no-op for abstract contract."""
@@ -32,8 +44,8 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
 
     def is_candidate_key(self, key: str) -> bool:
         """Return True when a key is a processable source object."""
-        return key.startswith(self.source_prefix) and key != self.source_prefix
+        return key.startswith(self._source_prefix) and key != self._source_prefix
 
     def destination_key(self, source_key: str) -> str:
         """Map a source key to its destination key."""
-        return source_key.replace(self.source_prefix, self.destination_prefix, 1)
+        return source_key.replace(self._source_prefix, self._destination_prefix, 1)

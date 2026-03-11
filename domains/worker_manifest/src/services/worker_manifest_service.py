@@ -1,7 +1,6 @@
 import time
 import logging
 
-from contracts.contracts import ManifestProcessingConfigContract
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
@@ -18,22 +17,27 @@ class WorkerManifestService(WorkerService):
         *,
         object_storage: ObjectStorageGateway,
         lineage: LineageRuntimeGateway,
-        processing_config: ManifestProcessingConfigContract,
+        poll_interval_seconds: int,
+        storage_bucket: str,
+        chunks_prefix: str,
+        embeddings_prefix: str,
+        indexes_prefix: str,
+        processed_prefix: str,
+        processor: ManifestCycleProcessor,
     ) -> None:
         """Initialize instance state and dependencies."""
         self._storage_gateway = object_storage
         self._lineage_gateway = lineage
-        self._initialize_runtime_config(processing_config)
-
-    def _init_runtime_components(self) -> None:
-        self._processor = ManifestCycleProcessor(
-            processed_prefix=self._processed_prefix,
-            manifest_prefix=self._manifest_prefix,
-        )
+        self._poll_interval_seconds = poll_interval_seconds
+        self._storage_bucket = storage_bucket
+        self._processed_prefix = processed_prefix
+        self._chunks_prefix = chunks_prefix
+        self._embeddings_prefix = embeddings_prefix
+        self._indexes_prefix = indexes_prefix
+        self._processor = processor
 
     def serve(self) -> None:
         """Run the worker loop indefinitely."""
-        self._init_runtime_components()
         while True:
             self._run_manifest_iteration()
 
@@ -98,13 +102,3 @@ class WorkerManifestService(WorkerService):
 
     def _sleep_until_next_cycle(self) -> None:
         time.sleep(self._poll_interval_seconds)
-
-    def _initialize_runtime_config(self, processing_config: ManifestProcessingConfigContract) -> None:
-        """Internal helper for initialize runtime config."""
-        self._poll_interval_seconds = processing_config.poll_interval_seconds
-        self._storage_bucket = processing_config.storage.bucket
-        self._processed_prefix = processing_config.storage.processed_prefix
-        self._chunks_prefix = processing_config.storage.chunks_prefix
-        self._embeddings_prefix = processing_config.storage.embeddings_prefix
-        self._indexes_prefix = processing_config.storage.indexes_prefix
-        self._manifest_prefix = processing_config.storage.manifest_prefix

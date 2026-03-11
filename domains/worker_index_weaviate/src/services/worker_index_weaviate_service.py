@@ -3,7 +3,6 @@ import json
 import time
 from typing import Any
 
-from contracts.contracts import IndexWeaviateProcessingConfigContract
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
@@ -25,25 +24,24 @@ class WorkerIndexWeaviateService(WorkerService):
         stage_queue: QueueGateway,
         object_storage: ObjectStorageGateway,
         lineage: LineageRuntimeGateway,
-        processing_config: IndexWeaviateProcessingConfigContract,
+        poll_interval_seconds: int,
+        storage_bucket: str,
+        processor: IndexWeaviateProcessor,
         weaviate_url: str,
+        embeddings_suffix: str = ".embedding.json",
     ) -> None:
         """Initialize indexing worker dependencies and runtime settings."""
         self._queue_gateway = stage_queue
         self._storage_gateway = object_storage
         self._lineage_gateway = lineage
         self._weaviate_url = weaviate_url
-        self._index_target = "weaviate://DocumentChunk"
-        self._initialize_runtime_config(processing_config)
-
-    def _init_runtime_components(self) -> None:
-        self._processor = IndexWeaviateProcessor(
-            output_prefix=self._output_prefix,
-        )
+        self._poll_interval_seconds = poll_interval_seconds
+        self._storage_bucket = storage_bucket
+        self._processor = processor
+        self._embeddings_suffix = embeddings_suffix
 
     def serve(self) -> None:
         """Run the indexing worker loop by polling queue messages."""
-        self._init_runtime_components()
         while True:
             message = self._wait_for_next_message()
             request = self._request_from_message(message)
@@ -180,10 +178,3 @@ class WorkerIndexWeaviateService(WorkerService):
             message.ack()
             logger.exception("Invalid index queue message payload; sent to DLQ and acknowledged")
             return None
-
-    def _initialize_runtime_config(self, processing_config: IndexWeaviateProcessingConfigContract) -> None:
-        """Load runtime config values into worker state."""
-        self._poll_interval_seconds = processing_config.poll_interval_seconds
-        self._storage_bucket = processing_config.storage.bucket
-        self._output_prefix = processing_config.storage.output_prefix
-        self._embeddings_suffix = ".embedding.json"

@@ -1,7 +1,8 @@
 """Service graph assembly for worker_embed_chunks startup."""
 
-from contracts.contracts import EmbedChunksProcessingConfigContract, EmbedChunksWorkerConfigContract
+from contracts.contracts import EmbedChunksWorkerConfigContract
 from pipeline_common.startup import WorkerRuntimeContext, WorkerServiceFactory
+from services.embed_chunks_processor import EmbedChunksProcessor
 from services.worker_embed_chunks_service import WorkerEmbedChunksService
 
 
@@ -14,15 +15,17 @@ class EmbedChunksServiceFactory(WorkerServiceFactory[EmbedChunksWorkerConfigCont
         worker_config: EmbedChunksWorkerConfigContract,
     ) -> WorkerEmbedChunksService:
         """Construct worker embed_chunks service object graph."""
-        processing_config: EmbedChunksProcessingConfigContract = EmbedChunksProcessingConfigContract(
-            poll_interval_seconds=worker_config.poll_interval_seconds,
-            queue=worker_config.queue_config,
-            storage=worker_config.storage,
+        processor: EmbedChunksProcessor = EmbedChunksProcessor(
+            dimension=worker_config.dimension,
+            object_storage=runtime.object_storage_gateway,
+            storage_bucket=worker_config.storage.bucket,
+            output_prefix=worker_config.storage.output_prefix,
         )
         return WorkerEmbedChunksService(
             stage_queue=runtime.stage_queue_gateway,
             object_storage=runtime.object_storage_gateway,
             lineage=runtime.lineage_gateway,
-            processing_config=processing_config,
-            dimension=worker_config.dimension,
+            poll_interval_seconds=worker_config.poll_interval_seconds,
+            storage_bucket=worker_config.storage.bucket,
+            processor=processor,
         )

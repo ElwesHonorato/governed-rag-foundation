@@ -3,6 +3,7 @@
 from contracts.contracts import ChunkTextWorkerConfigContract
 from pipeline_common.startup import WorkerRuntimeContext, WorkerServiceFactory
 from services.worker_chunk_text_service import WorkerChunkTextService
+from startup.storage_config_builder import EnvStorageConfigBuilder
 
 
 class ChunkTextServiceFactory(WorkerServiceFactory[ChunkTextWorkerConfigContract, WorkerChunkTextService]):
@@ -18,7 +19,9 @@ class ChunkTextServiceFactory(WorkerServiceFactory[ChunkTextWorkerConfigContract
             queue_gateway=runtime.stage_queue_gateway,
             storage_gateway=runtime.object_storage_gateway,
             lineage_gateway=runtime.lineage_gateway,
-            env=runtime.env,
             poll_interval_seconds=worker_config.poll_interval_seconds,
-            storage_config=worker_config.storage,
+            storage_config=EnvStorageConfigBuilder(
+                env=runtime.env,
+                storage_config=worker_config.storage,
+            ).build(),
         )

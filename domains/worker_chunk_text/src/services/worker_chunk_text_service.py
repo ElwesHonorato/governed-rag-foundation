@@ -25,7 +25,6 @@ class WorkerChunkTextService(WorkerService):
         queue_gateway: QueueGateway,
         storage_gateway: ObjectStorageGateway,
         lineage_gateway: LineageRuntimeGateway,
-        env: str | None,
         poll_interval_seconds: int,
         storage_config: ChunkTextStorageConfigContract,
     ) -> None:
@@ -33,9 +32,8 @@ class WorkerChunkTextService(WorkerService):
         self._queue_gateway = queue_gateway
         self._storage_gateway = storage_gateway
         self._lineage_gateway = lineage_gateway
-        self._env = env
         self._poll_interval_seconds = poll_interval_seconds
-        self._storage_config = self._apply_env_to_storage_config(storage_config)
+        self._storage_config = storage_config
 
     def _init_runtime_components(self) -> None:
         self._chunking_resolver = ChunkingStagesResolver()
@@ -118,13 +116,3 @@ class WorkerChunkTextService(WorkerService):
         """Parse source URI from queue payload."""
         envelope = Envelope.from_dict(message.payload)
         return str(envelope.payload["source_uri"])
-
-    def _apply_env_to_storage_config(
-        self,
-        storage_config: ChunkTextStorageConfigContract
-    ) -> ChunkTextStorageConfigContract:
-        return ChunkTextStorageConfigContract(
-            bucket=storage_config.bucket,
-            output_prefix=f"{self._env}/{storage_config.output_prefix}",
-            manifest_prefix=f"{self._env}/{storage_config.manifest_prefix}",
-        )

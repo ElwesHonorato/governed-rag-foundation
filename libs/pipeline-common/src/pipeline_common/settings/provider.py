@@ -36,13 +36,6 @@ class CacheSettings:
     """Placeholder cache settings contract (not implemented in this repository)."""
 
 
-@dataclass(frozen=True)
-class SparkSettings:
-    """Spark runtime settings for workers."""
-
-    master_url: str
-
-
 StorageSettings = S3StorageSettings
 QueueSettings = QueueRuntimeSettings
 
@@ -56,7 +49,6 @@ class SettingsRequest:
     queue: bool = False
     datahub: bool = False
     cache: bool = False
-    spark: bool = False
 
 
 @dataclass(frozen=True)
@@ -69,7 +61,6 @@ class SettingsBundle:
     queue: QueueSettings | None = None
     datahub: DataHubSettings | None = None
     cache: CacheSettings | None = None
-    spark: SparkSettings | None = None
 
 
 def load_db_settings_from_env() -> DBSettings:
@@ -95,13 +86,6 @@ def load_datahub_settings_from_env() -> DataHubSettings:
 def load_cache_settings_from_env() -> CacheSettings:
     """Load cache settings from environment."""
     raise NotImplementedError("Cache settings loader is not implemented yet.")
-
-
-def load_spark_settings_from_env() -> SparkSettings:
-    """Load Spark settings from environment."""
-    return SparkSettings(
-        master_url=_optional_env("SPARK_MASTER_URL", "local[*]"),
-    )
 
 
 def load_env_name_from_env() -> str | None:
@@ -168,13 +152,6 @@ class SettingsProvider:
         return load_cache_settings_from_env()
 
     @property
-    def spark(self) -> SparkSettings | None:
-        """Load spark settings when requested."""
-        if not self._request.spark:
-            return None
-        return load_spark_settings_from_env()
-
-    @property
     def bundle(self) -> SettingsBundle:
         """Return the loaded settings bundle."""
         return SettingsBundle(
@@ -184,5 +161,4 @@ class SettingsProvider:
             queue=self.queue,
             datahub=self.datahub,
             cache=self.cache,
-            spark=self.spark,
         )

@@ -1,12 +1,10 @@
 import logging
 import uuid
-from typing import Any
 
 from contracts.contracts import EmbedChunksProcessingConfigContract
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
-from pipeline_common.gateways.processing_engine import ReadGateway, WriteGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGateway
 from pipeline_common.helpers.contracts import utc_now_iso
 from pipeline_common.startup.contracts import WorkerService
@@ -24,7 +22,6 @@ class WorkerEmbedChunksService(WorkerService):
         stage_queue: QueueGateway,
         object_storage: ObjectStorageGateway,
         lineage: LineageRuntimeGateway,
-        spark_session: Any | None,
         processing_config: EmbedChunksProcessingConfigContract,
         dimension: int,
     ) -> None:
@@ -32,14 +29,10 @@ class WorkerEmbedChunksService(WorkerService):
         self.stage_queue = stage_queue
         self.object_storage = object_storage
         self.lineage = lineage
-        self.spark_session = spark_session
-        self.read_gateway = ReadGateway(spark_session=self.spark_session) if self.spark_session is not None else None
-        self.write_gateway = WriteGateway() if self.spark_session is not None else None
         self._initialize_runtime_config(processing_config)
         self.dimension = dimension
         self.processor = EmbedChunksProcessor(
             dimension=self.dimension,
-            spark_session=self.spark_session,
             object_storage=self.object_storage,
             storage_bucket=self.storage_bucket,
             output_prefix=self.output_prefix,
@@ -82,21 +75,10 @@ class WorkerEmbedChunksService(WorkerService):
         try:
             chunk_payload = self._read_chunk_payload(embed_job["source_key"])
             embedding_run_id = uuid.uuid4().hex
-            if self.spark_session is None:
-                write_result = self.processor.write_embedding_artifact(
-                    chunk_payload,
-                    embedding_run_id=embedding_run_id,
-                )
-            else:
-                input_record = self.processor.build_input_record(
-                    chunk_payload,
-                    embedding_run_id=embedding_run_id,
-                )
-                input_df = self.read_gateway.from_records([input_record])
-                write_result = self.processor.write_embedding_artifact_from_dataframe(
-                    input_df,
-                    write_gateway=self.write_gateway,
-                )
+            write_result = self.processor.write_embedding_artifact(
+                chunk_payload,
+                embedding_run_id=embedding_run_id,
+            )
             doc_id = write_result.doc_id
             destination_key = write_result.destination_key
             self.lineage.add_output(

@@ -19,7 +19,6 @@ class MetricsServiceFactory(WorkerServiceFactory[MetricsWorkerConfigContract, Wo
             counters=Counters().for_worker("worker_metrics"),
             object_storage=runtime.object_storage_gateway,
             lineage=runtime.lineage_gateway,
-            spark_session=runtime.spark_session,
             processing_config=MetricsProcessingConfigContract(
                 poll_interval_seconds=worker_config.poll_interval_seconds,
                 storage=worker_config.storage,

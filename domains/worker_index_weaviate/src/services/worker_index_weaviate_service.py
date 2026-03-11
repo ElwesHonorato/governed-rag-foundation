@@ -1,12 +1,10 @@
 import logging
 import json
-from typing import Any
 
 from contracts.contracts import IndexWeaviateProcessingConfigContract
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
-from pipeline_common.gateways.processing_engine import ReadGateway, WriteGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGateway
 from pipeline_common.helpers.contracts import utc_now_iso
 from services.weaviate_gateway import upsert_chunk, verify_query
@@ -25,7 +23,6 @@ class WorkerIndexWeaviateService(WorkerService):
         stage_queue: QueueGateway,
         object_storage: ObjectStorageGateway,
         lineage: LineageRuntimeGateway,
-        spark_session: Any | None,
         processing_config: IndexWeaviateProcessingConfigContract,
         weaviate_url: str,
     ) -> None:
@@ -33,15 +30,11 @@ class WorkerIndexWeaviateService(WorkerService):
         self.stage_queue = stage_queue
         self.object_storage = object_storage
         self.lineage = lineage
-        self.spark_session = spark_session
-        self.read_gateway = ReadGateway(spark_session=self.spark_session) if self.spark_session is not None else None
-        self.write_gateway = WriteGateway() if self.spark_session is not None else None
         self.weaviate_url = weaviate_url
         self.index_target = "weaviate://DocumentChunk"
         self._initialize_runtime_config(processing_config)
         self.processor = IndexWeaviateProcessor(
             output_prefix=self.output_prefix,
-            spark_session=self.spark_session,
         )
 
     def serve(self) -> None:
@@ -136,15 +129,7 @@ class WorkerIndexWeaviateService(WorkerService):
         return self.processor.read_embeddings_payload(raw_payload)
 
     def _upsert_embeddings(self, payload: dict[str, Any]) -> None:
-        if self.spark_session is None:
-            items = self.processor.build_upsert_items(payload)
-        else:
-            input_records = self.processor.build_input_records(payload)
-            input_df = self.read_gateway.from_records(input_records)
-            items = self.processor.build_upsert_items_from_dataframe(
-                input_df,
-                write_gateway=self.write_gateway,
-            )
+        items = self.processor.build_upsert_items(payload)
         for item in items:
             properties = dict(item.get("properties", {}))
             vector = list(item.get("vector", []))

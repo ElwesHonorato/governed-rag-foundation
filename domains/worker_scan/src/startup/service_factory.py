@@ -37,5 +37,4 @@ class ScanServiceFactory(WorkerServiceFactory[ScanWorkerConfigContract, WorkerSc
             polling_contract=WorkerPollingContract(
                 poll_interval_seconds=worker_config.poll_interval_seconds,
             ),
-            spark_session=runtime.spark_session,
         )

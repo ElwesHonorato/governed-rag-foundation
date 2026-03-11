@@ -13,7 +13,7 @@ from startup.service_factory import ParseServiceFactory
 
 def run() -> None:
     """Start parse_document worker."""
-    settings = SettingsProvider(SettingsRequest(datahub=True, storage=True, queue=True, spark=False)).bundle
+    settings = SettingsProvider(SettingsRequest(datahub=True, storage=True, queue=True)).bundle
     runtime_factory = RuntimeContextFactory(
         data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job(GovernedRagJobId.WORKER_PARSE_DOCUMENT),
         settings_bundle=settings,

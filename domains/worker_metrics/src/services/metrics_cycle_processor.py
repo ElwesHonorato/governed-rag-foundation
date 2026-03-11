@@ -1,14 +1,5 @@
-from typing import Any
-
 class MetricsCycleProcessor:
     """Compute stage counters from listed storage keys."""
-
-    def __init__(
-        self,
-        *,
-        spark_session: Any | None,
-    ) -> None:
-        self.spark_session = spark_session
 
     @staticmethod
     def _count_suffix(keys: list[str], suffix: str) -> int:

@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 import mimetypes
 from pathlib import Path
-from typing import Any
 
 from parsing.registry import ParserRegistry
 from pipeline_common.stages_contracts import (
@@ -32,11 +31,9 @@ class DocumentParserProcessor(BaseProcessor):
         *,
         parser_registry: ParserRegistry,
         security_clearance: str,
-        spark_session: Any | None,
     ) -> None:
         self._parser_registry = parser_registry
         self._security_clearance = security_clearance
-        self._spark_session = spark_session
 
     def build_payload(
         self,

@@ -14,7 +14,7 @@ from startup.service_factory import ScanServiceFactory
 
 def run() -> None:
     """Start scan worker."""
-    settings = SettingsProvider(SettingsRequest(datahub=True, storage=True, queue=True, spark=False)).bundle
+    settings = SettingsProvider(SettingsRequest(datahub=True, storage=True, queue=True)).bundle
     runtime_factory = RuntimeContextFactory(
         data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job(GovernedRagJobId.WORKER_SCAN),
         settings_bundle=settings,

@@ -1,5 +1,4 @@
 import json
-from typing import Any
 
 
 class ManifestCycleProcessor:
@@ -10,11 +9,9 @@ class ManifestCycleProcessor:
         *,
         processed_prefix: str,
         manifest_prefix: str,
-        spark_session: Any | None,
     ) -> None:
         self.processed_prefix = processed_prefix
         self.manifest_prefix = manifest_prefix
-        self.spark_session = spark_session
 
     def list_doc_ids(self, processed_keys: list[str]) -> list[str]:
         return [

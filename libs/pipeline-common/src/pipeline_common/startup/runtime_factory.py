@@ -21,7 +21,6 @@ from pipeline_common.gateways.lineage.contracts import DataHubDataJobKey
 from pipeline_common.gateways.factories.lineage_gateway_factory import DataHubLineageGatewayFactory
 from pipeline_common.gateways.factories.object_storage_gateway_factory import ObjectStorageGatewayFactory
 from pipeline_common.gateways.factories.queue_gateway_factory import QueueGatewayFactory
-from pipeline_common.gateways.factories.spark_session_factory import SparkSessionFactory
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import QueueGateway
@@ -63,13 +62,11 @@ class RuntimeContextFactory:
         job_properties = JobPropertiesParser(lineage_gateway.resolved_job_config.custom_properties).job_properties
         object_storage_gateway = self._build_object_storage_gateway()
         stage_queue_gateway = self._build_stage_queue_gateway(job_properties=job_properties)
-        spark_session = self._build_spark_session()
         return WorkerRuntimeContext(
             env=self._settings_bundle.env,
             lineage_gateway=lineage_gateway,
             object_storage_gateway=object_storage_gateway,
             stage_queue_gateway=stage_queue_gateway,
-            spark_session=spark_session,
             job_properties=job_properties,
         )
 
@@ -104,16 +101,6 @@ class RuntimeContextFactory:
         return QueueGatewayFactory(
             queue_settings=queue_settings,
             queue_config=queue_config,
-        ).build()
-
-    def _build_spark_session(self) -> Any | None:
-        """Create spark session when spark capability is requested."""
-        spark_settings = self._settings_bundle.spark
-        if spark_settings is None:
-            return None
-        return SparkSessionFactory(
-            spark_settings=spark_settings,
-            app_name=self._data_job_key.job_id,
         ).build()
 
     def _require_datahub_settings(self) -> DataHubSettings:

@@ -1,7 +1,6 @@
 """Worker runtime context model."""
 
 from dataclasses import dataclass
-from typing import Any
 
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
@@ -16,5 +15,4 @@ class WorkerRuntimeContext:
     lineage_gateway: LineageRuntimeGateway
     object_storage_gateway: ObjectStorageGateway | None
     stage_queue_gateway: QueueGateway | None
-    spark_session: Any | None
-    job_properties: dict[str, Any]
+    job_properties: dict[str, object]

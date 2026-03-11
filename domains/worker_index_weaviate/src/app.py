@@ -13,7 +13,7 @@ from startup.service_factory import IndexWeaviateServiceFactory
 
 def run() -> None:
     """Start index_weaviate worker."""
-    settings = SettingsProvider(SettingsRequest(datahub=True, storage=True, queue=True, spark=False)).bundle
+    settings = SettingsProvider(SettingsRequest(datahub=True, storage=True, queue=True)).bundle
     runtime_context: WorkerRuntimeContext = RuntimeContextFactory(
         data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job(GovernedRagJobId.WORKER_INDEX_WEAVIATE),
         settings_bundle=settings,

@@ -1,6 +1,5 @@
 import logging
 import time
-from typing import Any
 
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
@@ -23,7 +22,6 @@ class WorkerScanService(WorkerService):
         object_storage: ObjectStorageGateway,
         lineage: LineageRuntimeGateway,
         polling_contract: WorkerPollingContract,
-        spark_session: Any | None,
     ) -> None:
         """Initialize instance state and dependencies."""
         self.processor = processor
@@ -31,7 +29,6 @@ class WorkerScanService(WorkerService):
         self.object_storage = object_storage
         self.lineage = lineage
         self.poll_interval_seconds = polling_contract.poll_interval_seconds
-        self.spark_session = spark_session
 
     def serve(self) -> None:
         """Run the worker loop indefinitely."""

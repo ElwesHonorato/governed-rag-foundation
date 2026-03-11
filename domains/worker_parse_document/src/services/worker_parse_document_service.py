@@ -1,6 +1,5 @@
 import logging
 import json
-from typing import Any
 
 from contracts.contracts import ParseProcessingConfigContract
 from pipeline_common.gateways.lineage import DatasetPlatform
@@ -29,7 +28,6 @@ class WorkerParseDocumentService(WorkerService):
         stage_queue: QueueGateway,
         object_storage: ObjectStorageGateway,
         lineage: LineageRuntimeGateway,
-        spark_session: Any | None,
         processing_config: ParseProcessingConfigContract,
         parser_registry: ParserRegistry,
     ) -> None:
@@ -37,13 +35,11 @@ class WorkerParseDocumentService(WorkerService):
         self.stage_queue = stage_queue
         self.object_storage = object_storage
         self.lineage = lineage
-        self.spark_session = spark_session
         self.parser_registry = parser_registry
         self._initialize_runtime_config(processing_config)
         self.parser_processor = DocumentParserProcessor(
             parser_registry=self.parser_registry,
             security_clearance=self.security_clearance,
-            spark_session=self.spark_session,
         )
 
     def serve(self) -> None:

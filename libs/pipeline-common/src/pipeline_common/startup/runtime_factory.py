@@ -56,9 +56,8 @@ class RuntimeContextFactory:
     ) -> None:
         self._data_job_key = data_job_key
         self._settings_bundle = settings_bundle
-        self.runtime_context = self._build_runtime_context()
 
-    def _build_runtime_context(self) -> WorkerRuntimeContext:
+    def build_runtime_context(self) -> WorkerRuntimeContext:
         """Resolve shared runtime dependencies required by every worker."""
         lineage_gateway = self._build_lineage_gateway()
         job_properties = JobPropertiesParser(lineage_gateway.resolved_job_config.custom_properties).job_properties

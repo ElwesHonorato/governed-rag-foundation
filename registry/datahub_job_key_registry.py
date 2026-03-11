@@ -14,17 +14,27 @@ from enum import Enum
 from pipeline_common.gateways.lineage.contracts import DataHubDataJobKey
 
 
+class GovernedRagJobId(Enum):
+    WORKER_SCAN = "worker_scan"
+    WORKER_PARSE_DOCUMENT = "worker_parse_document"
+    WORKER_CHUNK_TEXT = "worker_chunk_text"
+    WORKER_EMBED_CHUNKS = "worker_embed_chunks"
+    WORKER_INDEX_WEAVIATE = "worker_index_weaviate"
+    WORKER_MANIFEST = "worker_manifest"
+    WORKER_METRICS = "worker_metrics"
+
+
 class DataHubPipelineJobs(Enum):
     """Pipeline job references extracted from governance definitions."""
 
     CUSTOM_GOVERNED_RAG = {
-        "worker_scan": DataHubDataJobKey("governed-rag", "worker_scan", "custom"),
-        "worker_parse_document": DataHubDataJobKey("governed-rag", "worker_parse_document", "custom"),
-        "worker_chunk_text": DataHubDataJobKey("governed-rag", "worker_chunk_text", "custom"),
-        "worker_embed_chunks": DataHubDataJobKey("governed-rag", "worker_embed_chunks", "custom"),
-        "worker_index_weaviate": DataHubDataJobKey("governed-rag", "worker_index_weaviate", "custom"),
-        "worker_manifest": DataHubDataJobKey("governed-rag", "worker_manifest", "custom"),
-        "worker_metrics": DataHubDataJobKey("governed-rag", "worker_metrics", "custom"),
+        GovernedRagJobId.WORKER_SCAN: DataHubDataJobKey("governed-rag", "worker_scan", "custom"),
+        GovernedRagJobId.WORKER_PARSE_DOCUMENT: DataHubDataJobKey("governed-rag", "worker_parse_document", "custom"),
+        GovernedRagJobId.WORKER_CHUNK_TEXT: DataHubDataJobKey("governed-rag", "worker_chunk_text", "custom"),
+        GovernedRagJobId.WORKER_EMBED_CHUNKS: DataHubDataJobKey("governed-rag", "worker_embed_chunks", "custom"),
+        GovernedRagJobId.WORKER_INDEX_WEAVIATE: DataHubDataJobKey("governed-rag", "worker_index_weaviate", "custom"),
+        GovernedRagJobId.WORKER_MANIFEST: DataHubDataJobKey("governed-rag", "worker_manifest", "custom"),
+        GovernedRagJobId.WORKER_METRICS: DataHubDataJobKey("governed-rag", "worker_metrics", "custom"),
     }
 
     @property
@@ -38,12 +48,12 @@ class DataHubPipelineJobs(Enum):
         return first_job.flow_id
 
     @property
-    def job_ids(self) -> tuple[str, ...]:
+    def job_ids(self) -> tuple[GovernedRagJobId, ...]:
         return tuple(self.value.keys())
 
-    def job(self, job_id: str) -> DataHubDataJobKey:
+    def job(self, job_id: GovernedRagJobId) -> DataHubDataJobKey:
         if job_id not in self.value:
             raise ValueError(f"Unknown job_id '{job_id}' for pipeline '{self.name}'.")
         return self.value[job_id]
 
-__all__ = ["DataHubPipelineJobs", "DataHubDataJobKey"]
+__all__ = ["DataHubPipelineJobs", "DataHubDataJobKey", "GovernedRagJobId"]

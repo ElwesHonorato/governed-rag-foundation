@@ -6,8 +6,6 @@ from pipeline_common.startup import (
     RuntimeContextFactory,
     WorkerRuntimeLauncher,
 )
-from contracts.contracts import ScanWorkerConfigContract
-from services.worker_scan_service import WorkerScanService
 from startup.config_extractor import ScanConfigExtractor
 from startup.service_factory import ScanServiceFactory
 
@@ -19,7 +17,7 @@ def run() -> None:
         data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job(GovernedRagJobId.WORKER_SCAN),
         settings_bundle=settings,
     )
-    WorkerRuntimeLauncher[ScanWorkerConfigContract, WorkerScanService](
+    WorkerRuntimeLauncher(
         runtime_context=runtime_factory.build_runtime_context(),
         config_extractor=ScanConfigExtractor(),
         service_factory=ScanServiceFactory(),

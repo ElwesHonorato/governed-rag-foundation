@@ -91,7 +91,7 @@ Each worker must define:
 Worker `app.py` should be minimal:
 ```python
 def run() -> None:
-    WorkerRuntimeLauncher[ScanWorkerConfig, WorkerScanService](
+    WorkerRuntimeLauncher(
         data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_scan"),
         config_extractor=ScanConfigExtractor(),
         service_factory=ScanServiceFactory(),

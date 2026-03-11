@@ -1,10 +1,8 @@
 """worker_manifest entrypoint."""
 
-from contracts.contracts import ManifestWorkerConfigContract
 from registry import DataHubPipelineJobs, GovernedRagJobId
 from pipeline_common.settings import SettingsProvider, SettingsRequest
 from pipeline_common.startup import RuntimeContextFactory, WorkerRuntimeLauncher
-from services.worker_manifest_service import WorkerManifestService
 from startup.config_extractor import ManifestConfigExtractor
 from startup.service_factory import ManifestServiceFactory
 
@@ -16,7 +14,7 @@ def run() -> None:
         data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job(GovernedRagJobId.WORKER_MANIFEST),
         settings_bundle=settings,
     )
-    WorkerRuntimeLauncher[ManifestWorkerConfigContract, WorkerManifestService](
+    WorkerRuntimeLauncher(
         runtime_context=runtime_factory.build_runtime_context(),
         config_extractor=ManifestConfigExtractor(),
         service_factory=ManifestServiceFactory(),

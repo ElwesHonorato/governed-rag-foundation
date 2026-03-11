@@ -14,6 +14,7 @@ jobs:
       job.storage.bucket: rag-data
       job.storage.source_prefix: 01_incoming/
       job.storage.output_prefix: 02_raw/
+      job.storage.manifest_prefix: 07_metadata/manifest/
 
   - id: worker_parse_document
     domain: rag-platform
@@ -29,6 +30,7 @@ jobs:
       job.queue.dlq: q.parse_document.dlq
       job.storage.bucket: rag-data
       job.storage.output_prefix: 03_processed/
+      job.storage.manifest_prefix: 07_metadata/manifest/
       job.security.clearance: internal
 
   - id: worker_chunk_text
@@ -61,6 +63,7 @@ jobs:
       job.queue.dlq: q.embed_chunks.dlq
       job.storage.bucket: rag-data
       job.storage.output_prefix: 05_embeddings/
+      job.storage.manifest_prefix: 07_metadata/manifest/
       job.dimension: "32"
 
   - id: worker_index_weaviate
@@ -76,6 +79,7 @@ jobs:
       job.queue.dlq: q.index_weaviate.dlq
       job.storage.bucket: rag-data
       job.storage.output_prefix: 06_indexes/
+      job.storage.manifest_prefix: 07_metadata/manifest/
 
   - id: worker_manifest
     domain: rag-platform
@@ -101,3 +105,4 @@ jobs:
       job.storage.chunks_prefix: 04_chunks/
       job.storage.embeddings_prefix: 05_embeddings/
       job.storage.indexes_prefix: 06_indexes/
+      job.storage.manifest_prefix: 07_metadata/manifest/

@@ -13,9 +13,16 @@ from pipeline_common.gateways.lineage.settings import DataHubSettings
 class DataHubLineageGatewayFactory:
     """Create DataHub runtime lineage gateway from DataHub settings + job key."""
 
-    def __init__(self, *, datahub_settings: DataHubSettings, data_job_key: DataHubDataJobKey) -> None:
+    def __init__(
+        self,
+        *,
+        datahub_settings: DataHubSettings,
+        data_job_key: DataHubDataJobKey,
+        env: str | None = None,
+    ) -> None:
         self.datahub_settings = datahub_settings
         self.data_job_key = data_job_key
+        self.env = env
 
     def build(self) -> LineageRuntimeGateway:
         """Create and initialize runtime lineage gateway for one worker."""
@@ -23,7 +30,7 @@ class DataHubLineageGatewayFactory:
             client_config=DataHubLineageRuntimeConfig(
                 connection_settings=DataHubRuntimeConnectionSettings(
                     server=self.datahub_settings.server,
-                    env=self.datahub_settings.env,
+                    env=self.env,
                     token=self.datahub_settings.token,
                     timeout_sec=self.datahub_settings.timeout_sec,
                     retry_max_times=self.datahub_settings.retry_max_times,

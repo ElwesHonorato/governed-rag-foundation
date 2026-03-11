@@ -78,6 +78,7 @@ class RuntimeContextFactory:
         return DataHubLineageGatewayFactory(
             datahub_settings=datahub_settings,
             data_job_key=self._data_job_key,
+            env=self._settings_bundle.env,
         ).build()
 
     def _build_object_storage_gateway(self) -> ObjectStorageGateway | None:

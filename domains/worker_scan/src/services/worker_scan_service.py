@@ -24,11 +24,11 @@ class WorkerScanService(WorkerService):
         polling_contract: WorkerPollingContract,
     ) -> None:
         """Initialize instance state and dependencies."""
-        self.processor = processor
-        self.stage_queue = stage_queue
-        self.object_storage = object_storage
-        self.lineage = lineage
-        self.poll_interval_seconds = polling_contract.poll_interval_seconds
+        self._processor = processor
+        self._queue_gateway = stage_queue
+        self._storage_gateway = object_storage
+        self._lineage_gateway = lineage
+        self._poll_interval_seconds = polling_contract.poll_interval_seconds
 
     def serve(self) -> None:
         """Run the worker loop indefinitely."""
@@ -41,38 +41,30 @@ class WorkerScanService(WorkerService):
 
     def _execute_scan_cycle(self) -> None:
         try:
-            source_keys = self.object_storage.list_keys(self.processor.bucket, self.processor.source_prefix)
+            source_keys = self._storage_gateway.list_keys(self._processor.bucket, self._processor.source_prefix)
             processed = 0
-            for source_key in self.processor.candidate_keys(source_keys):
+            for source_key in self._processor.candidate_keys(source_keys):
                 processed += int(self._process_source_key(source_key))
             logger.info("Scan cycle processed %d item(s)", processed)
         except Exception:
             self._handle_scan_cycle_failure()
 
     def _process_source_key(self, source_key: str) -> bool:
-        if not self.object_storage.object_exists(self.processor.bucket, source_key):
+        if not self._storage_gateway.object_exists(self._processor.bucket, source_key):
             return False
 
-        destination_key = self.processor.destination_key(source_key)
-        self.lineage.start_run()
-        self.lineage.add_input(
-            name=f"{self.processor.bucket}/{source_key}",
-            platform=DatasetPlatform.S3,
-        )
-        self.lineage.add_output(
-            name=f"{self.processor.bucket}/{destination_key}",
-            platform=DatasetPlatform.S3,
-        )
+        destination_key = self._processor.destination_key(source_key)
+        self._register_lineage_io(source_key=source_key, destination_key=destination_key)
         try:
-            self.object_storage.copy(self.processor.bucket, source_key, destination_key)
-            self.lineage.complete_run()
-            self.stage_queue.push(
+            self._storage_gateway.copy(self._processor.bucket, source_key, destination_key)
+            self._lineage_gateway.complete_run()
+            self._queue_gateway.push(
                 Envelope(
                     type="parse_document.request",
                     payload={"storage_key": destination_key},
                 ).to_payload
             )
-            self.object_storage.delete(self.processor.bucket, source_key)
+            self._storage_gateway.delete(self._processor.bucket, source_key)
             logger.info(
                 "Moved '%s' -> '%s' (source_doc_id=%s, dest_doc_id=%s)",
                 source_key,
@@ -82,11 +74,22 @@ class WorkerScanService(WorkerService):
             )
             return True
         except Exception:
-            self.lineage.abort_run()
+            self._lineage_gateway.abort_run()
             raise
+
+    def _register_lineage_io(self, *, source_key: str, destination_key: str) -> None:
+        self._lineage_gateway.start_run()
+        self._lineage_gateway.add_input(
+            name=f"{self._processor.bucket}/{source_key}",
+            platform=DatasetPlatform.S3,
+        )
+        self._lineage_gateway.add_output(
+            name=f"{self._processor.bucket}/{destination_key}",
+            platform=DatasetPlatform.S3,
+        )
 
     def _handle_scan_cycle_failure(self) -> None:
         logger.exception("Scan cycle failed; continuing after poll interval")
 
     def _sleep_until_next_cycle(self) -> None:
-        time.sleep(self.poll_interval_seconds)
+        time.sleep(self._poll_interval_seconds)

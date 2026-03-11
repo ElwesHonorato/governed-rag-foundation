@@ -1,5 +1,6 @@
 import logging
 import uuid
+import time
 
 from contracts.contracts import EmbedChunksProcessingConfigContract
 from pipeline_common.gateways.lineage import DatasetPlatform
@@ -26,30 +27,26 @@ class WorkerEmbedChunksService(WorkerService):
         dimension: int,
     ) -> None:
         """Initialize embedding worker dependencies and runtime settings."""
-        self.stage_queue = stage_queue
-        self.object_storage = object_storage
-        self.lineage = lineage
+        self._queue_gateway = stage_queue
+        self._storage_gateway = object_storage
+        self._lineage_gateway = lineage
         self._initialize_runtime_config(processing_config)
-        self.dimension = dimension
-        self.processor = EmbedChunksProcessor(
-            dimension=self.dimension,
-            object_storage=self.object_storage,
-            storage_bucket=self.storage_bucket,
-            output_prefix=self.output_prefix,
+        self._dimension = dimension
+
+    def _init_runtime_components(self) -> None:
+        self._processor = EmbedChunksProcessor(
+            dimension=self._dimension,
+            object_storage=self._storage_gateway,
+            storage_bucket=self._storage_bucket,
+            output_prefix=self._output_prefix,
         )
 
     def serve(self) -> None:
         """Run the embedding worker loop by polling queue messages."""
+        self._init_runtime_components()
         while True:
-            message = self.stage_queue.pop_message()
-            if message is None:
-                continue
-            try:
-                source_key = self._source_key_from_message(message)
-            except Exception:
-                message.nack(requeue=True)
-                logger.exception("Failed embed invalid-message handling; requeued message")
-                continue
+            message = self._wait_for_next_message()
+            source_key = self._source_key_from_message(message)
             if source_key is None:
                 continue
             try:
@@ -62,43 +59,54 @@ class WorkerEmbedChunksService(WorkerService):
                 continue
             message.ack()
 
+    def _wait_for_next_message(self) -> ConsumedMessage:
+        """Fetch next queue message, waiting until one is available."""
+        while True:
+            message = self._queue_gateway.pop_message()
+            if message is not None:
+                return message
+            time.sleep(self._poll_interval_seconds)
+
     def _handle_embed_request(self, source_key: str) -> None:
         embed_job = self._build_embed_job(source_key)
         if embed_job is None:
             return
 
-        self.lineage.start_run()
-        self.lineage.add_input(
-            name=f"{self.storage_bucket}/{embed_job['source_key']}",
-            platform=DatasetPlatform.S3,
-        )
+        self._register_lineage_input(embed_job["source_key"])
         try:
             chunk_payload = self._read_chunk_payload(embed_job["source_key"])
             embedding_run_id = uuid.uuid4().hex
-            write_result = self.processor.write_embedding_artifact(
+            write_result = self._processor.write_embedding_artifact(
                 chunk_payload,
                 embedding_run_id=embedding_run_id,
             )
             doc_id = write_result.doc_id
             destination_key = write_result.destination_key
-            self.lineage.add_output(
-                name=f"{self.storage_bucket}/{destination_key}",
+            self._lineage_gateway.add_output(
+                name=f"{self._storage_bucket}/{destination_key}",
                 platform=DatasetPlatform.S3,
             )
             if not write_result.wrote:
                 self._send_embed_failure(source_key)
-                self.lineage.fail_run(error_message=f"Embeddings artifact already exists: {destination_key}")
+                self._lineage_gateway.fail_run(error_message=f"Embeddings artifact already exists: {destination_key}")
                 return
 
             self._enqueue_embeddings_object(destination_key, doc_id)
-            self.lineage.complete_run()
+            self._lineage_gateway.complete_run()
             logger.info("Wrote embedding object '%s'", destination_key)
         except Exception as exc:
-            self.lineage.fail_run(error_message=str(exc))
+            self._lineage_gateway.fail_run(error_message=str(exc))
             raise
 
+    def _register_lineage_input(self, source_key: str) -> None:
+        self._lineage_gateway.start_run()
+        self._lineage_gateway.add_input(
+            name=f"{self._storage_bucket}/{source_key}",
+            platform=DatasetPlatform.S3,
+        )
+
     def _send_embed_failure(self, source_key: str) -> None:
-        self.stage_queue.push_dlq(
+        self._queue_gateway.push_dlq(
             Envelope(
                 type="embed_chunks.failure",
                 payload={"source_key": source_key},
@@ -119,20 +127,20 @@ class WorkerEmbedChunksService(WorkerService):
         return True
 
     def _build_embed_job(self, source_key: str) -> dict[str, str] | None:
-        if not source_key.endswith(self.chunks_suffix):
+        if not source_key.endswith(self._chunks_suffix):
             return None
         return {"source_key": source_key}
 
     def _read_chunk_payload(self, source_key: str) -> ChunkArtifactPayload:
         source_uri = "s3a://{bucket}/{source_key}".format(
-            bucket=self.storage_bucket,
+            bucket=self._storage_bucket,
             source_key=source_key,
         )
-        raw_payload = self.object_storage.read_object(source_uri)
-        return self.processor.read_chunk_payload(raw_payload, source_key=source_key)
+        raw_payload = self._storage_gateway.read_object(source_uri)
+        return self._processor.read_chunk_payload(raw_payload, source_key=source_key)
 
     def _enqueue_embeddings_object(self, destination_key: str, doc_id: str) -> None:
-        self.stage_queue.push(
+        self._queue_gateway.push(
             Envelope(
                 type="index_weaviate.request",
                 payload={"embeddings_key": destination_key, "doc_id": doc_id},
@@ -145,7 +153,7 @@ class WorkerEmbedChunksService(WorkerService):
             envelope = Envelope.from_dict(message.payload)
             return str(envelope.payload["storage_key"])
         except Exception as exc:
-            self.stage_queue.push_dlq(
+            self._queue_gateway.push_dlq(
                 Envelope(
                     type="embed_chunks.invalid_message",
                     payload={
@@ -161,7 +169,7 @@ class WorkerEmbedChunksService(WorkerService):
 
     def _initialize_runtime_config(self, processing_config: EmbedChunksProcessingConfigContract) -> None:
         """Load runtime config values into worker state."""
-        self.poll_interval_seconds = processing_config.poll_interval_seconds
-        self.storage_bucket = processing_config.storage.bucket
-        self.output_prefix = processing_config.storage.output_prefix
-        self.chunks_suffix = ".chunk.json"
+        self._poll_interval_seconds = processing_config.poll_interval_seconds
+        self._storage_bucket = processing_config.storage.bucket
+        self._output_prefix = processing_config.storage.output_prefix
+        self._chunks_suffix = ".chunk.json"

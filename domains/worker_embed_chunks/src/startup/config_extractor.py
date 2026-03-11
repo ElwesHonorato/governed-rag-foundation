@@ -23,7 +23,6 @@ class EmbedChunksConfigExtractor(WorkerConfigExtractor[EmbedChunksWorkerConfigCo
         queue = job_config["queue"]
         job_contract = EmbedChunksJobConfigContract(
             bucket=storage["bucket"],
-            input_prefix=storage["input_prefix"],
             output_prefix=storage["output_prefix"],
             poll_interval_seconds=int(job_config["poll_interval_seconds"]),
             dimension=int(job_config.get("dimension", os.getenv("EMBEDDING_DIM", "32"))),
@@ -39,7 +38,6 @@ class EmbedChunksConfigExtractor(WorkerConfigExtractor[EmbedChunksWorkerConfigCo
         return EmbedChunksWorkerConfigContract(
             storage=EmbedChunksStorageConfigContract(
                 bucket=job_contract.bucket,
-                input_prefix=job_contract.input_prefix,
                 output_prefix=job_contract.output_prefix,
             ),
             poll_interval_seconds=job_contract.poll_interval_seconds,

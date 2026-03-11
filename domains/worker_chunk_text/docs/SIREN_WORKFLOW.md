@@ -17,9 +17,7 @@ flowchart TD
     D1 --> D2[ack]
     D2 --> A
 
-    D -- yes --> E{Matches input_prefix and .json?}
-    E -- no --> A
-    E -- yes --> F[start_run + add_input]
+    D -- yes --> F[start_run + add_input]
 
     F --> G[read processed object from storage]
     G --> H[build run_id]
@@ -146,24 +144,23 @@ flowchart LR
    - publishes `chunk_text.invalid_message` to DLQ,
    - `ack()` the original message,
    - continue loop.
-5. Worker ignores message if key does not match configured `input_prefix` or does not end with `.json`.
-6. For valid chunk request:
+5. For valid chunk request:
    - starts lineage run,
    - adds lineage input for source object.
-7. Reads processed JSON object from storage.
-8. Generates `run_id`.
-9. Processing path:
+6. Reads processed JSON object from storage.
+7. Generates `run_id`.
+8. Processing path:
    - Spark dataframe path (Spark is required).
-10. For each chunk produced:
+9. For each chunk produced:
    - computes deterministic `chunk_id` from provenance fields,
    - writes chunk artifact if object key does not already exist,
    - upserts chunk registry latest row at `07_metadata/provenance/chunking/latest/<chunk_id>.json`.
-11. Adds lineage output for registry dataset prefix.
-12. Adds lineage outputs for each chunk artifact key.
-13. Completes lineage run.
-14. Enqueues one `embed_chunks.request` per chunk object.
-15. `ack()` the consumed message.
-16. On any processing exception:
+10. Adds lineage output for registry dataset prefix.
+11. Adds lineage outputs for each chunk artifact key.
+12. Completes lineage run.
+13. Enqueues one `embed_chunks.request` per chunk object.
+14. `ack()` the consumed message.
+15. On any processing exception:
    - marks lineage run as failed,
    - publishes `chunk_text.failure` to DLQ,
    - if DLQ publish succeeds -> `ack()`, otherwise -> `nack(requeue=true)`.

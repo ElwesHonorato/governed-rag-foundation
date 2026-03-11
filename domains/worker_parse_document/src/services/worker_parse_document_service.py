@@ -156,8 +156,6 @@ class WorkerParseDocumentService(WorkerService):
         self.lineage.fail_run(error_message=error_message)
 
     def _build_parse_job(self, source_key: str) -> ParseWorkItem | None:
-        if not source_key.startswith(self.input_prefix) or source_key == self.input_prefix:
-            return None
         doc_id = doc_id_from_source_key(source_key)
         destination_key = f"{self.output_prefix}{doc_id}.json"
         return ParseWorkItem(source_key=source_key, doc_id=doc_id, destination_key=destination_key)
@@ -186,6 +184,5 @@ class WorkerParseDocumentService(WorkerService):
         """Internal helper for initialize runtime config."""
         self.poll_interval_seconds = processing_config.poll_interval_seconds
         self.storage_bucket = processing_config.storage.bucket
-        self.input_prefix = processing_config.storage.input_prefix
         self.output_prefix = processing_config.storage.output_prefix
         self.security_clearance = processing_config.security.clearance

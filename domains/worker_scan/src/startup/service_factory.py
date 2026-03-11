@@ -25,7 +25,7 @@ class ScanServiceFactory(WorkerServiceFactory[ScanWorkerConfigContract, WorkerSc
         processor = StorageScanCycleProcessor(
             storage_contract=ScanStorageContract(
                 bucket=worker_config.storage.bucket,
-                input_prefix=worker_config.storage.input_prefix,
+                source_prefix=worker_config.storage.source_prefix,
                 output_prefix=worker_config.storage.output_prefix,
             ),
         )

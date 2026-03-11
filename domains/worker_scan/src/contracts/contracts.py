@@ -20,7 +20,7 @@ class ScanJobConfigContract:
     """Typed contract for scan-specific job config fields."""
 
     bucket: str
-    input_prefix: str
+    source_prefix: str
     output_prefix: str
     poll_interval_seconds: int
 
@@ -30,7 +30,7 @@ class ScanStorageContract:
     """Storage bucket and stage prefix settings for scan worker."""
 
     bucket: str
-    input_prefix: str
+    source_prefix: str
     output_prefix: str
 
 

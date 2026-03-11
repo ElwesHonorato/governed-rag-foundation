@@ -22,7 +22,7 @@ class ScanConfigExtractor(WorkerConfigExtractor[ScanWorkerConfigContract]):
         queue = job_config["queue"]
         job_contract = ScanJobConfigContract(
             bucket=storage["bucket"],
-            input_prefix=storage["input_prefix"],
+            source_prefix=storage["source_prefix"],
             output_prefix=storage["output_prefix"],
             poll_interval_seconds=int(job_config["poll_interval_seconds"]),
         )
@@ -37,7 +37,7 @@ class ScanConfigExtractor(WorkerConfigExtractor[ScanWorkerConfigContract]):
         return ScanWorkerConfigContract(
             storage=ScanStorageContract(
                 bucket=job_contract.bucket,
-                input_prefix=job_contract.input_prefix,
+                source_prefix=job_contract.source_prefix,
                 output_prefix=job_contract.output_prefix,
             ),
             poll_interval_seconds=job_contract.poll_interval_seconds,

@@ -23,7 +23,6 @@ class ParseConfigExtractor(WorkerConfigExtractor[ParseWorkerConfigContract]):
         security = job_config["security"]
         job_contract = ParseJobConfigContract(
             bucket=storage["bucket"],
-            input_prefix=storage["input_prefix"],
             output_prefix=storage["output_prefix"],
             poll_interval_seconds=int(job_config["poll_interval_seconds"]),
             security_clearance=security["clearance"],
@@ -39,7 +38,6 @@ class ParseConfigExtractor(WorkerConfigExtractor[ParseWorkerConfigContract]):
         return ParseWorkerConfigContract(
             storage=ParseStorageConfigContract(
                 bucket=job_contract.bucket,
-                input_prefix=job_contract.input_prefix,
                 output_prefix=job_contract.output_prefix,
             ),
             poll_interval_seconds=job_contract.poll_interval_seconds,

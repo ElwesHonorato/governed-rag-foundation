@@ -123,8 +123,6 @@ class WorkerIndexWeaviateService(WorkerService):
         return True
 
     def _build_index_job(self, embeddings_key: str, doc_id: str) -> dict[str, str] | None:
-        if not embeddings_key.startswith(self.input_prefix) or embeddings_key == self.input_prefix:
-            return None
         if not embeddings_key.endswith(self.embeddings_suffix):
             return None
         return {"embeddings_key": embeddings_key, "doc_id": doc_id}
@@ -193,6 +191,5 @@ class WorkerIndexWeaviateService(WorkerService):
         """Load runtime config values into worker state."""
         self.poll_interval_seconds = processing_config.poll_interval_seconds
         self.storage_bucket = processing_config.storage.bucket
-        self.input_prefix = processing_config.storage.input_prefix
         self.output_prefix = processing_config.storage.output_prefix
         self.embeddings_suffix = ".embedding.json"

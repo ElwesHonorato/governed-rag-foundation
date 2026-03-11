@@ -20,7 +20,7 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
     ) -> None:
         """Initialize instance state and dependencies."""
         self.bucket = storage_contract.bucket
-        self.source_prefix = storage_contract.input_prefix
+        self.source_prefix = storage_contract.source_prefix
         self.destination_prefix = storage_contract.output_prefix
 
     def scan(self) -> int:

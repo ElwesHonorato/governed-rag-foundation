@@ -20,7 +20,6 @@ class ParseJobConfigContract:
     """Typed contract for parse storage/runtime fields."""
 
     bucket: str
-    input_prefix: str
     output_prefix: str
     poll_interval_seconds: int
     security_clearance: str
@@ -31,7 +30,6 @@ class ParseStorageConfigContract:
     """Typed storage contract for parse processing runtime."""
 
     bucket: str
-    input_prefix: str
     output_prefix: str
 
 

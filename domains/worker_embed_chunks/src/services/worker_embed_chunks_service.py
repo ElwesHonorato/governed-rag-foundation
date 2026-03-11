@@ -137,8 +137,6 @@ class WorkerEmbedChunksService(WorkerService):
         return True
 
     def _build_embed_job(self, source_key: str) -> dict[str, str] | None:
-        if not source_key.startswith(self.input_prefix) or source_key == self.input_prefix:
-            return None
         if not source_key.endswith(self.chunks_suffix):
             return None
         return {"source_key": source_key}
@@ -183,6 +181,5 @@ class WorkerEmbedChunksService(WorkerService):
         """Load runtime config values into worker state."""
         self.poll_interval_seconds = processing_config.poll_interval_seconds
         self.storage_bucket = processing_config.storage.bucket
-        self.input_prefix = processing_config.storage.input_prefix
         self.output_prefix = processing_config.storage.output_prefix
         self.chunks_suffix = ".chunk.json"

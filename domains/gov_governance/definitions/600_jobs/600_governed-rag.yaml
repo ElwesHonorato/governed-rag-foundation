@@ -12,7 +12,7 @@ jobs:
       job.queue.produce: q.parse_document
       job.queue.dlq: q.scan.dlq
       job.storage.bucket: rag-data
-      job.storage.input_prefix: 01_incoming/
+      job.storage.source_prefix: 01_incoming/
       job.storage.output_prefix: 02_raw/
 
   - id: worker_parse_document
@@ -28,7 +28,6 @@ jobs:
       job.queue.produce: q.chunk_text
       job.queue.dlq: q.parse_document.dlq
       job.storage.bucket: rag-data
-      job.storage.input_prefix: 02_raw/
       job.storage.output_prefix: 03_processed/
       job.security.clearance: internal
 
@@ -45,7 +44,6 @@ jobs:
       job.queue.produce: q.embed_chunks
       job.queue.dlq: q.chunk_text.dlq
       job.storage.bucket: rag-data
-      job.storage.input_prefix: 03_processed/
       job.storage.output_prefix: 04_chunks/
       job.storage.manifest_prefix: 07_metadata/manifest/
 
@@ -62,7 +60,6 @@ jobs:
       job.queue.produce: q.index_weaviate
       job.queue.dlq: q.embed_chunks.dlq
       job.storage.bucket: rag-data
-      job.storage.input_prefix: 04_chunks/
       job.storage.output_prefix: 05_embeddings/
       job.dimension: "32"
 
@@ -78,7 +75,6 @@ jobs:
       job.queue.consume: q.index_weaviate
       job.queue.dlq: q.index_weaviate.dlq
       job.storage.bucket: rag-data
-      job.storage.input_prefix: 05_embeddings/
       job.storage.output_prefix: 06_indexes/
 
   - id: worker_manifest

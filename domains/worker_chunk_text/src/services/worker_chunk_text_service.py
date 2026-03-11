@@ -125,7 +125,6 @@ class WorkerChunkTextService(WorkerService):
     ) -> ChunkTextStorageConfigContract:
         return ChunkTextStorageConfigContract(
             bucket=storage_config.bucket,
-            input_prefix=storage_config.input_prefix,
             output_prefix=f"{self._env}/{storage_config.output_prefix}",
             manifest_prefix=f"{self._env}/{storage_config.manifest_prefix}",
         )

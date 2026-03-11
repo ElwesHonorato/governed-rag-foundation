@@ -19,7 +19,6 @@ class IndexWeaviateJobConfigContract:
     """Typed contract for index_weaviate storage/runtime fields."""
 
     bucket: str
-    input_prefix: str
     output_prefix: str
     poll_interval_seconds: int
 
@@ -29,7 +28,6 @@ class IndexWeaviateStorageConfigContract:
     """Typed storage contract for index_weaviate processing runtime."""
 
     bucket: str
-    input_prefix: str
     output_prefix: str
 
 

@@ -20,7 +20,6 @@ class EmbedChunksJobConfigContract:
     """Typed contract for embed_chunks storage/runtime fields."""
 
     bucket: str
-    input_prefix: str
     output_prefix: str
     poll_interval_seconds: int
     dimension: int
@@ -31,7 +30,6 @@ class EmbedChunksStorageConfigContract:
     """Typed storage contract for embed_chunks processing runtime."""
 
     bucket: str
-    input_prefix: str
     output_prefix: str
 
 

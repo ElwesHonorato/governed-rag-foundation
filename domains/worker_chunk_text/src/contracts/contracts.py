@@ -49,7 +49,6 @@ class ChunkTextJobConfigContract:
 @dataclass(frozen=True)
 class ChunkTextStorageConfigContract:
     bucket: str
-    input_prefix: str
     output_prefix: str
     manifest_prefix: str
 

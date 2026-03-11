@@ -22,7 +22,6 @@ class IndexWeaviateConfigExtractor(WorkerConfigExtractor[IndexWeaviateWorkerConf
         queue = job_config["queue"]
         job_contract = IndexWeaviateJobConfigContract(
             bucket=storage["bucket"],
-            input_prefix=storage["input_prefix"],
             output_prefix=storage["output_prefix"],
             poll_interval_seconds=int(job_config["poll_interval_seconds"]),
         )
@@ -36,7 +35,6 @@ class IndexWeaviateConfigExtractor(WorkerConfigExtractor[IndexWeaviateWorkerConf
         return IndexWeaviateWorkerConfigContract(
             storage=IndexWeaviateStorageConfigContract(
                 bucket=job_contract.bucket,
-                input_prefix=job_contract.input_prefix,
                 output_prefix=job_contract.output_prefix,
             ),
             poll_interval_seconds=job_contract.poll_interval_seconds,

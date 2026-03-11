@@ -42,14 +42,9 @@ class WorkerChunkingService(WorkerService):
     def serve(self) -> None:
         """Run the chunking worker loop by polling queue messages."""
         while True:
-            message = self._wait_for_next_message()
             try:
+                message = self._wait_for_next_message()
                 source_uri = self._source_uri_from_message(message)
-            except Exception:
-                message.nack(requeue=False)
-                continue
-
-            try:
                 self._register_lineage_input(source_uri)
                 self._process_chunk_job(source_uri)
                 self._lineage_gateway.complete_run()

@@ -147,7 +147,7 @@ class ChunkMetadata:
 
 @dataclass(frozen=True)
 class StorageStageArtifact:
-    artifact: StageArtifact[Any]
+    artifact: StageArtifact
     destination_key: str
 
     @property
@@ -164,7 +164,7 @@ class StorageStageArtifact:
         payload: dict[str, Any],
         *,
         destination_key: str,
-        artifact: StageArtifact[Any],
+        artifact: StageArtifact,
     ) -> StorageStageArtifact:
         _ = payload
         return cls(

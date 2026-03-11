@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Any, Generic, Mapping, TypeVar
+from typing import Any, Mapping
 
 from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata, SourceDocumentMetadata
 
@@ -19,9 +19,6 @@ class Content:
         return asdict(self)
 
 
-ContentT = TypeVar("ContentT")
-
-
 @dataclass(frozen=True)
 class StageArtifactMetadata:
     processor: ProcessorMetadata
@@ -31,11 +28,11 @@ class StageArtifactMetadata:
 
 
 @dataclass(frozen=True)
-class StageArtifact(Generic[ContentT]):
+class StageArtifact:
     """Shared base payload for cross-worker artifact contracts."""
 
     metadata: StageArtifactMetadata
-    content: ContentT
+    content: Content
 
     @property
     def source_metadata(self) -> SourceDocumentMetadata:
@@ -57,9 +54,7 @@ class StageArtifact(Generic[ContentT]):
     def from_dict(
         cls,
         payload: Mapping[str, Any],
-        *,
-        content_type: type[ContentT],
-    ) -> "StageArtifact[ContentT]":
+    ) -> "StageArtifact":
         """Parse payload dict into typed processed-document contract."""
         metadata_payload = payload["metadata"]
         return cls(
@@ -69,7 +64,7 @@ class StageArtifact(Generic[ContentT]):
                 content=metadata_payload["content"],
                 params=metadata_payload["params"],
             ),
-            content=content_type(**payload["content"]),
+            content=Content(**payload["content"]),
         )
 
     @property

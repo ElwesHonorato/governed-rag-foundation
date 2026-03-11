@@ -14,11 +14,12 @@ class ManifestServiceFactory(WorkerServiceFactory[ManifestWorkerConfigContract, 
         worker_config: ManifestWorkerConfigContract,
     ) -> WorkerManifestService:
         """Construct worker manifest service object graph."""
+        processing_config: ManifestProcessingConfigContract = ManifestProcessingConfigContract(
+            poll_interval_seconds=worker_config.poll_interval_seconds,
+            storage=worker_config.storage,
+        )
         return WorkerManifestService(
             object_storage=runtime.object_storage_gateway,
             lineage=runtime.lineage_gateway,
-            processing_config=ManifestProcessingConfigContract(
-                poll_interval_seconds=worker_config.poll_interval_seconds,
-                storage=worker_config.storage,
-            ),
+            processing_config=processing_config,
         )

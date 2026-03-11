@@ -14,14 +14,15 @@ class EmbedChunksServiceFactory(WorkerServiceFactory[EmbedChunksWorkerConfigCont
         worker_config: EmbedChunksWorkerConfigContract,
     ) -> WorkerEmbedChunksService:
         """Construct worker embed_chunks service object graph."""
+        processing_config: EmbedChunksProcessingConfigContract = EmbedChunksProcessingConfigContract(
+            poll_interval_seconds=worker_config.poll_interval_seconds,
+            queue=worker_config.queue_config,
+            storage=worker_config.storage,
+        )
         return WorkerEmbedChunksService(
             stage_queue=runtime.stage_queue_gateway,
             object_storage=runtime.object_storage_gateway,
             lineage=runtime.lineage_gateway,
-            processing_config=EmbedChunksProcessingConfigContract(
-                poll_interval_seconds=worker_config.poll_interval_seconds,
-                queue=worker_config.queue_config,
-                storage=worker_config.storage,
-            ),
+            processing_config=processing_config,
             dimension=worker_config.dimension,
         )

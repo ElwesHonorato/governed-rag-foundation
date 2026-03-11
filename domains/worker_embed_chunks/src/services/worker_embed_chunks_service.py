@@ -150,7 +150,7 @@ class WorkerEmbedChunksService(WorkerService):
     def _source_key_from_message(self, message: ConsumedMessage) -> str | None:
         """Parse source key from queue payload; route invalid payloads to DLQ."""
         try:
-            envelope = Envelope.from_dict(message.payload)
+            envelope: Envelope = Envelope.from_dict(message.payload)
             return str(envelope.payload["storage_key"])
         except Exception as exc:
             self._queue_gateway.push_dlq(

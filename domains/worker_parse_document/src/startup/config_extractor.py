@@ -21,13 +21,13 @@ class ParseConfigExtractor(WorkerConfigExtractor[ParseWorkerConfigContract]):
         storage = job_config["storage"]
         queue = job_config["queue"]
         security = job_config["security"]
-        job_contract = ParseJobConfigContract(
+        job_contract: ParseJobConfigContract = ParseJobConfigContract(
             bucket=storage["bucket"],
             output_prefix=storage["output_prefix"],
             poll_interval_seconds=int(job_config["poll_interval_seconds"]),
             security_clearance=security["clearance"],
         )
-        queue_contract = ParseQueueConfigContract(
+        queue_contract: ParseQueueConfigContract = ParseQueueConfigContract(
             stage=queue["stage"],
             queue_pop_timeout_seconds=int(queue["queue_pop_timeout_seconds"]),
             pop_timeout_seconds=int(queue["pop_timeout_seconds"]),

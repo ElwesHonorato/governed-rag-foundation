@@ -16,11 +16,12 @@ class ChunkTextConfigExtractor(WorkerConfigExtractor[ChunkTextWorkerConfigContra
     def extract(self, job_properties: Mapping[str, Any]) -> ChunkTextWorkerConfigContract:
         """Extract typed chunk_text worker config."""
         job_payload = job_properties["job"]
-        job_contract = ChunkTextJobConfigContract.from_dict(job_payload)
-        return ChunkTextWorkerConfigContract.from_dict(
+        job_contract: ChunkTextJobConfigContract = ChunkTextJobConfigContract.from_dict(job_payload)
+        worker_config: ChunkTextWorkerConfigContract = ChunkTextWorkerConfigContract.from_dict(
             {
                 "storage": job_payload["storage"],
                 "poll_interval_seconds": job_contract.poll_interval_seconds,
                 "queue_config": job_payload["queue"],
             }
         )
+        return worker_config

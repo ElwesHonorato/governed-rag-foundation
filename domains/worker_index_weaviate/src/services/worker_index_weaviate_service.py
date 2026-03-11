@@ -164,7 +164,7 @@ class WorkerIndexWeaviateService(WorkerService):
     def _request_from_message(self, message: ConsumedMessage) -> tuple[str, str] | None:
         """Parse index request from queue payload; route invalid payloads to DLQ."""
         try:
-            envelope = Envelope.from_dict(message.payload)
+            envelope: Envelope = Envelope.from_dict(message.payload)
             return str(envelope.payload["embeddings_key"]), str(envelope.payload["doc_id"])
         except Exception as exc:
             self._queue_gateway.push_dlq(

@@ -14,7 +14,7 @@ class ManifestConfigExtractor(WorkerConfigExtractor[ManifestWorkerConfigContract
         """Extract typed manifest worker config."""
         job_config = job_properties["job"]
         storage = job_config["storage"]
-        storage_contract = ManifestStorageConfigContract(
+        storage_contract: ManifestStorageConfigContract = ManifestStorageConfigContract(
             bucket=storage["bucket"],
             processed_prefix=storage["processed_prefix"],
             chunks_prefix=storage["chunks_prefix"],
@@ -22,7 +22,7 @@ class ManifestConfigExtractor(WorkerConfigExtractor[ManifestWorkerConfigContract
             indexes_prefix=storage["indexes_prefix"],
             manifest_prefix=storage["manifest_prefix"],
         )
-        job_contract = ManifestJobConfigContract(
+        job_contract: ManifestJobConfigContract = ManifestJobConfigContract(
             poll_interval_seconds=int(job_config["poll_interval_seconds"]),
             storage=storage_contract,
         )

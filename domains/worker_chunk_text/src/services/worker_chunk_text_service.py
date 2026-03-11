@@ -11,6 +11,7 @@ from pipeline_common.helpers.run_ids import build_source_run_id
 from pipeline_common.stages_contracts import StageArtifact
 from pipeline_common.startup.contracts import WorkerService
 from contracts.contracts import ChunkTextStorageConfigContract
+from contracts.contracts import ProcessResult
 from services.chunk_manifest_writer import ChunkManifestWriter
 from services.chunk_text_processor import ChunkTextProcessor
 
@@ -79,9 +80,9 @@ class WorkerChunkTextService(WorkerService):
 
     def _process_chunk_job(self, source_uri: str) -> None:
         raw_payload = self._storage_gateway.read_object(source_uri)
-        input_artifact = StageArtifact.from_dict(json.loads(raw_payload.decode("utf-8")))
+        input_artifact: StageArtifact = StageArtifact.from_dict(json.loads(raw_payload.decode("utf-8")))
         resolved_stages = self._chunking_resolver.resolve(input_artifact.source_metadata.source_type)
-        process_result = self.processor.process(
+        process_result: ProcessResult = self.processor.process(
             input_artifact=input_artifact,
             source_uri=source_uri,
             run_id=build_source_run_id(source_uri),
@@ -119,5 +120,5 @@ class WorkerChunkTextService(WorkerService):
 
     def _source_uri_from_message(self, message: ConsumedMessage) -> str:
         """Parse source URI from queue payload."""
-        envelope = Envelope.from_dict(message.payload)
+        envelope: Envelope = Envelope.from_dict(message.payload)
         return str(envelope.payload["source_uri"])

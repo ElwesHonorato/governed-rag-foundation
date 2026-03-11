@@ -12,6 +12,7 @@ from pipeline_common.gateways.queue import QueueGateway
 class WorkerRuntimeContext:
     """Runtime dependencies resolved by startup bootstrap."""
 
+    env: str | None
     lineage_gateway: LineageRuntimeGateway
     object_storage_gateway: ObjectStorageGateway | None
     stage_queue_gateway: QueueGateway | None

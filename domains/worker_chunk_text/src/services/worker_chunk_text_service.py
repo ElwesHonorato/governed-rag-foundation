@@ -25,6 +25,7 @@ class WorkerChunkTextService(WorkerService):
         queue_gateway: QueueGateway,
         storage_gateway: ObjectStorageGateway,
         lineage_gateway: LineageRuntimeGateway,
+        env: str | None,
         poll_interval_seconds: int,
         storage_config: ChunkTextStorageConfigContract,
     ) -> None:
@@ -32,6 +33,7 @@ class WorkerChunkTextService(WorkerService):
         self._queue_gateway = queue_gateway
         self._storage_gateway = storage_gateway
         self._lineage_gateway = lineage_gateway
+        self._env = env
         self._poll_interval_seconds = poll_interval_seconds
         self._storage_config = storage_config
 

@@ -65,6 +65,7 @@ class RuntimeContextFactory:
         stage_queue_gateway = self._build_stage_queue_gateway(job_properties=job_properties)
         spark_session = self._build_spark_session()
         return WorkerRuntimeContext(
+            env=self._settings_bundle.env,
             lineage_gateway=lineage_gateway,
             object_storage_gateway=object_storage_gateway,
             stage_queue_gateway=stage_queue_gateway,

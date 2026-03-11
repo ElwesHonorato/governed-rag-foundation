@@ -74,8 +74,8 @@ class ParseOutputMessageFactory:
     """Build downstream output message after successful parse write."""
 
     @staticmethod
-    def build(*, destination_key: str) -> Envelope:
+    def build(*, source_uri: str) -> Envelope:
         return Envelope(
             type="chunk_text.request",
-            payload={"storage_key": destination_key},
+            payload={"source_uri": source_uri},
         )

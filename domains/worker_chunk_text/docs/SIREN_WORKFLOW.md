@@ -10,7 +10,7 @@ This file gives the same current runtime behavior in four different styles so yo
 flowchart TD
     A[pop_message] --> B{Message exists?}
     B -- no --> A
-    B -- yes --> C[Parse envelope.storage_key]
+    B -- yes --> C[Parse envelope.source_uri]
 
     C --> D{Valid payload?}
     D -- no --> D1[push_dlq chunk_text.invalid_message]
@@ -141,7 +141,7 @@ flowchart LR
 
 1. Worker loops forever and calls `stage_queue.pop_message()`.
 2. If message is missing, loop continues.
-3. Worker parses envelope and extracts `payload.storage_key`.
+3. Worker parses envelope and extracts `payload.source_uri`.
 4. If payload is invalid:
    - publishes `chunk_text.invalid_message` to DLQ,
    - `ack()` the original message,

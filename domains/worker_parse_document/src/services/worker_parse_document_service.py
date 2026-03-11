@@ -130,7 +130,11 @@ class WorkerParseDocumentService(WorkerService):
         )
 
     def _publish_parse_output(self, parse_job: ParseWorkItem) -> None:
-        self.stage_queue.push(ParseOutputMessageFactory.build(destination_key=parse_job.destination_key).to_payload)
+        source_uri = "s3a://{bucket}/{source_key}".format(
+            bucket=self.storage_bucket,
+            source_key=parse_job.destination_key,
+        )
+        self.stage_queue.push(ParseOutputMessageFactory.build(source_uri=source_uri).to_payload)
 
     def _handle_parse_failure(self, parse_job: ParseWorkItem, error_message: str) -> None:
         self.stage_queue.push_dlq(

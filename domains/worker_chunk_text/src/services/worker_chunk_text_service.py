@@ -55,9 +55,9 @@ class WorkerChunkTextService(WorkerService):
         self._init_runtime_components()
         while True:
             message = self._wait_for_next_message()
-            source_key = self._source_key_from_message(message)
+            source_uri = self._source_uri_from_message(message)
             try:
-                self._process_chunk_job(source_key)
+                self._process_chunk_job(source_uri)
             except Exception:
                 message.nack(requeue=False)
                 continue
@@ -71,8 +71,8 @@ class WorkerChunkTextService(WorkerService):
                 return message
             time.sleep(self._poll_interval_seconds)
 
-    def _process_chunk_job(self, source_key: str) -> None:
-        source_uri = f"s3a://{self._storage_config.bucket}/{source_key}"
+    def _process_chunk_job(self, source_uri: str) -> None:
+        source_key = self._source_key_from_uri(source_uri)
         self._lineage_gateway.start_run()
         self._lineage_gateway.add_input(
             name=source_uri,
@@ -118,7 +118,13 @@ class WorkerChunkTextService(WorkerService):
         logger.exception("Failed chunking source key '%s'; sent to DLQ", source_key)
         return True
 
-    def _source_key_from_message(self, message: ConsumedMessage) -> str:
-        """Parse source key from queue payload."""
+    def _source_uri_from_message(self, message: ConsumedMessage) -> str:
+        """Parse source URI from queue payload."""
         envelope = Envelope.from_dict(message.payload)
-        return str(envelope.payload["storage_key"])
+        return str(envelope.payload["source_uri"])
+
+    def _source_key_from_uri(self, source_uri: str) -> str:
+        bucket_prefix = "s3a://{bucket}/".format(bucket=self._storage_config.bucket)
+        if not source_uri.startswith(bucket_prefix):
+            raise ValueError("source_uri must start with the configured storage bucket prefix.")
+        return source_uri.removeprefix(bucket_prefix)

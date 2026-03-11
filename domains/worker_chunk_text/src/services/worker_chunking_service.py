@@ -46,7 +46,7 @@ class WorkerChunkingService(WorkerService):
                 message = self._wait_for_next_message()
                 source_uri = self._source_uri_from_message(message)
                 self._register_lineage_input(source_uri)
-                self._process_chunk_job(source_uri)
+                self._transform_source_to_chunks(source_uri)
                 self._lineage_gateway.complete_run()
             except Exception as exc:
                 self._lineage_gateway.fail_run(error_message=str(exc))
@@ -62,7 +62,7 @@ class WorkerChunkingService(WorkerService):
                 return message
             time.sleep(self._poll_interval_seconds)
 
-    def _process_chunk_job(self, source_uri: str) -> None:
+    def _transform_source_to_chunks(self, source_uri: str) -> None:
         raw_payload = self._storage_gateway.read_object(source_uri)
         input_artifact: StageArtifact = StageArtifact.from_dict(json.loads(raw_payload.decode("utf-8")))
         resolved_stages = self._chunking_resolver.resolve(input_artifact.source_metadata.source_type)

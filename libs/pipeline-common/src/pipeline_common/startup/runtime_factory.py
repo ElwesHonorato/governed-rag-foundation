@@ -15,11 +15,17 @@ Non-goals:
 - Does not validate worker-specific configuration semantics.
 """
 
+from typing import Any, Mapping
+
 from pipeline_common.gateways.lineage.contracts import DataHubDataJobKey
 from pipeline_common.gateways.factories.lineage_gateway_factory import DataHubLineageGatewayFactory
 from pipeline_common.gateways.factories.object_storage_gateway_factory import ObjectStorageGatewayFactory
 from pipeline_common.gateways.factories.queue_gateway_factory import QueueGatewayFactory
 from pipeline_common.gateways.factories.spark_session_factory import SparkSessionFactory
+from pipeline_common.gateways.lineage import LineageRuntimeGateway
+from pipeline_common.gateways.object_storage import ObjectStorageGateway
+from pipeline_common.gateways.queue import QueueGateway
+from pipeline_common.gateways.lineage.settings import DataHubSettings
 from pipeline_common.settings import SettingsBundle
 from pipeline_common.startup.job_properties import JobPropertiesParser
 from pipeline_common.startup.runtime_context import WorkerRuntimeContext
@@ -67,14 +73,15 @@ class RuntimeContextFactory:
             job_properties=job_properties,
         )
 
-    def _build_lineage_gateway(self):
+    def _build_lineage_gateway(self) -> LineageRuntimeGateway:
         """Create lineage gateway from configured runtime settings."""
+        datahub_settings = self._require_datahub_settings()
         return DataHubLineageGatewayFactory(
-            datahub_settings=self._settings_bundle.datahub,
+            datahub_settings=datahub_settings,
             data_job_key=self._data_job_key,
         ).build()
 
-    def _build_object_storage_gateway(self):
+    def _build_object_storage_gateway(self) -> ObjectStorageGateway | None:
         """Create object storage gateway from configured runtime settings."""
         storage_settings = self._settings_bundle.storage
         if storage_settings is None:
@@ -83,7 +90,7 @@ class RuntimeContextFactory:
             s3_settings=storage_settings
         ).build()
 
-    def _build_stage_queue_gateway(self, *, job_properties: dict):
+    def _build_stage_queue_gateway(self, *, job_properties: Mapping[str, Any]) -> QueueGateway | None:
         """Create queue gateway from runtime settings and parsed job queue config."""
         queue_settings = self._settings_bundle.queue
         if queue_settings is None:
@@ -91,12 +98,14 @@ class RuntimeContextFactory:
         queue_config = job_properties.get("job", {}).get("queue")
         if queue_config is None:
             return None
+        if not isinstance(queue_config, dict):
+            raise ValueError("job.queue must be a dictionary.")
         return QueueGatewayFactory(
             queue_settings=queue_settings,
             queue_config=queue_config,
         ).build()
 
-    def _build_spark_session(self):
+    def _build_spark_session(self) -> Any | None:
         """Create spark session when spark capability is requested."""
         spark_settings = self._settings_bundle.spark
         if spark_settings is None:
@@ -105,3 +114,9 @@ class RuntimeContextFactory:
             spark_settings=spark_settings,
             app_name=self._data_job_key.job_id,
         ).build()
+
+    def _require_datahub_settings(self) -> DataHubSettings:
+        datahub_settings = self._settings_bundle.datahub
+        if datahub_settings is None:
+            raise ValueError("RuntimeContextFactory requires datahub settings.")
+        return datahub_settings

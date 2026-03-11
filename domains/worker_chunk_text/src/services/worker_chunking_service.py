@@ -10,7 +10,6 @@ from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGatew
 from pipeline_common.helpers.run_ids import build_source_run_id
 from pipeline_common.stages_contracts import StageArtifact
 from pipeline_common.startup.contracts import WorkerService
-from contracts.contracts import ChunkTextStorageConfigContract
 from contracts.contracts import ProcessResult
 from services.chunk_manifest_writer import ChunkManifestWriter
 from services.chunk_text_processor import ChunkTextProcessor
@@ -27,31 +26,21 @@ class WorkerChunkingService(WorkerService):
         storage_gateway: ObjectStorageGateway,
         lineage_gateway: LineageRuntimeGateway,
         poll_interval_seconds: int,
-        storage_config: ChunkTextStorageConfigContract,
+        chunking_resolver: ChunkingStagesResolver,
+        processor: ChunkTextProcessor,
+        manifest_writer: ChunkManifestWriter,
     ) -> None:
         """Initialize chunking worker dependencies and runtime settings."""
         self._queue_gateway = queue_gateway
         self._storage_gateway = storage_gateway
         self._lineage_gateway = lineage_gateway
         self._poll_interval_seconds = poll_interval_seconds
-        self._storage_config = storage_config
-
-    def _init_runtime_components(self) -> None:
-        self._chunking_resolver = ChunkingStagesResolver()
-        self.processor = ChunkTextProcessor(
-            object_storage=self._storage_gateway,
-            storage_bucket=self._storage_config.bucket,
-            output_prefix=self._storage_config.output_prefix,
-        )
-        self.manifest_writer = ChunkManifestWriter(
-            object_storage=self._storage_gateway,
-            storage_bucket=self._storage_config.bucket,
-            manifest_prefix=self._storage_config.manifest_prefix,
-        )
+        self._chunking_resolver = chunking_resolver
+        self._processor = processor
+        self._manifest_writer = manifest_writer
 
     def serve(self) -> None:
         """Run the chunking worker loop by polling queue messages."""
-        self._init_runtime_components()
         while True:
             message = self._wait_for_next_message()
             try:
@@ -82,13 +71,13 @@ class WorkerChunkingService(WorkerService):
         raw_payload = self._storage_gateway.read_object(source_uri)
         input_artifact: StageArtifact = StageArtifact.from_dict(json.loads(raw_payload.decode("utf-8")))
         resolved_stages = self._chunking_resolver.resolve(input_artifact.source_metadata.source_type)
-        process_result: ProcessResult = self.processor.process(
+        process_result: ProcessResult = self._processor.process(
             input_artifact=input_artifact,
             source_uri=source_uri,
             run_id=build_source_run_id(source_uri),
             stages=resolved_stages,
         )
-        self.manifest_writer.write(process_result=process_result)
+        self._manifest_writer.write(process_result=process_result)
 
     def _register_lineage_input(self, source_uri: str) -> None:
         self._lineage_gateway.start_run()

@@ -29,23 +29,23 @@ class WorkerChunkTextService(WorkerService):
         storage_config: ChunkTextStorageConfigContract,
     ) -> None:
         """Initialize chunking worker dependencies and runtime settings."""
-        self.queue_gateway = queue_gateway
-        self.storage_gateway = storage_gateway
-        self.lineage_gateway = lineage_gateway
-        self.poll_interval_seconds = poll_interval_seconds
-        self.storage_config = storage_config
+        self._queue_gateway = queue_gateway
+        self._storage_gateway = storage_gateway
+        self._lineage_gateway = lineage_gateway
+        self._poll_interval_seconds = poll_interval_seconds
+        self._storage_config = storage_config
 
     def _init_runtime_components(self) -> None:
         self._chunking_resolver = ChunkingStagesResolver()
         self.processor = ChunkTextProcessor(
-            object_storage=self.storage_gateway,
-            storage_bucket=self.storage_config.bucket,
-            output_prefix=self.storage_config.output_prefix,
+            object_storage=self._storage_gateway,
+            storage_bucket=self._storage_config.bucket,
+            output_prefix=self._storage_config.output_prefix,
         )
         self.manifest_writer = ChunkManifestWriter(
-            object_storage=self.storage_gateway,
-            storage_bucket=self.storage_config.bucket,
-            manifest_prefix=self.storage_config.manifest_prefix,
+            object_storage=self._storage_gateway,
+            storage_bucket=self._storage_config.bucket,
+            manifest_prefix=self._storage_config.manifest_prefix,
         )
 
     def serve(self) -> None:
@@ -64,20 +64,20 @@ class WorkerChunkTextService(WorkerService):
     def _wait_for_next_message(self) -> ConsumedMessage:
         """Fetch next queue message, waiting until one is available."""
         while True:
-            message = self.queue_gateway.pop_message()
+            message = self._queue_gateway.pop_message()
             if message is not None:
                 return message
-            time.sleep(self.poll_interval_seconds)
+            time.sleep(self._poll_interval_seconds)
 
     def _process_chunk_job(self, source_key: str) -> None:
-        source_uri = f"s3a://{self.storage_config.bucket}/{source_key}"
-        self.lineage_gateway.start_run()
-        self.lineage_gateway.add_input(
+        source_uri = f"s3a://{self._storage_config.bucket}/{source_key}"
+        self._lineage_gateway.start_run()
+        self._lineage_gateway.add_input(
             name=source_uri,
             platform=DatasetPlatform.S3,
         )
         try:
-            raw_payload = self.storage_gateway.read_object(self.storage_config.bucket, source_key)
+            raw_payload = self._storage_gateway.read_object(self._storage_config.bucket, source_key)
             input_artifact = StageArtifact.from_dict(
                 json.loads(raw_payload.decode("utf-8")),
                 content_type=Content,
@@ -90,13 +90,13 @@ class WorkerChunkTextService(WorkerService):
                 stages=resolved_stages,
             )
             self.manifest_writer.write(process_result=process_result)
-            self.lineage_gateway.complete_run()
+            self._lineage_gateway.complete_run()
         except Exception as exc:
-            self.lineage_gateway.fail_run(error_message=str(exc))
+            self._lineage_gateway.fail_run(error_message=str(exc))
             raise
 
     def _send_chunk_failure(self, source_key: str) -> None:
-        self.queue_gateway.push_dlq(
+        self._queue_gateway.push_dlq(
             Envelope(
                 type="chunk_text.failure",
                 payload={"source_key": source_key},

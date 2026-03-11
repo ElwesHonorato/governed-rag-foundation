@@ -71,8 +71,9 @@ class ObjectStorageGateway:
         """Execute list keys."""
         return self.client.list_keys(bucket, prefix)
 
-    def read_object(self, bucket: str, key: str) -> bytes:
-        """Execute read object."""
+    def read_object(self, source_uri: str) -> bytes:
+        """Execute read object from an ``s3a://`` URI."""
+        bucket, key = self._split_source_uri(source_uri)
         return self.client.read_bytes(bucket, key)
 
     def write_object(
@@ -92,6 +93,11 @@ class ObjectStorageGateway:
     def delete(self, bucket: str, key: str) -> None:
         """Execute delete."""
         self.client.delete_object(bucket, key)
+
+    def _split_source_uri(self, source_uri: str) -> tuple[str, str]:
+        uri_without_scheme = source_uri.split("://", 1)[-1]
+        bucket, key = uri_without_scheme.split("/", 1)
+        return bucket, key
 
 
 class ObjectStorageClient(Protocol):

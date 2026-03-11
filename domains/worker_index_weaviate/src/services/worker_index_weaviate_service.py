@@ -130,7 +130,11 @@ class WorkerIndexWeaviateService(WorkerService):
         return {"embeddings_key": embeddings_key, "doc_id": doc_id}
 
     def _read_embeddings_payload(self, embeddings_key: str) -> dict[str, Any]:
-        raw_payload = self.object_storage.read_object(self.storage_bucket, embeddings_key)
+        source_uri = "s3a://{bucket}/{source_key}".format(
+            bucket=self.storage_bucket,
+            source_key=embeddings_key,
+        )
+        raw_payload = self.object_storage.read_object(source_uri)
         return self.processor.read_embeddings_payload(raw_payload)
 
     def _upsert_embeddings(self, payload: dict[str, Any]) -> None:

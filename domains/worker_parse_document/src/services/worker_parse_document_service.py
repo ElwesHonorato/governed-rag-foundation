@@ -107,7 +107,11 @@ class WorkerParseDocumentService(WorkerService):
         return True
 
     def _build_processed_payload(self, parse_job: ParseWorkItem) -> dict[str, Any]:
-        raw_payload = self.object_storage.read_object(self.storage_bucket, parse_job.source_key)
+        source_uri = "s3a://{bucket}/{source_key}".format(
+            bucket=self.storage_bucket,
+            source_key=parse_job.source_key,
+        )
+        raw_payload = self.object_storage.read_object(source_uri)
         raw_text = raw_payload.decode("utf-8", errors="ignore")
         return self.parser_processor.build_payload(
             source_key=parse_job.source_key,

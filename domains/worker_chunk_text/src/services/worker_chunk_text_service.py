@@ -72,14 +72,13 @@ class WorkerChunkTextService(WorkerService):
             time.sleep(self._poll_interval_seconds)
 
     def _process_chunk_job(self, source_uri: str) -> None:
-        source_key = self._source_key_from_uri(source_uri)
         self._lineage_gateway.start_run()
         self._lineage_gateway.add_input(
             name=source_uri,
             platform=DatasetPlatform.S3,
         )
         try:
-            raw_payload = self._storage_gateway.read_object(self._storage_config.bucket, source_key)
+            raw_payload = self._storage_gateway.read_object(source_uri)
             input_artifact = StageArtifact.from_dict(
                 json.loads(raw_payload.decode("utf-8")),
                 content_type=Content,
@@ -122,9 +121,3 @@ class WorkerChunkTextService(WorkerService):
         """Parse source URI from queue payload."""
         envelope = Envelope.from_dict(message.payload)
         return str(envelope.payload["source_uri"])
-
-    def _source_key_from_uri(self, source_uri: str) -> str:
-        bucket_prefix = "s3a://{bucket}/".format(bucket=self._storage_config.bucket)
-        if not source_uri.startswith(bucket_prefix):
-            raise ValueError("source_uri must start with the configured storage bucket prefix.")
-        return source_uri.removeprefix(bucket_prefix)

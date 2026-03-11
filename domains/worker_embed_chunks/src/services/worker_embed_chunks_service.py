@@ -144,7 +144,11 @@ class WorkerEmbedChunksService(WorkerService):
         return {"source_key": source_key}
 
     def _read_chunk_payload(self, source_key: str) -> ChunkArtifactPayload:
-        raw_payload = self.object_storage.read_object(self.storage_bucket, source_key)
+        source_uri = "s3a://{bucket}/{source_key}".format(
+            bucket=self.storage_bucket,
+            source_key=source_key,
+        )
+        raw_payload = self.object_storage.read_object(source_uri)
         return self.processor.read_chunk_payload(raw_payload, source_key=source_key)
 
     def _enqueue_embeddings_object(self, destination_key: str, doc_id: str) -> None:

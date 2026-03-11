@@ -21,3 +21,11 @@
    d. Keep contract semantics explicit (no ambiguous empty placeholders unless formally defined).
    e. Ensure downstream stages can resolve required context deterministically.
    f. Document the final pattern and required code migrations across impacted workers.
+
+4. Remove hardcoded `s3a://` URI construction to decouple worker code from MinIO/S3A assumptions.
+   a. Inventory all places building object URIs with literal `s3a://` (workers, processors, shared libs).
+   b. Introduce a storage URI strategy (or helper) driven by runtime/storage config instead of hardcoded scheme.
+   c. Keep object-storage gateway contracts explicit about when callers pass full URI vs bucket/key.
+   d. Update worker message contracts where needed to avoid ambiguous URI/key handling.
+   e. Add tests covering URI parsing/building behavior for configured schemes.
+   f. Update architecture/pattern docs with the final storage URI policy and migration notes.

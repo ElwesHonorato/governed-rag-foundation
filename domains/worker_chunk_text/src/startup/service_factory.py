@@ -22,12 +22,15 @@ class ChunkTextServiceFactory(WorkerServiceFactory[ChunkTextWorkerConfigContract
             env=runtime.env,
             storage_config=worker_config.storage,
         ).build()
+        
         chunking_resolver: ChunkingStagesResolver = ChunkingStagesResolver()
+
         processor: ChunkTextProcessor = ChunkTextProcessor(
             object_storage=runtime.object_storage_gateway,
             storage_bucket=storage_config.bucket,
             output_prefix=storage_config.output_prefix,
         )
+
         manifest_writer: ChunkManifestWriter = ChunkManifestWriter(
             object_storage=runtime.object_storage_gateway,
             storage_bucket=storage_config.bucket,

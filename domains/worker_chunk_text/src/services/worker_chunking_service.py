@@ -1,4 +1,3 @@
-import logging
 import json
 
 from configs.chunking_scaffold import ChunkingStagesResolver
@@ -12,8 +11,6 @@ from pipeline_common.startup.contracts import WorkerService
 from contracts.contracts import ProcessResult
 from services.chunk_manifest_writer import ChunkManifestWriter
 from services.chunk_text_processor import ChunkTextProcessor
-
-logger = logging.getLogger(__name__)
 
 
 class WorkerChunkingService(WorkerService):
@@ -90,27 +87,6 @@ class WorkerChunkingService(WorkerService):
             platform=DatasetPlatform.S3,
         )
         self._lineage_gateway.complete_run()
-
-    def _send_chunk_failure(self, source_key: str) -> None:
-        self._queue_gateway.push_dlq(
-            Envelope(
-                type="chunk_text.failure",
-                payload={"source_key": source_key},
-            ).to_payload
-        )
-
-    def _handle_chunk_failure(self, source_key: str) -> bool:
-        """Route failed chunk request to DLQ; return True when message can be acked."""
-        try:
-            self._send_chunk_failure(source_key)
-        except Exception:
-            logger.exception(
-                "Failed chunking source key '%s' and failed DLQ publish; requeueing message",
-                source_key,
-            )
-            return False
-        logger.exception("Failed chunking source key '%s'; sent to DLQ", source_key)
-        return True
 
     def _source_uri_from_message(self, message: ConsumedMessage) -> str:
         """Parse source URI from queue payload."""

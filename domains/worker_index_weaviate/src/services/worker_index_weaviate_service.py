@@ -5,7 +5,7 @@ from typing import Any
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
-from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGateway
+from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGateway, QueueMessageType
 from pipeline_common.helpers.contracts import utc_now_iso
 from services.weaviate_gateway import upsert_chunk, verify_query
 from pipeline_common.startup.contracts import WorkerService
@@ -97,7 +97,7 @@ class WorkerIndexWeaviateService(WorkerService):
     def _send_index_failure(self, embeddings_key: str, doc_id: str) -> None:
         self._queue_gateway.push_dlq(
             Envelope(
-                type="index_weaviate.failure",
+                type=QueueMessageType.INDEX_WEAVIATE_FAILURE,
                 payload={"embeddings_key": embeddings_key, "doc_id": doc_id},
             ).to_payload
         )
@@ -160,7 +160,7 @@ class WorkerIndexWeaviateService(WorkerService):
         except Exception as exc:
             self._queue_gateway.push_dlq(
                 Envelope(
-                    type="index_weaviate.invalid_message",
+                    type=QueueMessageType.INDEX_WEAVIATE_INVALID_MESSAGE,
                     payload={
                         "error": str(exc),
                         "message_payload": message.payload,

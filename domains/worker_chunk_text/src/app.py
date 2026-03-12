@@ -1,4 +1,4 @@
-"""worker_chunk_text entrypoint."""
+"""Composition root for the ``worker_chunk_text`` domain."""
 
 from registry import DataHubDataJobKey, DataHubPipelineJobs, GovernedRagJobId
 from pipeline_common.settings import SettingsBundle, SettingsProvider, SettingsRequest
@@ -13,7 +13,7 @@ from startup.service_factory import ChunkTextServiceFactory
 
 
 def run() -> None:
-    """Start chunk_text worker."""
+    """Build the runtime graph and start the chunk-text worker service."""
     settings: SettingsBundle = SettingsProvider(
         SettingsRequest(datahub=True, storage=True, queue=True),
     ).bundle

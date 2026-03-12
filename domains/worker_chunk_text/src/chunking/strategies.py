@@ -1,4 +1,4 @@
-"""File-type-aware chunking scaffold and runtime resolver."""
+"""Static chunking stage definitions keyed by normalized source type."""
 
 from __future__ import annotations
 

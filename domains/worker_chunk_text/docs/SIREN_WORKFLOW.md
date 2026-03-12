@@ -8,37 +8,25 @@ This file gives the same current runtime behavior in four different styles so yo
 
 ```mermaid
 flowchart TD
-    A[pop_message] --> B{Message exists?}
-    B -- no --> A
-    B -- yes --> C[Parse envelope.source_uri]
+    A[wait_for_message] --> B[parse envelope payload as input URI]
+    B --> C[start_run and add_input]
+    C --> D[read input artifact from storage]
+    D --> E[build run_id and resolve chunking stages]
+    E --> F[split text into chunk documents]
+    F --> G[write each chunk artifact and enqueue its URI]
+    G --> H[write manifest]
+    H --> I[add manifest lineage output]
+    I --> J[complete_run]
+    J --> K[ack]
+    K --> A
 
-    C --> D{Valid payload?}
-    D -- no --> D1[push_dlq chunk_text.invalid_message]
-    D1 --> D2[ack]
-    D2 --> A
-
-    D -- yes --> F[start_run + add_input]
-
-    F --> G[read processed object from storage]
-    G --> H[build run_id]
-    H --> K[dataframe chunking path]
-    K --> L[for each chunk: deterministic chunk_id + chunk object write if missing + registry upsert]
-
-    L --> M[add lineage output for registry prefix]
-    M --> N[add lineage outputs for chunk object keys]
-    N --> O[complete_run]
-    O --> P[enqueue embed_chunks.request for each chunk]
-    P --> Q[ack]
-    Q --> A
-
-    G -. exception .-> X[fail_run]
-    K -. exception .-> X
-    L -. exception .-> X
-    X --> Y{push_dlq chunk_text.failure succeeds?}
-    Y -- yes --> Z[ack]
-    Y -- no --> Z2[nack requeue=true]
-    Z --> A
-    Z2 --> A
+    D -. exception .-> X[fail_run]
+    E -. exception .-> X
+    F -. exception .-> X
+    G -. exception .-> X
+    H -. exception .-> X
+    X --> Y[nack requeue=false]
+    Y --> A
 ```
 
 ---
@@ -49,35 +37,21 @@ flowchart TD
 stateDiagram-v2
     [*] --> Polling
 
-    Polling --> Polling: no message
     Polling --> Parsing: message received
-
-    Parsing --> InvalidMessage: bad envelope/payload
-    InvalidMessage --> DLQInvalid: push invalid_message
-    DLQInvalid --> Acked: ack
+    Parsing --> Running: input URI extracted
+    Running --> Chunking: stages resolved
+    Chunking --> Persisting: chunk artifacts written
+    Persisting --> Manifesting: manifest written
+    Manifesting --> Acked: lineage completed and message acked
     Acked --> Polling
-
-    Parsing --> FilteredOut: key not in input scope
-    FilteredOut --> Polling
-
-    Parsing --> Running: valid source_key
-
-    Running --> Chunking: chunking requested
-    Chunking --> Persisting
-
-    Persisting --> LineageComplete: chunk writes + registry upserts + lineage outputs
-    LineageComplete --> EnqueueNext: emit embed_chunks.request per chunk
-    EnqueueNext --> Acked: ack
 
     Running --> Failed: exception
     Chunking --> Failed: exception
     Persisting --> Failed: exception
+    Manifesting --> Failed: exception
 
-    Failed --> DLQFailure: push failure
-    DLQFailure --> Acked: dlq publish ok
-    DLQFailure --> Requeued: dlq publish fails
-
-    Requeued --> Polling
+    Failed --> Rejected: fail_run and nack requeue=false
+    Rejected --> Polling
 ```
 
 ---
@@ -87,50 +61,40 @@ stateDiagram-v2
 ```mermaid
 flowchart LR
     subgraph Q[Queue]
-        Q1[pop_message]
+        Q1[wait_for_message]
         Q2[ack]
-        Q3[nack requeue=true]
-        Q4[push embed_chunks.request]
-        Q5[push_dlq invalid_message]
-        Q6[push_dlq failure]
+        Q3[nack requeue=false]
+        Q4[push downstream chunk URI]
     end
 
     subgraph S[Worker Service]
         S1[parse envelope]
-        S2[filter by prefix/suffix]
+        S2[start_run and add_input]
         S3[start_run + add_input]
-        S4[dataframe path]
-        S5[complete_run]
+        S4[resolve stages and process chunks]
+        S5[write manifest and complete_run]
         S6[fail_run]
     end
 
     subgraph O[Object Storage]
-        O1[read processed object]
-        O2[write chunk object if missing]
-    end
-
-    subgraph R[Provenance Registry]
-        R1[upsert chunk latest row]
+        O1[read processed artifact]
+        O2[write chunk object]
+        O3[write manifest]
     end
 
     subgraph L[Lineage]
-        L1[add_output chunk registry dataset]
-        L2[add_output chunk objects]
+        L1[add input artifact]
+        L2[add manifest output]
     end
 
     Q1 --> S1
-    S1 -->|invalid| Q5 --> Q2
-    S1 -->|valid| S2
-    S2 -->|out of scope| Q1
-    S2 -->|in scope| S3 --> O1 --> S4 --> O2 --> R1 --> L1 --> L2 --> S5 --> Q4 --> Q2
+    S1 --> S2 --> L1 --> O1 --> S4 --> O2 --> Q4 --> O3 --> L2 --> S5 --> Q2
 
     O1 -.error.-> S6
     S4 -.error.-> S6
     O2 -.error.-> S6
-    R1 -.error.-> S6
-    S6 --> Q6
-    Q6 -->|ok| Q2
-    Q6 -->|fail| Q3
+    O3 -.error.-> S6
+    S6 --> Q3
 ```
 
 ---
@@ -138,36 +102,27 @@ flowchart LR
 ## D) Plain Step-by-Step (No Diagram)
 
 1. Worker loops forever and calls `stage_queue.pop_message()`.
-2. If message is missing, loop continues.
-3. Worker parses envelope and extracts `payload.source_uri`.
-4. If payload is invalid:
-   - publishes `chunk_text.invalid_message` to DLQ,
-   - `ack()` the original message,
-   - continue loop.
-5. For valid chunk request:
-   - starts lineage run,
-   - adds lineage input for source object.
-6. Reads processed JSON object from storage.
-7. Generates `run_id`.
-8. Processing path:
-   - Dataframe path.
-9. For each chunk produced:
-   - computes deterministic `chunk_id` from provenance fields,
-   - writes chunk artifact if object key does not already exist,
-   - upserts chunk registry latest row at `07_metadata/provenance/chunking/latest/<chunk_id>.json`.
-10. Adds lineage output for registry dataset prefix.
-11. Adds lineage outputs for each chunk artifact key.
-12. Completes lineage run.
-13. Enqueues one `embed_chunks.request` per chunk object.
-14. `ack()` the consumed message.
-15. On any processing exception:
-   - marks lineage run as failed,
-   - publishes `chunk_text.failure` to DLQ,
-   - if DLQ publish succeeds -> `ack()`, otherwise -> `nack(requeue=true)`.
+2. Worker parses the queue envelope and treats the payload as an input artifact URI.
+3. Worker starts a lineage run and adds the input URI as an input dataset.
+4. Worker reads the upstream stage artifact from object storage.
+5. Worker generates a run ID from the source URI.
+6. Worker resolves chunking stages from `source_metadata.source_type`.
+7. Worker applies the configured LangChain splitters to the source text.
+8. For each chunk produced:
+   - computes a deterministic `chunk_id`,
+   - writes one chunk artifact object,
+   - publishes the chunk URI to the downstream queue.
+9. Worker writes a manifest for the process result.
+10. Worker adds the manifest URI as a lineage output and completes the run.
+11. Worker `ack()`s the consumed message.
+12. On any processing exception:
+   - marks the lineage run as failed,
+   - `nack(requeue=false)`s the original message.
 
 ---
 
 ## Notes
 
 - This reflects current code behavior in `src/service/worker_chunk_text_service.py` and `src/service/chunk_text_processor.py`.
+- This reflects current code behavior in `src/service/worker_chunking_service.py` and `src/processor/chunk_text.py`.
 - The four views above are equivalent descriptions of the same runtime flow.

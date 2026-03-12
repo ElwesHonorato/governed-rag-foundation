@@ -16,7 +16,7 @@ class ChunkTextServiceFactory(WorkerServiceFactory[RuntimeChunkJobConfig, Worker
         runtime: WorkerRuntimeContext,
         worker_config: RuntimeChunkJobConfig,
     ) -> WorkerChunkingService:
-        """Construct worker chunk_text service object graph."""
+        """Construct the service graph for the chunk-text worker."""
         chunking_resolver: ChunkingStagesResolver = ChunkingStagesResolver()
 
         processor: ChunkTextProcessor = ChunkTextProcessor(

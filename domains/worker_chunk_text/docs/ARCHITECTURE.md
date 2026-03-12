@@ -34,8 +34,8 @@ Non-responsibilities:
 Design:
 - Composition root in src/app.py.
 - Startup extension points in src/startup/config_extractor.py and src/startup/service_factory.py.
-- Processing logic in src/service.
-- Chunk compute path uses dataframe execution.
+- Queue-and-lineage orchestration in src/service.
+- Chunk compute path in src/processor and src/chunking uses LangChain splitters.
 
 Patterns:
 - Composition Root.
@@ -47,8 +47,11 @@ Patterns:
 
 - src/app.py
 - `src/startup/contracts.py`
-- `src/processor/metadata_contracts.py`
-- `src/chunking/params_contract.py`
+- `src/processor/metadata.py`
+- `src/chunking/params.py`
+- `src/chunking/stage_contract.py`
+- `src/chunking/stage_splitter.py`
+- `src/processor/chunk_text.py`
 - src/startup/config_extractor.py
 - src/startup/service_factory.py
 - src/service/*
@@ -72,12 +75,10 @@ graph TD
 2. config_extractor builds typed worker config.
 3. service_factory builds processing service.
 4. service enters infinite serve loop.
-5. item lifecycle: consume input -> start lineage -> process -> produce output -> complete or fail lineage.
+5. item lifecycle: consume input URI -> start lineage -> load artifact -> process chunks -> write manifest -> complete or fail lineage.
 6. queue settlement policy:
    - valid + success: `ack()`
-   - invalid payload: publish `chunk_text.invalid_message` to DLQ, then `ack()`
-   - processing failure: publish `chunk_text.failure` to DLQ, then `ack()`
-   - if failure DLQ publish fails: `nack(requeue=True)`
+   - processing failure: `fail_run(...)`, then `nack(requeue=False)`
 
 Shutdown behavior:
 - No explicit in-module shutdown orchestration.
@@ -107,7 +108,8 @@ flowchart TD
 # 7. Extension Points
 
 - Add stage config fields in contracts and extractor.
-- Add/adjust processing behavior in services.
+- Add or tune chunking stages in `src/chunking/strategies.py`.
+- Add/adjust processing behavior in `src/processor/chunk_text.py`.
 - Keep runtime dependency composition changes in startup/service_factory.py.
 
 # 8. Known Issues & Technical Debt

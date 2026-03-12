@@ -1,3 +1,5 @@
+"""Worker service that reads processed artifacts and emits chunk manifests."""
+
 import json
 
 from chunking.resolver import ChunkingStagesResolver
@@ -13,7 +15,7 @@ from processor.chunk_text import ChunkTextProcessor
 
 
 class WorkerChunkingService(WorkerService):
-    """Transform processed document payloads into chunk artifacts."""
+    """Poll for processed artifacts, chunk them, write manifests, and emit lineage."""
 
     def __init__(
         self,
@@ -25,7 +27,7 @@ class WorkerChunkingService(WorkerService):
         processor: ChunkTextProcessor,
         manifest_writer: ManifestWriter,
     ) -> None:
-        """Initialize chunking worker dependencies and runtime settings."""
+        """Initialize worker dependencies and queue polling configuration."""
         self._queue_gateway = queue_gateway
         self._storage_gateway = storage_gateway
         self._lineage_gateway = lineage_gateway
@@ -35,7 +37,11 @@ class WorkerChunkingService(WorkerService):
         self._manifest_writer = manifest_writer
 
     def serve(self) -> None:
-        """Run the chunking worker loop by polling queue messages."""
+        """Run the worker loop until interrupted by the hosting runtime.
+
+        Each iteration reads one queue message, loads the referenced input artifact,
+        processes it into chunk artifacts, writes a manifest, and records lineage.
+        """
         while True:
             try:
                 message = self._queue_gateway.wait_for_message(
@@ -57,6 +63,7 @@ class WorkerChunkingService(WorkerService):
             message.ack()
 
     def _register_lineage_input(self, input_uri: str) -> None:
+        """Start a lineage run and register the input artifact URI."""
         self._lineage_gateway.start_run()
         self._lineage_gateway.add_input(
             name=input_uri,
@@ -64,6 +71,7 @@ class WorkerChunkingService(WorkerService):
         )
 
     def _transform_source_to_chunks(self, input_uri: str) -> ProcessResult:
+        """Load an input artifact, resolve stages, and run the chunk processor."""
         raw_payload = self._storage_gateway.read_object(uri=input_uri)
         input_artifact: StageArtifact = StageArtifact.from_dict(json.loads(raw_payload.decode("utf-8")))
         resolved_stages = self._chunking_resolver.resolve(input_artifact.source_metadata.source_type)
@@ -88,6 +96,6 @@ class WorkerChunkingService(WorkerService):
         self._lineage_gateway.complete_run()
 
     def _input_uri_from_message(self, message: ConsumedMessage) -> str:
-        """Parse input URI from queue payload."""
+        """Extract the input artifact URI from a consumed queue message."""
         envelope: Envelope = Envelope.from_dict(message.payload)
         return str(envelope.payload)

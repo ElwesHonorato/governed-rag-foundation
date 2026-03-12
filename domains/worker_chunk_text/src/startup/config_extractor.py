@@ -20,7 +20,15 @@ class ChunkTextConfigExtractor(WorkerConfigExtractor[RuntimeChunkJobConfig]):
         *,
         env: str | None = None,
     ) -> RuntimeChunkJobConfig:
-        """Extract typed chunk_text worker config."""
+        """Extract typed startup configuration for the chunk-text worker.
+
+        Args:
+            job_properties: Resolved job properties containing the ``job`` payload.
+            env: Optional environment name used to scope runtime storage prefixes.
+
+        Returns:
+            Parsed runtime configuration for service assembly.
+        """
         raw_job_config_payload = job_properties["job"]
         raw_job_config: RawChunkJobConfig = RawChunkJobConfig.from_dict(raw_job_config_payload)
         return RuntimeChunkJobConfig(

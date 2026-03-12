@@ -26,7 +26,7 @@ This document lists the contracts used by `domains/worker_chunk_text`, grouped b
 | `ProcessorContext` | Captures processor parameter hash and normalized params for the run result. | `libs/pipeline-common/src/pipeline_common/stages_contracts/execution.py` |
 | `ChunkingExecutionMetadata` | Summarizes expected vs written chunks and derives execution status. | `domains/worker_chunk_text/src/processor/metadata.py` |
 | `ExecutionStatus` | Enum for `success`, `partial`, and `fail`, used through `ChunkingExecutionMetadata.status`. | `libs/pipeline-common/src/pipeline_common/stages_contracts/execution.py` |
-| `ChunkMetadata` | Metadata attached to each persisted chunk artifact. | `domains/worker_chunk_text/src/processor/metadata.py` |
+| `ChunkMetadata` | Metadata attached to each persisted chunk artifact, including source URI, ordinal, and character count. | `domains/worker_chunk_text/src/processor/metadata.py` |
 | `StorageStageArtifact` | Wraps a chunk `StageArtifact` plus destination key before writing to storage. | `libs/pipeline-common/src/pipeline_common/stages_contracts/execution.py` |
 
 ## Shared Stage And Content Contracts

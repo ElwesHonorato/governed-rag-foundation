@@ -7,7 +7,13 @@ from typing import Any
 
 @dataclass(frozen=True)
 class RawStoragePathsContract:
-    """Raw storage paths declared in job properties before environment scoping."""
+    """Storage paths declared in job properties before environment scoping.
+
+    Attributes:
+        bucket: Bucket name used for both chunk and manifest writes.
+        output_prefix: Base prefix where chunk artifacts should be written.
+        manifest_prefix: Base prefix where manifests should be written.
+    """
 
     bucket: str
     output_prefix: str
@@ -21,7 +27,13 @@ class RawStoragePathsContract:
 
 @dataclass(frozen=True)
 class RuntimeStoragePathsContract:
-    """Environment-dependent runtime storage paths for chunk and manifest output."""
+    """Environment-scoped storage locations used by the running worker.
+
+    Attributes:
+        bucket: Bucket name used for output writes.
+        output_prefix: Environment-scoped chunk artifact prefix.
+        manifest_prefix: Environment-scoped manifest prefix.
+    """
 
     bucket: str
     output_prefix: str
@@ -34,7 +46,15 @@ class RuntimeStoragePathsContract:
         *,
         env: str | None,
     ) -> RuntimeStoragePathsContract:
-        """Build environment-dependent runtime storage paths from raw storage paths."""
+        """Build runtime storage paths by prefixing raw paths with the active environment.
+
+        Args:
+            raw: Unscoped storage paths from job properties.
+            env: Environment name inserted ahead of the configured prefixes.
+
+        Returns:
+            Environment-scoped storage paths for runtime writes.
+        """
         return cls(
             bucket=raw.bucket,
             output_prefix=f"{env}/{raw.output_prefix}",
@@ -44,7 +64,12 @@ class RuntimeStoragePathsContract:
 
 @dataclass(frozen=True)
 class RawChunkJobConfig:
-    """Raw chunk job config parsed directly from job properties."""
+    """Chunk worker configuration parsed directly from job properties.
+
+    Attributes:
+        storage: Raw storage path configuration before environment scoping.
+        poll_interval_seconds: Queue poll timeout used by the worker loop.
+    """
 
     storage: RawStoragePathsContract
     poll_interval_seconds: int
@@ -60,7 +85,12 @@ class RawChunkJobConfig:
 
 @dataclass(frozen=True)
 class RuntimeChunkJobConfig:
-    """Runtime chunk job config after startup-time transformations."""
+    """Resolved startup configuration for the chunk-text worker.
+
+    Attributes:
+        poll_interval_seconds: Queue poll timeout used by the worker service.
+        storage: Environment-scoped storage locations for chunk and manifest output.
+    """
 
     poll_interval_seconds: int
     storage: RuntimeStoragePathsContract

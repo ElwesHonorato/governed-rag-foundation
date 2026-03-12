@@ -1,3 +1,5 @@
+"""Chunk-text processor that splits source artifacts and persists chunk outputs."""
+
 import json
 from typing import Any, ClassVar, Iterator
 
@@ -25,10 +27,10 @@ from pipeline_common.stages_contracts.step_00_common import SourceDocumentMetada
 
 
 class ChunkTextProcessor(BaseProcessor):
-    """Transform processed document rows into persisted chunk artifacts.
+    """Transform processed document artifacts into persisted chunk artifacts.
 
     The processor handles the full chunking pipeline for a single payload:
-    normalize source text into chunk records, write chunk artifacts, and return
+    split source text into chunk records, write chunk artifacts, and return
     metadata required by downstream manifest assembly.
     """
 
@@ -42,6 +44,7 @@ class ChunkTextProcessor(BaseProcessor):
         storage_bucket: str,
         output_prefix: str,
     ) -> None:
+        """Initialize the processor dependencies used for storage and queue output."""
         self.object_storage = object_storage
         self.queue_gateway = queue_gateway
         self.storage_bucket = storage_bucket
@@ -55,7 +58,17 @@ class ChunkTextProcessor(BaseProcessor):
         run_id: str,
         stages: ChunkingStages,
     ) -> ProcessResult:
-        """Run the golden path once: stage-chain split and persist chunk artifacts."""
+        """Split one input artifact into chunk artifacts and persist the results.
+
+        Args:
+            input_artifact: Parsed upstream stage artifact containing source text.
+            input_uri: Storage URI of the upstream artifact.
+            run_id: Stable run identifier used in output object keys.
+            stages: Ordered splitter stages to apply to the input text.
+
+        Returns:
+            Processing result containing processor context and chunk execution metadata.
+        """
         serialized_stages: list[dict[str, Any]] = stages.dict
         source_metadata: SourceDocumentMetadata = input_artifact.source_metadata
         processor_context: ProcessorContext = ProcessorContext(
@@ -89,12 +102,14 @@ class ChunkTextProcessor(BaseProcessor):
         input_text: str,
         stages: list[ChunkingStage],
     ) -> list[Document]:
-        """Apply each LangChain stage sequentially, feeding one stage output into the next.
+        """Apply each splitter stage sequentially and return the final document list.
 
-        Starts from raw source text, then repeatedly splits either:
-        - raw text inputs (via `create_documents`), or
-        - document inputs from a previous stage (via `split_documents`).
-        Returns the final document list.
+        Args:
+            input_text: Source text to split.
+            stages: Ordered chunking stages resolved for the source type.
+
+        Returns:
+            Documents emitted by the final stage in the chain.
         """
         docs = self.process_first_stage(
             input_text=input_text,
@@ -108,10 +123,12 @@ class ChunkTextProcessor(BaseProcessor):
         )
 
     def process_first_stage(self, *, input_text: str, first_stage: ChunkingStage) -> list[Document]:
+        """Create the initial document list from raw source text."""
         splitter = StageSplitter(stage=first_stage)
         return splitter.create_documents(texts=[input_text])
 
     def _process_next_stage(self, *, docs: list[Document], stages: list[ChunkingStage]) -> list[Document]:
+        """Apply each subsequent stage to the documents emitted by the previous stage."""
         for stage in stages:
             splitter = StageSplitter(stage=stage)
             docs = splitter.split_documents(documents=docs)
@@ -126,6 +143,7 @@ class ChunkTextProcessor(BaseProcessor):
         run_id: str,
         source_metadata: SourceDocumentMetadata,
     ) -> ChunkingExecutionMetadata:
+        """Persist chunk artifacts, enqueue their URIs, and summarize write results."""
         chunk_count_expected = 0
         written = 0
         chunk_entries: list[str] = []
@@ -162,6 +180,7 @@ class ChunkTextProcessor(BaseProcessor):
         run_id: str,
         source_metadata: SourceDocumentMetadata,
     ) -> Iterator[StorageStageArtifact]:
+        """Yield storage artifacts for each chunk emitted from the split documents."""
         source_metadata_payload = source_metadata.to_dict
         processor_metadata_payload = self.processor_metadata.to_dict
 
@@ -202,6 +221,7 @@ class ChunkTextProcessor(BaseProcessor):
         processor: dict[str, Any],
         params: list[dict[str, Any]],
     ) -> ChunkMetadata:
+        """Build deterministic metadata for a single chunk."""
         chunk_text = str(doc.page_content)
         chunk_text_hash = sha256_hex(chunk_text)
         offsets_start = int(doc.metadata.get("start_index", 0))
@@ -227,6 +247,7 @@ class ChunkTextProcessor(BaseProcessor):
         return chunk_metadata
 
     def _chunk_object_key(self, doc_id: str, run_id: str, chunk_id: str) -> str:
+        """Render the object-storage key for a chunk artifact."""
         return self.CHUNK_OBJECT_KEY_PATTERN.format(
             doc_id=doc_id,
             run_id=run_id,
@@ -234,6 +255,7 @@ class ChunkTextProcessor(BaseProcessor):
         )
 
     def _write_chunk_object(self, chunk_payload: dict[str, Any], *, destination_uri: str) -> None:
+        """Write one chunk artifact payload to object storage as canonical JSON."""
         self.object_storage.write_object(
             uri=destination_uri,
             payload=json.dumps(
@@ -246,6 +268,7 @@ class ChunkTextProcessor(BaseProcessor):
         )
 
     def _push_chunk_message(self, destination_uri: str) -> None:
+        """Publish the written chunk URI to the downstream queue."""
         self.queue_gateway.push(
             Envelope(
                 payload=destination_uri,

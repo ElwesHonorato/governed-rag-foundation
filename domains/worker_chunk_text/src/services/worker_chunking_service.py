@@ -60,6 +60,13 @@ class WorkerChunkingService(WorkerService):
                 continue
             message.ack()
 
+    def _register_lineage_input(self, source_uri: str) -> None:
+        self._lineage_gateway.start_run()
+        self._lineage_gateway.add_input(
+            name=source_uri,
+            platform=DatasetPlatform.S3,
+        )
+
     def _transform_source_to_chunks(self, source_uri: str) -> ProcessResult:
         raw_payload = self._storage_gateway.read_object(source_uri)
         input_artifact: StageArtifact = StageArtifact.from_dict(json.loads(raw_payload.decode("utf-8")))
@@ -83,13 +90,6 @@ class WorkerChunkingService(WorkerService):
             platform=DatasetPlatform.S3,
         )
         self._lineage_gateway.complete_run()
-
-    def _register_lineage_input(self, source_uri: str) -> None:
-        self._lineage_gateway.start_run()
-        self._lineage_gateway.add_input(
-            name=source_uri,
-            platform=DatasetPlatform.S3,
-        )
 
     def _send_chunk_failure(self, source_key: str) -> None:
         self._queue_gateway.push_dlq(

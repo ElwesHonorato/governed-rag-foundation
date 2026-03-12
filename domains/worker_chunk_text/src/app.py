@@ -26,11 +26,11 @@ def run() -> None:
         settings_bundle=settings,
     ).build()
 
-    worker_config: RuntimeChunkJobConfig = ChunkTextConfigExtractor().extract(
+    runtime_job_config: RuntimeChunkJobConfig = ChunkTextConfigExtractor().extract(
         runtime_context.job_properties,
         env=runtime_context.env,
     )
-    service: WorkerChunkingService = ChunkTextServiceFactory().build(runtime_context, worker_config)
+    service: WorkerChunkingService = ChunkTextServiceFactory().build(runtime_context, runtime_job_config)
     service.serve()
 
 

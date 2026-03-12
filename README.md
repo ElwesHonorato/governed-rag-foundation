@@ -138,6 +138,11 @@ Update lock files only when dependencies change:
 poetry lock
 ```
 
+## VS Code / Pylance
+
+- [`/.vscode/settings.json`](/home/sultan/repos/governed-rag-foundation/.vscode/settings.json) uses per-domain `python.analysis.executionEnvironments` only to keep click-through and definition lookup working in VS Code.
+- This is necessary because several workers expose the same top-level package names, such as `startup` and `services`.
+
 ## Notes
 
 - Domain compose files join the shared external Docker network `rag-local`.

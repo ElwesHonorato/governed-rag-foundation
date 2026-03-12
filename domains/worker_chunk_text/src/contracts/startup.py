@@ -43,14 +43,14 @@ class RuntimeStoragePathsContract:
 
 
 @dataclass(frozen=True)
-class RawChunkJobConfigContract:
+class RawChunkJobConfig:
     """Raw chunk job config parsed directly from job properties."""
 
     storage: RawStoragePathsContract
     poll_interval_seconds: int
 
     @classmethod
-    def from_dict(cls, payload: dict[str, object]) -> RawChunkJobConfigContract:
+    def from_dict(cls, payload: dict[str, object]) -> RawChunkJobConfig:
         """Build raw chunk job config from a dictionary payload."""
         return cls(
             storage=RawStoragePathsContract.from_dict(payload["storage"]),
@@ -59,7 +59,7 @@ class RawChunkJobConfigContract:
 
 
 @dataclass(frozen=True)
-class RuntimeChunkJobConfigContract:
+class RuntimeChunkJobConfig:
     """Runtime chunk job config after startup-time transformations."""
 
     poll_interval_seconds: int

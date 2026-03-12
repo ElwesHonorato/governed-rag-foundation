@@ -12,8 +12,8 @@ from contracts.contracts import (
 )
 from contracts.startup import (
     RawStoragePathsContract,
-    RawChunkJobConfigContract,
-    RuntimeChunkJobConfigContract,
+    RawChunkJobConfig,
+    RuntimeChunkJobConfig,
     RuntimeStoragePathsContract,
 )
 
@@ -26,8 +26,8 @@ __all__ = [
     "ChunkingStrategy",
     "ChunkTextQueueConfigContract",
     "RawStoragePathsContract",
-    "RawChunkJobConfigContract",
-    "RuntimeChunkJobConfigContract",
+    "RawChunkJobConfig",
+    "RuntimeChunkJobConfig",
     "RuntimeStoragePathsContract",
     "ChunkMetadata",
 ]

@@ -6,7 +6,7 @@ This document lists the contracts used by `domains/worker_chunk_text`, grouped b
 
 | Name | Brief Description | Location |
 | --- | --- | --- |
-| `RawChunkJobConfigContract` | Raw job-level config parsed directly from `job_properties`. | `domains/worker_chunk_text/src/contracts/startup.py` |
+| `RawChunkJobConfig` | Raw job-level config parsed directly from `job_properties`. | `domains/worker_chunk_text/src/contracts/startup.py` |
 | `RawStoragePathsContract` | Raw storage paths declared in job properties before environment scoping. | `domains/worker_chunk_text/src/contracts/startup.py` |
 | `RuntimeStoragePathsContract` | Environment-dependent runtime storage paths built from raw storage paths during startup extraction. | `domains/worker_chunk_text/src/contracts/startup.py` |
 | `ChunkTextQueueConfigContract` | Queue timing and routing config for the worker. | `domains/worker_chunk_text/src/contracts/contracts.py` |
@@ -51,7 +51,7 @@ This document lists the contracts used by `domains/worker_chunk_text`, grouped b
 
 | Name | Brief Description | Location |
 | --- | --- | --- |
-| `RuntimeChunkJobConfigContract` | Runtime processing config returned by the extractor after environment scoping. | `domains/worker_chunk_text/src/contracts/startup.py` |
+| `RuntimeChunkJobConfig` | Runtime processing config returned by the extractor after environment scoping. | `domains/worker_chunk_text/src/contracts/startup.py` |
 | `ChunkingStrategy` | Exported by the contracts package, but not referenced in the current worker runtime path. | `domains/worker_chunk_text/src/contracts/chunking_strategy.py` |
 
 ## Summary

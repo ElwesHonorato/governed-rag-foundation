@@ -21,9 +21,9 @@ class ChunkTextConfigExtractor(WorkerConfigExtractor[RuntimeChunkJobConfig]):
         env: str | None = None,
     ) -> RuntimeChunkJobConfig:
         """Extract typed chunk_text worker config."""
-        job_payload = job_properties["job"]
-        job_contract: RawChunkJobConfig = RawChunkJobConfig.from_dict(job_payload)
+        raw_job_config_payload = job_properties["job"]
+        raw_job_config: RawChunkJobConfig = RawChunkJobConfig.from_dict(raw_job_config_payload)
         return RuntimeChunkJobConfig(
-            storage=RuntimeStoragePathsContract.from_raw(job_contract.storage, env=env),
-            poll_interval_seconds=job_contract.poll_interval_seconds,
+            storage=RuntimeStoragePathsContract.from_raw(raw_job_config.storage, env=env),
+            poll_interval_seconds=raw_job_config.poll_interval_seconds,
         )

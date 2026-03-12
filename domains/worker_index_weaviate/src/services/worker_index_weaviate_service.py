@@ -117,15 +117,15 @@ class WorkerIndexWeaviateService(WorkerService):
         self._upsert_embeddings(payload)
         self._write_indexed_object(destination_key, resolved_doc_id, resolved_chunk_id)
         metadata = dict(payload.get("metadata", {}))
-        source_key = str(metadata.get("source_key") or "")
+        source_uri = str(metadata.get("source_uri") or "")
         return ProcessResult(
             run_id=resolved_chunk_id or resolved_doc_id,
             root_metadata=RootDocumentMetadata(
                 doc_id=resolved_doc_id,
-                source_key=source_key,
+                source_uri=source_uri,
                 timestamp=str(metadata.get("timestamp") or ""),
                 security_clearance=str(metadata.get("security_clearance") or ""),
-                source_type=Path(source_key).suffix.lower().lstrip("."),
+                source_type=Path(source_uri).suffix.lower().lstrip("."),
                 content_type="application/json",
                 source_content_hash="",
             ),

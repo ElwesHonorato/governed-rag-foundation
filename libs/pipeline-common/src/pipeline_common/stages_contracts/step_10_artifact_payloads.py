@@ -60,7 +60,7 @@ class StageArtifact:
         return cls(
             metadata=StageArtifactMetadata(
                 processor=ProcessorMetadata(**metadata_payload["processor"]),
-                root=RootDocumentMetadata(**metadata_payload["root"]),
+                root=RootDocumentMetadata.from_dict(metadata_payload["root"]),
                 content=metadata_payload["content"],
                 params=metadata_payload["params"],
             ),

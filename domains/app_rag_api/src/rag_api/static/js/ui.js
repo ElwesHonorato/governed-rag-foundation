@@ -48,7 +48,7 @@ async function sendPrompt() {
     if (Array.isArray(data.citations) && data.citations.length > 0) {
       citationsEl.textContent = data.citations
         .map((citation, idx) => {
-          const source = citation.source_key || "unknown-source";
+          const source = citation.source_uri || "unknown-source";
           const quote = citation.quote || "";
           return `${idx + 1}. ${source}\n"${quote}"`;
         })

@@ -9,8 +9,8 @@ from startup.contracts import RuntimeScanStorageConfig
 class ScanWorkItem:
     """One source-to-destination promotion planned by the scan processor."""
 
-    source_key: str
-    destination_key: str
+    source_uri: str
+    destination_uri: str
 
 
 class StorageScanCycleProcessor:

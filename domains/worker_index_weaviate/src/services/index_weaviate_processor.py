@@ -43,7 +43,7 @@ class IndexWeaviateProcessor:
                         "chunk_id": chunk_id,
                         "doc_id": metadata.get("doc_id"),
                         "chunk_text": metadata.get("chunk_text"),
-                        "source_key": metadata.get("source_key"),
+                        "source_uri": metadata.get("source_uri"),
                         "security_clearance": metadata.get("security_clearance"),
                         "run_id": metadata.get("run_id"),
                         "embedder_name": metadata.get("embedder_name"),

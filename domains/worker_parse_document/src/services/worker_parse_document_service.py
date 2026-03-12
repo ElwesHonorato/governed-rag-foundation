@@ -5,7 +5,7 @@ from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGateway
-from pipeline_common.helpers.contracts import doc_id_from_source_key, utc_now_iso
+from pipeline_common.helpers.contracts import doc_id_from_source_uri, utc_now_iso
 from pipeline_common.provenance import source_content_hash
 from pipeline_common.stages_contracts import ProcessResult, ProcessorContext, StageArtifact
 from pipeline_common.startup.contracts import WorkerService
@@ -71,7 +71,7 @@ class WorkerParseDocumentService(WorkerService):
         """Start a lineage run and register the source document."""
         self._lineage_gateway.start_run()
         self._lineage_gateway.add_input(
-            name=self._storage_gateway.build_uri(self._storage_bucket, parse_job.source_key),
+            name=parse_job.input_uri,
             platform=DatasetPlatform.S3,
         )
 
@@ -80,7 +80,7 @@ class WorkerParseDocumentService(WorkerService):
         raw_payload = self._storage_gateway.read_object(uri=parse_job.input_uri)
         raw_text = raw_payload.decode("utf-8", errors="ignore")
         payload = self._parser_processor.build_payload(
-            source_key=parse_job.source_key,
+            source_uri=parse_job.input_uri,
             doc_id=parse_job.doc_id,
             raw_text=raw_text,
             raw_content_hash=source_content_hash(raw_payload),
@@ -137,12 +137,10 @@ class WorkerParseDocumentService(WorkerService):
         self._lineage_gateway.fail_run(error_message=error_message)
 
     def _build_parse_job(self, input_uri: str) -> ParseWorkItem:
-        source_key = self._source_key_from_uri(input_uri)
-        doc_id = doc_id_from_source_key(source_key)
+        doc_id = doc_id_from_source_uri(input_uri)
         destination_key = f"{self._output_prefix}{doc_id}.json"
         return ParseWorkItem(
             input_uri=input_uri,
-            source_key=source_key,
             doc_id=doc_id,
             destination_key=destination_key,
         )
@@ -151,7 +149,3 @@ class WorkerParseDocumentService(WorkerService):
         """Parse input URI from queue payload."""
         envelope: Envelope = Envelope.from_dict(message.payload)
         return str(envelope.payload)
-
-    def _source_key_from_uri(self, uri: str) -> str:
-        uri_prefix = self._storage_gateway.build_uri(self._storage_bucket, "")
-        return uri.removeprefix(uri_prefix)

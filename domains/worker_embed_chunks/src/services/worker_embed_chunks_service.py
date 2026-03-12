@@ -48,12 +48,8 @@ class WorkerEmbedChunksService(WorkerService):
                     poll_interval_seconds=self._poll_interval_seconds,
                 )
                 work_item = self._work_item_from_message(message)
-                source_key = self._source_key_from_uri(work_item.uri)
                 self._register_lineage_input(work_item.uri)
-                chunk_payload = self._read_chunk_payload(
-                    work_item.uri,
-                    source_key=source_key,
-                )
+                chunk_payload = self._read_chunk_payload(work_item.uri)
                 process_result: ProcessResult = self._transform_chunk_to_embeddings(
                     chunk_payload=chunk_payload,
                     input_uri=work_item.uri,
@@ -83,9 +79,9 @@ class WorkerEmbedChunksService(WorkerService):
         )
         self._lineage_gateway.complete_run()
 
-    def _read_chunk_payload(self, uri: str, *, source_key: str) -> ChunkArtifactPayload:
+    def _read_chunk_payload(self, uri: str) -> ChunkArtifactPayload:
         raw_payload = self._storage_gateway.read_object(uri=uri)
-        return self._processor.read_chunk_payload(raw_payload, source_key=source_key)
+        return self._processor.read_chunk_payload(raw_payload, source_uri=uri)
 
     def _transform_chunk_to_embeddings(
         self,
@@ -103,10 +99,10 @@ class WorkerEmbedChunksService(WorkerService):
             run_id=write_result.chunk_id,
             root_metadata=RootDocumentMetadata(
                 doc_id=write_result.doc_id,
-                source_key=chunk_payload.destination_key,
+                source_uri=input_uri,
                 timestamp="",
                 security_clearance="",
-                source_type=Path(chunk_payload.destination_key).suffix.lower().lstrip("."),
+                source_type=Path(input_uri).suffix.lower().lstrip("."),
                 content_type="application/json",
                 source_content_hash=chunk_payload.chunk_record.chunk_text_hash,
             ),
@@ -134,7 +130,3 @@ class WorkerEmbedChunksService(WorkerService):
         """Parse source URI from queue payload."""
         envelope: Envelope = Envelope.from_dict(message.payload)
         return self._work_item_type(uri=str(envelope.payload))
-
-    def _source_key_from_uri(self, uri: str) -> str:
-        uri_prefix = self._storage_gateway.build_uri(self._storage_bucket, "")
-        return uri.removeprefix(uri_prefix)

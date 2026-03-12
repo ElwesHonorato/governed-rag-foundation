@@ -15,7 +15,6 @@ class ParseWorkItem:
     """One parse work item derived from inbound queue payload."""
 
     input_uri: str
-    source_key: str
     doc_id: str
     destination_key: str
 
@@ -45,4 +44,3 @@ class ParseOutputWriter:
         """Build the downstream queue message for a written parse payload."""
         destination_uri = self._object_storage.build_uri(self._storage_bucket, destination_key)
         return Envelope(payload=destination_uri)
-

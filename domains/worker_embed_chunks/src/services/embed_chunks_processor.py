@@ -31,13 +31,13 @@ class ChunkRecordPayload:
 @dataclass(frozen=True)
 class ChunkArtifactPayload:
     chunk_record: ChunkRecordPayload
-    destination_key: str
+    source_uri: str
 
     @classmethod
-    def from_dict(cls, payload: dict[str, Any], *, destination_key: str) -> "ChunkArtifactPayload":
+    def from_dict(cls, payload: dict[str, Any], *, source_uri: str) -> "ChunkArtifactPayload":
         return cls(
             chunk_record=ChunkRecordPayload(**dict(payload)),
-            destination_key=destination_key,
+            source_uri=source_uri,
         )
 
 
@@ -67,9 +67,9 @@ class EmbedChunksProcessor:
         return values
 
     @staticmethod
-    def read_chunk_payload(raw_payload: bytes, *, source_key: str) -> ChunkArtifactPayload:
+    def read_chunk_payload(raw_payload: bytes, *, source_uri: str) -> ChunkArtifactPayload:
         payload = dict(json.loads(raw_payload.decode("utf-8", errors="ignore")))
-        return ChunkArtifactPayload.from_dict(payload, destination_key=source_key)
+        return ChunkArtifactPayload.from_dict(payload, source_uri=source_uri)
 
     def write_embedding_artifact(
         self,
@@ -101,7 +101,7 @@ class EmbedChunksProcessor:
         embedding_run_id: str,
     ) -> dict[str, Any]:
         text = payload.chunk_record.chunk_text
-        doc_id = self._doc_id_from_destination_key(payload.destination_key)
+        doc_id = self._doc_id_from_source_uri(payload.source_uri)
         chunk_id = payload.chunk_record.chunk_id
         embedder_params = {"dimension": int(self._dimension)}
         return {
@@ -113,7 +113,7 @@ class EmbedChunksProcessor:
                 timestamp=None,
                 security_clearance=None,
                 doc_id=doc_id,
-                source_key=payload.destination_key,
+                source_uri=payload.source_uri,
                 chunk_index=payload.chunk_record.index,
                 text=text,
                 run_id="",
@@ -131,7 +131,7 @@ class EmbedChunksProcessor:
         timestamp: Any,
         security_clearance: Any,
         doc_id: str,
-        source_key: Any,
+        source_uri: Any,
         chunk_index: Any,
         text: str,
         run_id: str,
@@ -145,7 +145,7 @@ class EmbedChunksProcessor:
             "timestamp": timestamp,
             "security_clearance": security_clearance,
             "doc_id": doc_id,
-            "source_key": source_key,
+            "source_uri": source_uri,
             "chunk_index": chunk_index,
             "chunk_text": text,
             "run_id": run_id,
@@ -163,10 +163,10 @@ class EmbedChunksProcessor:
         return self._storage_gateway.build_uri(self._storage_bucket, destination_key)
 
     @staticmethod
-    def _doc_id_from_destination_key(destination_key: str) -> str:
-        parts = [part for part in destination_key.split("/") if part]
-        try:
-            chunks_index = parts.index("chunks")
-            return parts[chunks_index + 1]
-        except (ValueError, IndexError) as exc:
-            raise ValueError(f"Could not extract doc_id from chunk destination key: {destination_key}") from exc
+    def _doc_id_from_source_uri(source_uri: str) -> str:
+        uri_without_scheme = source_uri.split("://", maxsplit=1)[-1]
+        key = uri_without_scheme.split("/", maxsplit=1)[1]
+        parts = [part for part in key.split("/") if part]
+        if not parts:
+            raise ValueError(f"Could not extract doc_id from chunk source uri: {source_uri}")
+        return parts[0]

@@ -90,12 +90,17 @@ class ObjectStorageGateway:
         bucket, key = self._split_source_uri(uri)
         self.client.write_bytes(bucket, key, payload, content_type=content_type)
 
-    def copy(self, bucket: str, source_key: str, destination_key: str) -> None:
-        """Execute copy."""
+    def copy_object(self, source_uri: str, destination_uri: str) -> None:
+        """Execute copy using storage URIs."""
+        bucket, source_key = self._split_source_uri(source_uri)
+        destination_bucket, destination_key = self._split_source_uri(destination_uri)
+        if bucket != destination_bucket:
+            raise ValueError("copy_object requires source and destination to be in the same bucket")
         self.client.copy_object(bucket, source_key, destination_key)
 
-    def delete(self, bucket: str, key: str) -> None:
-        """Execute delete."""
+    def delete_object(self, uri: str) -> None:
+        """Execute delete using a storage URI."""
+        bucket, key = self._split_source_uri(uri)
         self.client.delete_object(bucket, key)
 
     def _split_source_uri(self, source_uri: str) -> tuple[str, str]:

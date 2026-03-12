@@ -1,6 +1,5 @@
 import logging
 import uuid
-import time
 
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
@@ -39,7 +38,9 @@ class WorkerEmbedChunksService(WorkerService):
     def serve(self) -> None:
         """Run the embedding worker loop by polling queue messages."""
         while True:
-            message = self._wait_for_next_message()
+            message = self._queue_gateway.wait_for_message(
+                poll_interval_seconds=self._poll_interval_seconds,
+            )
             source_key = self._source_key_from_message(message)
             if source_key is None:
                 continue
@@ -52,14 +53,6 @@ class WorkerEmbedChunksService(WorkerService):
                     message.nack(requeue=True)
                 continue
             message.ack()
-
-    def _wait_for_next_message(self) -> ConsumedMessage:
-        """Fetch next queue message, waiting until one is available."""
-        while True:
-            message = self._queue_gateway.pop_message()
-            if message is not None:
-                return message
-            time.sleep(self._poll_interval_seconds)
 
     def _handle_embed_request(self, source_key: str) -> None:
         embed_job = self._build_embed_job(source_key)

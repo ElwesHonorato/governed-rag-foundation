@@ -100,6 +100,14 @@ class QueueGateway:
         consumed.payload = self.consume_contract(**consumed.payload)
         return consumed
 
+    def wait_for_message(self, *, poll_interval_seconds: int) -> ConsumedMessage:
+        """Poll until one consumed message is available."""
+        while True:
+            message = self.pop_message()
+            if message is not None:
+                return message
+            time.sleep(poll_interval_seconds)
+
     def push_produce_message(self, **payload: Any) -> None:
         """Execute push produce message."""
         self.push(self.produce_contract(**payload))

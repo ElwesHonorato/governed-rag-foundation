@@ -1,6 +1,5 @@
 import logging
 import json
-import time
 
 from configs.chunking_scaffold import ChunkingStagesResolver
 from pipeline_common.gateways.lineage import DatasetPlatform
@@ -43,7 +42,9 @@ class WorkerChunkingService(WorkerService):
         """Run the chunking worker loop by polling queue messages."""
         while True:
             try:
-                message = self._wait_for_next_message()
+                message = self._queue_gateway.wait_for_message(
+                    poll_interval_seconds=self._poll_interval_seconds,
+                )
                 source_uri = self._source_uri_from_message(message)
 
                 self._register_lineage_input(source_uri)
@@ -58,14 +59,6 @@ class WorkerChunkingService(WorkerService):
                 message.nack(requeue=False)
                 continue
             message.ack()
-
-    def _wait_for_next_message(self) -> ConsumedMessage:
-        """Fetch next queue message, waiting until one is available."""
-        while True:
-            message = self._queue_gateway.pop_message()
-            if message is not None:
-                return message
-            time.sleep(self._poll_interval_seconds)
 
     def _transform_source_to_chunks(self, source_uri: str) -> ProcessResult:
         raw_payload = self._storage_gateway.read_object(source_uri)

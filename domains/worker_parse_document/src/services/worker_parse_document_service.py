@@ -1,6 +1,5 @@
 import logging
 import json
-import time
 from typing import Any
 
 from pipeline_common.gateways.lineage import DatasetPlatform
@@ -45,7 +44,9 @@ class WorkerParseDocumentService(WorkerService):
     def serve(self) -> None:
         """Run the parse worker loop by polling queue messages."""
         while True:
-            message = self._wait_for_next_message()
+            message = self._queue_gateway.wait_for_message(
+                poll_interval_seconds=self._poll_interval_seconds,
+            )
             source_key = self._source_key_from_message(message)
             if source_key is None:
                 continue
@@ -56,14 +57,6 @@ class WorkerParseDocumentService(WorkerService):
                 logger.exception("Failed processing source key '%s'; requeued message", source_key)
                 continue
             message.ack()
-
-    def _wait_for_next_message(self) -> ConsumedMessage:
-        """Fetch next queue message, waiting until one is available."""
-        while True:
-            message = self._queue_gateway.pop_message()
-            if message is not None:
-                return message
-            time.sleep(self._poll_interval_seconds)
 
     def _handle_parse_request(self, source_key: str) -> None:
         """Orchestrate one parse unit: read -> parse -> write -> enqueue."""

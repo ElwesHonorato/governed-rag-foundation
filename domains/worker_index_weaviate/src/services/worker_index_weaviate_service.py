@@ -1,6 +1,5 @@
 import logging
 import json
-import time
 from typing import Any
 
 from pipeline_common.gateways.lineage import DatasetPlatform
@@ -43,7 +42,9 @@ class WorkerIndexWeaviateService(WorkerService):
     def serve(self) -> None:
         """Run the indexing worker loop by polling queue messages."""
         while True:
-            message = self._wait_for_next_message()
+            message = self._queue_gateway.wait_for_message(
+                poll_interval_seconds=self._poll_interval_seconds,
+            )
             request = self._request_from_message(message)
             if request is None:
                 continue
@@ -57,14 +58,6 @@ class WorkerIndexWeaviateService(WorkerService):
                     message.nack(requeue=True)
                 continue
             message.ack()
-
-    def _wait_for_next_message(self) -> ConsumedMessage:
-        """Fetch next queue message, waiting until one is available."""
-        while True:
-            message = self._queue_gateway.pop_message()
-            if message is not None:
-                return message
-            time.sleep(self._poll_interval_seconds)
 
     def _handle_index_request(self, embeddings_key: str, doc_id: str) -> None:
         index_job = self._build_index_job(embeddings_key, doc_id)

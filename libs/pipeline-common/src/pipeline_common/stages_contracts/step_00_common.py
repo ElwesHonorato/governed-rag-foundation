@@ -66,7 +66,6 @@ class ProcessorMetadata:
 
     name: str
     version: str
-    stage_name: str
 
     @property
     def to_dict(self) -> dict[str, Any]:

@@ -6,9 +6,8 @@ from pipeline_common.gateways.object_storage import ObjectStorageGateway
 
 
 class ChunkManifestWriter:
-    STAGE_NAME: ClassVar[str] = "chunks_manifest"
     MANIFEST_FILE_NAME: ClassVar[str] = "manifest.json"
-    MANIFEST_OBJECT_KEY_PATTERN: ClassVar[str] = "{stage_name}/{dir}/{doc_id}/run={run_id}/{file_name}"
+    MANIFEST_OBJECT_KEY_PATTERN: ClassVar[str] = "{doc_id}/runs/{run_id}/{file_name}"
 
     def __init__(
         self,
@@ -39,8 +38,6 @@ class ChunkManifestWriter:
 
     def _manifest_object_key(self, doc_id: str, run_id: str) -> str:
         return self.MANIFEST_OBJECT_KEY_PATTERN.format(
-            stage_name=self.manifest_prefix.rstrip("/"),
-            dir=self.STAGE_NAME,
             doc_id=doc_id,
             run_id=run_id,
             file_name=self.MANIFEST_FILE_NAME,

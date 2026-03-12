@@ -32,8 +32,7 @@ class ChunkTextProcessor(BaseProcessor):
     """
 
     VERSION: ClassVar[str] = "1.0.0"
-    STAGE_NAME: ClassVar[str] = "chunk_text"
-    CHUNK_OBJECT_KEY_PATTERN: ClassVar[str] = "{doc_id}/run={run_id}/chunk={chunk_id}.json"
+    CHUNK_OBJECT_KEY_PATTERN: ClassVar[str] = "{doc_id}/runs/{run_id}/chunks/{chunk_id}.json"
 
     def __init__(
         self,

@@ -23,12 +23,12 @@ This document lists the contracts used by `domains/worker_chunk_text`, grouped b
 
 | Name | Brief Description | Location |
 | --- | --- | --- |
-| `ProcessResult` | Top-level result payload returned by `ChunkTextProcessor` and consumed by manifest writers and factories. | `domains/worker_chunk_text/src/contracts/contracts.py` |
-| `ProcessorContext` | Captures processor parameter hash and normalized params for the run result. | `domains/worker_chunk_text/src/contracts/contracts.py` |
+| `ProcessResult` | Top-level result payload returned by `ChunkTextProcessor` and consumed by manifest writers and factories. | `libs/pipeline-common/src/pipeline_common/stages_contracts/execution.py` |
+| `ProcessorContext` | Captures processor parameter hash and normalized params for the run result. | `libs/pipeline-common/src/pipeline_common/stages_contracts/execution.py` |
 | `ChunkingExecutionResult` | Summarizes expected vs written chunks and derives execution status. | `domains/worker_chunk_text/src/contracts/contracts.py` |
-| `ChunkExecutionStatus` | Enum for `success`, `partial`, and `fail`, used through `ChunkingExecutionResult.status`. | `domains/worker_chunk_text/src/contracts/contracts.py` |
+| `ExecutionStatus` | Enum for `success`, `partial`, and `fail`, used through `ChunkingExecutionResult.status`. | `libs/pipeline-common/src/pipeline_common/stages_contracts/execution.py` |
 | `ChunkMetadata` | Metadata attached to each persisted chunk artifact. | `domains/worker_chunk_text/src/contracts/contracts.py` |
-| `StorageStageArtifact` | Wraps a chunk `StageArtifact` plus destination key before writing to storage. | `domains/worker_chunk_text/src/contracts/contracts.py` |
+| `StorageStageArtifact` | Wraps a chunk `StageArtifact` plus destination key before writing to storage. | `libs/pipeline-common/src/pipeline_common/stages_contracts/execution.py` |
 
 ## Shared Stage And Content Contracts
 
@@ -56,5 +56,5 @@ This document lists the contracts used by `domains/worker_chunk_text`, grouped b
 ## Summary
 
 - Startup uses local config contracts plus shared startup contracts from `pipeline_common.startup`.
-- Runtime processing uses local result and artifact contracts defined in `domains/worker_chunk_text/src/contracts/contracts.py`.
+- Runtime processing uses shared result and artifact contracts from `pipeline_common.stages_contracts` plus local chunk-text execution contracts.
 - The worker also depends on shared stage and queue contracts from `pipeline_common`.

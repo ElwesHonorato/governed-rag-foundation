@@ -1,17 +1,8 @@
 import json
-from typing import Any, ClassVar, Protocol
+from typing import ClassVar
 
 from pipeline_common.gateways.object_storage.object_storage import ObjectStorageGateway
-
-
-class ManifestSourceMetadata(Protocol):
-    doc_id: str
-
-
-class ManifestProcessResult(Protocol):
-    to_dict: dict[str, Any]
-    source_metadata: ManifestSourceMetadata
-    run_id: str
+from pipeline_common.stages_contracts import ProcessResult
 
 
 class ManifestWriter:
@@ -29,7 +20,7 @@ class ManifestWriter:
         self.manifest_prefix = manifest_prefix
         self.manifest_uri: str | None = None
 
-    def write(self, *, process_result: ManifestProcessResult) -> None:
+    def write(self, *, process_result: ProcessResult) -> None:
         manifest_key = self._manifest_object_key(
             doc_id=process_result.source_metadata.doc_id,
             run_id=process_result.run_id,

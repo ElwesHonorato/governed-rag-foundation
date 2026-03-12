@@ -11,6 +11,12 @@ from pipeline_common.stages_contracts.step_10_artifact_payloads import (
     StageArtifact,
     StageArtifactMetadata,
 )
+from pipeline_common.stages_contracts.execution import (
+    ExecutionStatus,
+    ProcessResult,
+    ProcessorContext,
+    StorageStageArtifact,
+)
 
 __all__ = [
     "PROCESSED_DOCUMENT_SCHEMA_VERSION",
@@ -19,5 +25,9 @@ __all__ = [
     "Content",
     "StageArtifact",
     "StageArtifactMetadata",
+    "ExecutionStatus",
+    "ProcessResult",
+    "ProcessorContext",
+    "StorageStageArtifact",
     "BaseProcessor",
 ]

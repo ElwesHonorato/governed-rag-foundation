@@ -7,9 +7,8 @@ from pipeline_common.gateways.object_storage import ManifestWriter
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGateway
 from pipeline_common.helpers.run_ids import build_source_run_id
-from pipeline_common.stages_contracts import StageArtifact
+from pipeline_common.stages_contracts import ProcessResult, StageArtifact
 from pipeline_common.startup.contracts import WorkerService
-from contracts.contracts import ProcessResult
 from services.chunk_text_processor import ChunkTextProcessor
 
 

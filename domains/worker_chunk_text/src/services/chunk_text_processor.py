@@ -10,18 +10,18 @@ from pipeline_common.provenance import build_id, chunk_params_hash, sha256_hex
 from pipeline_common.stages_contracts import (
     BaseProcessor,
     Content,
+    ProcessResult,
+    ProcessorContext,
     StageArtifact,
     StageArtifactMetadata,
+    StorageStageArtifact,
 )
 
 from contracts.contracts import (
-    StorageStageArtifact,
     ChunkMetadata,
     ChunkingExecutionResult,
-    ProcessResult,
-    ProcessorContext,
-    SourceDocumentMetadata,
 )
+from pipeline_common.stages_contracts.step_00_common import SourceDocumentMetadata
 
 
 class ChunkTextProcessor(BaseProcessor):

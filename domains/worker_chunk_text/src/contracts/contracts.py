@@ -3,17 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from enum import Enum
-from typing import Any, ClassVar
+from typing import Any
 
-from pipeline_common.stages_contracts import StageArtifact
-from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata, SourceDocumentMetadata
-
-
-class ChunkExecutionStatus(str, Enum):
-    FAIL = "fail"
-    SUCCESS = "success"
-    PARTIAL = "partial"
+from pipeline_common.stages_contracts import ExecutionStatus
 
 
 @dataclass(frozen=True)
@@ -37,7 +29,7 @@ class ChunkingExecutionResult:
     chunk_count_expected: int
     chunk_count_written: int
     chunk_entries: list[str]
-    status: ChunkExecutionStatus = field(init=False)
+    status: ExecutionStatus = field(init=False)
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -50,54 +42,12 @@ class ChunkingExecutionResult:
         )
 
     @classmethod
-    def resolve_status(cls, *, chunk_count_expected: int, chunk_count_written: int) -> ChunkExecutionStatus:
+    def resolve_status(cls, *, chunk_count_expected: int, chunk_count_written: int) -> ExecutionStatus:
         if chunk_count_written == chunk_count_expected:
-            return ChunkExecutionStatus.SUCCESS
+            return ExecutionStatus.SUCCESS
         if chunk_count_written > 0:
-            return ChunkExecutionStatus.PARTIAL
-        return ChunkExecutionStatus.FAIL
-
-
-@dataclass(frozen=True)
-class ProcessResult:
-    """Serializable result for one chunk-text processing run.
-
-    Attributes:
-        schema_version: Serialized schema version for the result payload.
-        run_id: Deterministic run identifier for this processing execution.
-        source_metadata: Source document metadata associated with the input.
-        input_uri: Fully qualified storage URI for the input artifact.
-        processor_context: Serialized processor parameter context.
-        processor: Processor metadata emitted for this run.
-        result: Chunk execution summary and produced chunk entries.
-    """
-
-    SCHEMA_VERSION: ClassVar[str] = "1.0"
-    schema_version: str = field(init=False)
-    run_id: str
-    source_metadata: SourceDocumentMetadata
-    input_uri: str
-    processor_context: ProcessorContext
-    processor: ProcessorMetadata
-    result: ChunkingExecutionResult
-
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "schema_version", self.SCHEMA_VERSION)
-
-    @property
-    def to_dict(self) -> dict[str, Any]:
-        """Build the manifest-ready dictionary representation.
-
-        Returns:
-            dict[str, Any]: Serialized form of the process result.
-        """
-        return asdict(self)
-
-
-@dataclass(frozen=True)
-class ProcessorContext:
-    params_hash: str
-    params: list[dict[str, Any]]
+            return ExecutionStatus.PARTIAL
+        return ExecutionStatus.FAIL
 
 
 @dataclass(frozen=True)
@@ -112,30 +62,3 @@ class ChunkMetadata:
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
-
-@dataclass(frozen=True)
-class StorageStageArtifact:
-    artifact: StageArtifact
-    destination_key: str
-
-    @property
-    def to_payload(self) -> dict[str, Any]:
-        return self.artifact.content_metadata.to_dict
-
-    @property
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(
-        cls,
-        payload: dict[str, Any],
-        *,
-        destination_key: str,
-        artifact: StageArtifact,
-    ) -> StorageStageArtifact:
-        _ = payload
-        return cls(
-            artifact=artifact,
-            destination_key=destination_key,
-        )

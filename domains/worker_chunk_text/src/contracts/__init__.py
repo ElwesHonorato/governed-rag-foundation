@@ -1,11 +1,7 @@
 """Contracts package for worker_chunk_text."""
 
 from contracts.contracts import (
-    StorageStageArtifact,
-    ProcessorContext,
-    ChunkExecutionStatus,
     ChunkingExecutionResult,
-    ProcessResult,
     ChunkTextQueueConfigContract,
     ChunkMetadata,
 )
@@ -15,11 +11,17 @@ from contracts.startup import (
     RuntimeChunkJobConfig,
     RuntimeStoragePathsContract,
 )
+from pipeline_common.stages_contracts import (
+    ExecutionStatus,
+    ProcessResult,
+    ProcessorContext,
+    StorageStageArtifact,
+)
 
 __all__ = [
     "StorageStageArtifact",
     "ProcessorContext",
-    "ChunkExecutionStatus",
+    "ExecutionStatus",
     "ChunkingExecutionResult",
     "ProcessResult",
     "ChunkTextQueueConfigContract",

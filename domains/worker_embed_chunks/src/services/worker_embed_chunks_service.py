@@ -41,27 +41,30 @@ class WorkerEmbedChunksService(WorkerService):
             message = self._queue_gateway.wait_for_message(
                 poll_interval_seconds=self._poll_interval_seconds,
             )
-            source_key = self._source_key_from_message(message)
-            if source_key is None:
+            source_uri = self._source_uri_from_message(message)
+            if source_uri is None:
                 continue
             try:
-                self._handle_embed_request(source_key)
+                self._handle_embed_request(source_uri)
             except Exception:
-                if self._handle_embed_failure(source_key):
+                if self._handle_embed_failure(source_uri):
                     message.ack()
                 else:
                     message.nack(requeue=True)
                 continue
             message.ack()
 
-    def _handle_embed_request(self, source_key: str) -> None:
-        embed_job = self._build_embed_job(source_key)
+    def _handle_embed_request(self, source_uri: str) -> None:
+        embed_job = self._build_embed_job(source_uri)
         if embed_job is None:
             return
 
-        self._register_lineage_input(embed_job["source_key"])
+        self._register_lineage_input(embed_job["source_uri"])
         try:
-            chunk_payload = self._read_chunk_payload(embed_job["source_key"])
+            chunk_payload = self._read_chunk_payload(
+                embed_job["source_uri"],
+                source_key=embed_job["source_key"],
+            )
             embedding_run_id = uuid.uuid4().hex
             write_result = self._processor.write_embedding_artifact(
                 chunk_payload,
@@ -74,7 +77,7 @@ class WorkerEmbedChunksService(WorkerService):
                 platform=DatasetPlatform.S3,
             )
             if not write_result.wrote:
-                self._send_embed_failure(source_key)
+                self._send_embed_failure(source_uri)
                 self._lineage_gateway.fail_run(error_message=f"Embeddings artifact already exists: {destination_key}")
                 return
 
@@ -85,45 +88,44 @@ class WorkerEmbedChunksService(WorkerService):
             self._lineage_gateway.fail_run(error_message=str(exc))
             raise
 
-    def _register_lineage_input(self, source_key: str) -> None:
+    def _register_lineage_input(self, source_uri: str) -> None:
         self._lineage_gateway.start_run()
         self._lineage_gateway.add_input(
-            name=f"{self._storage_bucket}/{source_key}",
+            name=source_uri,
             platform=DatasetPlatform.S3,
         )
 
-    def _send_embed_failure(self, source_key: str) -> None:
+    def _send_embed_failure(self, source_uri: str) -> None:
         self._queue_gateway.push_dlq(
             Envelope(
                 type=QueueMessageType.EMBED_CHUNKS_FAILURE,
-                payload={"source_key": source_key},
+                payload={"source_uri": source_uri},
             ).to_payload
         )
 
-    def _handle_embed_failure(self, source_key: str) -> bool:
+    def _handle_embed_failure(self, source_uri: str) -> bool:
         """Route failed embed request to DLQ; return True when message can be acked."""
         try:
-            self._send_embed_failure(source_key)
+            self._send_embed_failure(source_uri)
         except Exception:
             logger.exception(
-                "Failed embedding source key '%s' and failed DLQ publish; requeueing message",
-                source_key,
+                "Failed embedding source URI '%s' and failed DLQ publish; requeueing message",
+                source_uri,
             )
             return False
-        logger.exception("Failed embedding source key '%s'; sent to DLQ", source_key)
+        logger.exception("Failed embedding source URI '%s'; sent to DLQ", source_uri)
         return True
 
-    def _build_embed_job(self, source_key: str) -> dict[str, str] | None:
-        if not source_key.endswith(self._chunks_suffix):
+    def _build_embed_job(self, source_uri: str) -> dict[str, str] | None:
+        if not source_uri.endswith(self._chunks_suffix):
             return None
-        return {"source_key": source_key}
+        return {
+            "source_uri": source_uri,
+            "source_key": self._source_key_from_uri(source_uri),
+        }
 
-    def _read_chunk_payload(self, source_key: str) -> ChunkArtifactPayload:
-        source_uri = "s3a://{bucket}/{source_key}".format(
-            bucket=self._storage_bucket,
-            source_key=source_key,
-        )
-        raw_payload = self._storage_gateway.read_object(source_uri)
+    def _read_chunk_payload(self, source_uri: str, *, source_key: str) -> ChunkArtifactPayload:
+        raw_payload = self._storage_gateway.read_object(uri=source_uri)
         return self._processor.read_chunk_payload(raw_payload, source_key=source_key)
 
     def _enqueue_embeddings_object(self, destination_key: str, doc_id: str) -> None:
@@ -134,11 +136,11 @@ class WorkerEmbedChunksService(WorkerService):
             ).to_payload
         )
 
-    def _source_key_from_message(self, message: ConsumedMessage) -> str | None:
-        """Parse source key from queue payload; route invalid payloads to DLQ."""
+    def _source_uri_from_message(self, message: ConsumedMessage) -> str | None:
+        """Parse source URI from queue payload; route invalid payloads to DLQ."""
         try:
             envelope: Envelope = Envelope.from_dict(message.payload)
-            return str(envelope.payload["storage_key"])
+            return str(envelope.payload["source_uri"])
         except Exception as exc:
             self._queue_gateway.push_dlq(
                 Envelope(
@@ -153,3 +155,9 @@ class WorkerEmbedChunksService(WorkerService):
             message.ack()
             logger.exception("Invalid embed queue message payload; sent to DLQ and acknowledged")
             return None
+
+    def _source_key_from_uri(self, source_uri: str) -> str:
+        uri_prefix = self._storage_gateway.build_uri(self._storage_bucket, "")
+        if not source_uri.startswith(uri_prefix):
+            raise ValueError(f"Chunk source URI must start with '{uri_prefix}': {source_uri}")
+        return source_uri.removeprefix(uri_prefix)

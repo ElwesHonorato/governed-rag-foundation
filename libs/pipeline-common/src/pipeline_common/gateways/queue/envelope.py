@@ -8,6 +8,7 @@ class QueueMessageType(StrEnum):
 
     PARSE_DOCUMENT_REQUEST = "parse_document.request"
     CHUNK_TEXT_REQUEST = "chunk_text.request"
+    EMBED_CHUNKS_REQUEST = "embed_chunks.request"
     INDEX_WEAVIATE_REQUEST = "index_weaviate.request"
     PARSE_DOCUMENT_FAILURE = "parse_document.failure"
     CHUNK_TEXT_FAILURE = "chunk_text.failure"

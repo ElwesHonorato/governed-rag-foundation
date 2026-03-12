@@ -23,10 +23,10 @@ class ChunkManifestWriter:
     def write(self, *, process_result: ProcessResult) -> None:
         source_metadata = process_result.source_metadata
         manifest_key = self._manifest_object_key(doc_id=source_metadata.doc_id, run_id=process_result.run_id)
+        manifest_uri = self.object_storage.build_uri(self.storage_bucket, manifest_key)
         self.object_storage.write_object(
-            self.storage_bucket,
-            manifest_key,
-            json.dumps(
+            uri=manifest_uri,
+            payload=json.dumps(
                 process_result.to_dict,
                 sort_keys=True,
                 ensure_ascii=True,
@@ -34,7 +34,7 @@ class ChunkManifestWriter:
             ).encode("utf-8"),
             content_type="application/json",
         )
-        self.manifest_uri = f"s3a://{self.storage_bucket}/{manifest_key}"
+        self.manifest_uri = manifest_uri
 
     def _manifest_object_key(self, doc_id: str, run_id: str) -> str:
         return self.MANIFEST_OBJECT_KEY_PATTERN.format(

@@ -65,7 +65,7 @@ class WorkerChunkingService(WorkerService):
         )
 
     def _transform_source_to_chunks(self, source_uri: str) -> ProcessResult:
-        raw_payload = self._storage_gateway.read_object(source_uri)
+        raw_payload = self._storage_gateway.read_object(uri=source_uri)
         input_artifact: StageArtifact = StageArtifact.from_dict(json.loads(raw_payload.decode("utf-8")))
         resolved_stages = self._chunking_resolver.resolve(input_artifact.source_metadata.source_type)
         return self._processor.process(

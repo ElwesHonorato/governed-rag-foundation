@@ -15,7 +15,7 @@ Non-goals:
 - This module does not implement domain validation for payload schemas.
 """
 
-from typing import Any, Protocol
+from typing import Any, ClassVar, Protocol
 
 import boto3
 
@@ -71,19 +71,23 @@ class ObjectStorageGateway:
         """Execute list keys."""
         return self.client.list_keys(bucket, prefix)
 
-    def read_object(self, source_uri: str) -> bytes:
+    def build_uri(self, bucket: str, key: str) -> str:
+        """Build a storage URI from bucket and key parts."""
+        return f"{self.client.URI_SCHEME}://{bucket}/{key}"
+
+    def read_object(self, uri: str) -> bytes:
         """Execute read object from an ``s3a://`` URI."""
-        bucket, key = self._split_source_uri(source_uri)
+        bucket, key = self._split_source_uri(uri)
         return self.client.read_bytes(bucket, key)
 
     def write_object(
         self,
-        bucket: str,
-        key: str,
+        uri: str,
         payload: bytes,
         content_type: str = "application/octet-stream",
     ) -> None:
         """Execute write object."""
+        bucket, key = self._split_source_uri(uri)
         self.client.write_bytes(bucket, key, payload, content_type=content_type)
 
     def copy(self, bucket: str, source_key: str, destination_key: str) -> None:
@@ -102,6 +106,9 @@ class ObjectStorageGateway:
 
 class ObjectStorageClient(Protocol):
     """Port contract implemented by concrete object-storage clients."""
+
+    URI_SCHEME: ClassVar[str]
+
     def bucket_exists(self, bucket: str) -> bool:
         """Execute bucket exists."""
         ...
@@ -150,6 +157,9 @@ class S3Client:
     Non-goals:
     - This class does not expose boto3 objects to worker code.
     """
+
+    URI_SCHEME: ClassVar[str] = "s3a"
+
     def __init__(self, *, endpoint_url: str, access_key: str, secret_key: str, region_name: str) -> None:
         """Initialize instance state and dependencies."""
         self.client = boto3.client(

@@ -121,11 +121,11 @@ class WorkerIndexWeaviateService(WorkerService):
         return {"embeddings_key": embeddings_key, "doc_id": doc_id}
 
     def _read_embeddings_payload(self, embeddings_key: str) -> dict[str, Any]:
-        source_uri = "s3a://{bucket}/{source_key}".format(
-            bucket=self._storage_bucket,
-            source_key=embeddings_key,
+        source_uri = self._storage_gateway.build_uri(
+            self._storage_bucket,
+            embeddings_key,
         )
-        raw_payload = self._storage_gateway.read_object(source_uri)
+        raw_payload = self._storage_gateway.read_object(uri=source_uri)
         return self._processor.read_embeddings_payload(raw_payload)
 
     def _upsert_embeddings(self, payload: dict[str, Any]) -> None:
@@ -143,10 +143,10 @@ class WorkerIndexWeaviateService(WorkerService):
 
     def _write_indexed_object(self, destination_key: str, doc_id: str, chunk_id: str) -> None:
         status_payload = self._processor.build_index_status_payload(doc_id, chunk_id)
+        destination_uri = self._storage_gateway.build_uri(self._storage_bucket, destination_key)
         self._storage_gateway.write_object(
-            self._storage_bucket,
-            destination_key,
-            json.dumps(status_payload, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode("utf-8"),
+            uri=destination_uri,
+            payload=json.dumps(status_payload, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode("utf-8"),
             content_type="application/json",
         )
         result = verify_query(self._weaviate_url, "logistics")

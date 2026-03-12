@@ -84,12 +84,12 @@ class EmbedChunksProcessor:
         doc_id = str(embedding_payload["doc_id"])
         chunk_id = str(embedding_payload["chunk_id"])
         destination_key = self._embedding_object_key(doc_id, chunk_id)
+        destination_uri = self._storage_gateway.build_uri(self._storage_bucket, destination_key)
         if self._storage_gateway.object_exists(self._storage_bucket, destination_key):
             return EmbeddingWriteResult(destination_key=destination_key, doc_id=doc_id, chunk_id=chunk_id, wrote=False)
         self._storage_gateway.write_object(
-            self._storage_bucket,
-            destination_key,
-            json.dumps(embedding_payload, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode("utf-8"),
+            uri=destination_uri,
+            payload=json.dumps(embedding_payload, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode("utf-8"),
             content_type="application/json",
         )
         return EmbeddingWriteResult(destination_key=destination_key, doc_id=doc_id, chunk_id=chunk_id, wrote=True)

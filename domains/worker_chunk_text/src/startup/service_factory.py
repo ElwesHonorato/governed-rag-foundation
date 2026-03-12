@@ -21,6 +21,7 @@ class ChunkTextServiceFactory(WorkerServiceFactory[RuntimeChunkJobConfig, Worker
 
         processor: ChunkTextProcessor = ChunkTextProcessor(
             object_storage=runtime.object_storage_gateway,
+            queue_gateway=runtime.stage_queue_gateway,
             storage_bucket=worker_config.storage.bucket,
             output_prefix=worker_config.storage.output_prefix,
         )

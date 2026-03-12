@@ -5,6 +5,7 @@ from chunking.domain.central_text_splitter import CentralTextSplitter
 from configs.chunking_scaffold import ChunkingStage, ChunkingStages
 from langchain_core.documents import Document
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
+from pipeline_common.gateways.queue import Envelope, QueueGateway, QueueMessageType
 from pipeline_common.provenance import build_id, chunk_params_hash, sha256_hex
 from pipeline_common.stages_contracts import (
     BaseProcessor,
@@ -37,10 +38,12 @@ class ChunkTextProcessor(BaseProcessor):
     def __init__(
         self,
         object_storage: ObjectStorageGateway,
+        queue_gateway: QueueGateway,
         storage_bucket: str,
         output_prefix: str,
     ) -> None:
         self.object_storage = object_storage
+        self.queue_gateway = queue_gateway
         self.storage_bucket = storage_bucket
         self.output_prefix = output_prefix
 
@@ -138,6 +141,7 @@ class ChunkTextProcessor(BaseProcessor):
             chunk_count_expected += 1
             chunk_entries.append(storage_stage_artifact.destination_key)
             self._write_chunk_object(storage_stage_artifact)
+            self._push_chunk_message(storage_stage_artifact.destination_key)
             written += 1
 
         return ChunkingExecutionResult(
@@ -227,9 +231,12 @@ class ChunkTextProcessor(BaseProcessor):
         )
 
     def _write_chunk_object(self, chunk_artifact: StorageStageArtifact) -> None:
+        destination_uri = self.object_storage.build_uri(
+            self.storage_bucket,
+            chunk_artifact.destination_key,
+        )
         self.object_storage.write_object(
-            bucket=self.storage_bucket,
-            key=chunk_artifact.destination_key,
+            uri=destination_uri,
             payload=json.dumps(
                 chunk_artifact.to_payload,
                 sort_keys=True,
@@ -237,4 +244,13 @@ class ChunkTextProcessor(BaseProcessor):
                 separators=(",", ":"),
             ).encode("utf-8"),
             content_type="application/json",
+        )
+
+    def _push_chunk_message(self, destination_key: str) -> None:
+        source_uri = self.object_storage.build_uri(self.storage_bucket, destination_key)
+        self.queue_gateway.push(
+            Envelope(
+                type=QueueMessageType.EMBED_CHUNKS_REQUEST,
+                payload={"source_uri": source_uri},
+            ).to_payload
         )

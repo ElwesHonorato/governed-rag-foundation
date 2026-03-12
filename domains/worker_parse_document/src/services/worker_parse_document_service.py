@@ -97,11 +97,11 @@ class WorkerParseDocumentService(WorkerService):
         return True
 
     def _build_processed_payload(self, parse_job: ParseWorkItem) -> dict[str, Any]:
-        source_uri = "s3a://{bucket}/{source_key}".format(
-            bucket=self._storage_bucket,
-            source_key=parse_job.source_key,
+        source_uri = self._storage_gateway.build_uri(
+            self._storage_bucket,
+            parse_job.source_key,
         )
-        raw_payload = self._storage_gateway.read_object(source_uri)
+        raw_payload = self._storage_gateway.read_object(uri=source_uri)
         raw_text = raw_payload.decode("utf-8", errors="ignore")
         return self._parser_processor.build_payload(
             source_key=parse_job.source_key,
@@ -112,10 +112,13 @@ class WorkerParseDocumentService(WorkerService):
         )
 
     def _write_processed_payload(self, parse_job: ParseWorkItem, payload: dict[str, Any]) -> None:
-        self._storage_gateway.write_object(
+        destination_uri = self._storage_gateway.build_uri(
             self._storage_bucket,
             parse_job.destination_key,
-            json.dumps(payload, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode("utf-8"),
+        )
+        self._storage_gateway.write_object(
+            uri=destination_uri,
+            payload=json.dumps(payload, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode("utf-8"),
             content_type="application/json",
         )
         self._lineage_gateway.add_output(
@@ -124,9 +127,9 @@ class WorkerParseDocumentService(WorkerService):
         )
 
     def _publish_parse_output(self, parse_job: ParseWorkItem) -> None:
-        source_uri = "s3a://{bucket}/{source_key}".format(
-            bucket=self._storage_bucket,
-            source_key=parse_job.destination_key,
+        source_uri = self._storage_gateway.build_uri(
+            self._storage_bucket,
+            parse_job.destination_key,
         )
         self._queue_gateway.push(ParseOutputMessageFactory.build(source_uri=source_uri).to_payload)
 

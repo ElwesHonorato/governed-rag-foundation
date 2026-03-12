@@ -50,7 +50,7 @@ Overall design:
 
 Layering patterns observed:
 - Composition Root: each domain has explicit entrypoint (`app.py` or `apply.py`).
-- Dependency Injection: worker launcher gets extractor/factory/runtime context.
+- Dependency Injection: worker entrypoints compose extractor/factory/runtime context explicitly.
 - Factory: worker startup uses service and runtime factories.
 - Ports & Adapters (partial): governance writer port, lineage runtime gateway port.
 
@@ -97,7 +97,7 @@ Primary runtime path (workers):
 1. Worker `src/app.py` loads settings with `SettingsProvider`.
 2. Worker creates `RuntimeContextFactory` with DataHub job key from `registry`.
 3. Startup builds gateways and parsed job properties.
-4. Worker uses `WorkerRuntimeLauncher` with worker-specific config extractor and service factory.
+4. Worker entrypoint uses a worker-specific config extractor and service factory.
 5. Service is built and `serve()` starts long-running processing loop.
 6. Service interacts with queue/storage/lineage gateways.
 
@@ -112,7 +112,7 @@ Shutdown/termination behavior:
 flowchart TD
     A[Worker app.py] --> B[SettingsProvider bundle]
     B --> C[RuntimeContextFactory]
-    C --> D[WorkerRuntimeLauncher]
+    C --> D[Extract config + build service]
     D --> E[Worker service serve loop]
     E --> F[Queue/Storage/Lineage gateways]
 
@@ -136,21 +136,21 @@ Worker `startup/config_extractor.py`
 - Represents: worker config parser.
 - Why exists: convert generic `job_properties` into typed worker config contract.
 - Depends on: worker contract models.
-- Depended on by: launcher.
+- Depended on by: worker composition root.
 - Safe extension: keep parsing deterministic and explicit.
 
 Worker `startup/service_factory.py`
 - Represents: worker service graph builder.
 - Why exists: isolate worker dependency assembly.
 - Depends on: runtime context and worker config.
-- Depended on by: launcher.
+- Depended on by: worker composition root.
 - Safe extension: avoid leaking wiring logic into worker services.
 
 Worker `services/*.py`
 - Represents: runtime business loop.
 - Why exists: process payloads and move artifacts between stages.
 - Depends on: injected gateways and worker config.
-- Depended on by: launcher and composition root.
+- Depended on by: composition root.
 - Safe extension: preserve clear boundaries between business logic and infrastructure calls.
 
 Governance `apply.py` + `GovernanceApplier`

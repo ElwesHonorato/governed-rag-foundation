@@ -12,12 +12,12 @@ Centralize concrete wiring in one place so startup behavior is predictable and t
 2. Build settings/config in the entrypoint.
 3. Construct shared runtime factory/context.
 4. Inject extractor/factory/service collaborators.
-5. Start the runtime launcher/service.
+5. Extract config, build the service, and start it.
 
 ## Example
 Good shape:
 - `run()` creates `RuntimeContextFactory(...)` from env settings.
-- `run()` creates `WorkerRuntimeLauncher(...)` with injected collaborators.
+- `run()` extracts typed config, builds the worker service, and calls `serve()`.
 - Business logic remains in `services/` and `startup/` modules, not in `app.py`.
 
 ## Anti-Patterns

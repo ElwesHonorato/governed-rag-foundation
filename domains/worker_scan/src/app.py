@@ -1,12 +1,13 @@
 """worker_scan entrypoint."""
 
-from registry import DataHubPipelineJobs, GovernedRagJobId
+from contracts.contracts import ScanWorkerConfigContract
+from registry import DataHubDataJobKey, DataHubPipelineJobs, GovernedRagJobId
 from pipeline_common.settings import SettingsBundle, SettingsProvider, SettingsRequest
 from pipeline_common.startup import (
     RuntimeContextFactory,
-    WorkerRuntimeLauncher,
 )
 from pipeline_common.startup.runtime_context import WorkerRuntimeContext
+from services.worker_scan_service import WorkerScanService
 from startup.config_extractor import ScanConfigExtractor
 from startup.service_factory import ScanServiceFactory
 
@@ -17,16 +18,17 @@ def run() -> None:
         SettingsRequest(datahub=True, storage=True, queue=True),
     ).bundle
 
+    data_job_key: DataHubDataJobKey = DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job(
+        GovernedRagJobId.WORKER_SCAN
+    )
     runtime_context: WorkerRuntimeContext = RuntimeContextFactory(
-        data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job(GovernedRagJobId.WORKER_SCAN),
+        data_job_key=data_job_key,
         settings_bundle=settings,
-    ).build_runtime_context()
+    ).build()
 
-    WorkerRuntimeLauncher(
-        runtime_context=runtime_context,
-        config_extractor=ScanConfigExtractor(),
-        service_factory=ScanServiceFactory(),
-    ).start()
+    worker_config: ScanWorkerConfigContract = ScanConfigExtractor().extract(runtime_context.job_properties)
+    service: WorkerScanService = ScanServiceFactory().build(runtime_context, worker_config)
+    service.serve()
 
 
 if __name__ == "__main__":

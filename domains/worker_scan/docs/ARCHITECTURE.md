@@ -57,11 +57,10 @@ Dependency direction:
 ```mermaid
 graph TD
     A[app.py] --> B[SettingsProvider and RuntimeContextFactory]
-    B --> C[WorkerRuntimeLauncher]
-    C --> D[ConfigExtractor]
-    C --> E[ServiceFactory]
-    E --> F[WorkerService]
-    F --> G[Queue and Storage and Lineage Gateways]
+    B --> C[ConfigExtractor]
+    C --> D[ServiceFactory]
+    D --> E[WorkerService]
+    E --> F[Queue and Storage and Lineage Gateways]
 ```
 
 # 5. Runtime Flow (Golden Path)

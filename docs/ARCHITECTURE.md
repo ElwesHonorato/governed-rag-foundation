@@ -56,7 +56,7 @@ Layering (observed in code):
 
 Patterns used:
 - Composition Root: each executable domain has explicit startup entrypoint.
-- Dependency Injection: startup launcher/factories inject runtime dependencies.
+- Dependency Injection: startup factories and worker-local composition inject runtime dependencies.
 - Factory: runtime context and gateway factories.
 - Ports & Adapters (partial): lineage gateway and governance catalog writer port.
 - Registry: job-key registry used by worker composition roots.
@@ -129,7 +129,7 @@ graph TD
 Primary golden path (worker runtime):
 1. Worker entrypoint loads capability-scoped settings.
 2. Worker runtime factory builds lineage/storage/queue gateways, and parsed job properties.
-3. Launcher extracts worker config, builds service, and calls `serve()`.
+3. Worker entrypoint extracts worker config, builds service, and calls `serve()`.
 4. Worker service processes queue payloads and uses gateways.
 5. Queue consumers settle messages explicitly via `ack()` / `nack(requeue=...)` after each processing attempt.
 6. Lineage events are emitted to DataHub during run lifecycle.
@@ -145,7 +145,7 @@ Shutdown/termination behavior:
 flowchart TD
     A[worker_*/app.py] --> B[SettingsProvider]
     B --> C[RuntimeContextFactory]
-    C --> D[WorkerRuntimeLauncher]
+    C --> D[Extract config + build service]
     D --> E[WorkerService.serve]
     E --> F[Queue/Storage/Lineage interactions]
 
@@ -177,13 +177,6 @@ flowchart TD
 - Depends on: broker connection/channel lifecycle and worker-defined failure policy.
 - Depended on by: queue-driven workers (`parse/chunk/embed/index`).
 - Safe extension: preserve one-time settlement semantics and explicit worker-side `ack`/`nack` decisions.
-
-`WorkerRuntimeLauncher` (`pipeline_common.startup`)
-- Represents: standard worker startup orchestrator.
-- Why exists: enforce consistent startup sequence.
-- Depends on: runtime factory + worker extractor/factory implementations.
-- Depended on by: all worker domains.
-- Safe extension: preserve startup step ordering.
 
 `LineageRuntimeGateway` and `DataHubRuntimeLineage` (`pipeline_common.gateways.lineage`)
 - Represents: runtime lineage emission abstraction and DataHub adapter.
@@ -243,7 +236,7 @@ Confirmed roadmap:
 # 10. Anti-Patterns / What Not To Do
 
 - Do not create reverse dependencies from `libs/` into `domains/`.
-- Do not bypass shared startup abstractions for workers without clear justification.
+- Do not bypass shared startup contracts for workers without clear justification.
 - Do not scatter direct SDK calls through worker services when gateway adapters already exist.
 - Do not put non-documentation runtime code under `docs/`.
 - Do not treat architecture docs as static; update them with significant structural changes.

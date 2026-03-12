@@ -17,10 +17,7 @@ class ChunkingScaffoldKey(str, Enum):
     MD = "md"
     HTML = "html"
     PDF = "pdf"
-    DOCX = "docx"
     PY = "py"
-    JS = "js"
-    JAVA = "java"
     JSON = "json"
     CSV = "csv"
     EML = "eml"
@@ -29,14 +26,6 @@ class ChunkingScaffoldKey(str, Enum):
 class ChunkingProcessorType(Enum):
     RECURSIVE = RecursiveCharacterTextSplitter
     TOKEN = TokenTextSplitter
-
-
-class CustomChunkingProcessorType(str, Enum):
-    PAGE = "page"
-    CODE = "code"
-    JSON_OBJECTS = "json_objects"
-    ROW_GROUPS = "row_groups"
-    EMAIL_PARTS = "email_parts"
 
 
 @dataclass(slots=True)
@@ -55,54 +44,12 @@ class TokenParams:
     encoding_name: str = "cl100k_base"
     model_name: str | None = None
 
-
-@dataclass(slots=True)
-class CodeParams:
-    language: str
-    chunk_size: int = 1200
-    chunk_overlap: int = 100
-
-
-@dataclass(slots=True)
-class PageSplitParams:
-    keep_page_metadata: bool = True
-
-
-@dataclass(slots=True)
-class JsonObjectParams:
-    split_level: str = "top_level"
-    keep_path_metadata: bool = True
-    max_field_length: int = 2000
-
-
-@dataclass(slots=True)
-class RowGroupParams:
-    rows_per_chunk: int = 20
-    repeat_header: bool = True
-    include_column_metadata: bool = True
-
-
-@dataclass(slots=True)
-class EmailPartsParams:
-    split_headers: bool = True
-    split_body: bool = True
-    clean_quoted_text: bool = True
-
-
-StageParams: TypeAlias = (
-    RecursiveParams
-    | TokenParams
-    | CodeParams
-    | PageSplitParams
-    | JsonObjectParams
-    | RowGroupParams
-    | EmailPartsParams
-)
+StageParams: TypeAlias = RecursiveParams | TokenParams
 
 
 @dataclass(slots=True)
 class ChunkingStage:
-    processor: ChunkingProcessorType | CustomChunkingProcessorType
+    processor: ChunkingProcessorType
     params: StageParams
 
     @property
@@ -145,19 +92,11 @@ CHUNKING_SCAFFOLD: dict[ChunkingScaffoldKey, list[ChunkingStage]] = {
     ],
     ChunkingScaffoldKey.PDF: [
         ChunkingStage(
-            processor=CustomChunkingProcessorType.PAGE,
-            params=PageSplitParams(),
-        ),
-        ChunkingStage(
             processor=ChunkingProcessorType.RECURSIVE,
             params=RecursiveParams(),
         ),
     ],
     ChunkingScaffoldKey.PY: [
-        ChunkingStage(
-            processor=CustomChunkingProcessorType.CODE,
-            params=CodeParams(language="python"),
-        ),
         ChunkingStage(
             processor=ChunkingProcessorType.TOKEN,
             params=TokenParams(),
@@ -165,25 +104,17 @@ CHUNKING_SCAFFOLD: dict[ChunkingScaffoldKey, list[ChunkingStage]] = {
     ],
     ChunkingScaffoldKey.JSON: [
         ChunkingStage(
-            processor=CustomChunkingProcessorType.JSON_OBJECTS,
-            params=JsonObjectParams(),
-        ),
-        ChunkingStage(
             processor=ChunkingProcessorType.RECURSIVE,
             params=RecursiveParams(chunk_overlap=100),
         ),
     ],
     ChunkingScaffoldKey.CSV: [
         ChunkingStage(
-            processor=CustomChunkingProcessorType.ROW_GROUPS,
-            params=RowGroupParams(),
+            processor=ChunkingProcessorType.RECURSIVE,
+            params=RecursiveParams(),
         ),
     ],
     ChunkingScaffoldKey.EML: [
-        ChunkingStage(
-            processor=CustomChunkingProcessorType.EMAIL_PARTS,
-            params=EmailPartsParams(),
-        ),
         ChunkingStage(
             processor=ChunkingProcessorType.RECURSIVE,
             params=RecursiveParams(chunk_overlap=100),
@@ -192,13 +123,8 @@ CHUNKING_SCAFFOLD: dict[ChunkingScaffoldKey, list[ChunkingStage]] = {
 }
 
 class ChunkingStagesResolver:
-    scaffold_key: str | None = None
-
     def resolve(self, scaffold_key: str) -> ChunkingStages:
         normalized_scaffold_key = scaffold_key.lower().lstrip(".")
         scaffold_type = ChunkingScaffoldKey(normalized_scaffold_key)
-        ChunkingStagesResolver.scaffold_key = normalized_scaffold_key
         stages = CHUNKING_SCAFFOLD[scaffold_type]
-        return ChunkingStages(
-            [stage for stage in stages if isinstance(stage.processor, ChunkingProcessorType)]
-        )
+        return ChunkingStages(stages)

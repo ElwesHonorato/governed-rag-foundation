@@ -34,15 +34,15 @@ class ChunkTextQueueConfigContract:
 
 
 @dataclass(frozen=True)
-class ChunkTextJobConfigContract:
-    """Raw chunk_text job config parsed directly from job properties."""
+class ChunkJobConfigContract:
+    """Raw chunk job config parsed directly from job properties."""
 
     storage: RawStoragePathsContract
     poll_interval_seconds: int
 
     @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> ChunkTextJobConfigContract:
-        """Build raw chunk_text job config from a dictionary payload."""
+    def from_dict(cls, payload: dict[str, Any]) -> ChunkJobConfigContract:
+        """Build raw chunk job config from a dictionary payload."""
         return cls(
             storage=RawStoragePathsContract.from_dict(payload["storage"]),
             poll_interval_seconds=int(payload["poll_interval_seconds"]),

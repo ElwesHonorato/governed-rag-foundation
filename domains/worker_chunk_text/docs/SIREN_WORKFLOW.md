@@ -169,5 +169,5 @@ flowchart LR
 
 ## Notes
 
-- This reflects current code behavior in `src/services/worker_chunk_text_service.py` and `src/services/chunk_text_processor.py`.
+- This reflects current code behavior in `src/service/worker_chunk_text_service.py` and `src/service/chunk_text_processor.py`.
 - The four views above are equivalent descriptions of the same runtime flow.

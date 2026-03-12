@@ -34,7 +34,7 @@ Non-responsibilities:
 Design:
 - Composition root in src/app.py.
 - Startup extension points in src/startup/config_extractor.py and src/startup/service_factory.py.
-- Processing logic in src/services.
+- Processing logic in src/service.
 - Chunk compute path uses dataframe execution.
 
 Patterns:
@@ -51,7 +51,7 @@ Patterns:
 - `src/chunking/params_contract.py`
 - src/startup/config_extractor.py
 - src/startup/service_factory.py
-- src/services/*
+- src/service/*
 
 Dependency direction:
 - Worker depends on pipeline_common and registry.

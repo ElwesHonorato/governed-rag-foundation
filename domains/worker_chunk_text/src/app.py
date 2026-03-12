@@ -6,7 +6,7 @@ from pipeline_common.startup import (
     RuntimeContextFactory,
 )
 from pipeline_common.startup.runtime_context import WorkerRuntimeContext
-from services.worker_chunking_service import WorkerChunkingService
+from service.worker_chunking_service import WorkerChunkingService
 from startup.contracts import RuntimeChunkJobConfig
 from startup.config_extractor import ChunkTextConfigExtractor
 from startup.service_factory import ChunkTextServiceFactory

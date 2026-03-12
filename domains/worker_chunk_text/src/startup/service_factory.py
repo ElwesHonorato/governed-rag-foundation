@@ -4,7 +4,7 @@ from chunking.resolver import ChunkingStagesResolver
 from pipeline_common.gateways.object_storage import ManifestWriter
 from pipeline_common.startup import WorkerRuntimeContext, WorkerServiceFactory
 from processor.chunk_text import ChunkTextProcessor
-from services.worker_chunking_service import WorkerChunkingService
+from service.worker_chunking_service import WorkerChunkingService
 from startup.contracts import RuntimeChunkJobConfig
 
 

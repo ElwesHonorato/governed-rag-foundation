@@ -1,11 +1,20 @@
 import json
-from typing import ClassVar
+from typing import Any, ClassVar, Protocol
 
-from contracts.contracts import ProcessResult
-from pipeline_common.gateways.object_storage import ObjectStorageGateway
+from pipeline_common.gateways.object_storage.object_storage import ObjectStorageGateway
 
 
-class ChunkManifestWriter:
+class ManifestSourceMetadata(Protocol):
+    doc_id: str
+
+
+class ManifestProcessResult(Protocol):
+    to_dict: dict[str, Any]
+    source_metadata: ManifestSourceMetadata
+    run_id: str
+
+
+class ManifestWriter:
     MANIFEST_FILE_NAME: ClassVar[str] = "manifest.json"
     MANIFEST_OBJECT_KEY_PATTERN: ClassVar[str] = "{doc_id}/runs/{run_id}/{file_name}"
 
@@ -20,9 +29,11 @@ class ChunkManifestWriter:
         self.manifest_prefix = manifest_prefix
         self.manifest_uri: str | None = None
 
-    def write(self, *, process_result: ProcessResult) -> None:
-        source_metadata = process_result.source_metadata
-        manifest_key = self._manifest_object_key(doc_id=source_metadata.doc_id, run_id=process_result.run_id)
+    def write(self, *, process_result: ManifestProcessResult) -> None:
+        manifest_key = self._manifest_object_key(
+            doc_id=process_result.source_metadata.doc_id,
+            run_id=process_result.run_id,
+        )
         manifest_uri = self.object_storage.build_uri(self.storage_bucket, manifest_key)
         self.object_storage.write_object(
             uri=manifest_uri,

@@ -2,8 +2,8 @@
 
 from contracts.startup import RuntimeChunkJobConfig
 from configs.chunking_scaffold import ChunkingStagesResolver
+from pipeline_common.gateways.object_storage import ManifestWriter
 from pipeline_common.startup import WorkerRuntimeContext, WorkerServiceFactory
-from services.chunk_manifest_writer import ChunkManifestWriter
 from services.chunk_text_processor import ChunkTextProcessor
 from services.worker_chunking_service import WorkerChunkingService
 
@@ -26,7 +26,7 @@ class ChunkTextServiceFactory(WorkerServiceFactory[RuntimeChunkJobConfig, Worker
             output_prefix=worker_config.storage.output_prefix,
         )
 
-        manifest_writer: ChunkManifestWriter = ChunkManifestWriter(
+        manifest_writer: ManifestWriter = ManifestWriter(
             object_storage=runtime.object_storage_gateway,
             storage_bucket=worker_config.storage.bucket,
             manifest_prefix=worker_config.storage.manifest_prefix,

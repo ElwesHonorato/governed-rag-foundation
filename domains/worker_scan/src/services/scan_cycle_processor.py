@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from contracts.contracts import ScanStorageContract
+from contracts.startup import ScanStorageContract
 
 
 class ScanCycleProcessor(ABC):

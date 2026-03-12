@@ -1,6 +1,6 @@
 """worker_index_weaviate entrypoint."""
 
-from contracts.contracts import IndexWeaviateWorkerConfigContract
+from contracts.startup import RuntimeIndexWeaviateJobConfig
 from pipeline_common.helpers.config import _required_env
 from registry import DataHubDataJobKey, DataHubPipelineJobs, GovernedRagJobId
 from pipeline_common.settings import SettingsBundle, SettingsProvider, SettingsRequest
@@ -27,12 +27,12 @@ def run() -> None:
         settings_bundle=settings,
     ).build()
 
-    worker_config: IndexWeaviateWorkerConfigContract = IndexWeaviateConfigExtractor().extract(
+    runtime_job_config: RuntimeIndexWeaviateJobConfig = IndexWeaviateConfigExtractor().extract(
         runtime_context.job_properties
     )
     service: WorkerIndexWeaviateService = IndexWeaviateServiceFactory(
         weaviate_url=_required_env("WEAVIATE_URL"),
-    ).build(runtime_context, worker_config)
+    ).build(runtime_context, runtime_job_config)
     service.serve()
 
 

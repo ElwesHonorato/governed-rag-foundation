@@ -1,6 +1,6 @@
 """worker_scan entrypoint."""
 
-from contracts.contracts import ScanWorkerConfigContract
+from contracts.startup import RuntimeScanJobConfig
 from registry import DataHubDataJobKey, DataHubPipelineJobs, GovernedRagJobId
 from pipeline_common.settings import SettingsBundle, SettingsProvider, SettingsRequest
 from pipeline_common.startup import (
@@ -26,8 +26,8 @@ def run() -> None:
         settings_bundle=settings,
     ).build()
 
-    worker_config: ScanWorkerConfigContract = ScanConfigExtractor().extract(runtime_context.job_properties)
-    service: WorkerScanService = ScanServiceFactory().build(runtime_context, worker_config)
+    runtime_job_config: RuntimeScanJobConfig = ScanConfigExtractor().extract(runtime_context.job_properties)
+    service: WorkerScanService = ScanServiceFactory().build(runtime_context, runtime_job_config)
     service.serve()
 
 

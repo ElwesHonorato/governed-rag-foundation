@@ -1,18 +1,18 @@
 """Service graph assembly for worker_embed_chunks startup."""
 
-from contracts.contracts import EmbedChunksWorkerConfigContract
+from contracts.startup import RuntimeEmbedChunksJobConfig
 from pipeline_common.startup import WorkerRuntimeContext, WorkerServiceFactory
 from services.embed_chunks_processor import EmbedChunksProcessor
 from services.worker_embed_chunks_service import WorkerEmbedChunksService
 
 
-class EmbedChunksServiceFactory(WorkerServiceFactory[EmbedChunksWorkerConfigContract, WorkerEmbedChunksService]):
+class EmbedChunksServiceFactory(WorkerServiceFactory[RuntimeEmbedChunksJobConfig, WorkerEmbedChunksService]):
     """Build embed_chunks service from runtime context and typed config."""
 
     def build(
         self,
         runtime: WorkerRuntimeContext,
-        worker_config: EmbedChunksWorkerConfigContract,
+        worker_config: RuntimeEmbedChunksJobConfig,
     ) -> WorkerEmbedChunksService:
         """Construct worker embed_chunks service object graph."""
         processor: EmbedChunksProcessor = EmbedChunksProcessor(

@@ -1,6 +1,6 @@
 """worker_embed_chunks entrypoint."""
 
-from contracts.contracts import EmbedChunksWorkerConfigContract
+from contracts.startup import RuntimeEmbedChunksJobConfig
 from registry import DataHubDataJobKey, DataHubPipelineJobs, GovernedRagJobId
 from pipeline_common.settings import SettingsBundle, SettingsProvider, SettingsRequest
 from pipeline_common.startup import (
@@ -26,10 +26,10 @@ def run() -> None:
         settings_bundle=settings,
     ).build()
 
-    worker_config: EmbedChunksWorkerConfigContract = EmbedChunksConfigExtractor().extract(
+    runtime_job_config: RuntimeEmbedChunksJobConfig = EmbedChunksConfigExtractor().extract(
         runtime_context.job_properties
     )
-    service: WorkerEmbedChunksService = EmbedChunksServiceFactory().build(runtime_context, worker_config)
+    service: WorkerEmbedChunksService = EmbedChunksServiceFactory().build(runtime_context, runtime_job_config)
     service.serve()
 
 

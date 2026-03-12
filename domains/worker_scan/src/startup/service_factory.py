@@ -1,6 +1,6 @@
 """Service graph assembly for worker_scan startup."""
 
-from contracts.contracts import ScanStorageContract, ScanWorkerConfigContract
+from contracts.startup import RuntimeScanJobConfig, ScanStorageContract
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import QueueGateway
@@ -9,13 +9,13 @@ from services.scan_cycle_processor import StorageScanCycleProcessor
 from services.worker_scan_service import WorkerScanService
 
 
-class ScanServiceFactory(WorkerServiceFactory[ScanWorkerConfigContract, WorkerScanService]):
+class ScanServiceFactory(WorkerServiceFactory[RuntimeScanJobConfig, WorkerScanService]):
     """Build scan service from runtime context and typed scan config."""
 
     def build(
         self,
         runtime: WorkerRuntimeContext,
-        worker_config: ScanWorkerConfigContract,
+        worker_config: RuntimeScanJobConfig,
     ) -> WorkerScanService:
         """Construct worker scan service object graph."""
         stage_queue: QueueGateway = runtime.stage_queue_gateway

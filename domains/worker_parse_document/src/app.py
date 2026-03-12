@@ -1,6 +1,6 @@
 """worker_parse_document entrypoint."""
 
-from contracts.contracts import ParseWorkerConfigContract
+from contracts.startup import RuntimeParseJobConfig
 from parsing.html import HtmlParser
 from parsing.registry import ParserRegistry
 from registry import DataHubDataJobKey, DataHubPipelineJobs, GovernedRagJobId
@@ -28,10 +28,10 @@ def run() -> None:
         settings_bundle=settings,
     ).build()
 
-    worker_config: ParseWorkerConfigContract = ParseConfigExtractor().extract(runtime_context.job_properties)
+    runtime_job_config: RuntimeParseJobConfig = ParseConfigExtractor().extract(runtime_context.job_properties)
     service: WorkerParseDocumentService = ParseServiceFactory(
         parser_registry=ParserRegistry(parsers=[HtmlParser()]),
-    ).build(runtime_context, worker_config)
+    ).build(runtime_context, runtime_job_config)
     service.serve()
 
 

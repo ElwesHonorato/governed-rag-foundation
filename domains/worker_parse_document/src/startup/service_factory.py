@@ -1,13 +1,13 @@
 """Service graph assembly for worker_parse_document startup."""
 
-from contracts.contracts import ParseSecurityConfigContract, ParseWorkerConfigContract
+from contracts.startup import RuntimeParseJobConfig
 from parsing.registry import ParserRegistry
 from pipeline_common.startup import WorkerRuntimeContext, WorkerServiceFactory
 from services.parse_flow_components import DocumentParserProcessor
 from services.worker_parse_document_service import WorkerParseDocumentService
 
 
-class ParseServiceFactory(WorkerServiceFactory[ParseWorkerConfigContract, WorkerParseDocumentService]):
+class ParseServiceFactory(WorkerServiceFactory[RuntimeParseJobConfig, WorkerParseDocumentService]):
     """Build parse service from runtime context and typed parse config."""
 
     def __init__(self, *, parser_registry: ParserRegistry) -> None:
@@ -16,15 +16,12 @@ class ParseServiceFactory(WorkerServiceFactory[ParseWorkerConfigContract, Worker
     def build(
         self,
         runtime: WorkerRuntimeContext,
-        worker_config: ParseWorkerConfigContract,
+        worker_config: RuntimeParseJobConfig,
     ) -> WorkerParseDocumentService:
         """Construct worker parse service object graph."""
-        security_config: ParseSecurityConfigContract = ParseSecurityConfigContract(
-            clearance=worker_config.security_clearance
-        )
         parser_processor: DocumentParserProcessor = DocumentParserProcessor(
             parser_registry=self._parser_registry,
-            security_clearance=security_config.clearance,
+            security_clearance=worker_config.security.clearance,
         )
         return WorkerParseDocumentService(
             stage_queue=runtime.stage_queue_gateway,

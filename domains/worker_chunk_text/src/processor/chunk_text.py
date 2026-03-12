@@ -1,7 +1,7 @@
 import json
 from typing import Any, ClassVar, Iterator
 
-from chunking.domain.stage_splitter import StageSplitter
+from processor.stage_splitter import StageSplitter
 from chunking.stages import ChunkingStage, ChunkingStages
 from langchain_core.documents import Document
 from pipeline_common.gateways.object_storage import ObjectStorageGateway

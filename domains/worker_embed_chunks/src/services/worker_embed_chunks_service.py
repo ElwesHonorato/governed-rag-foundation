@@ -6,7 +6,7 @@ from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGateway
-from pipeline_common.stages_contracts import ProcessResult, ProcessorContext, SourceDocumentMetadata
+from pipeline_common.stages_contracts import ProcessResult, ProcessorContext, RootDocumentMetadata
 from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata
 from pipeline_common.startup.contracts import WorkerService
 from services.embed_flow import EmbedWorkItem
@@ -101,7 +101,7 @@ class WorkerEmbedChunksService(WorkerService):
         logger.info("Wrote embedding object '%s'", write_result.destination_key)
         return ProcessResult(
             run_id=write_result.chunk_id,
-            source_metadata=SourceDocumentMetadata.build(
+            root_metadata=RootDocumentMetadata.build(
                 doc_id=write_result.doc_id,
                 source_key=chunk_payload.destination_key,
                 timestamp="",

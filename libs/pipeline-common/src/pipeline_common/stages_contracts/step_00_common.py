@@ -5,13 +5,12 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any, ClassVar
 
-PROCESSED_DOCUMENT_SCHEMA_VERSION = "1.0"
-
 
 @dataclass(frozen=True)
-class SourceDocumentMetadata:
-    """Metadata contract for processed-document payloads."""
+class RootDocumentMetadata:
+    """Metadata contract for root-document payloads."""
 
+    SCHEMA_VERSION: ClassVar[str] = "1.0"
     FIELD_SCHEMA_VERSION: ClassVar[str] = "schema_version"
     FIELD_DOC_ID: ClassVar[str] = "doc_id"
     FIELD_SOURCE_KEY: ClassVar[str] = "source_key"
@@ -41,10 +40,10 @@ class SourceDocumentMetadata:
         source_type: str,
         content_type: str,
         source_content_hash: str,
-    ) -> "SourceDocumentMetadata":
-        """Build versioned processed-document metadata."""
+    ) -> "RootDocumentMetadata":
+        """Build versioned root-document metadata."""
         return cls(
-            schema_version=PROCESSED_DOCUMENT_SCHEMA_VERSION,
+            schema_version=cls.SCHEMA_VERSION,
             doc_id=str(doc_id),
             source_key=str(source_key),
             timestamp=str(timestamp),

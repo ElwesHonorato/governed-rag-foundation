@@ -7,7 +7,7 @@ This domain reads processed document artifacts, splits their text into retrieval
 ### Stage responsibility
 - Consumes queue messages whose payload is the input artifact URI.
 - Reads the processed artifact from object storage.
-- Resolves chunking stages from `source_metadata.source_type`.
+- Resolves chunking stages from `root_metadata.source_type`.
 - Splits text into deterministic chunks using LangChain splitters.
 - Writes one artifact per chunk to `{doc_id}/runs/{run_id}/chunks/{chunk_id}.json`.
 - Publishes each chunk URI to the downstream queue.

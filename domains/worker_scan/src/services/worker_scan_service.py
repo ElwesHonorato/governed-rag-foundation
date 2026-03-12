@@ -8,7 +8,7 @@ from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import Envelope, QueueGateway
 from pipeline_common.helpers.contracts import doc_id_from_source_key
-from pipeline_common.stages_contracts import ProcessResult, ProcessorContext, SourceDocumentMetadata
+from pipeline_common.stages_contracts import ProcessResult, ProcessorContext, RootDocumentMetadata
 from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata
 from pipeline_common.startup.contracts import WorkerService
 from services.scan_cycle_processor import ScanWorkItem, StorageScanCycleProcessor
@@ -76,7 +76,7 @@ class WorkerScanService(WorkerService):
         )
         return ProcessResult(
             run_id=work_item.destination_key,
-            source_metadata=SourceDocumentMetadata.build(
+            root_metadata=RootDocumentMetadata.build(
                 doc_id=doc_id_from_source_key(work_item.source_key),
                 source_key=work_item.source_key,
                 timestamp="",

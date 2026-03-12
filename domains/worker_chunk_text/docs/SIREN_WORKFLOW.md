@@ -106,7 +106,7 @@ flowchart LR
 3. Worker starts a lineage run and adds the input URI as an input dataset.
 4. Worker reads the upstream stage artifact from object storage.
 5. Worker generates a run ID from the source URI.
-6. Worker resolves chunking stages from `source_metadata.source_type`.
+6. Worker resolves chunking stages from `root_metadata.source_type`.
 7. Worker applies the configured LangChain splitters to the source text.
 8. For each chunk produced:
    - computes a deterministic `chunk_id`,

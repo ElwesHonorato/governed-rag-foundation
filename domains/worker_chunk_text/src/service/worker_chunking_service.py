@@ -74,7 +74,7 @@ class WorkerChunkingService(WorkerService):
         """Load an input artifact, resolve stages, and run the chunk processor."""
         raw_payload = self._storage_gateway.read_object(uri=input_uri)
         input_artifact: StageArtifact = StageArtifact.from_dict(json.loads(raw_payload.decode("utf-8")))
-        resolved_stages = self._chunking_resolver.resolve(input_artifact.source_metadata.source_type)
+        resolved_stages = self._chunking_resolver.resolve(input_artifact.root_metadata.source_type)
         return self._processor.process(
             input_artifact=input_artifact,
             input_uri=input_uri,

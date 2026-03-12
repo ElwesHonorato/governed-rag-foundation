@@ -6,7 +6,7 @@ from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGateway
-from pipeline_common.stages_contracts import ProcessResult, ProcessorContext, SourceDocumentMetadata
+from pipeline_common.stages_contracts import ProcessResult, ProcessorContext, RootDocumentMetadata
 from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata
 from services.index_flow import IndexStatusWriter, IndexWorkItem
 from services.weaviate_gateway import upsert_chunk, verify_query
@@ -120,7 +120,7 @@ class WorkerIndexWeaviateService(WorkerService):
         source_key = str(metadata.get("source_key") or "")
         return ProcessResult(
             run_id=resolved_chunk_id or resolved_doc_id,
-            source_metadata=SourceDocumentMetadata.build(
+            root_metadata=RootDocumentMetadata.build(
                 doc_id=resolved_doc_id,
                 source_key=source_key,
                 timestamp=str(metadata.get("timestamp") or ""),

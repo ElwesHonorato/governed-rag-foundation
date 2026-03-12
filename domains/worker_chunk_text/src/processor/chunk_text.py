@@ -17,7 +17,7 @@ from pipeline_common.stages_contracts import (
     StorageStageArtifact,
 )
 
-from processor.metadata import (
+from processor.metadata_contracts import (
     ChunkMetadata,
     ChunkingExecutionMetadata,
 )

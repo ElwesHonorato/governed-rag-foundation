@@ -1,7 +1,7 @@
 """Contracts package for worker_chunk_text."""
 
 from chunking.params_contract import RecursiveParams, StageParams, TokenParams
-from processor.metadata import (
+from processor.metadata_contracts import (
     ChunkingExecutionMetadata,
     ChunkMetadata,
 )

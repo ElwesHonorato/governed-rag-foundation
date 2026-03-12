@@ -1,4 +1,4 @@
-"""Central wrapper for text splitter configuration."""
+"""Stage-based wrapper for text splitter configuration."""
 
 from dataclasses import asdict
 from typing import Any
@@ -7,8 +7,8 @@ from langchain_core.documents import Document
 from chunking.stages import ChunkingStage
 
 
-class CentralTextSplitter:
-    """Single entrypoint for chunk splitter creation and usage."""
+class StageSplitter:
+    """Single entrypoint for stage-aware chunk splitter creation and usage."""
 
     def __init__(self, *, stage: ChunkingStage) -> None:
         self._splitter = self._build_splitter(

@@ -1,7 +1,7 @@
 import json
 from typing import Any, ClassVar, Iterator
 
-from chunking.domain.central_text_splitter import CentralTextSplitter
+from chunking.domain.stage_splitter import StageSplitter
 from chunking.stages import ChunkingStage, ChunkingStages
 from langchain_core.documents import Document
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
@@ -108,12 +108,12 @@ class ChunkTextProcessor(BaseProcessor):
         )
 
     def process_first_stage(self, *, input_text: str, first_stage: ChunkingStage) -> list[Document]:
-        splitter = CentralTextSplitter(stage=first_stage)
+        splitter = StageSplitter(stage=first_stage)
         return splitter.create_documents(texts=[input_text])
 
     def _process_next_stage(self, *, docs: list[Document], stages: list[ChunkingStage]) -> list[Document]:
         for stage in stages:
-            splitter = CentralTextSplitter(stage=stage)
+            splitter = StageSplitter(stage=stage)
             docs = splitter.split_documents(documents=docs)
         return docs
 

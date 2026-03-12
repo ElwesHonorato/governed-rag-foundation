@@ -158,6 +158,14 @@ class EmbedChunksProcessor:
     def _embedding_object_key(self, doc_id: str, chunk_id: str) -> str:
         return f"{self._output_prefix}{doc_id}/{chunk_id}.embedding.json"
 
+    def destination_name(self, destination_key: str) -> str:
+        """Build the lineage output dataset name for a written embedding artifact."""
+        return f"{self._storage_bucket}/{destination_key}"
+
+    def destination_uri(self, destination_key: str) -> str:
+        """Build the storage URI for a written embedding artifact."""
+        return self._storage_gateway.build_uri(self._storage_bucket, destination_key)
+
     @staticmethod
     def _doc_id_from_destination_key(destination_key: str) -> str:
         parts = [part for part in destination_key.split("/") if part]

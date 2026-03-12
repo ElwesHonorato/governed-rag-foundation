@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 import mimetypes
 from pathlib import Path
 from typing import Any
@@ -10,17 +9,6 @@ from pipeline_common.stages_contracts import (
     StageArtifactMetadata,
     SourceDocumentMetadata,
 )
-from pipeline_common.gateways.queue import Envelope
-
-
-@dataclass(frozen=True)
-class ParseWorkItem:
-    """One parse work item derived from inbound queue payload."""
-
-    input_uri: str
-    source_key: str
-    doc_id: str
-    destination_key: str
 
 
 class DocumentParserProcessor(BaseProcessor):
@@ -67,13 +55,3 @@ class DocumentParserProcessor(BaseProcessor):
             ),
             content=parsed_payload,
         ).to_dict
-
-
-class ParseOutputMessageFactory:
-    """Build downstream output message after successful parse write."""
-
-    @staticmethod
-    def build(*, input_uri: str) -> Envelope:
-        return Envelope(
-            payload=input_uri,
-        )

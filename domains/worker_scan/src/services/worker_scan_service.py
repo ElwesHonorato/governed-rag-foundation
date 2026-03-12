@@ -6,8 +6,8 @@ from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import Envelope, QueueGateway
 from pipeline_common.helpers.contracts import doc_id_from_source_key
-from pipeline_common.startup.contracts import WorkerPollingContract, WorkerService
-from services.scan_cycle_processor import StorageScanCycleProcessor
+from pipeline_common.startup.contracts import WorkerService
+from services.scan_cycle_processor import ScanWorkItem, StorageScanCycleProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -21,14 +21,14 @@ class WorkerScanService(WorkerService):
         stage_queue: QueueGateway,
         object_storage: ObjectStorageGateway,
         lineage: LineageRuntimeGateway,
-        polling_contract: WorkerPollingContract,
+        poll_interval_seconds: int,
     ) -> None:
         """Initialize instance state and dependencies."""
         self._processor = processor
         self._queue_gateway = stage_queue
         self._storage_gateway = object_storage
         self._lineage_gateway = lineage
-        self._poll_interval_seconds = polling_contract.poll_interval_seconds
+        self._poll_interval_seconds = poll_interval_seconds
 
     def serve(self) -> None:
         """Run the worker loop indefinitely."""
@@ -43,34 +43,40 @@ class WorkerScanService(WorkerService):
         try:
             source_keys = self._storage_gateway.list_keys(self._processor.bucket, self._processor.source_prefix)
             processed = 0
-            for source_key in self._processor.candidate_keys(source_keys):
-                processed += int(self._process_source_key(source_key))
+            for work_item in self._processor.plan_work(source_keys):
+                processed += int(self._process_work_item(work_item))
             logger.info("Scan cycle processed %d item(s)", processed)
         except Exception:
             self._handle_scan_cycle_failure()
 
-    def _process_source_key(self, source_key: str) -> bool:
-        if not self._storage_gateway.object_exists(self._processor.bucket, source_key):
+    def _process_work_item(self, work_item: ScanWorkItem) -> bool:
+        if not self._storage_gateway.object_exists(self._processor.bucket, work_item.source_key):
             return False
 
-        destination_key = self._processor.destination_key(source_key)
-        self._register_lineage_io(source_key=source_key, destination_key=destination_key)
+        self._register_lineage_io(
+            source_key=work_item.source_key,
+            destination_key=work_item.destination_key,
+        )
         try:
-            self._storage_gateway.copy(self._processor.bucket, source_key, destination_key)
+            self._storage_gateway.copy(
+                self._processor.bucket,
+                work_item.source_key,
+                work_item.destination_key,
+            )
             self._lineage_gateway.complete_run()
-            destination_uri = self._storage_gateway.build_uri(self._processor.bucket, destination_key)
+            destination_uri = self._storage_gateway.build_uri(self._processor.bucket, work_item.destination_key)
             self._queue_gateway.push(
                 Envelope(
                     payload=destination_uri,
                 ).to_payload
             )
-            self._storage_gateway.delete(self._processor.bucket, source_key)
+            self._storage_gateway.delete(self._processor.bucket, work_item.source_key)
             logger.info(
                 "Moved '%s' -> '%s' (source_doc_id=%s, dest_doc_id=%s)",
-                source_key,
-                destination_key,
-                doc_id_from_source_key(source_key),
-                doc_id_from_source_key(destination_key),
+                work_item.source_key,
+                work_item.destination_key,
+                doc_id_from_source_key(work_item.source_key),
+                doc_id_from_source_key(work_item.destination_key),
             )
             return True
         except Exception:

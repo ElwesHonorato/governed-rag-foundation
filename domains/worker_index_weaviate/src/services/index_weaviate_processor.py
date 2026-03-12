@@ -8,8 +8,10 @@ class IndexWeaviateProcessor:
     def __init__(
         self,
         *,
+        storage_bucket: str,
         output_prefix: str,
     ) -> None:
+        self._storage_bucket = storage_bucket
         self._output_prefix = output_prefix
 
     @staticmethod
@@ -53,6 +55,14 @@ class IndexWeaviateProcessor:
         if chunk_id:
             return f"{self._output_prefix}{doc_id}/{chunk_id}.indexed.json"
         return f"{self._output_prefix}{doc_id}.indexed.json"
+
+    def status_exists(self, object_storage: Any, destination_key: str) -> bool:
+        """Return whether the indexed status object already exists."""
+        return object_storage.object_exists(self._storage_bucket, destination_key)
+
+    def destination_name(self, destination_key: str) -> str:
+        """Build the lineage output dataset name for a written status artifact."""
+        return f"{self._storage_bucket}/{destination_key}"
 
     @staticmethod
     def build_index_status_payload(doc_id: str, chunk_id: str) -> dict[str, Any]:

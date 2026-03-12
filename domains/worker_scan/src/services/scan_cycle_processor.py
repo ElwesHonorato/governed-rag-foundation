@@ -1,27 +1,30 @@
-from abc import ABC, abstractmethod
+from __future__ import annotations
 
-from contracts.startup import ScanStorageContract
+from dataclasses import dataclass
+
+from startup.contracts import RuntimeScanStorageConfig
 
 
-class ScanCycleProcessor(ABC):
-    """Contract for one scan cycle execution."""
+@dataclass(frozen=True)
+class ScanWorkItem:
+    """One source-to-destination promotion planned by the scan processor."""
 
-    @abstractmethod
-    def scan(self) -> int:
-        """Run one scan cycle and return the number of processed items."""
+    source_key: str
+    destination_key: str
 
-class StorageScanCycleProcessor(ScanCycleProcessor):
+
+class StorageScanCycleProcessor:
     """Build scan decisions for source->destination promotion."""
 
     def __init__(
         self,
         *,
-        storage_contract: ScanStorageContract,
+        storage_config: RuntimeScanStorageConfig,
     ) -> None:
         """Initialize instance state and dependencies."""
-        self._bucket = storage_contract.bucket
-        self._source_prefix = storage_contract.source_prefix
-        self._destination_prefix = storage_contract.output_prefix
+        self._bucket = storage_config.bucket
+        self._source_prefix = storage_config.source_prefix
+        self._destination_prefix = storage_config.output_prefix
 
     @property
     def bucket(self) -> str:
@@ -35,12 +38,16 @@ class StorageScanCycleProcessor(ScanCycleProcessor):
     def destination_prefix(self) -> str:
         return self._destination_prefix
 
-    def scan(self) -> int:
-        """Compatibility no-op for abstract contract."""
-        return 0
-
-    def candidate_keys(self, keys: list[str]) -> list[str]:
-        return [key for key in keys if self.is_candidate_key(key)]
+    def plan_work(self, keys: list[str]) -> list[ScanWorkItem]:
+        """Plan source objects that should be promoted this cycle."""
+        return [
+            ScanWorkItem(
+                source_key=key,
+                destination_key=self.destination_key(key),
+            )
+            for key in keys
+            if self.is_candidate_key(key)
+        ]
 
     def is_candidate_key(self, key: str) -> bool:
         """Return True when a key is a processable source object."""

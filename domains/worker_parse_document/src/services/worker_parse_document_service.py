@@ -1,5 +1,4 @@
 import logging
-import json
 from typing import Any
 
 from pipeline_common.gateways.lineage import DatasetPlatform
@@ -11,8 +10,10 @@ from pipeline_common.provenance import source_content_hash
 from pipeline_common.startup.contracts import WorkerService
 from services.parse_flow_components import (
     DocumentParserProcessor,
-    ParseOutputMessageFactory,
+)
+from services.parse_output import (
     ParseWorkItem,
+    ParseOutputWriter,
 )
 
 logger = logging.getLogger(__name__)
@@ -31,6 +32,7 @@ class WorkerParseDocumentService(WorkerService):
         storage_bucket: str,
         output_prefix: str,
         parser_processor: DocumentParserProcessor,
+        output_writer: ParseOutputWriter,
     ) -> None:
         """Initialize parse worker dependencies and runtime settings."""
         self._queue_gateway = stage_queue
@@ -40,6 +42,7 @@ class WorkerParseDocumentService(WorkerService):
         self._storage_bucket = storage_bucket
         self._output_prefix = output_prefix
         self._parser_processor = parser_processor
+        self._output_writer = output_writer
 
     def serve(self) -> None:
         """Run the parse worker loop by polling queue messages."""
@@ -108,14 +111,9 @@ class WorkerParseDocumentService(WorkerService):
         )
 
     def _write_processed_payload(self, parse_job: ParseWorkItem, payload: dict[str, Any]) -> None:
-        destination_uri = self._storage_gateway.build_uri(
-            self._storage_bucket,
-            parse_job.destination_key,
-        )
-        self._storage_gateway.write_object(
-            uri=destination_uri,
-            payload=json.dumps(payload, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode("utf-8"),
-            content_type="application/json",
+        self._output_writer.write(
+            destination_key=parse_job.destination_key,
+            payload=payload,
         )
         self._lineage_gateway.add_output(
             name=f"{self._storage_bucket}/{parse_job.destination_key}",
@@ -123,11 +121,9 @@ class WorkerParseDocumentService(WorkerService):
         )
 
     def _publish_parse_output(self, parse_job: ParseWorkItem) -> None:
-        destination_uri = self._storage_gateway.build_uri(
-            self._storage_bucket,
-            parse_job.destination_key,
+        self._queue_gateway.push(
+            self._output_writer.build_output_message(destination_key=parse_job.destination_key).to_payload
         )
-        self._queue_gateway.push(ParseOutputMessageFactory.build(input_uri=destination_uri).to_payload)
 
     def _handle_parse_failure(self, parse_job: ParseWorkItem, error_message: str) -> None:
         self._queue_gateway.push_dlq(

@@ -1,11 +1,11 @@
 """Service graph assembly for worker_chunk_text startup."""
 
-from contracts.startup import RuntimeChunkJobConfig
-from configs.chunking_scaffold import ChunkingStagesResolver
+from chunking.resolver import ChunkingStagesResolver
 from pipeline_common.gateways.object_storage import ManifestWriter
 from pipeline_common.startup import WorkerRuntimeContext, WorkerServiceFactory
-from services.chunk_text_processor import ChunkTextProcessor
+from processor.chunk_text import ChunkTextProcessor
 from services.worker_chunking_service import WorkerChunkingService
+from startup.contracts import RuntimeChunkJobConfig
 
 
 class ChunkTextServiceFactory(WorkerServiceFactory[RuntimeChunkJobConfig, WorkerChunkingService]):

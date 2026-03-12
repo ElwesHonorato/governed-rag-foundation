@@ -1,6 +1,5 @@
 """worker_chunk_text entrypoint."""
 
-from contracts.startup import RuntimeChunkJobConfig
 from registry import DataHubDataJobKey, DataHubPipelineJobs, GovernedRagJobId
 from pipeline_common.settings import SettingsBundle, SettingsProvider, SettingsRequest
 from pipeline_common.startup import (
@@ -8,6 +7,7 @@ from pipeline_common.startup import (
 )
 from pipeline_common.startup.runtime_context import WorkerRuntimeContext
 from services.worker_chunking_service import WorkerChunkingService
+from startup.contracts import RuntimeChunkJobConfig
 from startup.config_extractor import ChunkTextConfigExtractor
 from startup.service_factory import ChunkTextServiceFactory
 

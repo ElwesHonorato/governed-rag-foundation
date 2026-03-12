@@ -1,10 +1,11 @@
 """Contracts package for worker_chunk_text."""
 
-from contracts.metadata import (
+from chunking.params_contract import RecursiveParams, StageParams, TokenParams
+from processor.metadata import (
     ChunkingExecutionMetadata,
     ChunkMetadata,
 )
-from contracts.startup import (
+from startup.contracts import (
     RawStoragePathsContract,
     RawChunkJobConfig,
     RuntimeChunkJobConfig,
@@ -18,6 +19,9 @@ from pipeline_common.stages_contracts import (
 )
 
 __all__ = [
+    "RecursiveParams",
+    "TokenParams",
+    "StageParams",
     "StorageStageArtifact",
     "ProcessorContext",
     "ExecutionStatus",

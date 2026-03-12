@@ -2,7 +2,7 @@ import json
 from typing import Any, ClassVar, Iterator
 
 from chunking.domain.central_text_splitter import CentralTextSplitter
-from configs.chunking_scaffold import ChunkingStage, ChunkingStages
+from chunking.stages import ChunkingStage, ChunkingStages
 from langchain_core.documents import Document
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import Envelope, QueueGateway
@@ -17,7 +17,7 @@ from pipeline_common.stages_contracts import (
     StorageStageArtifact,
 )
 
-from contracts.metadata import (
+from processor.metadata import (
     ChunkMetadata,
     ChunkingExecutionMetadata,
 )

@@ -3,7 +3,7 @@
 from collections.abc import Mapping
 from typing import Any
 
-from contracts.startup import (
+from startup.contracts import (
     RawChunkJobConfig,
     RuntimeChunkJobConfig,
     RuntimeStoragePathsContract,

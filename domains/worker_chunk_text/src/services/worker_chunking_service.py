@@ -1,6 +1,6 @@
 import json
 
-from configs.chunking_scaffold import ChunkingStagesResolver
+from chunking.resolver import ChunkingStagesResolver
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ManifestWriter
@@ -9,7 +9,7 @@ from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGatew
 from pipeline_common.helpers.run_ids import build_source_run_id
 from pipeline_common.stages_contracts import ProcessResult, StageArtifact
 from pipeline_common.startup.contracts import WorkerService
-from services.chunk_text_processor import ChunkTextProcessor
+from processor.chunk_text import ChunkTextProcessor
 
 
 class WorkerChunkingService(WorkerService):

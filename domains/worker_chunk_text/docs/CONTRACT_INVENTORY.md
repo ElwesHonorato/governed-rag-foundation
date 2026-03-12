@@ -6,9 +6,9 @@ This document lists the contracts used by `domains/worker_chunk_text`, grouped b
 
 | Name | Brief Description | Location |
 | --- | --- | --- |
-| `RawChunkJobConfig` | Raw job-level config parsed directly from `job_properties`. | `domains/worker_chunk_text/src/contracts/startup.py` |
-| `RawStoragePathsContract` | Raw storage paths declared in job properties before environment scoping. | `domains/worker_chunk_text/src/contracts/startup.py` |
-| `RuntimeStoragePathsContract` | Environment-dependent runtime storage paths built from raw storage paths during startup extraction. | `domains/worker_chunk_text/src/contracts/startup.py` |
+| `RawChunkJobConfig` | Raw job-level config parsed directly from `job_properties`. | `domains/worker_chunk_text/src/startup/contracts.py` |
+| `RawStoragePathsContract` | Raw storage paths declared in job properties before environment scoping. | `domains/worker_chunk_text/src/startup/contracts.py` |
+| `RuntimeStoragePathsContract` | Environment-dependent runtime storage paths built from raw storage paths during startup extraction. | `domains/worker_chunk_text/src/startup/contracts.py` |
 | `WorkerRuntimeContext` | Shared runtime dependency bundle injected into the service factory and built in `app.py`. | `libs/pipeline-common/src/pipeline_common/startup/runtime_context.py` |
 | `WorkerServiceFactory` | Startup contract implemented by `ChunkTextServiceFactory` to build the concrete worker service. | `libs/pipeline-common/src/pipeline_common/startup/contracts.py` |
 
@@ -24,9 +24,9 @@ This document lists the contracts used by `domains/worker_chunk_text`, grouped b
 | --- | --- | --- |
 | `ProcessResult` | Top-level result payload returned by `ChunkTextProcessor` and consumed by manifest writers and factories. | `libs/pipeline-common/src/pipeline_common/stages_contracts/execution.py` |
 | `ProcessorContext` | Captures processor parameter hash and normalized params for the run result. | `libs/pipeline-common/src/pipeline_common/stages_contracts/execution.py` |
-| `ChunkingExecutionMetadata` | Summarizes expected vs written chunks and derives execution status. | `domains/worker_chunk_text/src/contracts/metadata.py` |
+| `ChunkingExecutionMetadata` | Summarizes expected vs written chunks and derives execution status. | `domains/worker_chunk_text/src/processor/metadata.py` |
 | `ExecutionStatus` | Enum for `success`, `partial`, and `fail`, used through `ChunkingExecutionMetadata.status`. | `libs/pipeline-common/src/pipeline_common/stages_contracts/execution.py` |
-| `ChunkMetadata` | Metadata attached to each persisted chunk artifact. | `domains/worker_chunk_text/src/contracts/metadata.py` |
+| `ChunkMetadata` | Metadata attached to each persisted chunk artifact. | `domains/worker_chunk_text/src/processor/metadata.py` |
 | `StorageStageArtifact` | Wraps a chunk `StageArtifact` plus destination key before writing to storage. | `libs/pipeline-common/src/pipeline_common/stages_contracts/execution.py` |
 
 ## Shared Stage And Content Contracts
@@ -50,7 +50,7 @@ This document lists the contracts used by `domains/worker_chunk_text`, grouped b
 
 | Name | Brief Description | Location |
 | --- | --- | --- |
-| `RuntimeChunkJobConfig` | Runtime processing config returned by the extractor after environment scoping. | `domains/worker_chunk_text/src/contracts/startup.py` |
+| `RuntimeChunkJobConfig` | Runtime processing config returned by the extractor after environment scoping. | `domains/worker_chunk_text/src/startup/contracts.py` |
 
 ## Summary
 

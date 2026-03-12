@@ -4,7 +4,7 @@ from dataclasses import asdict
 from typing import Any
 
 from langchain_core.documents import Document
-from configs.chunking_scaffold import ChunkingStage
+from chunking.stages import ChunkingStage
 
 
 class CentralTextSplitter:

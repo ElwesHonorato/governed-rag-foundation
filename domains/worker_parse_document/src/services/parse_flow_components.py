@@ -36,7 +36,7 @@ class DocumentParserProcessor(BaseProcessor):
     ) -> dict[str, Any]:
         parser = self._parser_registry.resolve(source_key)
         parsed_payload = parser.parse(raw_text)
-        root_metadata = RootDocumentMetadata.build(
+        root_metadata = RootDocumentMetadata(
             doc_id=doc_id,
             source_key=source_key,
             timestamp=timestamp,

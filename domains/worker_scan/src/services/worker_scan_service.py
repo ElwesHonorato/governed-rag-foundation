@@ -76,7 +76,7 @@ class WorkerScanService(WorkerService):
         )
         return ProcessResult(
             run_id=work_item.destination_key,
-            root_metadata=RootDocumentMetadata.build(
+            root_metadata=RootDocumentMetadata(
                 doc_id=doc_id_from_source_key(work_item.source_key),
                 source_key=work_item.source_key,
                 timestamp="",

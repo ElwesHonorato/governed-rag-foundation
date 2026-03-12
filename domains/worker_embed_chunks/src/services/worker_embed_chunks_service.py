@@ -101,7 +101,7 @@ class WorkerEmbedChunksService(WorkerService):
         logger.info("Wrote embedding object '%s'", write_result.destination_key)
         return ProcessResult(
             run_id=write_result.chunk_id,
-            root_metadata=RootDocumentMetadata.build(
+            root_metadata=RootDocumentMetadata(
                 doc_id=write_result.doc_id,
                 source_key=chunk_payload.destination_key,
                 timestamp="",

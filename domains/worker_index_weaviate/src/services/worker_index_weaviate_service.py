@@ -120,7 +120,7 @@ class WorkerIndexWeaviateService(WorkerService):
         source_key = str(metadata.get("source_key") or "")
         return ProcessResult(
             run_id=resolved_chunk_id or resolved_doc_id,
-            root_metadata=RootDocumentMetadata.build(
+            root_metadata=RootDocumentMetadata(
                 doc_id=resolved_doc_id,
                 source_key=source_key,
                 timestamp=str(metadata.get("timestamp") or ""),

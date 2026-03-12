@@ -1,7 +1,7 @@
 """Chunking stage resolver for worker_chunk_text."""
 
-from chunking.stages import ChunkingStages
-from configs.chunking_strategies import CHUNKING_STRATEGIES, ChunkingStrategyKey
+from chunking.stage_contract import ChunkingStages, ChunkingStrategyKey
+from chunking.strategies import CHUNKING_STRATEGIES
 
 
 class ChunkingStagesResolver:

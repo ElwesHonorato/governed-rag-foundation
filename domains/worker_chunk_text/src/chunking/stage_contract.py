@@ -1,4 +1,4 @@
-"""Chunking stage containers for worker_chunk_text."""
+"""Shared stage contracts for worker_chunk_text chunking."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from dataclasses import asdict, dataclass
 from enum import Enum
 from typing import Any
 
-from chunking.params_contract import StageParams
+from chunking.params import StageParams
 from langchain_text_splitters import (
     RecursiveCharacterTextSplitter,
     TokenTextSplitter,
@@ -16,6 +16,17 @@ from langchain_text_splitters import (
 class ChunkingProcessorType(Enum):
     RECURSIVE = RecursiveCharacterTextSplitter
     TOKEN = TokenTextSplitter
+
+
+class ChunkingStrategyKey(str, Enum):
+    TXT = "txt"
+    MD = "md"
+    HTML = "html"
+    PDF = "pdf"
+    PY = "py"
+    JSON = "json"
+    CSV = "csv"
+    EML = "eml"
 
 
 @dataclass(slots=True)

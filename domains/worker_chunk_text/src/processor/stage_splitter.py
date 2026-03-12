@@ -3,8 +3,8 @@
 from dataclasses import asdict
 from typing import Any
 
+from chunking.stage_contract import ChunkingStage
 from langchain_core.documents import Document
-from chunking.stages import ChunkingStage
 
 
 class StageSplitter:

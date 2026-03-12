@@ -2,21 +2,8 @@
 
 from __future__ import annotations
 
-from enum import Enum
-
-from chunking.params_contract import RecursiveParams, TokenParams
-from chunking.stages import ChunkingProcessorType, ChunkingStage
-
-
-class ChunkingStrategyKey(str, Enum):
-    TXT = "txt"
-    MD = "md"
-    HTML = "html"
-    PDF = "pdf"
-    PY = "py"
-    JSON = "json"
-    CSV = "csv"
-    EML = "eml"
+from chunking.params import RecursiveParams, TokenParams
+from chunking.stage_contract import ChunkingProcessorType, ChunkingStage, ChunkingStrategyKey
 
 
 CHUNKING_STRATEGIES: dict[ChunkingStrategyKey, list[ChunkingStage]] = {

@@ -1,8 +1,8 @@
 import json
 from typing import Any, ClassVar, Iterator
 
+from chunking.stage_contract import ChunkingStage, ChunkingStages
 from processor.stage_splitter import StageSplitter
-from chunking.stages import ChunkingStage, ChunkingStages
 from langchain_core.documents import Document
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import Envelope, QueueGateway

@@ -1,15 +1,19 @@
-import json
 import logging
+import json
 from typing import Any
 
-from contracts.contracts import ParseProcessingConfigContract
-from pipeline_common.helpers.contracts import doc_id_from_source_key, utc_now_iso
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
-from pipeline_common.gateways.queue import StageQueue
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
+from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGateway
+from pipeline_common.helpers.contracts import doc_id_from_source_key, utc_now_iso
+from pipeline_common.provenance import source_content_hash
 from pipeline_common.startup.contracts import WorkerService
-from parsing.registry import ParserRegistry
+from services.parse_flow_components import (
+    DocumentParserProcessor,
+    ParseOutputMessageFactory,
+    ParseWorkItem,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -20,114 +24,157 @@ class WorkerParseDocumentService(WorkerService):
     def __init__(
         self,
         *,
-        stage_queue: StageQueue,
+        stage_queue: QueueGateway,
         object_storage: ObjectStorageGateway,
         lineage: LineageRuntimeGateway,
-        processing_config: ParseProcessingConfigContract,
-        parser_registry: ParserRegistry,
+        poll_interval_seconds: int,
+        storage_bucket: str,
+        output_prefix: str,
+        parser_processor: DocumentParserProcessor,
     ) -> None:
         """Initialize parse worker dependencies and runtime settings."""
-        self.stage_queue = stage_queue
-        self.object_storage = object_storage
-        self.lineage = lineage
-        self.parser_registry = parser_registry
-        self._initialize_runtime_config(processing_config)
+        self._queue_gateway = stage_queue
+        self._storage_gateway = object_storage
+        self._lineage_gateway = lineage
+        self._poll_interval_seconds = poll_interval_seconds
+        self._storage_bucket = storage_bucket
+        self._output_prefix = output_prefix
+        self._parser_processor = parser_processor
 
     def serve(self) -> None:
         """Run the parse worker loop by polling queue messages."""
         while True:
-            source_key = self._pop_queued_source_key()
-            if source_key is None:
+            message = self._queue_gateway.wait_for_message(
+                poll_interval_seconds=self._poll_interval_seconds,
+            )
+            input_uri = self._input_uri_from_message(message)
+            if input_uri is None:
                 continue
             try:
-                self.process_source_key(source_key)
+                self._handle_parse_request(input_uri)
             except Exception:
-                logger.exception("Failed processing source key '%s'", source_key)
+                message.nack(requeue=True)
+                logger.exception("Failed processing input URI '%s'; requeued message", input_uri)
+                continue
+            message.ack()
 
-    def process_source_key(self, source_key: str) -> None:
-        """Parse a single raw document key and publish downstream work."""
-        if not source_key.startswith(self.input_prefix) or source_key == self.input_prefix:
+    def _handle_parse_request(self, input_uri: str) -> None:
+        """Orchestrate one parse unit: read -> parse -> write -> enqueue."""
+        parse_job = self._build_parse_job(input_uri)
+        if parse_job is None:
             return
 
-        doc_id = doc_id_from_source_key(source_key)
-        destination_key = self._processed_key(doc_id)
-        self.lineage.start_run()
-        self.lineage.add_input(name=f"{self.storage_bucket}/{source_key}", platform=DatasetPlatform.S3)
-        self.lineage.add_output(name=f"{self.storage_bucket}/{destination_key}", platform=DatasetPlatform.S3)
-        if self._processed_exists(destination_key):
-            error_message = f"Processed document already exists: {destination_key}"
-            self.stage_queue.push_dlq_message(
-                storage_key=source_key,
-                doc_id=doc_id,
-                error=error_message,
-                failed_at=utc_now_iso(),
-            )
-            self.lineage.fail_run(error_message=error_message)
+        self._register_lineage_input(parse_job)
+        if self._skip_if_destination_exists(parse_job):
             return
 
         try:
-            payload = self._process_object(source_key, doc_id)
+            payload = self._build_processed_payload(parse_job)
+            self._write_processed_payload(parse_job, payload)
+            self._publish_parse_output(parse_job)
+            self._lineage_gateway.complete_run()
+            logger.info("Wrote processed document '%s'", parse_job.destination_key)
         except Exception as exc:
-            error_message = str(exc)
-            self.stage_queue.push_dlq_message(
-                storage_key=source_key,
-                doc_id=doc_id,
-                error=error_message,
-                failed_at=utc_now_iso(),
-            )
-            self.lineage.fail_run(error_message=error_message)
-            logger.exception("Failed parsing source key '%s'; sent to DLQ", source_key)
-            return
-        self._write_processed_object(destination_key, payload)
-        self.lineage.complete_run()
-        self._enqueue_processed_object(destination_key)
-        logger.info("Wrote processed document '%s'", destination_key)
+            self._handle_parse_failure(parse_job, str(exc))
+            logger.exception("Failed parsing source key '%s'; sent to DLQ", parse_job.source_key)
 
-    def _pop_queued_source_key(self) -> str | None:
-        """Pop one source key from parse queue when available."""
-        message = self.stage_queue.pop_message()
-        if message is None:
-            return None
-        return str(message["storage_key"])
-
-    def _processed_key(self, doc_id: str) -> str:
-        """Build the processed-stage key for a document id."""
-        return f"{self.output_prefix}{doc_id}.json"
-
-    def _processed_exists(self, destination_key: str) -> bool:
-        """Return whether the processed output already exists."""
-        return self.object_storage.object_exists(self.storage_bucket, destination_key)
-
-    def _process_object(self, source_key: str, doc_id: str) -> dict[str, Any]:
-        """Parse a source document and map it into fixed + parser payload fields."""
-        parser = self.parser_registry.resolve(source_key)
-        raw_document = self.object_storage.read_object(self.storage_bucket, source_key)
-        parsed_payload = parser.parse(raw_document.decode("utf-8", errors="ignore"))
-        return {
-            "doc_id": doc_id,
-            "source_key": source_key,
-            "timestamp": utc_now_iso(),
-            "security_clearance": self.security_clearance,
-            "parsed": parsed_payload,
-        }
-
-    def _write_processed_object(self, destination_key: str, payload: dict[str, Any]) -> None:
-        """Persist parsed document payload into the processed S3 stage."""
-        self.object_storage.write_object(
-            self.storage_bucket,
-            destination_key,
-            json.dumps(payload, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode("utf-8"),
-            content_type="application/json",
+    def _register_lineage_input(self, parse_job: ParseWorkItem) -> None:
+        self._lineage_gateway.start_run()
+        self._lineage_gateway.add_input(
+            name=f"{self._storage_bucket}/{parse_job.source_key}",
+            platform=DatasetPlatform.S3,
         )
 
-    def _enqueue_processed_object(self, destination_key: str) -> None:
-        """Publish chunking work for a newly produced processed document."""
-        self.stage_queue.push_produce_message(storage_key=destination_key)
+    def _skip_if_destination_exists(self, parse_job: ParseWorkItem) -> bool:
+        if not self._storage_gateway.object_exists(self._storage_bucket, parse_job.destination_key):
+            return False
+        logger.info(
+            "Skipping parse for source '%s' because destination already exists: '%s'",
+            parse_job.source_key,
+            parse_job.destination_key,
+        )
+        self._lineage_gateway.complete_run()
+        return True
 
-    def _initialize_runtime_config(self, processing_config: ParseProcessingConfigContract) -> None:
-        """Internal helper for initialize runtime config."""
-        self.poll_interval_seconds = processing_config.poll_interval_seconds
-        self.storage_bucket = processing_config.storage.bucket
-        self.input_prefix = processing_config.storage.input_prefix
-        self.output_prefix = processing_config.storage.output_prefix
-        self.security_clearance = processing_config.security.clearance
+    def _build_processed_payload(self, parse_job: ParseWorkItem) -> dict[str, Any]:
+        raw_payload = self._storage_gateway.read_object(uri=parse_job.input_uri)
+        raw_text = raw_payload.decode("utf-8", errors="ignore")
+        return self._parser_processor.build_payload(
+            source_key=parse_job.source_key,
+            doc_id=parse_job.doc_id,
+            raw_text=raw_text,
+            raw_content_hash=source_content_hash(raw_payload),
+            timestamp=utc_now_iso(),
+        )
+
+    def _write_processed_payload(self, parse_job: ParseWorkItem, payload: dict[str, Any]) -> None:
+        destination_uri = self._storage_gateway.build_uri(
+            self._storage_bucket,
+            parse_job.destination_key,
+        )
+        self._storage_gateway.write_object(
+            uri=destination_uri,
+            payload=json.dumps(payload, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode("utf-8"),
+            content_type="application/json",
+        )
+        self._lineage_gateway.add_output(
+            name=f"{self._storage_bucket}/{parse_job.destination_key}",
+            platform=DatasetPlatform.S3,
+        )
+
+    def _publish_parse_output(self, parse_job: ParseWorkItem) -> None:
+        destination_uri = self._storage_gateway.build_uri(
+            self._storage_bucket,
+            parse_job.destination_key,
+        )
+        self._queue_gateway.push(ParseOutputMessageFactory.build(input_uri=destination_uri).to_payload)
+
+    def _handle_parse_failure(self, parse_job: ParseWorkItem, error_message: str) -> None:
+        self._queue_gateway.push_dlq(
+            Envelope(
+                payload={
+                    "uri": parse_job.input_uri,
+                    "doc_id": parse_job.doc_id,
+                    "error": error_message,
+                    "failed_at": utc_now_iso(),
+                },
+            )
+            .to_payload
+        )
+        self._lineage_gateway.fail_run(error_message=error_message)
+
+    def _build_parse_job(self, input_uri: str) -> ParseWorkItem | None:
+        source_key = self._source_key_from_uri(input_uri)
+        doc_id = doc_id_from_source_key(source_key)
+        destination_key = f"{self._output_prefix}{doc_id}.json"
+        return ParseWorkItem(
+            input_uri=input_uri,
+            source_key=source_key,
+            doc_id=doc_id,
+            destination_key=destination_key,
+        )
+
+    def _input_uri_from_message(self, message: ConsumedMessage) -> str | None:
+        """Parse input URI from queue payload; route invalid payloads to DLQ."""
+        try:
+            envelope: Envelope = Envelope.from_dict(message.payload)
+            return str(envelope.payload)
+        except Exception as exc:
+            self._queue_gateway.push_dlq(
+                Envelope(
+                    payload={
+                        "error": str(exc),
+                        "message_payload": message.payload,
+                        "failed_at": utc_now_iso(),
+                    },
+                ).to_payload
+            )
+            message.ack()
+            logger.exception("Invalid parse queue message payload; sent to DLQ and acknowledged")
+            return None
+
+    def _source_key_from_uri(self, uri: str) -> str:
+        uri_prefix = self._storage_gateway.build_uri(self._storage_bucket, "")
+        if not uri.startswith(uri_prefix):
+            raise ValueError(f"Parse source URI must start with '{uri_prefix}': {uri}")
+        return uri.removeprefix(uri_prefix)

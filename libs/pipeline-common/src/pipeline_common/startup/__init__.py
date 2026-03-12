@@ -7,7 +7,6 @@ from pipeline_common.startup.contracts import (
     WorkerServiceFactory,
 )
 from pipeline_common.startup.job_properties import JobPropertiesParser
-from pipeline_common.startup.launcher import WorkerRuntimeLauncher
 from pipeline_common.startup.runtime_context import WorkerRuntimeContext
 from pipeline_common.startup.runtime_factory import RuntimeContextFactory
 
@@ -17,7 +16,6 @@ __all__ = [
     "WorkerConfigExtractor",
     "WorkerPollingContract",
     "WorkerRuntimeContext",
-    "WorkerRuntimeLauncher",
     "WorkerService",
     "WorkerServiceFactory",
 ]

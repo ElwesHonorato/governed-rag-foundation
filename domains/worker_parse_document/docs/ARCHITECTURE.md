@@ -57,11 +57,10 @@ Dependency direction:
 ```mermaid
 graph TD
     A[app.py] --> B[SettingsProvider and RuntimeContextFactory]
-    B --> C[WorkerRuntimeLauncher]
-    C --> D[ConfigExtractor]
-    C --> E[ServiceFactory]
-    E --> F[WorkerService]
-    F --> G[Queue and Storage and Lineage Gateways]
+    B --> C[ConfigExtractor]
+    C --> D[ServiceFactory]
+    D --> E[WorkerService]
+    E --> F[Queue and Storage and Lineage Gateways]
 ```
 
 # 5. Runtime Flow (Golden Path)
@@ -71,6 +70,10 @@ graph TD
 3. service_factory builds processing service.
 4. service enters infinite serve loop.
 5. item lifecycle: consume input -> start lineage -> process -> produce output -> complete or fail lineage.
+6. queue settlement policy:
+   - valid + success: `ack()`
+   - invalid payload: publish `parse_document.invalid_message` to DLQ, then `ack()`
+   - handling/processing failure: `nack(requeue=True)` so message can retry
 
 Shutdown behavior:
 - No explicit in-module shutdown orchestration.

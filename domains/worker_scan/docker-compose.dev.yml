@@ -1,0 +1,6 @@
+services:
+  pipeline-worker-scan:
+    volumes:
+      - ./domains/worker_scan/src:/app/src
+      - ./libs/pipeline-common/src:/pipeline-common/src
+      - ./registry:/app/registry

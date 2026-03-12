@@ -10,14 +10,13 @@ ENV POETRY_VIRTUALENVS_CREATE=false \
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir poetry
+RUN python3 -m pip install --no-cache-dir poetry
 
 COPY domains/worker_index_weaviate/pyproject.toml /app/pyproject.toml
-COPY domains/worker_index_weaviate/poetry.lock /app/poetry.lock
 RUN poetry install --only main --no-root
 
 COPY domains/worker_index_weaviate/src /app/src
 COPY libs/pipeline-common/src /pipeline-common/src
 COPY registry /app/registry
 
-CMD ["poetry", "run", "python", "-m", "app"]
+CMD ["poetry", "run", "python3", "-m", "app"]

@@ -13,7 +13,6 @@ WORKDIR /app
 RUN pip install --no-cache-dir poetry
 
 COPY domains/worker_chunk_text/pyproject.toml /app/pyproject.toml
-COPY domains/worker_chunk_text/poetry.lock /app/poetry.lock
 RUN poetry install --only main --no-root
 
 COPY domains/worker_chunk_text/src /app/src

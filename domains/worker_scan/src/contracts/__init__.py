@@ -1,15 +1,9 @@
 """Contracts package for worker_scan."""
 
-from contracts.contracts import (
-    ScanJobConfigContract,
-    ScanQueueConfigContract,
-    ScanStorageContract,
-    ScanWorkerConfigContract,
-)
+from contracts.startup import RawScanJobConfig, RuntimeScanJobConfig, ScanStorageContract
 
 __all__ = [
-    "ScanJobConfigContract",
-    "ScanQueueConfigContract",
+    "RawScanJobConfig",
+    "RuntimeScanJobConfig",
     "ScanStorageContract",
-    "ScanWorkerConfigContract",
 ]

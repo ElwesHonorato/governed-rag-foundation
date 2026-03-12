@@ -20,6 +20,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from pipeline_common.helpers.config import _optional_env
 from pipeline_common.gateways.lineage.settings import DataHubSettings
 from pipeline_common.gateways.object_storage.settings import S3StorageSettings
 from pipeline_common.gateways.queue.settings import QueueRuntimeSettings
@@ -54,6 +55,7 @@ class SettingsRequest:
 class SettingsBundle:
     """Bundle of loaded settings based on a requested capability set."""
 
+    env: str | None = None
     db: DBSettings | None = None
     storage: StorageSettings | None = None
     queue: QueueSettings | None = None
@@ -84,6 +86,12 @@ def load_datahub_settings_from_env() -> DataHubSettings:
 def load_cache_settings_from_env() -> CacheSettings:
     """Load cache settings from environment."""
     raise NotImplementedError("Cache settings loader is not implemented yet.")
+
+
+def load_env_name_from_env() -> str | None:
+    """Load runtime environment name from environment."""
+    env_name = _optional_env("ENV", "")
+    return env_name or None
 
 
 class SettingsProvider:
@@ -147,6 +155,7 @@ class SettingsProvider:
     def bundle(self) -> SettingsBundle:
         """Return the loaded settings bundle."""
         return SettingsBundle(
+            env=load_env_name_from_env(),
             db=self.db,
             storage=self.storage,
             queue=self.queue,

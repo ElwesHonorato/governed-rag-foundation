@@ -17,6 +17,7 @@ import json
 
 import logging
 import time
+from dataclasses import dataclass, field
 from typing import Any, Callable
 
 import pika
@@ -25,7 +26,31 @@ from pika.exceptions import AMQPError
 logger = logging.getLogger(__name__)
 
 
-class StageQueue:
+@dataclass
+class ConsumedMessage:
+    """A consumed queue message with explicit ack/nack controls."""
+
+    payload: dict[str, Any]
+    delivery_tag: int
+    _queue: "QueueGateway" = field(repr=False)
+    _settled: bool = field(default=False, init=False, repr=False)
+
+    def ack(self) -> None:
+        """Acknowledge the message once."""
+        if self._settled:
+            return
+        self._queue._ack(self.delivery_tag)
+        self._settled = True
+
+    def nack(self, *, requeue: bool = True) -> None:
+        """Negatively acknowledge the message once."""
+        if self._settled:
+            return
+        self._queue._nack(self.delivery_tag, requeue=requeue)
+        self._settled = True
+
+
+class QueueGateway:
     """Runtime facade for stage queue interactions.
 
     Layer:
@@ -66,17 +91,22 @@ class StageQueue:
         """Execute push dlq."""
         self._publish(self.dlq, payload)
 
-    def pop(self, timeout_seconds: int | None = None) -> dict[str, Any] | None:
-        """Execute pop."""
+    def pop_message(self, timeout_seconds: int | None = None) -> ConsumedMessage | None:
+        """Execute pop message with explicit ack/nack control."""
         consume_timeout = self.timeout_seconds if timeout_seconds is None else timeout_seconds
-        return self._consume(self.consume, timeout_seconds=consume_timeout)
-
-    def pop_message(self, timeout_seconds: int | None = None) -> dict[str, Any] | None:
-        """Execute pop message."""
-        payload = self.pop(timeout_seconds=timeout_seconds)
-        if payload is None:
+        consumed = self._consume(self.consume, timeout_seconds=consume_timeout)
+        if consumed is None:
             return None
-        return self.consume_contract(**payload)
+        consumed.payload = self.consume_contract(**consumed.payload)
+        return consumed
+
+    def wait_for_message(self, *, poll_interval_seconds: int) -> ConsumedMessage:
+        """Poll until one consumed message is available."""
+        while True:
+            message = self.pop_message()
+            if message is not None:
+                return message
+            time.sleep(poll_interval_seconds)
 
     def push_produce_message(self, **payload: Any) -> None:
         """Execute push produce message."""
@@ -98,7 +128,7 @@ class StageQueue:
             op_name=f"publish:{queue_name}",
         )
 
-    def _consume(self, queue_name: str, timeout_seconds: int) -> dict[str, Any] | None:
+    def _consume(self, queue_name: str, timeout_seconds: int) -> ConsumedMessage | None:
         """Internal helper for consume."""
         if not queue_name:
             return None
@@ -111,13 +141,40 @@ class StageQueue:
                 self._channel.queue_declare(queue=queue_name, durable=True)
                 method, _, body = self._channel.basic_get(queue=queue_name, auto_ack=False)
                 if method and body:
-                    self._channel.basic_ack(method.delivery_tag)
-                    return json.loads(body)
+                    return ConsumedMessage(
+                        payload=json.loads(body),
+                        delivery_tag=int(method.delivery_tag),
+                        _queue=self,
+                    )
             except (AMQPError, OSError, RuntimeError):
                 logger.exception("Queue consume failed; reconnecting and retrying")
                 self._reconnect()
             time.sleep(0.1)
         return None
+
+    def _ack(self, delivery_tag: int) -> None:
+        """Acknowledge one consumed message."""
+        self._retry_operation(
+            lambda: self._ack_once(delivery_tag),
+            op_name=f"ack:{delivery_tag}",
+        )
+
+    def _nack(self, delivery_tag: int, *, requeue: bool) -> None:
+        """Negative-ack one consumed message."""
+        self._retry_operation(
+            lambda: self._nack_once(delivery_tag, requeue=requeue),
+            op_name=f"nack:{delivery_tag}:requeue={requeue}",
+        )
+
+    def _ack_once(self, delivery_tag: int) -> None:
+        """Ack one delivery tag on the current channel."""
+        self._ensure_channel()
+        self._channel.basic_ack(delivery_tag)
+
+    def _nack_once(self, delivery_tag: int, *, requeue: bool) -> None:
+        """Nack one delivery tag on the current channel."""
+        self._ensure_channel()
+        self._channel.basic_nack(delivery_tag, requeue=requeue)
 
     def _publish_once(self, queue_name: str, body: str) -> None:
         """Publish payload body to one queue using the current channel."""

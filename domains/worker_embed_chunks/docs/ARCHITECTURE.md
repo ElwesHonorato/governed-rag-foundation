@@ -35,6 +35,7 @@ Design:
 - Composition root in src/app.py.
 - Startup extension points in src/startup/config_extractor.py and src/startup/service_factory.py.
 - Processing logic in src/services.
+- Embedding-vector compute path uses local deterministic execution.
 
 Patterns:
 - Composition Root.
@@ -57,11 +58,10 @@ Dependency direction:
 ```mermaid
 graph TD
     A[app.py] --> B[SettingsProvider and RuntimeContextFactory]
-    B --> C[WorkerRuntimeLauncher]
-    C --> D[ConfigExtractor]
-    C --> E[ServiceFactory]
-    E --> F[WorkerService]
-    F --> G[Queue and Storage and Lineage Gateways]
+    B --> C[ConfigExtractor]
+    C --> D[ServiceFactory]
+    D --> E[WorkerService]
+    E --> F[Queue and Storage and Lineage Gateways]
 ```
 
 # 5. Runtime Flow (Golden Path)
@@ -71,6 +71,11 @@ graph TD
 3. service_factory builds processing service.
 4. service enters infinite serve loop.
 5. item lifecycle: consume input -> start lineage -> process -> produce output -> complete or fail lineage.
+6. queue settlement policy:
+   - valid + success: `ack()`
+   - invalid payload: publish `embed_chunks.invalid_message` to DLQ, then `ack()`
+   - processing failure: publish `embed_chunks.failure` to DLQ, then `ack()`
+   - if failure DLQ publish fails: `nack(requeue=True)`
 
 Shutdown behavior:
 - No explicit in-module shutdown orchestration.

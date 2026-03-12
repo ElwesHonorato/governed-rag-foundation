@@ -1,0 +1,39 @@
+"""Deterministic provenance identity builders."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from typing import Any
+
+
+def canonical_json(value: Any) -> str:
+    """Return stable JSON encoding for hashing."""
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+
+
+def sha256_hex(payload: bytes | str) -> str:
+    """Return SHA-256 hex digest for bytes or UTF-8 text payloads."""
+    if isinstance(payload, str):
+        payload = payload.encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def source_content_hash(source_bytes: bytes) -> str:
+    """Hash source bytes for deterministic source version identity."""
+    return sha256_hex(source_bytes)
+
+
+def chunk_params_hash(chunker_params: dict[str, Any]) -> str:
+    """Hash canonical chunker params."""
+    return sha256_hex(canonical_json(chunker_params))
+
+
+def embedding_params_hash(embedder_params: dict[str, Any]) -> str:
+    """Hash canonical embedder params."""
+    return sha256_hex(canonical_json(embedder_params))
+
+
+def build_id(**kwargs: Any) -> str:
+    """Build deterministic identifier from keyword payload."""
+    return sha256_hex(canonical_json(kwargs))

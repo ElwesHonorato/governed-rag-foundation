@@ -31,8 +31,6 @@ These scripts centralize local infrastructure lifecycle for development and test
 ./stack.sh up worker_chunk_text
 ./stack.sh up worker_embed_chunks
 ./stack.sh up worker_index_weaviate
-./stack.sh up worker_manifest
-./stack.sh up worker_metrics
 ```
 
 All domains join the shared external Docker network `rag-local`, so services resolve each other by container service name when started independently.

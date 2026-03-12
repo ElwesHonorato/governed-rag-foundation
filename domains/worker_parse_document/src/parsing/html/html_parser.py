@@ -4,18 +4,18 @@ import json
 from typing import Any
 
 import trafilatura
-
-DEFAULT_TITLE = "Untitled"
+from pipeline_common.stages_contracts import Content
 
 
 class HtmlParser:
     """HTML parser adapter backed by trafilatura content extraction."""
+    VERSION = "1.0.0"
 
     def supported_extensions(self) -> tuple[str, ...]:
         """Execute supported extensions."""
         return ("html", "htm")
 
-    def parse(self, content: str) -> dict[str, Any]:
+    def parse(self, content: str) -> Content:
         """Extract parser payload fields from HTML content."""
         extracted_json = trafilatura.extract(
             content,
@@ -25,7 +25,6 @@ class HtmlParser:
             include_tables=False,
             favor_precision=True,
         )
-        title = DEFAULT_TITLE
         if isinstance(extracted_json, str):
             try:
                 parsed = json.loads(extracted_json)
@@ -35,12 +34,9 @@ class HtmlParser:
                 parsed_payload: dict[str, Any] = dict(parsed)
             else:
                 parsed_payload = {}
-            title = str(parsed_payload.get("title", "")).strip() or DEFAULT_TITLE
             text = str(parsed_payload.get("text", "")).strip()
             if text:
-                parsed_payload["title"] = title
-                parsed_payload["text"] = text
-                return parsed_payload
+                return Content(data=text)
 
         fallback_text = (
             trafilatura.extract(
@@ -52,4 +48,4 @@ class HtmlParser:
             )
             or ""
         ).strip()
-        return {"title": title, "text": fallback_text}
+        return Content(data=fallback_text)

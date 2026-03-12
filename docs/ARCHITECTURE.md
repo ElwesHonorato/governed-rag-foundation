@@ -56,10 +56,11 @@ Layering (observed in code):
 
 Patterns used:
 - Composition Root: each executable domain has explicit startup entrypoint.
-- Dependency Injection: startup launcher/factories inject runtime dependencies.
+- Dependency Injection: startup factories and worker-local composition inject runtime dependencies.
 - Factory: runtime context and gateway factories.
 - Ports & Adapters (partial): lineage gateway and governance catalog writer port.
 - Registry: job-key registry used by worker composition roots.
+- Dataclass Serialization: contract models expose explicit full-object and payload dictionary views.
 
 Why chosen:
 - Keep runtime paths explicit and testable.
@@ -77,6 +78,8 @@ Repository structure (architecture-relevant):
 
 Architecture document index (central references):
 - `docs/ARCHITECTURE.md` (this file)
+- `docs/patterns/chunk-embedding-provenance-registry.md`
+- `docs/patterns/dataclass-serialization.md`
 - `domains/docs/ARCHITECTURE.md`
 - `domains/gov_governance/docs/ARCHITECTURE.md`
 - `domains/worker_scan/docs/ARCHITECTURE.md`
@@ -84,8 +87,6 @@ Architecture document index (central references):
 - `domains/worker_chunk_text/docs/ARCHITECTURE.md`
 - `domains/worker_embed_chunks/docs/ARCHITECTURE.md`
 - `domains/worker_index_weaviate/docs/ARCHITECTURE.md`
-- `domains/worker_manifest/docs/ARCHITECTURE.md`
-- `domains/worker_metrics/docs/ARCHITECTURE.md`
 - `domains/app_rag_api/docs/ARCHITECTURE.md`
 - `domains/app_vector_ui/docs/ARCHITECTURE.md`
 - `libs/pipeline-common/src/pipeline_common/startup/docs/ARCHITECTURE.md`
@@ -127,10 +128,11 @@ graph TD
 
 Primary golden path (worker runtime):
 1. Worker entrypoint loads capability-scoped settings.
-2. Worker runtime factory builds lineage/storage/queue gateways and parsed job properties.
-3. Launcher extracts worker config, builds service, and calls `serve()`.
+2. Worker runtime factory builds lineage/storage/queue gateways, and parsed job properties.
+3. Worker entrypoint extracts worker config, builds service, and calls `serve()`.
 4. Worker service processes queue payloads and uses gateways.
-5. Lineage events are emitted to DataHub during run lifecycle.
+5. Queue consumers settle messages explicitly via `ack()` / `nack(requeue=...)` after each processing attempt.
+6. Lineage events are emitted to DataHub during run lifecycle.
 
 Secondary paths:
 - Governance apply path: load definitions -> resolve refs -> apply managers -> persist via DataHub adapter.
@@ -143,7 +145,7 @@ Shutdown/termination behavior:
 flowchart TD
     A[worker_*/app.py] --> B[SettingsProvider]
     B --> C[RuntimeContextFactory]
-    C --> D[WorkerRuntimeLauncher]
+    C --> D[Extract config + build service]
     D --> E[WorkerService.serve]
     E --> F[Queue/Storage/Lineage interactions]
 
@@ -164,17 +166,17 @@ flowchart TD
 
 `RuntimeContextFactory` (`pipeline_common.startup`)
 - Represents: worker runtime dependency assembler.
-- Why exists: centralize gateway construction and job-properties parsing.
+- Why exists: centralize gateway construction, and job-properties parsing.
 - Depends on: settings bundle, gateway factories, DataHub job key.
 - Depended on by: worker entrypoints.
 - Safe extension: keep worker-specific logic out of shared factory.
 
-`WorkerRuntimeLauncher` (`pipeline_common.startup`)
-- Represents: standard worker startup orchestrator.
-- Why exists: enforce consistent startup sequence.
-- Depends on: runtime factory + worker extractor/factory implementations.
-- Depended on by: all worker domains.
-- Safe extension: preserve startup step ordering.
+`StageQueue` and `ConsumedMessage` (`pipeline_common.gateways.queue`)
+- Represents: AMQP queue adapter plus explicit message settlement handle.
+- Why exists: prevent eager-ack message loss during longer processing windows.
+- Depends on: broker connection/channel lifecycle and worker-defined failure policy.
+- Depended on by: queue-driven workers (`parse/chunk/embed/index`).
+- Safe extension: preserve one-time settlement semantics and explicit worker-side `ack`/`nack` decisions.
 
 `LineageRuntimeGateway` and `DataHubRuntimeLineage` (`pipeline_common.gateways.lineage`)
 - Represents: runtime lineage emission abstraction and DataHub adapter.
@@ -234,7 +236,7 @@ Confirmed roadmap:
 # 10. Anti-Patterns / What Not To Do
 
 - Do not create reverse dependencies from `libs/` into `domains/`.
-- Do not bypass shared startup abstractions for workers without clear justification.
+- Do not bypass shared startup contracts for workers without clear justification.
 - Do not scatter direct SDK calls through worker services when gateway adapters already exist.
 - Do not put non-documentation runtime code under `docs/`.
 - Do not treat architecture docs as static; update them with significant structural changes.

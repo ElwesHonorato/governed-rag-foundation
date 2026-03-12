@@ -1,14 +1,15 @@
-import json
 import logging
+import json
 from typing import Any
 
-from contracts.contracts import IndexWeaviateProcessingConfigContract
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
-from pipeline_common.gateways.queue import StageQueue
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
-from pipeline_common.startup.contracts import WorkerService
+from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGateway
+from pipeline_common.helpers.contracts import utc_now_iso
 from services.weaviate_gateway import upsert_chunk, verify_query
+from pipeline_common.startup.contracts import WorkerService
+from services.index_weaviate_processor import IndexWeaviateProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -19,123 +20,147 @@ class WorkerIndexWeaviateService(WorkerService):
     def __init__(
         self,
         *,
-        stage_queue: StageQueue,
+        stage_queue: QueueGateway,
         object_storage: ObjectStorageGateway,
         lineage: LineageRuntimeGateway,
-        processing_config: IndexWeaviateProcessingConfigContract,
+        poll_interval_seconds: int,
+        storage_bucket: str,
+        processor: IndexWeaviateProcessor,
         weaviate_url: str,
+        embeddings_suffix: str = ".embedding.json",
     ) -> None:
         """Initialize indexing worker dependencies and runtime settings."""
-        self.stage_queue = stage_queue
-        self.object_storage = object_storage
-        self.lineage = lineage
-        self.weaviate_url = weaviate_url
-        self._initialize_runtime_config(processing_config)
+        self._queue_gateway = stage_queue
+        self._storage_gateway = object_storage
+        self._lineage_gateway = lineage
+        self._weaviate_url = weaviate_url
+        self._poll_interval_seconds = poll_interval_seconds
+        self._storage_bucket = storage_bucket
+        self._processor = processor
+        self._embeddings_suffix = embeddings_suffix
 
     def serve(self) -> None:
         """Run the indexing worker loop by polling queue messages."""
         while True:
-            request = self._pop_queued_request()
+            message = self._queue_gateway.wait_for_message(
+                poll_interval_seconds=self._poll_interval_seconds,
+            )
+            request = self._request_from_message(message)
             if request is None:
                 continue
-            embeddings_key, doc_id = request
             try:
-                self.process_embeddings_key(embeddings_key, doc_id)
+                self._handle_index_request(request)
             except Exception:
-                self.stage_queue.push_dlq_message(embeddings_key=embeddings_key, doc_id=doc_id)
-                logger.exception("Failed indexing embeddings key '%s'; sent to DLQ", embeddings_key)
+                if self._handle_index_failure(request):
+                    message.ack()
+                else:
+                    message.nack(requeue=True)
+                continue
+            message.ack()
 
-    def process_embeddings_key(self, embeddings_key: str, doc_id: str) -> None:
-        """Index one embedding artifact and write indexing status output."""
-        if not embeddings_key.startswith(self.input_prefix) or embeddings_key == self.input_prefix:
-            return
-        if not embeddings_key.endswith(self.embeddings_suffix):
+    def _handle_index_request(self, uri: str) -> None:
+        index_job = self._build_index_job(uri)
+        if index_job is None:
             return
 
-        self.lineage.start_run()
-        self.lineage.add_input(name=f"{self.storage_bucket}/{embeddings_key}", platform=DatasetPlatform.S3)
+        self._register_lineage_input(index_job["uri"])
         try:
-            payload = self._read_embeddings_object(embeddings_key)
-            resolved_doc_id = str(payload.get("doc_id", doc_id))
+            payload = self._read_embeddings_payload(index_job["uri"])
+            resolved_doc_id = str(payload.get("doc_id", ""))
             resolved_chunk_id = str(payload.get("chunk_id", ""))
-            destination_key = self._indexed_key(resolved_doc_id, resolved_chunk_id)
-            self.lineage.add_output(name=f"{self.storage_bucket}/{destination_key}", platform=DatasetPlatform.S3)
-            if self._indexed_exists(destination_key):
-                self.stage_queue.push_dlq_message(embeddings_key=embeddings_key, doc_id=resolved_doc_id)
-                self.lineage.fail_run(error_message=f"Index status already exists: {destination_key}")
+            destination_key = self._processor.build_indexed_key(resolved_doc_id, resolved_chunk_id)
+            self._lineage_gateway.add_output(
+                name=f"{self._storage_bucket}/{destination_key}",
+                platform=DatasetPlatform.S3,
+            )
+            if self._storage_gateway.object_exists(self._storage_bucket, destination_key):
+                self._send_index_failure(index_job["uri"])
+                self._lineage_gateway.fail_run(error_message=f"Index status already exists: {destination_key}")
                 return
 
             self._upsert_embeddings(payload)
             self._write_indexed_object(destination_key, resolved_doc_id, resolved_chunk_id)
-            self.lineage.complete_run()
+            self._lineage_gateway.complete_run()
             logger.info("Wrote indexed status '%s'", destination_key)
         except Exception as exc:
-            self.lineage.fail_run(error_message=str(exc))
+            self._lineage_gateway.fail_run(error_message=str(exc))
             raise
 
-    def _pop_queued_request(self) -> tuple[str, str] | None:
-        """Pop one indexing request from queue when available."""
-        message = self.stage_queue.pop_message()
-        if message is None:
-            return None
-        return str(message["embeddings_key"]), str(message["doc_id"])
+    def _register_lineage_input(self, uri: str) -> None:
+        self._lineage_gateway.start_run()
+        self._lineage_gateway.add_input(
+            name=uri,
+            platform=DatasetPlatform.S3,
+        )
 
-    def _read_embeddings_object(self, source_key: str) -> dict[str, Any]:
-        """Read and decode embeddings-stage payload."""
-        raw_payload = self.object_storage.read_object(self.storage_bucket, source_key)
-        return dict(json.loads(raw_payload.decode("utf-8", errors="ignore")))
+    def _send_index_failure(self, uri: str) -> None:
+        self._queue_gateway.push_dlq(
+            Envelope(
+                payload={"uri": uri},
+            ).to_payload
+        )
+
+    def _handle_index_failure(self, uri: str) -> bool:
+        """Route failed index request to DLQ; return True when message can be acked."""
+        try:
+            self._send_index_failure(uri)
+        except Exception:
+            logger.exception(
+                "Failed indexing URI '%s' and failed DLQ publish; requeueing message",
+                uri,
+            )
+            return False
+        logger.exception("Failed indexing URI '%s'; sent to DLQ", uri)
+        return True
+
+    def _build_index_job(self, uri: str) -> dict[str, str] | None:
+        if not uri.endswith(self._embeddings_suffix):
+            return None
+        return {"uri": uri}
+
+    def _read_embeddings_payload(self, uri: str) -> dict[str, Any]:
+        raw_payload = self._storage_gateway.read_object(uri=uri)
+        return self._processor.read_embeddings_payload(raw_payload)
 
     def _upsert_embeddings(self, payload: dict[str, Any]) -> None:
-        """Upsert embedding record(s) into Weaviate."""
-        if isinstance(payload.get("embeddings"), list):
-            items = payload.get("embeddings", [])
-        else:
-            items = [payload]
+        items = self._processor.build_upsert_items(payload)
         for item in items:
-            metadata = dict(item.get("metadata", {}))
+            properties = dict(item.get("properties", {}))
+            vector = list(item.get("vector", []))
             chunk_id = str(item["chunk_id"])
-            vector = item.get("vector", [])
             upsert_chunk(
-                self.weaviate_url,
+                self._weaviate_url,
                 chunk_id=chunk_id,
                 vector=vector,
-                properties={
-                    "chunk_id": chunk_id,
-                    "doc_id": metadata.get("doc_id"),
-                    "chunk_text": metadata.get("chunk_text"),
-                    "source_key": metadata.get("source_key"),
-                    "security_clearance": metadata.get("security_clearance"),
-                },
+                properties=properties,
             )
 
-    def _indexed_key(self, doc_id: str, chunk_id: str) -> str:
-        """Build the indexed-stage key for one document chunk."""
-        if chunk_id:
-            return f"{self.output_prefix}{doc_id}/{chunk_id}.indexed.json"
-        return f"{self.output_prefix}{doc_id}.indexed.json"
-
-    def _indexed_exists(self, destination_key: str) -> bool:
-        """Return whether the indexing status output already exists."""
-        return self.object_storage.object_exists(self.storage_bucket, destination_key)
-
     def _write_indexed_object(self, destination_key: str, doc_id: str, chunk_id: str) -> None:
-        """Persist indexed status payload into the indexes S3 stage."""
-        status_payload: dict[str, Any] = {"doc_id": doc_id, "status": "indexed"}
-        if chunk_id:
-            status_payload["chunk_id"] = chunk_id
-        self.object_storage.write_object(
-            self.storage_bucket,
-            destination_key,
-            json.dumps(status_payload, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode("utf-8"),
+        status_payload = self._processor.build_index_status_payload(doc_id, chunk_id)
+        destination_uri = self._storage_gateway.build_uri(self._storage_bucket, destination_key)
+        self._storage_gateway.write_object(
+            uri=destination_uri,
+            payload=json.dumps(status_payload, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode("utf-8"),
             content_type="application/json",
         )
-        result = verify_query(self.weaviate_url, "logistics")
+        result = verify_query(self._weaviate_url, "logistics")
         logger.info("Indexed doc_id '%s' verify=%s", doc_id, bool(result))
 
-    def _initialize_runtime_config(self, processing_config: IndexWeaviateProcessingConfigContract) -> None:
-        """Load runtime config values into worker state."""
-        self.poll_interval_seconds = processing_config.poll_interval_seconds
-        self.storage_bucket = processing_config.storage.bucket
-        self.input_prefix = processing_config.storage.input_prefix
-        self.output_prefix = processing_config.storage.output_prefix
-        self.embeddings_suffix = ".embedding.json"
+    def _request_from_message(self, message: ConsumedMessage) -> str | None:
+        """Parse index request from queue payload; route invalid payloads to DLQ."""
+        try:
+            envelope: Envelope = Envelope.from_dict(message.payload)
+            return str(envelope.payload)
+        except Exception as exc:
+            self._queue_gateway.push_dlq(
+                Envelope(
+                    payload={
+                        "error": str(exc),
+                        "message_payload": message.payload,
+                        "failed_at": utc_now_iso(),
+                    },
+                ).to_payload
+            )
+            message.ack()
+            logger.exception("Invalid index queue message payload; sent to DLQ and acknowledged")
+            return None

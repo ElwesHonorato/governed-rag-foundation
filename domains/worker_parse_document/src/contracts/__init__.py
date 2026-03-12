@@ -1,19 +1,15 @@
 """Contracts package for worker_parse_document."""
 
-from contracts.contracts import (
-    ParseJobConfigContract,
-    ParseProcessingConfigContract,
-    ParseQueueConfigContract,
+from contracts.startup import (
     ParseSecurityConfigContract,
     ParseStorageConfigContract,
-    ParseWorkerConfigContract,
+    RawParseJobConfig,
+    RuntimeParseJobConfig,
 )
 
 __all__ = [
-    "ParseJobConfigContract",
-    "ParseProcessingConfigContract",
-    "ParseQueueConfigContract",
     "ParseSecurityConfigContract",
     "ParseStorageConfigContract",
-    "ParseWorkerConfigContract",
+    "RawParseJobConfig",
+    "RuntimeParseJobConfig",
 ]

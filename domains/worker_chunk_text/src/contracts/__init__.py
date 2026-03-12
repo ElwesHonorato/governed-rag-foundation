@@ -11,7 +11,6 @@ from contracts.contracts import (
     ChunkTextProcessingConfigContract,
     ChunkTextQueueConfigContract,
     ChunkTextStorageConfigContract,
-    ChunkTextWorkerConfigContract,
     ChunkMetadata,
 )
 
@@ -26,6 +25,5 @@ __all__ = [
     "ChunkTextProcessingConfigContract",
     "ChunkTextQueueConfigContract",
     "ChunkTextStorageConfigContract",
-    "ChunkTextWorkerConfigContract",
     "ChunkMetadata",
 ]

@@ -1,6 +1,6 @@
 """worker_chunk_text entrypoint."""
 
-from contracts.contracts import ChunkTextWorkerConfigContract
+from contracts.contracts import ChunkTextJobConfigContract
 from registry import DataHubDataJobKey, DataHubPipelineJobs, GovernedRagJobId
 from pipeline_common.settings import SettingsBundle, SettingsProvider, SettingsRequest
 from pipeline_common.startup import (
@@ -26,7 +26,9 @@ def run() -> None:
         settings_bundle=settings,
     ).build()
 
-    worker_config: ChunkTextWorkerConfigContract = ChunkTextConfigExtractor().extract(
+    worker_config: ChunkTextJobConfigContract = ChunkTextConfigExtractor(
+        env=runtime_context.env,
+    ).extract(
         runtime_context.job_properties
     )
     service: WorkerChunkingService = ChunkTextServiceFactory().build(runtime_context, worker_config)

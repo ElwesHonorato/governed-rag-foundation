@@ -65,21 +65,6 @@ class ChunkTextProcessingConfigContract:
 
 
 @dataclass(frozen=True)
-class ChunkTextWorkerConfigContract:
-    storage: ChunkTextStorageConfigContract
-    poll_interval_seconds: int
-    queue_config: ChunkTextQueueConfigContract
-
-    @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> ChunkTextWorkerConfigContract:
-        return cls(
-            storage=ChunkTextStorageConfigContract.from_dict(payload["storage"]),
-            poll_interval_seconds=int(payload["poll_interval_seconds"]),
-            queue_config=ChunkTextQueueConfigContract.from_dict(payload["queue_config"]),
-        )
-
-
-@dataclass(frozen=True)
 class ChunkingExecutionResult:
     chunk_count_expected: int
     chunk_count_written: int

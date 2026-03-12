@@ -1,40 +1,34 @@
 """Service graph assembly for worker_chunk_text startup."""
 
-from contracts.contracts import ChunkTextStorageConfigContract, ChunkTextWorkerConfigContract
+from contracts.contracts import ChunkTextJobConfigContract
 from configs.chunking_scaffold import ChunkingStagesResolver
 from pipeline_common.startup import WorkerRuntimeContext, WorkerServiceFactory
 from services.chunk_manifest_writer import ChunkManifestWriter
 from services.chunk_text_processor import ChunkTextProcessor
 from services.worker_chunking_service import WorkerChunkingService
-from startup.storage_config_builder import EnvStorageConfigBuilder
 
 
-class ChunkTextServiceFactory(WorkerServiceFactory[ChunkTextWorkerConfigContract, WorkerChunkingService]):
+class ChunkTextServiceFactory(WorkerServiceFactory[ChunkTextJobConfigContract, WorkerChunkingService]):
     """Build chunk_text service from runtime context and typed config."""
 
     def build(
         self,
         runtime: WorkerRuntimeContext,
-        worker_config: ChunkTextWorkerConfigContract,
+        worker_config: ChunkTextJobConfigContract,
     ) -> WorkerChunkingService:
         """Construct worker chunk_text service object graph."""
-        storage_config: ChunkTextStorageConfigContract = EnvStorageConfigBuilder(
-            env=runtime.env,
-            storage_config=worker_config.storage,
-        ).build()
-        
         chunking_resolver: ChunkingStagesResolver = ChunkingStagesResolver()
 
         processor: ChunkTextProcessor = ChunkTextProcessor(
             object_storage=runtime.object_storage_gateway,
-            storage_bucket=storage_config.bucket,
-            output_prefix=storage_config.output_prefix,
+            storage_bucket=worker_config.storage.bucket,
+            output_prefix=worker_config.storage.output_prefix,
         )
 
         manifest_writer: ChunkManifestWriter = ChunkManifestWriter(
             object_storage=runtime.object_storage_gateway,
-            storage_bucket=storage_config.bucket,
-            manifest_prefix=storage_config.manifest_prefix,
+            storage_bucket=worker_config.storage.bucket,
+            manifest_prefix=worker_config.storage.manifest_prefix,
         )
         return WorkerChunkingService(
             queue_gateway=runtime.stage_queue_gateway,

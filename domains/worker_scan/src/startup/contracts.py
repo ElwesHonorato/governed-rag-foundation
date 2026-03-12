@@ -29,12 +29,17 @@ class RuntimeScanStorageConfig:
     output_prefix: str
 
     @classmethod
-    def from_raw(cls, raw: RawScanStorageConfig) -> RuntimeScanStorageConfig:
+    def from_raw(
+        cls,
+        raw: RawScanStorageConfig,
+        *,
+        env: str | None,
+    ) -> RuntimeScanStorageConfig:
         """Build runtime storage config from raw startup config."""
         return cls(
             bucket=raw.bucket,
-            source_prefix=raw.source_prefix,
-            output_prefix=raw.output_prefix,
+            source_prefix=f"{env}/{raw.source_prefix}",
+            output_prefix=f"{env}/{raw.output_prefix}",
         )
 
 
@@ -60,4 +65,3 @@ class RuntimeScanJobConfig:
 
     storage: RuntimeScanStorageConfig
     poll_interval_seconds: int
-

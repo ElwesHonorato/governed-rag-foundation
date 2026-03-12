@@ -14,12 +14,17 @@ from startup.contracts import (
 class IndexWeaviateConfigExtractor(WorkerConfigExtractor[RuntimeIndexWeaviateJobConfig]):
     """Parse and validate worker_index_weaviate config from job properties."""
 
-    def extract(self, job_properties: Mapping[str, Any]) -> RuntimeIndexWeaviateJobConfig:
+    def extract(
+        self,
+        job_properties: Mapping[str, Any],
+        *,
+        env: str | None = None,
+    ) -> RuntimeIndexWeaviateJobConfig:
         """Extract typed index_weaviate worker config."""
         raw_job_config_payload = job_properties["job"]
         raw_job_config: RawIndexWeaviateJobConfig = RawIndexWeaviateJobConfig.from_dict(raw_job_config_payload)
         return RuntimeIndexWeaviateJobConfig(
-            storage=RuntimeIndexWeaviateStorageConfig.from_raw(raw_job_config.storage),
+            storage=RuntimeIndexWeaviateStorageConfig.from_raw(raw_job_config.storage, env=env),
             poll_interval_seconds=raw_job_config.poll_interval_seconds,
             weaviate_url=_required_env("WEAVIATE_URL"),
         )

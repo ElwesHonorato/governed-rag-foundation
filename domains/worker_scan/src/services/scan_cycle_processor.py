@@ -38,21 +38,6 @@ class StorageScanCycleProcessor:
     def destination_prefix(self) -> str:
         return self._destination_prefix
 
-    def plan_work(self, keys: list[str]) -> list[ScanWorkItem]:
-        """Plan source objects that should be promoted this cycle."""
-        return [
-            ScanWorkItem(
-                source_key=key,
-                destination_key=self.destination_key(key),
-            )
-            for key in keys
-            if self.is_candidate_key(key)
-        ]
-
-    def is_candidate_key(self, key: str) -> bool:
-        """Return True when a key is a processable source object."""
-        return key.startswith(self._source_prefix) and key != self._source_prefix
-
     def destination_key(self, source_key: str) -> str:
         """Map a source key to its destination key."""
         return source_key.replace(self._source_prefix, self._destination_prefix, 1)

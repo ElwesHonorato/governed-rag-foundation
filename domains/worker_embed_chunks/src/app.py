@@ -28,6 +28,7 @@ def run() -> None:
 
     runtime_job_config: RuntimeEmbedChunksJobConfig = EmbedChunksConfigExtractor().extract(
         runtime_context.job_properties,
+        env=runtime_context.env,
     )
     service: WorkerEmbedChunksService = EmbedChunksServiceFactory().build(runtime_context, runtime_job_config)
     service.serve()

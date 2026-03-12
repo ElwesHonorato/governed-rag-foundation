@@ -27,11 +27,16 @@ class RuntimeIndexWeaviateStorageConfig:
     output_prefix: str
 
     @classmethod
-    def from_raw(cls, raw: RawIndexWeaviateStorageConfig) -> RuntimeIndexWeaviateStorageConfig:
+    def from_raw(
+        cls,
+        raw: RawIndexWeaviateStorageConfig,
+        *,
+        env: str | None,
+    ) -> RuntimeIndexWeaviateStorageConfig:
         """Build runtime storage config from raw startup config."""
         return cls(
             bucket=raw.bucket,
-            output_prefix=raw.output_prefix,
+            output_prefix=f"{env}/{raw.output_prefix}",
         )
 
 
@@ -58,4 +63,3 @@ class RuntimeIndexWeaviateJobConfig:
     storage: RuntimeIndexWeaviateStorageConfig
     poll_interval_seconds: int
     weaviate_url: str
-

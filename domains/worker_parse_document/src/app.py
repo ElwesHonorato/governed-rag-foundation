@@ -26,7 +26,10 @@ def run() -> None:
         settings_bundle=settings,
     ).build()
 
-    runtime_job_config: RuntimeParseJobConfig = ParseConfigExtractor().extract(runtime_context.job_properties)
+    runtime_job_config: RuntimeParseJobConfig = ParseConfigExtractor().extract(
+        runtime_context.job_properties,
+        env=runtime_context.env,
+    )
     service: WorkerParseDocumentService = ParseServiceFactory().build(runtime_context, runtime_job_config)
     service.serve()
 

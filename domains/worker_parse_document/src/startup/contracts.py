@@ -27,11 +27,16 @@ class RuntimeParseStorageConfig:
     output_prefix: str
 
     @classmethod
-    def from_raw(cls, raw: RawParseStorageConfig) -> RuntimeParseStorageConfig:
+    def from_raw(
+        cls,
+        raw: RawParseStorageConfig,
+        *,
+        env: str | None,
+    ) -> RuntimeParseStorageConfig:
         """Build runtime storage config from raw startup config."""
         return cls(
             bucket=raw.bucket,
-            output_prefix=raw.output_prefix,
+            output_prefix=f"{env}/{raw.output_prefix}",
         )
 
 
@@ -67,4 +72,3 @@ class RuntimeParseJobConfig:
     storage: RuntimeParseStorageConfig
     poll_interval_seconds: int
     security: RuntimeParseSecurityConfig
-

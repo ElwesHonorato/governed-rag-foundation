@@ -10,11 +10,16 @@ from startup.contracts import RawScanJobConfig, RuntimeScanJobConfig, RuntimeSca
 class ScanConfigExtractor(WorkerConfigExtractor[RuntimeScanJobConfig]):
     """Parse and validate worker_scan config from DataHub job properties."""
 
-    def extract(self, job_properties: Mapping[str, Any]) -> RuntimeScanJobConfig:
+    def extract(
+        self,
+        job_properties: Mapping[str, Any],
+        *,
+        env: str | None = None,
+    ) -> RuntimeScanJobConfig:
         """Extract typed scan worker config."""
         raw_job_config_payload = job_properties["job"]
         raw_job_config: RawScanJobConfig = RawScanJobConfig.from_dict(raw_job_config_payload)
         return RuntimeScanJobConfig(
-            storage=RuntimeScanStorageConfig.from_raw(raw_job_config.storage),
+            storage=RuntimeScanStorageConfig.from_raw(raw_job_config.storage, env=env),
             poll_interval_seconds=raw_job_config.poll_interval_seconds,
         )

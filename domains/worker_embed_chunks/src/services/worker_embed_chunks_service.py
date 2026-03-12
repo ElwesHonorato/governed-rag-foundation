@@ -1,11 +1,13 @@
 import logging
 import uuid
+from pathlib import Path
 
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGateway
-from pipeline_common.helpers.contracts import utc_now_iso
+from pipeline_common.stages_contracts import ProcessResult, ProcessorContext, SourceDocumentMetadata
+from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata
 from pipeline_common.startup.contracts import WorkerService
 from services.embed_flow import EmbedWorkItem
 from services.embed_chunks_processor import ChunkArtifactPayload, EmbedChunksProcessor
@@ -52,9 +54,13 @@ class WorkerEmbedChunksService(WorkerService):
                     work_item.uri,
                     source_key=source_key,
                 )
-                output_uri = self._write_embedding_artifact(chunk_payload)
-                self._enqueue_embeddings_object(uri=output_uri)
-                self._register_embedding_output_lineage(uri=output_uri)
+                process_result: ProcessResult = self._transform_chunk_to_embeddings(
+                    chunk_payload=chunk_payload,
+                    input_uri=work_item.uri,
+                )
+                output_uri = self._output_uri_from_process_result(process_result)
+                self._enqueue_embeddings_object(output_uri)
+                self._register_embedding_output_lineage(output_uri)
             except Exception as exc:
                 self._lineage_gateway.fail_run(error_message=str(exc))
                 message.nack(requeue=True)
@@ -81,14 +87,37 @@ class WorkerEmbedChunksService(WorkerService):
         raw_payload = self._storage_gateway.read_object(uri=uri)
         return self._processor.read_chunk_payload(raw_payload, source_key=source_key)
 
-    def _write_embedding_artifact(self, chunk_payload: ChunkArtifactPayload) -> str:
-        """Write one embeddings artifact and return its output URI."""
+    def _transform_chunk_to_embeddings(
+        self,
+        *,
+        chunk_payload: ChunkArtifactPayload,
+        input_uri: str,
+    ) -> ProcessResult:
+        """Write one embeddings artifact and return the process result."""
         write_result = self._processor.write_embedding_artifact(
             chunk_payload,
             embedding_run_id=uuid.uuid4().hex,
         )
         logger.info("Wrote embedding object '%s'", write_result.destination_key)
-        return self._processor.output_uri(write_result.destination_key)
+        return ProcessResult(
+            run_id=write_result.chunk_id,
+            source_metadata=SourceDocumentMetadata.build(
+                doc_id=write_result.doc_id,
+                source_key=chunk_payload.destination_key,
+                timestamp="",
+                security_clearance="",
+                source_type=Path(chunk_payload.destination_key).suffix.lower().lstrip("."),
+                content_type="application/json",
+                source_content_hash=chunk_payload.chunk_record.chunk_text_hash,
+            ),
+            input_uri=input_uri,
+            processor_context=ProcessorContext(params_hash="", params=[]),
+            processor=ProcessorMetadata(name="EmbedChunksProcessor", version="1.0.0"),
+            result={
+                "destination_key": write_result.destination_key,
+                "output_uri": self._processor.output_uri(write_result.destination_key),
+            },
+        )
 
     def _enqueue_embeddings_object(self, uri: str) -> None:
         self._queue_gateway.push(
@@ -96,6 +125,10 @@ class WorkerEmbedChunksService(WorkerService):
                 payload=uri,
             ).to_payload
         )
+
+    def _output_uri_from_process_result(self, process_result: ProcessResult) -> str:
+        """Extract the written output URI from the process result."""
+        return str(process_result.result["output_uri"])
 
     def _work_item_from_message(self, message: ConsumedMessage) -> EmbedWorkItem:
         """Parse source URI from queue payload."""

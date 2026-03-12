@@ -1,11 +1,13 @@
 import logging
+from pathlib import Path
 from typing import Any
 
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGateway
-from pipeline_common.helpers.contracts import utc_now_iso
+from pipeline_common.stages_contracts import ProcessResult, ProcessorContext, SourceDocumentMetadata
+from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata
 from services.index_flow import IndexStatusWriter, IndexWorkItem
 from services.weaviate_gateway import upsert_chunk, verify_query
 from pipeline_common.startup.contracts import WorkerService
@@ -49,8 +51,11 @@ class WorkerIndexWeaviateService(WorkerService):
                 work_item = self._work_item_from_message(message)
                 self._register_lineage_input(work_item.uri)
                 payload = self._read_embeddings_payload(work_item.uri)
-                output_uri = self._index_embeddings_payload(payload)
-                self._register_index_output_lineage(uri=output_uri)
+                process_result: ProcessResult = self._index_embeddings_payload(
+                    payload=payload,
+                    input_uri=work_item.uri,
+                )
+                self._register_index_output_lineage(self._output_uri_from_process_result(process_result))
             except Exception as exc:
                 self._lineage_gateway.fail_run(error_message=str(exc))
                 message.nack(requeue=True)
@@ -99,14 +104,43 @@ class WorkerIndexWeaviateService(WorkerService):
         result = verify_query(self._weaviate_url, "logistics")
         logger.info("Indexed doc_id '%s' verify=%s", doc_id, bool(result))
 
-    def _index_embeddings_payload(self, payload: dict[str, Any]) -> str:
-        """Index one embeddings payload and return the output URI."""
+    def _index_embeddings_payload(
+        self,
+        *,
+        payload: dict[str, Any],
+        input_uri: str,
+    ) -> ProcessResult:
+        """Index one embeddings payload and return the process result."""
         resolved_doc_id = str(payload.get("doc_id", ""))
         resolved_chunk_id = str(payload.get("chunk_id", ""))
         destination_key = self._processor.build_indexed_key(resolved_doc_id, resolved_chunk_id)
         self._upsert_embeddings(payload)
         self._write_indexed_object(destination_key, resolved_doc_id, resolved_chunk_id)
-        return self._processor.output_uri(destination_key)
+        metadata = dict(payload.get("metadata", {}))
+        source_key = str(metadata.get("source_key") or "")
+        return ProcessResult(
+            run_id=resolved_chunk_id or resolved_doc_id,
+            source_metadata=SourceDocumentMetadata.build(
+                doc_id=resolved_doc_id,
+                source_key=source_key,
+                timestamp=str(metadata.get("timestamp") or ""),
+                security_clearance=str(metadata.get("security_clearance") or ""),
+                source_type=Path(source_key).suffix.lower().lstrip("."),
+                content_type="application/json",
+                source_content_hash="",
+            ),
+            input_uri=input_uri,
+            processor_context=ProcessorContext(params_hash="", params=[]),
+            processor=ProcessorMetadata(name="IndexWeaviateProcessor", version="1.0.0"),
+            result={
+                "destination_key": destination_key,
+                "output_uri": self._processor.output_uri(destination_key),
+            },
+        )
+
+    def _output_uri_from_process_result(self, process_result: ProcessResult) -> str:
+        """Extract the written output URI from the process result."""
+        return str(process_result.result["output_uri"])
 
     def _work_item_from_message(self, message: ConsumedMessage) -> IndexWorkItem:
         """Parse index request from queue payload."""

@@ -7,6 +7,7 @@ from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGateway
 from pipeline_common.helpers.contracts import doc_id_from_source_key, utc_now_iso
 from pipeline_common.provenance import source_content_hash
+from pipeline_common.stages_contracts import ProcessResult, ProcessorContext, StageArtifact
 from pipeline_common.startup.contracts import WorkerService
 from services.parse_flow_components import (
     DocumentParserProcessor,
@@ -54,10 +55,10 @@ class WorkerParseDocumentService(WorkerService):
             try:
                 parse_job = self._build_parse_job(input_uri)
                 self._register_lineage_input(parse_job)
-                payload = self._build_processed_payload(parse_job)
-                self._write_processed_payload(parse_job, payload)
-                self._publish_parse_output(parse_job)
-                self._register_parse_output_lineage(parse_job)
+                process_result: ProcessResult = self._transform_source_to_processed_document(parse_job)
+                self._write_processed_payload(process_result)
+                self._publish_parse_output(process_result)
+                self._register_parse_output_lineage(process_result)
                 logger.info("Wrote processed document '%s'", parse_job.destination_key)
             except Exception as exc:
                 self._handle_parse_failure(input_uri, error_message=str(exc))
@@ -74,34 +75,52 @@ class WorkerParseDocumentService(WorkerService):
             platform=DatasetPlatform.S3,
         )
 
-    def _build_processed_payload(self, parse_job: ParseWorkItem) -> dict[str, Any]:
+    def _transform_source_to_processed_document(self, parse_job: ParseWorkItem) -> ProcessResult:
+        """Build the process result for one parsed document."""
         raw_payload = self._storage_gateway.read_object(uri=parse_job.input_uri)
         raw_text = raw_payload.decode("utf-8", errors="ignore")
-        return self._parser_processor.build_payload(
+        payload = self._parser_processor.build_payload(
             source_key=parse_job.source_key,
             doc_id=parse_job.doc_id,
             raw_text=raw_text,
             raw_content_hash=source_content_hash(raw_payload),
             timestamp=utc_now_iso(),
         )
-
-    def _write_processed_payload(self, parse_job: ParseWorkItem, payload: dict[str, Any]) -> None:
-        self._output_writer.write(
-            destination_key=parse_job.destination_key,
-            payload=payload,
+        artifact = StageArtifact.from_dict(payload)
+        return ProcessResult(
+            run_id=parse_job.doc_id,
+            source_metadata=artifact.source_metadata,
+            input_uri=parse_job.input_uri,
+            processor_context=ProcessorContext(params_hash="", params=[]),
+            processor=artifact.processor_metadata,
+            result={
+                "payload": payload,
+                "destination_key": parse_job.destination_key,
+            },
         )
 
-    def _register_parse_output_lineage(self, parse_job: ParseWorkItem) -> None:
+    def _write_processed_payload(self, process_result: ProcessResult) -> None:
+        self._output_writer.write(
+            destination_key=str(process_result.result["destination_key"]),
+            payload=dict(process_result.result["payload"]),
+        )
+
+    def _register_parse_output_lineage(self, process_result: ProcessResult) -> None:
         """Register the written processed artifact as lineage output."""
         self._lineage_gateway.add_output(
-            name=self._storage_gateway.build_uri(self._storage_bucket, parse_job.destination_key),
+            name=self._storage_gateway.build_uri(
+                self._storage_bucket,
+                str(process_result.result["destination_key"]),
+            ),
             platform=DatasetPlatform.S3,
         )
         self._lineage_gateway.complete_run()
 
-    def _publish_parse_output(self, parse_job: ParseWorkItem) -> None:
+    def _publish_parse_output(self, process_result: ProcessResult) -> None:
         self._queue_gateway.push(
-            self._output_writer.build_output_message(destination_key=parse_job.destination_key).to_payload
+            self._output_writer.build_output_message(
+                destination_key=str(process_result.result["destination_key"])
+            ).to_payload
         )
 
     def _handle_parse_failure(self, input_uri: str, *, error_message: str) -> None:

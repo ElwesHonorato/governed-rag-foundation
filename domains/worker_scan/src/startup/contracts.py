@@ -7,31 +7,49 @@ from typing import Any
 
 
 @dataclass(frozen=True)
-class ScanStorageContract:
-    """Storage bucket and stage prefix settings for scan worker."""
+class RawScanStorageConfig:
+    """Storage bucket and stage prefix settings from job properties."""
 
     bucket: str
     source_prefix: str
     output_prefix: str
 
     @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> ScanStorageContract:
+    def from_dict(cls, payload: dict[str, Any]) -> RawScanStorageConfig:
         """Build scan storage config from a dictionary payload."""
         return cls(**payload)
+
+
+@dataclass(frozen=True)
+class RuntimeScanStorageConfig:
+    """Runtime storage config consumed by the scan worker."""
+
+    bucket: str
+    source_prefix: str
+    output_prefix: str
+
+    @classmethod
+    def from_raw(cls, raw: RawScanStorageConfig) -> RuntimeScanStorageConfig:
+        """Build runtime storage config from raw startup config."""
+        return cls(
+            bucket=raw.bucket,
+            source_prefix=raw.source_prefix,
+            output_prefix=raw.output_prefix,
+        )
 
 
 @dataclass(frozen=True)
 class RawScanJobConfig:
     """Raw scan job config parsed directly from job properties."""
 
-    storage: ScanStorageContract
+    storage: RawScanStorageConfig
     poll_interval_seconds: int
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> RawScanJobConfig:
         """Build raw scan job config from a dictionary payload."""
         return cls(
-            storage=ScanStorageContract.from_dict(payload["storage"]),
+            storage=RawScanStorageConfig.from_dict(payload["storage"]),
             poll_interval_seconds=int(payload["poll_interval_seconds"]),
         )
 
@@ -40,5 +58,6 @@ class RawScanJobConfig:
 class RuntimeScanJobConfig:
     """Runtime scan job config consumed by service wiring."""
 
-    storage: ScanStorageContract
+    storage: RuntimeScanStorageConfig
     poll_interval_seconds: int
+

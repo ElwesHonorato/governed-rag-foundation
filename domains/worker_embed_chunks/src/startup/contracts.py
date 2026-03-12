@@ -7,23 +7,39 @@ from typing import Any
 
 
 @dataclass(frozen=True)
-class EmbedChunksStorageConfigContract:
-    """Typed storage contract for embed_chunks processing runtime."""
+class RawEmbedChunksStorageConfig:
+    """Storage config declared in job properties."""
 
     bucket: str
     output_prefix: str
 
     @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> EmbedChunksStorageConfigContract:
-        """Build embed_chunks storage config from a dictionary payload."""
+    def from_dict(cls, payload: dict[str, Any]) -> RawEmbedChunksStorageConfig:
+        """Build storage config from a dictionary payload."""
         return cls(**payload)
+
+
+@dataclass(frozen=True)
+class RuntimeEmbedChunksStorageConfig:
+    """Runtime storage config consumed by the embed worker."""
+
+    bucket: str
+    output_prefix: str
+
+    @classmethod
+    def from_raw(cls, raw: RawEmbedChunksStorageConfig) -> RuntimeEmbedChunksStorageConfig:
+        """Build runtime storage config from raw startup config."""
+        return cls(
+            bucket=raw.bucket,
+            output_prefix=raw.output_prefix,
+        )
 
 
 @dataclass(frozen=True)
 class RawEmbedChunksJobConfig:
     """Raw embed_chunks job config parsed directly from job properties."""
 
-    storage: EmbedChunksStorageConfigContract
+    storage: RawEmbedChunksStorageConfig
     poll_interval_seconds: int
     dimension: int
 
@@ -31,7 +47,7 @@ class RawEmbedChunksJobConfig:
     def from_dict(cls, payload: dict[str, Any]) -> RawEmbedChunksJobConfig:
         """Build raw embed_chunks job config from a dictionary payload."""
         return cls(
-            storage=EmbedChunksStorageConfigContract.from_dict(payload["storage"]),
+            storage=RawEmbedChunksStorageConfig.from_dict(payload["storage"]),
             poll_interval_seconds=int(payload["poll_interval_seconds"]),
             dimension=int(payload["dimension"]),
         )
@@ -41,6 +57,7 @@ class RawEmbedChunksJobConfig:
 class RuntimeEmbedChunksJobConfig:
     """Runtime embed_chunks job config consumed by service wiring."""
 
-    storage: EmbedChunksStorageConfigContract
+    storage: RuntimeEmbedChunksStorageConfig
     poll_interval_seconds: int
     dimension: int
+

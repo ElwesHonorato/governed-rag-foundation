@@ -1,9 +1,10 @@
 """Service graph assembly for worker_embed_chunks startup."""
 
-from contracts.startup import RuntimeEmbedChunksJobConfig
 from pipeline_common.startup import WorkerRuntimeContext, WorkerServiceFactory
+from services.embed_flow import EmbedWorkItem
 from services.embed_chunks_processor import EmbedChunksProcessor
 from services.worker_embed_chunks_service import WorkerEmbedChunksService
+from startup.contracts import RuntimeEmbedChunksJobConfig
 
 
 class EmbedChunksServiceFactory(WorkerServiceFactory[RuntimeEmbedChunksJobConfig, WorkerEmbedChunksService]):
@@ -27,5 +28,6 @@ class EmbedChunksServiceFactory(WorkerServiceFactory[RuntimeEmbedChunksJobConfig
             lineage=runtime.lineage_gateway,
             poll_interval_seconds=worker_config.poll_interval_seconds,
             storage_bucket=worker_config.storage.bucket,
+            work_item_type=EmbedWorkItem,
             processor=processor,
         )

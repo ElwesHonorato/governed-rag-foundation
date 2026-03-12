@@ -45,10 +45,14 @@ class WorkerChunkingService(WorkerService):
             try:
                 message = self._wait_for_next_message()
                 source_uri = self._source_uri_from_message(message)
+
                 self._register_lineage_input(source_uri)
+                
                 process_result: ProcessResult = self._transform_source_to_chunks(source_uri)
+
                 self._write_manifest(process_result)
-                self._lineage_gateway.complete_run()
+                
+                self._register_manifest_output_lineage()
             except Exception as exc:
                 self._lineage_gateway.fail_run(error_message=str(exc))
                 message.nack(requeue=False)
@@ -77,6 +81,15 @@ class WorkerChunkingService(WorkerService):
     def _write_manifest(self, process_result: ProcessResult) -> None:
         """Write the chunk manifest for a completed processing result."""
         self._manifest_writer.write(process_result=process_result)
+
+    def _register_manifest_output_lineage(self) -> None:
+        """Register the written manifest as a lineage output."""
+        manifest_uri = self._manifest_writer.manifest_uri
+        self._lineage_gateway.add_output(
+            name=manifest_uri,
+            platform=DatasetPlatform.S3,
+        )
+        self._lineage_gateway.complete_run()
 
     def _register_lineage_input(self, source_uri: str) -> None:
         self._lineage_gateway.start_run()

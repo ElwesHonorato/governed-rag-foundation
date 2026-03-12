@@ -60,13 +60,24 @@ class ChunkingExecutionResult:
 
 @dataclass(frozen=True)
 class ProcessResult:
+    """Serializable result for one chunk-text processing run.
+
+    Attributes:
+        schema_version: Serialized schema version for the result payload.
+        run_id: Deterministic run identifier for this processing execution.
+        source_metadata: Source document metadata associated with the input.
+        input_uri: Fully qualified storage URI for the input artifact.
+        processor_context: Serialized processor parameter context.
+        processor: Processor metadata emitted for this run.
+        result: Chunk execution summary and produced chunk entries.
+    """
+
     SCHEMA_VERSION: ClassVar[str] = "1.0"
     schema_version: str = field(init=False)
     run_id: str
     source_metadata: SourceDocumentMetadata
-    source_uri: str
+    input_uri: str
     processor_context: ProcessorContext
-    params: list[dict[str, Any]]
     processor: ProcessorMetadata
     result: ChunkingExecutionResult
 
@@ -75,6 +86,11 @@ class ProcessResult:
 
     @property
     def to_dict(self) -> dict[str, Any]:
+        """Build the manifest-ready dictionary representation.
+
+        Returns:
+            dict[str, Any]: Serialized form of the process result.
+        """
         return asdict(self)
 
 

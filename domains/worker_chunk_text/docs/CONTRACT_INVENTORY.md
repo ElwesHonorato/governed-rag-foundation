@@ -52,7 +52,6 @@ This document lists the contracts used by `domains/worker_chunk_text`, grouped b
 | Name | Brief Description | Location |
 | --- | --- | --- |
 | `RuntimeChunkJobConfig` | Runtime processing config returned by the extractor after environment scoping. | `domains/worker_chunk_text/src/contracts/startup.py` |
-| `ChunkingStrategy` | Exported by the contracts package, but not referenced in the current worker runtime path. | `domains/worker_chunk_text/src/contracts/chunking_strategy.py` |
 
 ## Summary
 

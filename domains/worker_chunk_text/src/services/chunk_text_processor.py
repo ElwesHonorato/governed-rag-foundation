@@ -51,7 +51,7 @@ class ChunkTextProcessor(BaseProcessor):
         self,
         *,
         input_artifact: StageArtifact,
-        source_uri: str,
+        input_uri: str,
         run_id: str,
         stages: ChunkingStages,
     ) -> ProcessResult:
@@ -69,7 +69,7 @@ class ChunkTextProcessor(BaseProcessor):
         execution_result: ChunkingExecutionResult = self._write_chunk_artifacts(
             docs=docs,
             serialized_stages=serialized_stages,
-            source_uri=source_uri,
+            input_uri=input_uri,
             run_id=run_id,
             source_metadata=source_metadata,
         )
@@ -77,9 +77,8 @@ class ChunkTextProcessor(BaseProcessor):
         return ProcessResult(
             run_id=run_id,
             source_metadata=source_metadata,
-            source_uri=source_uri,
+            input_uri=input_uri,
             processor_context=processor_context,
-            params=serialized_stages,
             processor=self.processor_metadata,
             result=execution_result,
         )
@@ -123,7 +122,7 @@ class ChunkTextProcessor(BaseProcessor):
         *,
         docs: list[Document],
         serialized_stages: list[dict[str, Any]],
-        source_uri: str,
+        input_uri: str,
         run_id: str,
         source_metadata: SourceDocumentMetadata,
     ) -> ChunkingExecutionResult:
@@ -134,7 +133,7 @@ class ChunkTextProcessor(BaseProcessor):
         for storage_stage_artifact in self._build_chunk_artifacts(
             docs=docs,
             serialized_stages=serialized_stages,
-            source_uri=source_uri,
+            input_uri=input_uri,
             run_id=run_id,
             source_metadata=source_metadata,
         ):
@@ -159,7 +158,7 @@ class ChunkTextProcessor(BaseProcessor):
         *,
         docs: list[Document],
         serialized_stages: list[dict[str, Any]],
-        source_uri: str,
+        input_uri: str,
         run_id: str,
         source_metadata: SourceDocumentMetadata,
     ) -> Iterator[StorageStageArtifact]:
@@ -170,7 +169,7 @@ class ChunkTextProcessor(BaseProcessor):
             chunk_metadata: ChunkMetadata = self._build_chunk_metadata(
                 chunk_index=chunk_index,
                 doc=doc,
-                source_uri=source_uri,
+                input_uri=input_uri,
                 source_metadata=source_metadata_payload,
                 processor=processor_metadata_payload,
                 params=serialized_stages,
@@ -198,7 +197,7 @@ class ChunkTextProcessor(BaseProcessor):
         *,
         chunk_index: int,
         doc: Document,
-        source_uri: str,
+        input_uri: str,
         source_metadata: dict[str, Any],
         processor: dict[str, Any],
         params: list[dict[str, Any]],
@@ -208,7 +207,7 @@ class ChunkTextProcessor(BaseProcessor):
         offsets_start = int(doc.metadata.get("start_index", 0))
         offsets_end = offsets_start + len(chunk_text)
         chunk_id = build_id(
-            source_uri=source_uri,
+            source_uri=input_uri,
             source_metadata=source_metadata,
             processor=processor,
             params=params,

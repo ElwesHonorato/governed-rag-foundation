@@ -42,11 +42,11 @@ class WorkerChunkingService(WorkerService):
                 message = self._queue_gateway.wait_for_message(
                     poll_interval_seconds=self._poll_interval_seconds,
                 )
-                source_uri = self._source_uri_from_message(message)
+                input_uri = self._input_uri_from_message(message)
 
-                self._register_lineage_input(source_uri)
+                self._register_lineage_input(input_uri)
                 
-                process_result: ProcessResult = self._transform_source_to_chunks(source_uri)
+                process_result: ProcessResult = self._transform_source_to_chunks(input_uri)
 
                 self._write_manifest(process_result)
                 
@@ -57,21 +57,21 @@ class WorkerChunkingService(WorkerService):
                 continue
             message.ack()
 
-    def _register_lineage_input(self, source_uri: str) -> None:
+    def _register_lineage_input(self, input_uri: str) -> None:
         self._lineage_gateway.start_run()
         self._lineage_gateway.add_input(
-            name=source_uri,
+            name=input_uri,
             platform=DatasetPlatform.S3,
         )
 
-    def _transform_source_to_chunks(self, source_uri: str) -> ProcessResult:
-        raw_payload = self._storage_gateway.read_object(uri=source_uri)
+    def _transform_source_to_chunks(self, input_uri: str) -> ProcessResult:
+        raw_payload = self._storage_gateway.read_object(uri=input_uri)
         input_artifact: StageArtifact = StageArtifact.from_dict(json.loads(raw_payload.decode("utf-8")))
         resolved_stages = self._chunking_resolver.resolve(input_artifact.source_metadata.source_type)
         return self._processor.process(
             input_artifact=input_artifact,
-            source_uri=source_uri,
-            run_id=build_source_run_id(source_uri),
+            input_uri=input_uri,
+            run_id=build_source_run_id(input_uri),
             stages=resolved_stages,
         )
 
@@ -88,7 +88,7 @@ class WorkerChunkingService(WorkerService):
         )
         self._lineage_gateway.complete_run()
 
-    def _source_uri_from_message(self, message: ConsumedMessage) -> str:
-        """Parse source URI from queue payload."""
+    def _input_uri_from_message(self, message: ConsumedMessage) -> str:
+        """Parse input URI from queue payload."""
         envelope: Envelope = Envelope.from_dict(message.payload)
         return str(envelope.payload)

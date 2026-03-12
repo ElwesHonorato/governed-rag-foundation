@@ -10,7 +10,7 @@ from pipeline_common.stages_contracts import (
     StageArtifactMetadata,
     SourceDocumentMetadata,
 )
-from pipeline_common.gateways.queue import Envelope, QueueMessageType
+from pipeline_common.gateways.queue import Envelope
 
 
 @dataclass(frozen=True)
@@ -75,6 +75,5 @@ class ParseOutputMessageFactory:
     @staticmethod
     def build(*, uri: str) -> Envelope:
         return Envelope(
-            type=QueueMessageType.CHUNK_TEXT_REQUEST,
             payload=uri,
         )

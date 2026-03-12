@@ -4,7 +4,7 @@ import time
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
-from pipeline_common.gateways.queue import Envelope, QueueGateway, QueueMessageType
+from pipeline_common.gateways.queue import Envelope, QueueGateway
 from pipeline_common.helpers.contracts import doc_id_from_source_key
 from pipeline_common.startup.contracts import WorkerPollingContract, WorkerService
 from services.scan_cycle_processor import StorageScanCycleProcessor
@@ -61,7 +61,6 @@ class WorkerScanService(WorkerService):
             destination_uri = self._storage_gateway.build_uri(self._processor.bucket, destination_key)
             self._queue_gateway.push(
                 Envelope(
-                    type=QueueMessageType.PARSE_DOCUMENT_REQUEST,
                     payload=destination_uri,
                 ).to_payload
             )

@@ -5,7 +5,7 @@ from typing import Any
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
-from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGateway, QueueMessageType
+from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGateway
 from pipeline_common.helpers.contracts import doc_id_from_source_key, utc_now_iso
 from pipeline_common.provenance import source_content_hash
 from pipeline_common.startup.contracts import WorkerService
@@ -132,7 +132,6 @@ class WorkerParseDocumentService(WorkerService):
     def _handle_parse_failure(self, parse_job: ParseWorkItem, error_message: str) -> None:
         self._queue_gateway.push_dlq(
             Envelope(
-                type=QueueMessageType.PARSE_DOCUMENT_FAILURE,
                 payload={
                     "uri": parse_job.source_uri,
                     "doc_id": parse_job.doc_id,
@@ -163,7 +162,6 @@ class WorkerParseDocumentService(WorkerService):
         except Exception as exc:
             self._queue_gateway.push_dlq(
                 Envelope(
-                    type=QueueMessageType.PARSE_DOCUMENT_INVALID_MESSAGE,
                     payload={
                         "error": str(exc),
                         "message_payload": message.payload,

@@ -5,7 +5,7 @@ from chunking.domain.central_text_splitter import CentralTextSplitter
 from configs.chunking_scaffold import ChunkingStage, ChunkingStages
 from langchain_core.documents import Document
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
-from pipeline_common.gateways.queue import Envelope, QueueGateway, QueueMessageType
+from pipeline_common.gateways.queue import Envelope, QueueGateway
 from pipeline_common.provenance import build_id, chunk_params_hash, sha256_hex
 from pipeline_common.stages_contracts import (
     BaseProcessor,
@@ -249,7 +249,6 @@ class ChunkTextProcessor(BaseProcessor):
     def _push_chunk_message(self, destination_uri: str) -> None:
         self.queue_gateway.push(
             Envelope(
-                type=QueueMessageType.EMBED_CHUNKS_REQUEST,
                 payload=destination_uri,
             ).to_payload
         )

@@ -4,7 +4,7 @@ import uuid
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
-from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGateway, QueueMessageType
+from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGateway
 from pipeline_common.helpers.contracts import utc_now_iso
 from pipeline_common.startup.contracts import WorkerService
 from services.embed_chunks_processor import ChunkArtifactPayload, EmbedChunksProcessor
@@ -98,7 +98,6 @@ class WorkerEmbedChunksService(WorkerService):
     def _send_embed_failure(self, uri: str) -> None:
         self._queue_gateway.push_dlq(
             Envelope(
-                type=QueueMessageType.EMBED_CHUNKS_FAILURE,
                 payload={"uri": uri},
             ).to_payload
         )
@@ -133,7 +132,6 @@ class WorkerEmbedChunksService(WorkerService):
         _ = doc_id
         self._queue_gateway.push(
             Envelope(
-                type=QueueMessageType.INDEX_WEAVIATE_REQUEST,
                 payload=destination_uri,
             ).to_payload
         )
@@ -146,7 +144,6 @@ class WorkerEmbedChunksService(WorkerService):
         except Exception as exc:
             self._queue_gateway.push_dlq(
                 Envelope(
-                    type=QueueMessageType.EMBED_CHUNKS_INVALID_MESSAGE,
                     payload={
                         "error": str(exc),
                         "message_payload": message.payload,

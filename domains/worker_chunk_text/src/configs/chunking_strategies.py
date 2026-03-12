@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from enum import Enum
+
+from chunking.params_contract import RecursiveParams, TokenParams
 from chunking.stages import ChunkingProcessorType, ChunkingStage
-from chunking.params_contract import RecursiveParams, StageParams, TokenParams
 
 
-class ChunkingScaffoldKey(str, Enum):
+class ChunkingStrategyKey(str, Enum):
     TXT = "txt"
     MD = "md"
     HTML = "html"
@@ -18,50 +18,51 @@ class ChunkingScaffoldKey(str, Enum):
     CSV = "csv"
     EML = "eml"
 
-CHUNKING_SCAFFOLD: dict[ChunkingScaffoldKey, list[ChunkingStage]] = {
-    ChunkingScaffoldKey.TXT: [
+
+CHUNKING_STRATEGIES: dict[ChunkingStrategyKey, list[ChunkingStage]] = {
+    ChunkingStrategyKey.TXT: [
         ChunkingStage(
             processor=ChunkingProcessorType.RECURSIVE,
             params=RecursiveParams(),
         )
     ],
-    ChunkingScaffoldKey.MD: [
+    ChunkingStrategyKey.MD: [
         ChunkingStage(
             processor=ChunkingProcessorType.RECURSIVE,
             params=RecursiveParams(),
         )
     ],
-    ChunkingScaffoldKey.HTML: [
+    ChunkingStrategyKey.HTML: [
         ChunkingStage(
             processor=ChunkingProcessorType.RECURSIVE,
             params=RecursiveParams(),
         )
     ],
-    ChunkingScaffoldKey.PDF: [
+    ChunkingStrategyKey.PDF: [
         ChunkingStage(
             processor=ChunkingProcessorType.RECURSIVE,
             params=RecursiveParams(),
         ),
     ],
-    ChunkingScaffoldKey.PY: [
+    ChunkingStrategyKey.PY: [
         ChunkingStage(
             processor=ChunkingProcessorType.TOKEN,
             params=TokenParams(),
         ),
     ],
-    ChunkingScaffoldKey.JSON: [
+    ChunkingStrategyKey.JSON: [
         ChunkingStage(
             processor=ChunkingProcessorType.RECURSIVE,
             params=RecursiveParams(chunk_overlap=100),
         ),
     ],
-    ChunkingScaffoldKey.CSV: [
+    ChunkingStrategyKey.CSV: [
         ChunkingStage(
             processor=ChunkingProcessorType.RECURSIVE,
             params=RecursiveParams(),
         ),
     ],
-    ChunkingScaffoldKey.EML: [
+    ChunkingStrategyKey.EML: [
         ChunkingStage(
             processor=ChunkingProcessorType.RECURSIVE,
             params=RecursiveParams(chunk_overlap=100),

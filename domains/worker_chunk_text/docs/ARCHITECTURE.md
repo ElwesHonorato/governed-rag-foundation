@@ -46,7 +46,9 @@ Patterns:
 # 4. Module Structure
 
 - src/app.py
-- src/contracts/contracts.py
+- `src/startup/contracts.py`
+- `src/processor/metadata_contracts.py`
+- `src/chunking/params_contract.py`
 - src/startup/config_extractor.py
 - src/startup/service_factory.py
 - src/services/*

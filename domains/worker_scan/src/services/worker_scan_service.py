@@ -33,21 +33,15 @@ class WorkerScanService(WorkerService):
     def serve(self) -> None:
         """Run the worker loop indefinitely."""
         while True:
-            self._run_scan_iteration()
-
-    def _run_scan_iteration(self) -> None:
-        self._execute_scan_cycle()
-        self._sleep_until_next_cycle()
-
-    def _execute_scan_cycle(self) -> None:
-        try:
             source_keys = self._storage_gateway.list_keys(self._processor.bucket, self._processor.source_prefix)
-            processed = 0
-            for work_item in self._processor.plan_work(source_keys):
-                processed += int(self._process_work_item(work_item))
-            logger.info("Scan cycle processed %d item(s)", processed)
-        except Exception:
-            self._handle_scan_cycle_failure()
+            try:
+                processed = 0
+                for work_item in self._processor.plan_work(source_keys):
+                    processed += int(self._process_work_item(work_item))
+                logger.info("Scan cycle processed %d item(s)", processed)
+            except Exception:
+                self._handle_scan_cycle_failure()
+            self._sleep_until_next_cycle()
 
     def _process_work_item(self, work_item: ScanWorkItem) -> bool:
         if not self._storage_gateway.object_exists(self._processor.bucket, work_item.source_key):

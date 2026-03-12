@@ -42,44 +42,20 @@ class WorkerIndexWeaviateService(WorkerService):
     def serve(self) -> None:
         """Run the indexing worker loop by polling queue messages."""
         while True:
-            message = self._queue_gateway.wait_for_message(
-                poll_interval_seconds=self._poll_interval_seconds,
-            )
-            work_item = self._work_item_from_message(message)
-            if work_item is None:
-                continue
             try:
-                self._handle_index_request(work_item)
-            except Exception:
-                if self._handle_index_failure(work_item):
-                    message.ack()
-                else:
-                    message.nack(requeue=True)
+                message = self._queue_gateway.wait_for_message(
+                    poll_interval_seconds=self._poll_interval_seconds,
+                )
+                work_item = self._work_item_from_message(message)
+                self._register_lineage_input(work_item.uri)
+                payload = self._read_embeddings_payload(work_item.uri)
+                output_uri = self._index_embeddings_payload(payload)
+                self._register_index_output_lineage(uri=output_uri)
+            except Exception as exc:
+                self._lineage_gateway.fail_run(error_message=str(exc))
+                message.nack(requeue=True)
                 continue
             message.ack()
-
-    def _handle_index_request(self, work_item: IndexWorkItem) -> None:
-        if not work_item.uri.endswith(self._embeddings_suffix):
-            return
-
-        self._register_lineage_input(work_item.uri)
-        try:
-            payload = self._read_embeddings_payload(work_item.uri)
-            resolved_doc_id = str(payload.get("doc_id", ""))
-            resolved_chunk_id = str(payload.get("chunk_id", ""))
-            destination_key = self._processor.build_indexed_key(resolved_doc_id, resolved_chunk_id)
-            if self._processor.status_exists(self._storage_gateway, destination_key):
-                self._send_index_failure(work_item)
-                self._lineage_gateway.fail_run(error_message=f"Index status already exists: {destination_key}")
-                return
-
-            self._upsert_embeddings(payload)
-            self._write_indexed_object(destination_key, resolved_doc_id, resolved_chunk_id)
-            self._register_index_output_lineage(self._processor.output_uri(destination_key))
-            logger.info("Wrote indexed status '%s'", destination_key)
-        except Exception as exc:
-            self._lineage_gateway.fail_run(error_message=str(exc))
-            raise
 
     def _register_lineage_input(self, uri: str) -> None:
         """Start a lineage run and register the source embeddings artifact."""
@@ -96,26 +72,6 @@ class WorkerIndexWeaviateService(WorkerService):
             platform=DatasetPlatform.S3,
         )
         self._lineage_gateway.complete_run()
-
-    def _send_index_failure(self, work_item: IndexWorkItem) -> None:
-        self._queue_gateway.push_dlq(
-            Envelope(
-                payload={"uri": work_item.uri},
-            ).to_payload
-        )
-
-    def _handle_index_failure(self, work_item: IndexWorkItem) -> bool:
-        """Route failed index request to DLQ; return True when message can be acked."""
-        try:
-            self._send_index_failure(work_item)
-        except Exception:
-            logger.exception(
-                "Failed indexing URI '%s' and failed DLQ publish; requeueing message",
-                work_item.uri,
-            )
-            return False
-        logger.exception("Failed indexing URI '%s'; sent to DLQ", work_item.uri)
-        return True
 
     def _read_embeddings_payload(self, uri: str) -> dict[str, Any]:
         raw_payload = self._storage_gateway.read_object(uri=uri)
@@ -143,21 +99,16 @@ class WorkerIndexWeaviateService(WorkerService):
         result = verify_query(self._weaviate_url, "logistics")
         logger.info("Indexed doc_id '%s' verify=%s", doc_id, bool(result))
 
-    def _work_item_from_message(self, message: ConsumedMessage) -> IndexWorkItem | None:
-        """Parse index request from queue payload; route invalid payloads to DLQ."""
-        try:
-            envelope: Envelope = Envelope.from_dict(message.payload)
-            return IndexWorkItem(uri=str(envelope.payload))
-        except Exception as exc:
-            self._queue_gateway.push_dlq(
-                Envelope(
-                    payload={
-                        "error": str(exc),
-                        "message_payload": message.payload,
-                        "failed_at": utc_now_iso(),
-                    },
-                ).to_payload
-            )
-            message.ack()
-            logger.exception("Invalid index queue message payload; sent to DLQ and acknowledged")
-            return None
+    def _index_embeddings_payload(self, payload: dict[str, Any]) -> str:
+        """Index one embeddings payload and return the output URI."""
+        resolved_doc_id = str(payload.get("doc_id", ""))
+        resolved_chunk_id = str(payload.get("chunk_id", ""))
+        destination_key = self._processor.build_indexed_key(resolved_doc_id, resolved_chunk_id)
+        self._upsert_embeddings(payload)
+        self._write_indexed_object(destination_key, resolved_doc_id, resolved_chunk_id)
+        return self._processor.output_uri(destination_key)
+
+    def _work_item_from_message(self, message: ConsumedMessage) -> IndexWorkItem:
+        """Parse index request from queue payload."""
+        envelope: Envelope = Envelope.from_dict(message.payload)
+        return IndexWorkItem(uri=str(envelope.payload))

@@ -46,7 +46,8 @@ class WorkerChunkingService(WorkerService):
                 message = self._wait_for_next_message()
                 source_uri = self._source_uri_from_message(message)
                 self._register_lineage_input(source_uri)
-                self._transform_source_to_chunks(source_uri)
+                process_result: ProcessResult = self._transform_source_to_chunks(source_uri)
+                self._write_manifest(process_result)
                 self._lineage_gateway.complete_run()
             except Exception as exc:
                 self._lineage_gateway.fail_run(error_message=str(exc))
@@ -62,16 +63,19 @@ class WorkerChunkingService(WorkerService):
                 return message
             time.sleep(self._poll_interval_seconds)
 
-    def _transform_source_to_chunks(self, source_uri: str) -> None:
+    def _transform_source_to_chunks(self, source_uri: str) -> ProcessResult:
         raw_payload = self._storage_gateway.read_object(source_uri)
         input_artifact: StageArtifact = StageArtifact.from_dict(json.loads(raw_payload.decode("utf-8")))
         resolved_stages = self._chunking_resolver.resolve(input_artifact.source_metadata.source_type)
-        process_result: ProcessResult = self._processor.process(
+        return self._processor.process(
             input_artifact=input_artifact,
             source_uri=source_uri,
             run_id=build_source_run_id(source_uri),
             stages=resolved_stages,
         )
+
+    def _write_manifest(self, process_result: ProcessResult) -> None:
+        """Write the chunk manifest for a completed processing result."""
         self._manifest_writer.write(process_result=process_result)
 
     def _register_lineage_input(self, source_uri: str) -> None:

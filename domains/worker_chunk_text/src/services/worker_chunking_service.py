@@ -91,4 +91,4 @@ class WorkerChunkingService(WorkerService):
     def _source_uri_from_message(self, message: ConsumedMessage) -> str:
         """Parse source URI from queue payload."""
         envelope: Envelope = Envelope.from_dict(message.payload)
-        return str(envelope.payload["source_uri"])
+        return str(envelope.payload)

@@ -140,8 +140,12 @@ class ChunkTextProcessor(BaseProcessor):
         ):
             chunk_count_expected += 1
             chunk_entries.append(storage_stage_artifact.destination_key)
-            self._write_chunk_object(storage_stage_artifact)
-            self._push_chunk_message(storage_stage_artifact.destination_key)
+            destination_uri = self.object_storage.build_uri(
+                self.storage_bucket,
+                storage_stage_artifact.destination_key,
+            )
+            self._write_chunk_object(storage_stage_artifact.to_payload, destination_uri=destination_uri)
+            self._push_chunk_message(destination_uri)
             written += 1
 
         return ChunkingExecutionResult(
@@ -230,15 +234,11 @@ class ChunkTextProcessor(BaseProcessor):
             chunk_id=chunk_id,
         )
 
-    def _write_chunk_object(self, chunk_artifact: StorageStageArtifact) -> None:
-        destination_uri = self.object_storage.build_uri(
-            self.storage_bucket,
-            chunk_artifact.destination_key,
-        )
+    def _write_chunk_object(self, chunk_payload: dict[str, Any], *, destination_uri: str) -> None:
         self.object_storage.write_object(
             uri=destination_uri,
             payload=json.dumps(
-                chunk_artifact.to_payload,
+                chunk_payload,
                 sort_keys=True,
                 ensure_ascii=True,
                 separators=(",", ":"),
@@ -246,11 +246,10 @@ class ChunkTextProcessor(BaseProcessor):
             content_type="application/json",
         )
 
-    def _push_chunk_message(self, destination_key: str) -> None:
-        source_uri = self.object_storage.build_uri(self.storage_bucket, destination_key)
+    def _push_chunk_message(self, destination_uri: str) -> None:
         self.queue_gateway.push(
             Envelope(
                 type=QueueMessageType.EMBED_CHUNKS_REQUEST,
-                payload={"source_uri": source_uri},
+                payload=destination_uri,
             ).to_payload
         )

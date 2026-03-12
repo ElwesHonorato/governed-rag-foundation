@@ -58,10 +58,11 @@ class WorkerScanService(WorkerService):
         try:
             self._storage_gateway.copy(self._processor.bucket, source_key, destination_key)
             self._lineage_gateway.complete_run()
+            destination_uri = self._storage_gateway.build_uri(self._processor.bucket, destination_key)
             self._queue_gateway.push(
                 Envelope(
                     type=QueueMessageType.PARSE_DOCUMENT_REQUEST,
-                    payload={"storage_key": destination_key},
+                    payload=destination_uri,
                 ).to_payload
             )
             self._storage_gateway.delete(self._processor.bucket, source_key)

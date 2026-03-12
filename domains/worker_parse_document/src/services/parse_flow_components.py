@@ -17,6 +17,7 @@ from pipeline_common.gateways.queue import Envelope, QueueMessageType
 class ParseWorkItem:
     """One parse work item derived from inbound queue payload."""
 
+    source_uri: str
     source_key: str
     doc_id: str
     destination_key: str
@@ -72,8 +73,8 @@ class ParseOutputMessageFactory:
     """Build downstream output message after successful parse write."""
 
     @staticmethod
-    def build(*, source_uri: str) -> Envelope:
+    def build(*, uri: str) -> Envelope:
         return Envelope(
             type=QueueMessageType.CHUNK_TEXT_REQUEST,
-            payload={"source_uri": source_uri},
+            payload=uri,
         )

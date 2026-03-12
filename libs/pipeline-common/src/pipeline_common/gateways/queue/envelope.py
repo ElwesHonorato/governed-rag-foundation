@@ -24,7 +24,7 @@ class Envelope:
     """Standard queue envelope for worker message transport."""
 
     type: str | QueueMessageType
-    payload: dict[str, Any]
+    payload: Any
     meta: dict[str, Any] | None = None
 
     @property
@@ -42,6 +42,6 @@ class Envelope:
     def from_dict(cls, raw: Mapping[str, Any]) -> "Envelope":
         return cls(
             type=str(raw["type"]),
-            payload=dict(raw["payload"]),
+            payload=raw["payload"],
             meta=dict(raw["meta"]) if "meta" in raw else None,
         )

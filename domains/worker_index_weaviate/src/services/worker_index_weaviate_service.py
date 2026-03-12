@@ -48,26 +48,25 @@ class WorkerIndexWeaviateService(WorkerService):
             request = self._request_from_message(message)
             if request is None:
                 continue
-            embeddings_key, doc_id = request
             try:
-                self._handle_index_request(embeddings_key, doc_id)
+                self._handle_index_request(request)
             except Exception:
-                if self._handle_index_failure(embeddings_key, doc_id):
+                if self._handle_index_failure(request):
                     message.ack()
                 else:
                     message.nack(requeue=True)
                 continue
             message.ack()
 
-    def _handle_index_request(self, embeddings_key: str, doc_id: str) -> None:
-        index_job = self._build_index_job(embeddings_key, doc_id)
+    def _handle_index_request(self, uri: str) -> None:
+        index_job = self._build_index_job(uri)
         if index_job is None:
             return
 
-        self._register_lineage_input(index_job["embeddings_key"])
+        self._register_lineage_input(index_job["uri"])
         try:
-            payload = self._read_embeddings_payload(index_job["embeddings_key"])
-            resolved_doc_id = str(payload.get("doc_id", index_job["doc_id"]))
+            payload = self._read_embeddings_payload(index_job["uri"])
+            resolved_doc_id = str(payload.get("doc_id", ""))
             resolved_chunk_id = str(payload.get("chunk_id", ""))
             destination_key = self._processor.build_indexed_key(resolved_doc_id, resolved_chunk_id)
             self._lineage_gateway.add_output(
@@ -75,7 +74,7 @@ class WorkerIndexWeaviateService(WorkerService):
                 platform=DatasetPlatform.S3,
             )
             if self._storage_gateway.object_exists(self._storage_bucket, destination_key):
-                self._send_index_failure(index_job["embeddings_key"], resolved_doc_id)
+                self._send_index_failure(index_job["uri"])
                 self._lineage_gateway.fail_run(error_message=f"Index status already exists: {destination_key}")
                 return
 
@@ -87,45 +86,41 @@ class WorkerIndexWeaviateService(WorkerService):
             self._lineage_gateway.fail_run(error_message=str(exc))
             raise
 
-    def _register_lineage_input(self, embeddings_key: str) -> None:
+    def _register_lineage_input(self, uri: str) -> None:
         self._lineage_gateway.start_run()
         self._lineage_gateway.add_input(
-            name=f"{self._storage_bucket}/{embeddings_key}",
+            name=uri,
             platform=DatasetPlatform.S3,
         )
 
-    def _send_index_failure(self, embeddings_key: str, doc_id: str) -> None:
+    def _send_index_failure(self, uri: str) -> None:
         self._queue_gateway.push_dlq(
             Envelope(
                 type=QueueMessageType.INDEX_WEAVIATE_FAILURE,
-                payload={"embeddings_key": embeddings_key, "doc_id": doc_id},
+                payload={"uri": uri},
             ).to_payload
         )
 
-    def _handle_index_failure(self, embeddings_key: str, doc_id: str) -> bool:
+    def _handle_index_failure(self, uri: str) -> bool:
         """Route failed index request to DLQ; return True when message can be acked."""
         try:
-            self._send_index_failure(embeddings_key, doc_id)
+            self._send_index_failure(uri)
         except Exception:
             logger.exception(
-                "Failed indexing embeddings key '%s' and failed DLQ publish; requeueing message",
-                embeddings_key,
+                "Failed indexing URI '%s' and failed DLQ publish; requeueing message",
+                uri,
             )
             return False
-        logger.exception("Failed indexing embeddings key '%s'; sent to DLQ", embeddings_key)
+        logger.exception("Failed indexing URI '%s'; sent to DLQ", uri)
         return True
 
-    def _build_index_job(self, embeddings_key: str, doc_id: str) -> dict[str, str] | None:
-        if not embeddings_key.endswith(self._embeddings_suffix):
+    def _build_index_job(self, uri: str) -> dict[str, str] | None:
+        if not uri.endswith(self._embeddings_suffix):
             return None
-        return {"embeddings_key": embeddings_key, "doc_id": doc_id}
+        return {"uri": uri}
 
-    def _read_embeddings_payload(self, embeddings_key: str) -> dict[str, Any]:
-        source_uri = self._storage_gateway.build_uri(
-            self._storage_bucket,
-            embeddings_key,
-        )
-        raw_payload = self._storage_gateway.read_object(uri=source_uri)
+    def _read_embeddings_payload(self, uri: str) -> dict[str, Any]:
+        raw_payload = self._storage_gateway.read_object(uri=uri)
         return self._processor.read_embeddings_payload(raw_payload)
 
     def _upsert_embeddings(self, payload: dict[str, Any]) -> None:
@@ -152,11 +147,11 @@ class WorkerIndexWeaviateService(WorkerService):
         result = verify_query(self._weaviate_url, "logistics")
         logger.info("Indexed doc_id '%s' verify=%s", doc_id, bool(result))
 
-    def _request_from_message(self, message: ConsumedMessage) -> tuple[str, str] | None:
+    def _request_from_message(self, message: ConsumedMessage) -> str | None:
         """Parse index request from queue payload; route invalid payloads to DLQ."""
         try:
             envelope: Envelope = Envelope.from_dict(message.payload)
-            return str(envelope.payload["embeddings_key"]), str(envelope.payload["doc_id"])
+            return str(envelope.payload)
         except Exception as exc:
             self._queue_gateway.push_dlq(
                 Envelope(

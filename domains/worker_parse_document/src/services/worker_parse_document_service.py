@@ -47,20 +47,20 @@ class WorkerParseDocumentService(WorkerService):
             message = self._queue_gateway.wait_for_message(
                 poll_interval_seconds=self._poll_interval_seconds,
             )
-            source_key = self._source_key_from_message(message)
-            if source_key is None:
+            source_uri = self._uri_from_message(message)
+            if source_uri is None:
                 continue
             try:
-                self._handle_parse_request(source_key)
+                self._handle_parse_request(source_uri)
             except Exception:
                 message.nack(requeue=True)
-                logger.exception("Failed processing source key '%s'; requeued message", source_key)
+                logger.exception("Failed processing source URI '%s'; requeued message", source_uri)
                 continue
             message.ack()
 
-    def _handle_parse_request(self, source_key: str) -> None:
+    def _handle_parse_request(self, source_uri: str) -> None:
         """Orchestrate one parse unit: read -> parse -> write -> enqueue."""
-        parse_job = self._build_parse_job(source_key)
+        parse_job = self._build_parse_job(source_uri)
         if parse_job is None:
             return
 
@@ -97,11 +97,7 @@ class WorkerParseDocumentService(WorkerService):
         return True
 
     def _build_processed_payload(self, parse_job: ParseWorkItem) -> dict[str, Any]:
-        source_uri = self._storage_gateway.build_uri(
-            self._storage_bucket,
-            parse_job.source_key,
-        )
-        raw_payload = self._storage_gateway.read_object(uri=source_uri)
+        raw_payload = self._storage_gateway.read_object(uri=parse_job.source_uri)
         raw_text = raw_payload.decode("utf-8", errors="ignore")
         return self._parser_processor.build_payload(
             source_key=parse_job.source_key,
@@ -127,18 +123,18 @@ class WorkerParseDocumentService(WorkerService):
         )
 
     def _publish_parse_output(self, parse_job: ParseWorkItem) -> None:
-        source_uri = self._storage_gateway.build_uri(
+        destination_uri = self._storage_gateway.build_uri(
             self._storage_bucket,
             parse_job.destination_key,
         )
-        self._queue_gateway.push(ParseOutputMessageFactory.build(source_uri=source_uri).to_payload)
+        self._queue_gateway.push(ParseOutputMessageFactory.build(uri=destination_uri).to_payload)
 
     def _handle_parse_failure(self, parse_job: ParseWorkItem, error_message: str) -> None:
         self._queue_gateway.push_dlq(
             Envelope(
                 type=QueueMessageType.PARSE_DOCUMENT_FAILURE,
                 payload={
-                    "source_key": parse_job.source_key,
+                    "uri": parse_job.source_uri,
                     "doc_id": parse_job.doc_id,
                     "error": error_message,
                     "failed_at": utc_now_iso(),
@@ -148,16 +144,22 @@ class WorkerParseDocumentService(WorkerService):
         )
         self._lineage_gateway.fail_run(error_message=error_message)
 
-    def _build_parse_job(self, source_key: str) -> ParseWorkItem | None:
+    def _build_parse_job(self, source_uri: str) -> ParseWorkItem | None:
+        source_key = self._source_key_from_uri(source_uri)
         doc_id = doc_id_from_source_key(source_key)
         destination_key = f"{self._output_prefix}{doc_id}.json"
-        return ParseWorkItem(source_key=source_key, doc_id=doc_id, destination_key=destination_key)
+        return ParseWorkItem(
+            source_uri=source_uri,
+            source_key=source_key,
+            doc_id=doc_id,
+            destination_key=destination_key,
+        )
 
-    def _source_key_from_message(self, message: ConsumedMessage) -> str | None:
-        """Parse source key from queue payload; route invalid payloads to DLQ."""
+    def _uri_from_message(self, message: ConsumedMessage) -> str | None:
+        """Parse source URI from queue payload; route invalid payloads to DLQ."""
         try:
             envelope: Envelope = Envelope.from_dict(message.payload)
-            return str(envelope.payload["storage_key"])
+            return str(envelope.payload)
         except Exception as exc:
             self._queue_gateway.push_dlq(
                 Envelope(
@@ -172,3 +174,9 @@ class WorkerParseDocumentService(WorkerService):
             message.ack()
             logger.exception("Invalid parse queue message payload; sent to DLQ and acknowledged")
             return None
+
+    def _source_key_from_uri(self, uri: str) -> str:
+        uri_prefix = self._storage_gateway.build_uri(self._storage_bucket, "")
+        if not uri.startswith(uri_prefix):
+            raise ValueError(f"Parse source URI must start with '{uri_prefix}': {uri}")
+        return uri.removeprefix(uri_prefix)

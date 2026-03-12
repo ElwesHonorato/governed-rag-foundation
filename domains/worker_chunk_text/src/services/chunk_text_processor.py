@@ -17,9 +17,9 @@ from pipeline_common.stages_contracts import (
     StorageStageArtifact,
 )
 
-from contracts.contracts import (
+from contracts.metadata import (
     ChunkMetadata,
-    ChunkingExecutionResult,
+    ChunkingExecutionMetadata,
 )
 from pipeline_common.stages_contracts.step_00_common import SourceDocumentMetadata
 
@@ -66,7 +66,7 @@ class ChunkTextProcessor(BaseProcessor):
             input_text=input_artifact.content.data,
             stages=stages.stages,
         )
-        execution_result: ChunkingExecutionResult = self._write_chunk_artifacts(
+        execution_result: ChunkingExecutionMetadata = self._write_chunk_artifacts(
             docs=docs,
             serialized_stages=serialized_stages,
             input_uri=input_uri,
@@ -125,7 +125,7 @@ class ChunkTextProcessor(BaseProcessor):
         input_uri: str,
         run_id: str,
         source_metadata: SourceDocumentMetadata,
-    ) -> ChunkingExecutionResult:
+    ) -> ChunkingExecutionMetadata:
         chunk_count_expected = 0
         written = 0
         chunk_entries: list[str] = []
@@ -147,7 +147,7 @@ class ChunkTextProcessor(BaseProcessor):
             self._push_chunk_message(destination_uri)
             written += 1
 
-        return ChunkingExecutionResult(
+        return ChunkingExecutionMetadata(
             chunk_count_expected=chunk_count_expected,
             chunk_count_written=written,
             chunk_entries=chunk_entries,

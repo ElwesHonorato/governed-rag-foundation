@@ -3,29 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from typing import Any
 
 from pipeline_common.stages_contracts import ExecutionStatus
 
-
 @dataclass(frozen=True)
-class ChunkTextQueueConfigContract:
-    stage: str
-    queue_pop_timeout_seconds: int
-    pop_timeout_seconds: int
-    consume: str
-    produce: str
-    dlq: str
-
-    @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> ChunkTextQueueConfigContract:
-        normalized_payload = dict(payload)
-        normalized_payload["queue_pop_timeout_seconds"] = int(normalized_payload["queue_pop_timeout_seconds"])
-        normalized_payload["pop_timeout_seconds"] = int(normalized_payload["pop_timeout_seconds"])
-        return cls(**normalized_payload)
-
-@dataclass(frozen=True)
-class ChunkingExecutionResult:
+class ChunkingExecutionMetadata:
     chunk_count_expected: int
     chunk_count_written: int
     chunk_entries: list[str]
@@ -61,4 +43,3 @@ class ChunkMetadata:
     @property
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
-

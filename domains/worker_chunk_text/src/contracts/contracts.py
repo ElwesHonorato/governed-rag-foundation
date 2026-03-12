@@ -35,25 +35,28 @@ class ChunkTextQueueConfigContract:
 
 @dataclass(frozen=True)
 class ChunkTextJobConfigContract:
-    storage: ChunkTextStorageConfigContract
+    storage: RuntimeStoragePathsContract
     poll_interval_seconds: int
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> ChunkTextJobConfigContract:
         return cls(
-            storage=ChunkTextStorageConfigContract.from_dict(payload["storage"]),
+            storage=RuntimeStoragePathsContract.from_dict(payload["storage"]),
             poll_interval_seconds=int(payload["poll_interval_seconds"]),
         )
 
 
 @dataclass(frozen=True)
-class ChunkTextStorageConfigContract:
+class RuntimeStoragePathsContract:
+    """Environment-dependent runtime storage paths for chunk and manifest output."""
+
     bucket: str
     output_prefix: str
     manifest_prefix: str
 
     @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> ChunkTextStorageConfigContract:
+    def from_dict(cls, payload: dict[str, Any]) -> RuntimeStoragePathsContract:
+        """Build environment-dependent runtime storage paths from a dictionary payload."""
         return cls(**payload)
 
 
@@ -61,7 +64,7 @@ class ChunkTextStorageConfigContract:
 class ChunkTextProcessingConfigContract:
     poll_interval_seconds: int
     queue: ChunkTextQueueConfigContract
-    storage: ChunkTextStorageConfigContract
+    storage: RuntimeStoragePathsContract
 
 
 @dataclass(frozen=True)

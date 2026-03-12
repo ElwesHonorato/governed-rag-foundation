@@ -7,7 +7,7 @@ This document lists the contracts used by `domains/worker_chunk_text`, grouped b
 | Name | Brief Description | Location |
 | --- | --- | --- |
 | `ChunkTextJobConfigContract` | Minimal job-level config parsed from `job_properties` before building the full worker config. | `domains/worker_chunk_text/src/contracts/contracts.py` |
-| `ChunkTextStorageConfigContract` | Storage settings for chunk output and manifest paths; used during config extraction and env-specific path building. | `domains/worker_chunk_text/src/contracts/contracts.py` |
+| `RuntimeStoragePathsContract` | Storage settings for chunk output and manifest paths; used during config extraction and env-specific path building. | `domains/worker_chunk_text/src/contracts/contracts.py` |
 | `ChunkTextQueueConfigContract` | Queue timing and routing config for the worker. | `domains/worker_chunk_text/src/contracts/contracts.py` |
 | `WorkerRuntimeContext` | Shared runtime dependency bundle injected into the service factory and built in `app.py`. | `libs/pipeline-common/src/pipeline_common/startup/runtime_context.py` |
 | `WorkerServiceFactory` | Startup contract implemented by `ChunkTextServiceFactory` to build the concrete worker service. | `libs/pipeline-common/src/pipeline_common/startup/contracts.py` |

@@ -1,0 +1,6 @@
+services:
+  pipeline-worker-embed-chunks:
+    volumes:
+      - ./domains/worker_embed_chunks/src:/app/src
+      - ./libs/pipeline-common/src:/pipeline-common/src
+      - ./registry:/app/registry

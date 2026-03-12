@@ -20,25 +20,36 @@ def ensure_schema(weaviate_url: str) -> None:
     """Execute ensure schema."""
     schema_url = f"{weaviate_url.rstrip('/')}/v1/schema"
     schema = _http_json(schema_url, "GET")
-    classes = {c.get("class") for c in schema.get("classes", [])}
-    if "DocumentChunk" in classes:
+    properties = [
+        {"name": "chunk_id", "dataType": ["text"]},
+        {"name": "doc_id", "dataType": ["text"]},
+        {"name": "chunk_text", "dataType": ["text"]},
+        {"name": "source_key", "dataType": ["text"]},
+        {"name": "security_clearance", "dataType": ["text"]},
+        {"name": "run_id", "dataType": ["text"]},
+        {"name": "embedding_id", "dataType": ["text"]},
+        {"name": "embedding_run_id", "dataType": ["text"]},
+        {"name": "index_target", "dataType": ["text"]},
+        {"name": "embedder_name", "dataType": ["text"]},
+        {"name": "embedder_version", "dataType": ["text"]},
+        {"name": "embedding_params_hash", "dataType": ["text"]},
+    ]
+    classes = {str(c.get("class")): c for c in schema.get("classes", []) if isinstance(c, dict)}
+    if "DocumentChunk" not in classes:
+        _http_json(
+            schema_url,
+            "POST",
+            {"class": "DocumentChunk", "vectorizer": "none", "properties": properties},
+        )
         return
 
-    _http_json(
-        schema_url,
-        "POST",
-        {
-            "class": "DocumentChunk",
-            "vectorizer": "none",
-            "properties": [
-                {"name": "chunk_id", "dataType": ["text"]},
-                {"name": "doc_id", "dataType": ["text"]},
-                {"name": "chunk_text", "dataType": ["text"]},
-                {"name": "source_key", "dataType": ["text"]},
-                {"name": "security_clearance", "dataType": ["text"]},
-            ],
-        },
-    )
+    class_schema = classes["DocumentChunk"]
+    existing = {p.get("name") for p in class_schema.get("properties", []) if isinstance(p, dict)}
+    base_url = weaviate_url.rstrip("/")
+    for prop in properties:
+        if prop["name"] in existing:
+            continue
+        _http_json(f"{base_url}/v1/schema/DocumentChunk/properties", "POST", prop)
 
 
 def _stable_uuid_from_chunk_id(chunk_id: str) -> str:

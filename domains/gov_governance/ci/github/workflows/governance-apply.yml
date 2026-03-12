@@ -21,6 +21,6 @@ jobs:
       - name: Apply governance to PROD
         env:
           DATAHUB_GMS_SERVER: https://datahub.company.com
-          DATAHUB_ENV: PROD
+          ENV: PROD
           DATAHUB_TOKEN: ${{ secrets.DATAHUB_TOKEN_PROD }}
         run: PYTHONPATH=libs/pipeline-common/src python domains/gov_governance/src/apply.py

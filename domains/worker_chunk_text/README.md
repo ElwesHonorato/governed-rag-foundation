@@ -1,24 +1,30 @@
 # worker_chunk_text domain
 
-This domain breaks processed documents into retrieval-friendly chunks. It is where large parsed text becomes indexed units.
+This domain reads processed document artifacts, splits their text into retrieval-friendly chunks, writes one object per chunk, and writes a manifest for the run.
 
 ## Deep Dive
 
 ### Stage responsibility
-- Consumes `q.chunk_text` messages.
-- Reads processed objects from `03_processed/`.
-- Splits text into deterministic chunks.
-- Writes one artifact per chunk to `04_chunks/{doc_id}/{chunk_id}.chunk.json`.
-- Publishes each chunk key to `q.embed_chunks`.
-- Sends failures to `q.chunk_text.dlq`.
+- Consumes queue messages whose payload is the input artifact URI.
+- Reads the processed artifact from object storage.
+- Resolves chunking stages from `source_metadata.source_type`.
+- Splits text into deterministic chunks using LangChain splitters.
+- Writes one artifact per chunk to `{doc_id}/runs/{run_id}/chunks/{chunk_id}.json`.
+- Publishes each chunk URI to the downstream queue.
+- Writes a manifest summarizing the processing result.
+- Marks lineage runs as complete or failed.
 
 ### Payload characteristics
-- Chunk records include `chunk_id`, `doc_id`, `chunk_index`, `chunk_text`, `source_key`, and security metadata.
+- Input payloads are queue envelopes whose inner payload is a storage URI.
+- Output chunk artifacts contain stage metadata plus the chunk text in `content.data`.
+- Chunk metadata includes `source_doc_uri`, `chunk_id`, `ordinal`, and `characters`.
 
 ### Runtime dependencies
 - Queue: `BROKER_URL`.
 - Storage: `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`.
+- Lineage: runtime lineage gateway configured through shared startup settings.
 
 ### Operational notes
 - Service container: `pipeline-worker-chunk-text`.
 - Queue contract stage: `chunk_text`.
+- Composition root: `src/app.py`.

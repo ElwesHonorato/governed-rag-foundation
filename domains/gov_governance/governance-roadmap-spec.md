@@ -34,7 +34,7 @@ This tool is intentionally **not** responsible for runtime lineage (DataProcessI
 ### Out of scope (Target State)
 - Runtime execution telemetry (DataProcessInstance) emission
 - Data quality/assertions execution (can integrate later, but not owned here)
-- Ingesting metadata from external sources (dbt/spark/airflow connectors)
+- Ingesting metadata from external sources (dbt/airflow connectors)
 - Managing access policies (optional later module; not required for MVP)
 
 ---
@@ -383,7 +383,7 @@ Reason:
 - Access policies as code (RBAC/ABAC) scoped by domains
 - Schema evolution checks (contracts)
 - Integrations:
-  - dbt / Airflow / Spark ingestion consistency checks
+  - dbt / Airflow ingestion consistency checks
   - OpenLineage runtime runs (separate module)
 - Automated documentation enforcement (required fields per domain)
 

@@ -1,0 +1,6 @@
+services:
+  pipeline-worker-parse-document:
+    volumes:
+      - ./domains/worker_parse_document/src:/app/src
+      - ./libs/pipeline-common/src:/pipeline-common/src
+      - ./registry:/app/registry

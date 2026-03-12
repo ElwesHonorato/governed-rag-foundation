@@ -10,7 +10,7 @@ services:
       S3_ACCESS_KEY: ${S3_ACCESS_KEY:?S3_ACCESS_KEY is required}
       S3_SECRET_KEY: ${S3_SECRET_KEY:?S3_SECRET_KEY is required}
       DATAHUB_GMS_SERVER: ${DATAHUB_GMS_SERVER:-${DATAHUB_GMS_URL:-http://datahub-gms:8080}}
-      DATAHUB_ENV: ${DATAHUB_ENV:?DATAHUB_ENV is required}
+      ENV: ${ENV:?ENV is required}
       DATAHUB_TOKEN: ${DATAHUB_TOKEN:-}
 
 networks:

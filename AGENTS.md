@@ -27,6 +27,13 @@ This file defines repo-wide rules for Codex changes.
 - Governance config uses `job.*` namespace; key changes must be coordinated with worker config extractors.
 - Keep runtime behavior unchanged unless the request explicitly asks for behavior change.
 
+## Compatibility Policy
+- No backward compatibility unless explicitly requested by the user.
+- Do not add aliases, fallback keys, dual-read/dual-write logic, or deprecation shims by default.
+- Prefer clean contract breaks and update all call sites in the same change.
+- When old payloads/contracts are incompatible, fail fast with a clear error.
+- If compatibility is required, the task must state it explicitly.
+
 ## Definition Of Done
 - Changed code compiles/tests for affected projects.
 - No unrelated refactors or behavior drift.

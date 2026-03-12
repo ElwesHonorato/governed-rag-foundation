@@ -28,6 +28,9 @@ This document tracks where guidance existed before normalization and where it no
   - `docs/adr/README.md`
 
 ## Consolidation map
+- Dataclass serialization contract guidance:
+  - Source: worker contract serialization patterns in code (`ChunkArtifact`, related processor write paths).
+  - Normalized: `docs/patterns/dataclass-serialization.md`
 - Startup/composition guidance:
   - Source: `docs/standards/patterns/50_*`, `docs/standards/patterns/60_*`
   - Normalized: `docs/patterns/composition-root.md`, `docs/patterns/dependency-injection.md`

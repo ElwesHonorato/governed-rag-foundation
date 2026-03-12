@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from typing import Any
+from pipeline_common.stages_contracts import Content
 
 class DocumentParser(ABC):
     """Parser interface for document formats keyed by file extension."""
@@ -11,6 +11,6 @@ class DocumentParser(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def parse(self, content: str) -> dict[str, Any]:
+    def parse(self, content: str) -> Content:
         """Convert raw document content into parser-specific payload fields."""
         raise NotImplementedError

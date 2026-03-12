@@ -4,7 +4,7 @@
 Inject dependencies explicitly so modules are reusable, testable, and stable under refactor.
 
 ## When To Use
-- Startup contracts (`RuntimeContextFactory`, `WorkerRuntimeLauncher`).
+- Startup contracts (`RuntimeContextFactory`, `WorkerConfigExtractor`, `WorkerServiceFactory`).
 - Worker service graph assembly (`WorkerServiceFactory` implementations).
 
 ## How To Apply
@@ -15,7 +15,7 @@ Inject dependencies explicitly so modules are reusable, testable, and stable und
 
 ## Example
 - `RuntimeContextFactory` receives typed settings objects.
-- `WorkerRuntimeLauncher` receives a runtime factory and strategy collaborators.
+- Worker entrypoints pass `WorkerRuntimeContext` and typed config into worker service factories.
 - Services receive concrete gateways/processors, not env lookups.
 
 ## Anti-Patterns

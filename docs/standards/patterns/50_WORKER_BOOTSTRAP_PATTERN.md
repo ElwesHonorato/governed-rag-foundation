@@ -1,15 +1,14 @@
 # Worker Bootstrap Pattern (OOP, Adversarial)
 
 ## Position
-If worker startup stays as free-floating functions, this repo will keep drifting.  
-Use class-based startup with explicit responsibilities and hard boundaries.
+Worker startup should stay explicit and typed, but the composition root does not need a dedicated launcher class.
 
 ## Target design (Object-Oriented)
 Use these patterns together:
-1. Startup Pipeline: one shared startup pipeline for all workers.
+1. Shared bootstrap contracts: one shared bootstrap shape for all workers.
 2. Abstract Factory: class-based service construction.
 3. Strategy: class-based config extraction per worker.
-4. Composition Root: each worker app wires one bootstrap object and calls `start()`.
+4. Composition Root: each worker app wires runtime context, extractor, and service factory directly.
 
 References:
 1. Template Method: https://refactoring.guru/design-patterns/template-method
@@ -19,13 +18,13 @@ References:
 5. Google Python docstrings: https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings
 
 ## Non-negotiable architecture
-1. No loose startup functions in worker apps.
+1. No ad hoc startup logic spread across multiple files.
 2. No raw `dict[str, Any]` passed to services.
-3. No worker-specific orchestration logic outside a bootstrap class.
+3. No worker-specific orchestration logic outside the composition root and worker startup collaborators.
 4. One property namespace only: `job.*`.
 
 ## Canonical class model
-Implement in `libs/pipeline-common/src/pipeline_common/startup.py`:
+Implement shared contracts in `libs/pipeline-common/src/pipeline_common/startup/`:
 
 ```python
 from abc import ABC, abstractmethod
@@ -51,24 +50,6 @@ class WorkerServiceFactory(ABC, Generic[TConfig, TService]):
     @abstractmethod
     def build(self, runtime: WorkerRuntimeContext, worker_config: TConfig) -> TService: ...
 
-class WorkerRuntimeLauncher(Generic[TConfig, TService]):
-    def __init__(
-        self,
-        *,
-        data_job_key: DataHubDataJobKey,
-        config_extractor: WorkerConfigExtractor[TConfig],
-        service_factory: WorkerServiceFactory[TConfig, TService],
-    ) -> None:
-        self._data_job_key = data_job_key
-        self._config_extractor = config_extractor
-        self._service_factory = service_factory
-
-    def start(self) -> None:
-        runtime_factory = RuntimeContextFactory(data_job_key=self._data_job_key)
-        runtime = runtime_factory.runtime_context
-        worker_config = self._config_extractor.extract(runtime.job_properties)
-        service = self._service_factory.build(runtime, worker_config)
-        service.serve()
 ```
 
 ## `job.*` standard
@@ -86,40 +67,40 @@ Each worker must define:
 1. `XWorkerConfig` dataclass.
 2. `XConfigExtractor(WorkerConfigExtractor[XWorkerConfig])`.
 3. `XServiceFactory(WorkerServiceFactory[XWorkerConfig, WorkerService])`.
-4. A composition root that wires `WorkerRuntimeLauncher` with job key + extractor + factory.
+4. A composition root that wires runtime context, extractor, and service factory.
 
 Worker `app.py` should be minimal:
 ```python
 def run() -> None:
-    WorkerRuntimeLauncher[ScanWorkerConfig, WorkerScanService](
+    runtime_context = RuntimeContextFactory(
         data_job_key=DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job("worker_scan"),
-        config_extractor=ScanConfigExtractor(),
-        service_factory=ScanServiceFactory(),
-    ).start()
+        settings_bundle=settings,
+    ).build()
+    worker_config = ScanConfigExtractor().extract(runtime_context.job_properties)
+    service = ScanServiceFactory().build(runtime_context, worker_config)
+    service.serve()
 ```
 
 ## Migration plan for current repo
 1. Keep shared env/DataHub/queue/storage resolvers in `pipeline_common.startup`.
-2. Replace function hooks in `worker_scan` with concrete classes first.
-3. Replicate same class structure to:
+2. Keep typed extractor and service factory classes per worker.
+3. Replicate the same composition-root shape across:
    - `worker_parse_document`
    - `worker_chunk_text`
    - `worker_embed_chunks`
    - `worker_index_weaviate`
-   - `worker_manifest`
-   - `worker_metrics`
-4. Remove old function-based startup API after all workers migrate.
+4. Keep startup steps explicit in `app.py`.
 
 ## Adversarial review gates
 A PR fails if:
-1. A worker app contains orchestration code not owned by a bootstrap class.
+1. A worker app contains startup logic that leaks business behavior into `app.py`.
 2. A service receives untyped config dictionaries.
 3. Governance definitions use prefixes outside `job.*`.
 4. New runtime dependency changes are merged without lock-file updates.
 5. Docstrings in changed Python files are not Google-style.
 
 ## Definition of done
-1. One abstract startup pipeline, reused by every worker.
+1. One explicit startup shape, reused by every worker.
 2. One `job.*` config schema, consumed by typed extractors.
-3. No duplicated startup sequence across worker apps.
+3. No drift in startup sequencing across worker apps.
 4. End-to-end flow still works by dropping one HTML file into `rag-data/01_incoming`.

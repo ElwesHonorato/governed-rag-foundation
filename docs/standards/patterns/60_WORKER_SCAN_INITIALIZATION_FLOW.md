@@ -9,11 +9,13 @@ File: `domains/worker_scan/src/app.py`
 
 It does two things:
 1. Creates `RuntimeContextFactory` with settings from env.
-2. Creates `WorkerRuntimeLauncher` with worker-specific collaborators.
+2. Builds typed worker config and service with worker-specific collaborators.
 
 Code shape:
 1. `RuntimeContextFactory(...)`
-2. `WorkerRuntimeLauncher(...).start()`
+2. `ScanConfigExtractor().extract(runtime_context.job_properties)`
+3. `ScanServiceFactory().build(runtime_context, worker_config)`
+4. `service.serve()`
 
 Pattern: Composition Root
 Why: concrete wiring is centralized in one place.
@@ -27,7 +29,7 @@ File: `libs/pipeline-common/src/pipeline_common/startup/runtime_factory.py`
 3. `s3_settings`
 4. `queue_settings`
 
-Then `_build_runtime_context()` does:
+Then `build()` does:
 1. Build lineage gateway via `DataHubLineageGatewayFactory`.
 2. Parse DataHub `custom_properties` into nested `job_properties` using `JobPropertiesParser`.
 3. Build object storage gateway via `ObjectStorageGatewayFactory`.
@@ -49,20 +51,20 @@ File: `libs/pipeline-common/src/pipeline_common/startup/runtime_context.py`
 Pattern: Context Object / Parameter Object
 Why: passes one dependency bundle instead of many args.
 
-## 4) `WorkerRuntimeLauncher.start()` Orchestrates Startup
-File: `libs/pipeline-common/src/pipeline_common/startup/launcher.py`
+## 4) `app.py` Orchestrates Startup Explicitly
+File: `domains/worker_scan/src/app.py`
 
-`start()` performs the fixed startup pipeline:
-1. Read `runtime` from injected `runtime_factory`.
-2. Build typed worker config with `config_extractor.extract(runtime.job_properties)`.
-3. Build service with `service_factory.build(runtime, worker_config)`.
+`run()` performs the fixed startup pipeline:
+1. Read `runtime_context` from `RuntimeContextFactory`.
+2. Build typed worker config with `ScanConfigExtractor().extract(runtime_context.job_properties)`.
+3. Build service with `ScanServiceFactory().build(runtime_context, worker_config)`.
 4. Call `service.serve()`.
 
 Patterns:
-1. Template Method (DI-based)
+1. Composition Root
 2. Orchestrator
 
-Why: fixed algorithm with injected variable steps.
+Why: fixed algorithm stays explicit without adding a separate wrapper class.
 
 ## 5) `ScanConfigExtractor` Converts Raw Job Config to Typed Config
 File: `domains/worker_scan/src/app.py`
@@ -120,12 +122,11 @@ Pattern: Application Service / Use-Case Processor
 ## End-to-End Call Order
 1. `run()`
 2. `RuntimeContextFactory(...)`
-3. `RuntimeContextFactory._build_runtime_context()`
-4. `WorkerRuntimeLauncher.start()`
-5. `ScanConfigExtractor.extract(...)`
-6. `ScanServiceFactory.build(...)`
-7. `WorkerScanService.serve()`
-8. `StorageScanCycleProcessor.scan()`
+3. `RuntimeContextFactory.build()`
+4. `ScanConfigExtractor.extract(...)`
+5. `ScanServiceFactory.build(...)`
+6. `WorkerScanService.serve()`
+7. `StorageScanCycleProcessor.scan()`
 
 ## Patterns Involved
 
@@ -135,7 +136,7 @@ Where: `worker_scan.run()`
 Why: It wires concrete dependencies (`settings`, `factory`, `extractor`, `service factory`) in one place.
 
 ### Constructor Injection + Inversion of Control
-Where: `WorkerRuntimeLauncher` and `RuntimeContextFactory` constructors
+Where: `ScanServiceFactory` and `RuntimeContextFactory` constructors
 
 Why: Dependencies are provided from outside, not created ad hoc inside business code.
 
@@ -160,14 +161,14 @@ Where: `JobPropertiesParser`
 Why: Transforms flat keys (`job.storage.input_prefix`) into nested dict structure.
 
 ### Orchestrator
-Where: `WorkerRuntimeLauncher.start()`
+Where: `worker_scan.run()`
 
 Why: It controls sequencing across factory, extractor, and service without containing domain logic.
 
 ## Mental Model
 1. `run()` wires.
 2. `RuntimeContextFactory` assembles infra + config.
-3. `WorkerRuntimeLauncher` orchestrates startup steps.
+3. `run()` orchestrates startup steps.
 4. `ScanConfigExtractor` translates config.
 5. `ScanServiceFactory` builds runtime objects.
 6. `WorkerScanService` runs forever.

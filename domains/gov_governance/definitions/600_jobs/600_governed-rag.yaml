@@ -12,8 +12,9 @@ jobs:
       job.queue.produce: q.parse_document
       job.queue.dlq: q.scan.dlq
       job.storage.bucket: rag-data
-      job.storage.input_prefix: 01_incoming/
+      job.storage.source_prefix: 01_incoming/
       job.storage.output_prefix: 02_raw/
+      job.storage.manifest_prefix: 07_metadata/manifest/
 
   - id: worker_parse_document
     domain: rag-platform
@@ -28,8 +29,8 @@ jobs:
       job.queue.produce: q.chunk_text
       job.queue.dlq: q.parse_document.dlq
       job.storage.bucket: rag-data
-      job.storage.input_prefix: 02_raw/
       job.storage.output_prefix: 03_processed/
+      job.storage.manifest_prefix: 07_metadata/manifest/
       job.security.clearance: internal
 
   - id: worker_chunk_text
@@ -45,8 +46,8 @@ jobs:
       job.queue.produce: q.embed_chunks
       job.queue.dlq: q.chunk_text.dlq
       job.storage.bucket: rag-data
-      job.storage.input_prefix: 03_processed/
       job.storage.output_prefix: 04_chunks/
+      job.storage.manifest_prefix: 07_metadata/manifest/
 
   - id: worker_embed_chunks
     domain: rag-embeddings
@@ -61,8 +62,8 @@ jobs:
       job.queue.produce: q.index_weaviate
       job.queue.dlq: q.embed_chunks.dlq
       job.storage.bucket: rag-data
-      job.storage.input_prefix: 04_chunks/
       job.storage.output_prefix: 05_embeddings/
+      job.storage.manifest_prefix: 07_metadata/manifest/
       job.dimension: "32"
 
   - id: worker_index_weaviate
@@ -77,30 +78,5 @@ jobs:
       job.queue.consume: q.index_weaviate
       job.queue.dlq: q.index_weaviate.dlq
       job.storage.bucket: rag-data
-      job.storage.input_prefix: 05_embeddings/
       job.storage.output_prefix: 06_indexes/
-
-  - id: worker_manifest
-    domain: rag-platform
-    owners: [daedalus]
-    custom_properties:
-      job.version: "0.0.1"
-      job.poll_interval_seconds: "30"
-      job.storage.bucket: rag-data
-      job.storage.processed_prefix: 03_processed/
-      job.storage.chunks_prefix: 04_chunks/
-      job.storage.embeddings_prefix: 05_embeddings/
-      job.storage.indexes_prefix: 06_indexes/
       job.storage.manifest_prefix: 07_metadata/manifest/
-
-  - id: worker_metrics
-    domain: rag-platform
-    owners: [daedalus]
-    custom_properties:
-      job.version: "0.0.1"
-      job.poll_interval_seconds: "30"
-      job.storage.bucket: rag-data
-      job.storage.processed_prefix: 03_processed/
-      job.storage.chunks_prefix: 04_chunks/
-      job.storage.embeddings_prefix: 05_embeddings/
-      job.storage.indexes_prefix: 06_indexes/

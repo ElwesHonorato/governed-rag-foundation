@@ -19,11 +19,3 @@ lineage_contract:
   - job: worker_index_weaviate
     inputs: [s3.rag-data.05_embeddings]
     outputs: [s3.rag-data.06_indexes]
-
-  - job: worker_manifest
-    inputs: [s3.rag-data.06_indexes]
-    outputs: [s3.rag-data.07_metadata_manifest]
-
-  - job: worker_metrics
-    inputs: [s3.rag-data.06_indexes]
-    outputs: []

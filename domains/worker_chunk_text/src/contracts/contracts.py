@@ -35,15 +35,32 @@ class ChunkTextQueueConfigContract:
 
 @dataclass(frozen=True)
 class ChunkTextJobConfigContract:
-    storage: RuntimeStoragePathsContract
+    """Raw chunk_text job config parsed directly from job properties."""
+
+    storage: RawStoragePathsContract
     poll_interval_seconds: int
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> ChunkTextJobConfigContract:
+        """Build raw chunk_text job config from a dictionary payload."""
         return cls(
-            storage=RuntimeStoragePathsContract.from_dict(payload["storage"]),
+            storage=RawStoragePathsContract.from_dict(payload["storage"]),
             poll_interval_seconds=int(payload["poll_interval_seconds"]),
         )
+
+
+@dataclass(frozen=True)
+class RawStoragePathsContract:
+    """Raw storage paths declared in job properties before environment scoping."""
+
+    bucket: str
+    output_prefix: str
+    manifest_prefix: str
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> RawStoragePathsContract:
+        """Build raw storage paths from a dictionary payload."""
+        return cls(**payload)
 
 
 @dataclass(frozen=True)
@@ -55,15 +72,25 @@ class RuntimeStoragePathsContract:
     manifest_prefix: str
 
     @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> RuntimeStoragePathsContract:
-        """Build environment-dependent runtime storage paths from a dictionary payload."""
-        return cls(**payload)
+    def from_raw(
+        cls,
+        raw: RawStoragePathsContract,
+        *,
+        env: str | None,
+    ) -> RuntimeStoragePathsContract:
+        """Build environment-dependent runtime storage paths from raw storage paths."""
+        return cls(
+            bucket=raw.bucket,
+            output_prefix=f"{env}/{raw.output_prefix}",
+            manifest_prefix=f"{env}/{raw.manifest_prefix}",
+        )
 
 
 @dataclass(frozen=True)
 class ChunkTextProcessingConfigContract:
+    """Runtime chunk_text processing config after startup-time transformations."""
+
     poll_interval_seconds: int
-    queue: ChunkTextQueueConfigContract
     storage: RuntimeStoragePathsContract
 
 

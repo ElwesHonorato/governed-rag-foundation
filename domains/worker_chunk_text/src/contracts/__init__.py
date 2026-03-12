@@ -7,12 +7,14 @@ from contracts.contracts import (
     ChunkExecutionStatus,
     ChunkingExecutionResult,
     ProcessResult,
-    ChunkJobConfigContract,
-    ChunkTextProcessingConfigContract,
     ChunkTextQueueConfigContract,
-    RawStoragePathsContract,
-    RuntimeStoragePathsContract,
     ChunkMetadata,
+)
+from contracts.startup import (
+    RawStoragePathsContract,
+    RawChunkJobConfigContract,
+    RuntimeChunkJobConfigContract,
+    RuntimeStoragePathsContract,
 )
 
 __all__ = [
@@ -22,10 +24,10 @@ __all__ = [
     "ChunkingExecutionResult",
     "ProcessResult",
     "ChunkingStrategy",
-    "ChunkJobConfigContract",
-    "ChunkTextProcessingConfigContract",
     "ChunkTextQueueConfigContract",
     "RawStoragePathsContract",
+    "RawChunkJobConfigContract",
+    "RuntimeChunkJobConfigContract",
     "RuntimeStoragePathsContract",
     "ChunkMetadata",
 ]

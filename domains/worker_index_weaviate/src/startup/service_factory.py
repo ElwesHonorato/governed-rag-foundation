@@ -19,6 +19,7 @@ class IndexWeaviateServiceFactory(WorkerServiceFactory[RuntimeIndexWeaviateJobCo
         """Construct worker index_weaviate service object graph."""
         ensure_schema(worker_config.weaviate_url)
         processor: IndexWeaviateProcessor = IndexWeaviateProcessor(
+            object_storage=runtime.object_storage_gateway,
             storage_bucket=worker_config.storage.bucket,
             output_prefix=worker_config.storage.output_prefix,
         )

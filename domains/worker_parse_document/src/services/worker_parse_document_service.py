@@ -75,16 +75,17 @@ class WorkerParseDocumentService(WorkerService):
             payload = self._build_processed_payload(parse_job)
             self._write_processed_payload(parse_job, payload)
             self._publish_parse_output(parse_job)
-            self._lineage_gateway.complete_run()
+            self._register_parse_output_lineage(parse_job)
             logger.info("Wrote processed document '%s'", parse_job.destination_key)
         except Exception as exc:
             self._handle_parse_failure(parse_job, str(exc))
             logger.exception("Failed parsing source key '%s'; sent to DLQ", parse_job.source_key)
 
     def _register_lineage_input(self, parse_job: ParseWorkItem) -> None:
+        """Start a lineage run and register the source document."""
         self._lineage_gateway.start_run()
         self._lineage_gateway.add_input(
-            name=f"{self._storage_bucket}/{parse_job.source_key}",
+            name=self._storage_gateway.build_uri(self._storage_bucket, parse_job.source_key),
             platform=DatasetPlatform.S3,
         )
 
@@ -115,10 +116,14 @@ class WorkerParseDocumentService(WorkerService):
             destination_key=parse_job.destination_key,
             payload=payload,
         )
+
+    def _register_parse_output_lineage(self, parse_job: ParseWorkItem) -> None:
+        """Register the written processed artifact as lineage output."""
         self._lineage_gateway.add_output(
-            name=f"{self._storage_bucket}/{parse_job.destination_key}",
+            name=self._storage_gateway.build_uri(self._storage_bucket, parse_job.destination_key),
             platform=DatasetPlatform.S3,
         )
+        self._lineage_gateway.complete_run()
 
     def _publish_parse_output(self, parse_job: ParseWorkItem) -> None:
         self._queue_gateway.push(

@@ -53,17 +53,14 @@ class WorkerScanService(WorkerService):
         if not self._storage_gateway.object_exists(self._processor.bucket, work_item.source_key):
             return False
 
-        self._register_lineage_io(
-            source_key=work_item.source_key,
-            destination_key=work_item.destination_key,
-        )
+        self._register_lineage_input(work_item)
         try:
             self._storage_gateway.copy(
                 self._processor.bucket,
                 work_item.source_key,
                 work_item.destination_key,
             )
-            self._lineage_gateway.complete_run()
+            self._register_lineage_output(work_item)
             destination_uri = self._storage_gateway.build_uri(self._processor.bucket, work_item.destination_key)
             self._queue_gateway.push(
                 Envelope(
@@ -83,16 +80,21 @@ class WorkerScanService(WorkerService):
             self._lineage_gateway.abort_run()
             raise
 
-    def _register_lineage_io(self, *, source_key: str, destination_key: str) -> None:
+    def _register_lineage_input(self, work_item: ScanWorkItem) -> None:
+        """Start a lineage run and register the source object."""
         self._lineage_gateway.start_run()
         self._lineage_gateway.add_input(
-            name=f"{self._processor.bucket}/{source_key}",
+            name=self._storage_gateway.build_uri(self._processor.bucket, work_item.source_key),
             platform=DatasetPlatform.S3,
         )
+
+    def _register_lineage_output(self, work_item: ScanWorkItem) -> None:
+        """Register the promoted object as lineage output and complete the run."""
         self._lineage_gateway.add_output(
-            name=f"{self._processor.bucket}/{destination_key}",
+            name=self._storage_gateway.build_uri(self._processor.bucket, work_item.destination_key),
             platform=DatasetPlatform.S3,
         )
+        self._lineage_gateway.complete_run()
 
     def _handle_scan_cycle_failure(self) -> None:
         logger.exception("Scan cycle failed; continuing after poll interval")

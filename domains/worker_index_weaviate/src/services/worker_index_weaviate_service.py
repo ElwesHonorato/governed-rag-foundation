@@ -68,10 +68,6 @@ class WorkerIndexWeaviateService(WorkerService):
             resolved_doc_id = str(payload.get("doc_id", ""))
             resolved_chunk_id = str(payload.get("chunk_id", ""))
             destination_key = self._processor.build_indexed_key(resolved_doc_id, resolved_chunk_id)
-            self._lineage_gateway.add_output(
-                name=self._processor.destination_name(destination_key),
-                platform=DatasetPlatform.S3,
-            )
             if self._processor.status_exists(self._storage_gateway, destination_key):
                 self._send_index_failure(work_item)
                 self._lineage_gateway.fail_run(error_message=f"Index status already exists: {destination_key}")
@@ -79,18 +75,27 @@ class WorkerIndexWeaviateService(WorkerService):
 
             self._upsert_embeddings(payload)
             self._write_indexed_object(destination_key, resolved_doc_id, resolved_chunk_id)
-            self._lineage_gateway.complete_run()
+            self._register_index_output_lineage(self._processor.output_uri(destination_key))
             logger.info("Wrote indexed status '%s'", destination_key)
         except Exception as exc:
             self._lineage_gateway.fail_run(error_message=str(exc))
             raise
 
     def _register_lineage_input(self, uri: str) -> None:
+        """Start a lineage run and register the source embeddings artifact."""
         self._lineage_gateway.start_run()
         self._lineage_gateway.add_input(
             name=uri,
             platform=DatasetPlatform.S3,
         )
+
+    def _register_index_output_lineage(self, uri: str) -> None:
+        """Register the written index status artifact as lineage output."""
+        self._lineage_gateway.add_output(
+            name=uri,
+            platform=DatasetPlatform.S3,
+        )
+        self._lineage_gateway.complete_run()
 
     def _send_index_failure(self, work_item: IndexWorkItem) -> None:
         self._queue_gateway.push_dlq(

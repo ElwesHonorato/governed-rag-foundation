@@ -1,6 +1,8 @@
 import json
 from typing import Any
 
+from pipeline_common.gateways.object_storage import ObjectStorageGateway
+
 
 class IndexWeaviateProcessor:
     """Build indexing instructions and status payloads."""
@@ -8,9 +10,11 @@ class IndexWeaviateProcessor:
     def __init__(
         self,
         *,
+        object_storage: ObjectStorageGateway,
         storage_bucket: str,
         output_prefix: str,
     ) -> None:
+        self._object_storage = object_storage
         self._storage_bucket = storage_bucket
         self._output_prefix = output_prefix
 
@@ -60,9 +64,9 @@ class IndexWeaviateProcessor:
         """Return whether the indexed status object already exists."""
         return object_storage.object_exists(self._storage_bucket, destination_key)
 
-    def destination_name(self, destination_key: str) -> str:
-        """Build the lineage output dataset name for a written status artifact."""
-        return f"{self._storage_bucket}/{destination_key}"
+    def output_uri(self, destination_key: str) -> str:
+        """Build the storage URI for a written status artifact."""
+        return self._object_storage.build_uri(self._storage_bucket, destination_key)
 
     @staticmethod
     def build_index_status_payload(doc_id: str, chunk_id: str) -> dict[str, Any]:

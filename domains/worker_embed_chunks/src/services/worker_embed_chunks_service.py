@@ -73,29 +73,36 @@ class WorkerEmbedChunksService(WorkerService):
                 chunk_payload,
                 embedding_run_id=embedding_run_id,
             )
-            destination_key = write_result.destination_key
-            self._lineage_gateway.add_output(
-                name=self._processor.destination_name(destination_key),
-                platform=DatasetPlatform.S3,
-            )
+            output_uri = self._processor.output_uri(write_result.destination_key)
             if not write_result.wrote:
                 self._send_embed_failure(work_item)
-                self._lineage_gateway.fail_run(error_message=f"Embeddings artifact already exists: {destination_key}")
+                self._lineage_gateway.fail_run(
+                    error_message=f"Embeddings artifact already exists: {write_result.destination_key}"
+                )
                 return
 
-            self._enqueue_embeddings_object(destination_key)
-            self._lineage_gateway.complete_run()
-            logger.info("Wrote embedding object '%s'", destination_key)
+            self._enqueue_embeddings_object(output_uri)
+            self._register_embedding_output_lineage(output_uri)
+            logger.info("Wrote embedding object '%s'", write_result.destination_key)
         except Exception as exc:
             self._lineage_gateway.fail_run(error_message=str(exc))
             raise
 
     def _register_lineage_input(self, uri: str) -> None:
+        """Start a lineage run and register the source chunk artifact."""
         self._lineage_gateway.start_run()
         self._lineage_gateway.add_input(
             name=uri,
             platform=DatasetPlatform.S3,
         )
+
+    def _register_embedding_output_lineage(self, uri: str) -> None:
+        """Register the written embedding artifact as lineage output."""
+        self._lineage_gateway.add_output(
+            name=uri,
+            platform=DatasetPlatform.S3,
+        )
+        self._lineage_gateway.complete_run()
 
     def _send_embed_failure(self, work_item: EmbedWorkItem) -> None:
         self._queue_gateway.push_dlq(
@@ -121,11 +128,10 @@ class WorkerEmbedChunksService(WorkerService):
         raw_payload = self._storage_gateway.read_object(uri=uri)
         return self._processor.read_chunk_payload(raw_payload, source_key=source_key)
 
-    def _enqueue_embeddings_object(self, destination_key: str) -> None:
-        destination_uri = self._processor.destination_uri(destination_key)
+    def _enqueue_embeddings_object(self, uri: str) -> None:
         self._queue_gateway.push(
             Envelope(
-                payload=destination_uri,
+                payload=uri,
             ).to_payload
         )
 

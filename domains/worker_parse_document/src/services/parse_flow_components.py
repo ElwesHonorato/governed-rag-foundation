@@ -5,7 +5,7 @@ from typing import Any
 from parsing.registry import ParserRegistry
 from pipeline_common.stages_contracts import (
     BaseProcessor,
-    RootDocumentMetadata,
+    FileMetadata,
     StageArtifact,
     StageArtifactMetadata,
 )
@@ -36,7 +36,7 @@ class DocumentParserProcessor(BaseProcessor):
     ) -> dict[str, Any]:
         parser = self._parser_registry.resolve(source_uri)
         parsed_payload = parser.parse(raw_text)
-        root_metadata = RootDocumentMetadata(
+        root_metadata = FileMetadata(
             doc_id=doc_id,
             source_uri=source_uri,
             timestamp=timestamp,

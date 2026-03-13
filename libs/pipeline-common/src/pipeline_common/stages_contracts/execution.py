@@ -6,7 +6,7 @@ from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Any, ClassVar
 
-from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata, RootDocumentMetadata
+from pipeline_common.stages_contracts.step_00_common import FileMetadata, ProcessorMetadata
 from pipeline_common.stages_contracts.step_10_artifact_payloads import StageArtifact
 
 
@@ -33,7 +33,7 @@ class ProcessResult:
     Attributes:
         schema_version: Serialized schema version for the result payload.
         run_id: Deterministic run identifier for this processing execution.
-        root_metadata: Root document metadata associated with the input.
+        root_doc_metadata: File metadata associated with the input.
         input_uri: Fully qualified storage URI for the input artifact.
         processor_context: Serialized processor parameter context.
         processor: Processor metadata emitted for this run.
@@ -43,7 +43,7 @@ class ProcessResult:
     SCHEMA_VERSION: ClassVar[str] = "1.0"
     schema_version: str = field(init=False)
     run_id: str
-    root_metadata: RootDocumentMetadata
+    root_doc_metadata: FileMetadata
     input_uri: str
     processor_context: ProcessorContext
     processor: ProcessorMetadata

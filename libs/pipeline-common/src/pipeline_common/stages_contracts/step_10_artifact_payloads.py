@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any, Mapping
 
-from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata, RootDocumentMetadata
+from pipeline_common.stages_contracts.step_00_common import FileMetadata, ProcessorMetadata
 
 
 @dataclass(frozen=True)
@@ -22,7 +22,7 @@ class Content:
 @dataclass(frozen=True)
 class StageArtifactMetadata:
     processor: ProcessorMetadata
-    root: RootDocumentMetadata
+    root: FileMetadata
     content: Any
     params: list[dict[str, Any]]
 
@@ -35,7 +35,7 @@ class StageArtifact:
     content: Content
 
     @property
-    def root_metadata(self) -> RootDocumentMetadata:
+    def root_metadata(self) -> FileMetadata:
         return self.metadata.root
 
     @property
@@ -60,7 +60,7 @@ class StageArtifact:
         return cls(
             metadata=StageArtifactMetadata(
                 processor=ProcessorMetadata(**metadata_payload["processor"]),
-                root=RootDocumentMetadata.from_dict(metadata_payload["root"]),
+                root=FileMetadata.from_dict(metadata_payload["root"]),
                 content=metadata_payload["content"],
                 params=metadata_payload["params"],
             ),

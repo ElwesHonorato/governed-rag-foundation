@@ -7,7 +7,7 @@ from typing import Any, ClassVar, Mapping
 
 
 @dataclass(frozen=True)
-class RootDocumentMetadata:
+class FileMetadata:
     """Metadata contract for root-document payloads.
 
     Attributes:
@@ -36,7 +36,7 @@ class RootDocumentMetadata:
         object.__setattr__(self, "schema_version", self.SCHEMA_VERSION)
 
     @classmethod
-    def from_dict(cls, payload: Mapping[str, Any]) -> "RootDocumentMetadata":
+    def from_dict(cls, payload: Mapping[str, Any]) -> "FileMetadata":
         """Build metadata from a payload while enforcing the current schema version."""
         metadata_payload = dict(payload)
         metadata_payload.pop("schema_version", None)

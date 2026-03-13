@@ -9,7 +9,7 @@ from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import Envelope, QueueGateway
 from pipeline_common.helpers.contracts import doc_id_from_source_uri, utc_now_iso
 from pipeline_common.provenance import source_content_hash
-from pipeline_common.stages_contracts import ProcessResult, ProcessorContext, RootDocumentMetadata
+from pipeline_common.stages_contracts import FileMetadata, ProcessResult, ProcessorContext
 from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata
 from pipeline_common.startup.contracts import WorkerService
 from services.scan_cycle_processor import ScanWorkItem, StorageScanCycleProcessor
@@ -71,7 +71,7 @@ class WorkerScanService(WorkerService):
         )
         return ProcessResult(
             run_id=work_item.destination_uri,
-            root_metadata=RootDocumentMetadata(
+            root_doc_metadata=FileMetadata(
                 doc_id=doc_id_from_source_uri(work_item.source_uri),
                 source_uri=work_item.source_uri,
                 timestamp=utc_now_iso(),

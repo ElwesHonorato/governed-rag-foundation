@@ -22,7 +22,7 @@ class ManifestWriter:
 
     def write(self, *, process_result: ProcessResult) -> None:
         manifest_key = self._manifest_object_key(
-            doc_id=process_result.root_metadata.doc_id,
+            doc_id=process_result.root_doc_metadata.doc_id,
             run_id=process_result.run_id,
         )
         manifest_uri = self.object_storage.build_uri(self.storage_bucket, manifest_key)

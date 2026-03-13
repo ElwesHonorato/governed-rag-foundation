@@ -23,7 +23,7 @@ from processor.metadata import (
     ChunkMetadata,
     ChunkingExecutionMetadata,
 )
-from pipeline_common.stages_contracts.step_00_common import RootDocumentMetadata
+from pipeline_common.stages_contracts.step_00_common import FileMetadata
 
 
 class ChunkTextProcessor(BaseProcessor):
@@ -70,7 +70,7 @@ class ChunkTextProcessor(BaseProcessor):
             Processing result containing processor context and chunk execution metadata.
         """
         serialized_stages: list[dict[str, Any]] = stages.dict
-        root_metadata: RootDocumentMetadata = input_artifact.root_metadata
+        root_metadata: FileMetadata = input_artifact.root_metadata
         processor_context: ProcessorContext = ProcessorContext(
             params_hash=chunk_params_hash(serialized_stages),
             params=serialized_stages,
@@ -84,12 +84,12 @@ class ChunkTextProcessor(BaseProcessor):
             serialized_stages=serialized_stages,
             input_uri=input_uri,
             run_id=run_id,
-            root_metadata=root_metadata,
+            root_doc_metadata=root_metadata,
         )
 
         return ProcessResult(
             run_id=run_id,
-            root_metadata=root_metadata,
+            root_doc_metadata=root_metadata,
             input_uri=input_uri,
             processor_context=processor_context,
             processor=self.processor_metadata,
@@ -141,7 +141,7 @@ class ChunkTextProcessor(BaseProcessor):
         serialized_stages: list[dict[str, Any]],
         input_uri: str,
         run_id: str,
-        root_metadata: RootDocumentMetadata,
+        root_metadata: FileMetadata,
     ) -> ChunkingExecutionMetadata:
         """Persist chunk artifacts, enqueue their URIs, and summarize write results."""
         chunk_count_expected = 0
@@ -178,7 +178,7 @@ class ChunkTextProcessor(BaseProcessor):
         serialized_stages: list[dict[str, Any]],
         input_uri: str,
         run_id: str,
-        root_metadata: RootDocumentMetadata,
+        root_metadata: FileMetadata,
     ) -> Iterator[StorageStageArtifact]:
         """Yield storage artifacts for each chunk emitted from the split documents."""
         root_metadata_payload = root_metadata.to_dict

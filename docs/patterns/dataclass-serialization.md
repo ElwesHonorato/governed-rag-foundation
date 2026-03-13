@@ -102,13 +102,13 @@ Preferred:
 
 ```python
 return cls(
-    root_metadata=RootDocumentMetadata(**payload["root_metadata"]),
+    root_doc_metadata=FileMetadata(**payload["root_doc_metadata"]),
     content=content_type(**payload["content"]),
     processor_metadata=ProcessorMetadata(**payload["processor_metadata"]),
 )
 ```
 
-Avoid redundant wrappers like `dict(payload["root_metadata"])` unless you explicitly need to force a copy or normalize a non-dict mapping type.
+Avoid redundant wrappers like `dict(payload["root_doc_metadata"])` unless you explicitly need to force a copy or normalize a non-dict mapping type.
 
 ## Anti-Patterns
 
@@ -226,7 +226,7 @@ Bad:
 ```python
 if "metadata" in payload:
     ...
-elif "root_metadata" in payload:
+elif "root_doc_metadata" in payload:
     ...
 ```
 
@@ -237,7 +237,7 @@ metadata_payload = payload["metadata"]
 return cls(
     metadata=StageArtifactMetadata(
         processor=ProcessorMetadata(**metadata_payload["processor"]),
-        root=RootDocumentMetadata(**metadata_payload["root"]),
+        root=FileMetadata(**metadata_payload["root"]),
         content=metadata_payload["content"],
         params=metadata_payload["params"],
     ),

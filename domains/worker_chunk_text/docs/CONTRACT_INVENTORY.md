@@ -36,7 +36,7 @@ This document lists the contracts used by `domains/worker_chunk_text`, grouped b
 | `StageArtifact` | Shared artifact envelope read from input storage and written for chunk outputs. | `libs/pipeline-common/src/pipeline_common/stages_contracts` |
 | `StageArtifactMetadata` | Metadata wrapper used when constructing new chunk artifacts. | `libs/pipeline-common/src/pipeline_common/stages_contracts` |
 | `Content` | Content payload wrapper used when writing chunk artifacts. | `libs/pipeline-common/src/pipeline_common/stages_contracts` |
-| `RootDocumentMetadata` | Shared root-document metadata embedded in `ProcessResult` and reused from input artifacts. | `libs/pipeline-common/src/pipeline_common/stages_contracts/step_00_common.py` |
+| `FileMetadata` | Shared root-document metadata embedded in `ProcessResult` and reused from input artifacts. | `libs/pipeline-common/src/pipeline_common/stages_contracts/step_00_common.py` |
 | `ProcessorMetadata` | Shared processor descriptor embedded in `ProcessResult` and artifact metadata. | `libs/pipeline-common/src/pipeline_common/stages_contracts/step_00_common.py` |
 
 ## Queue And Messaging Contracts

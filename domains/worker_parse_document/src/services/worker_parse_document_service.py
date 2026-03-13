@@ -89,7 +89,7 @@ class WorkerParseDocumentService(WorkerService):
         artifact = StageArtifact.from_dict(payload)
         return ProcessResult(
             run_id=parse_job.doc_id,
-            root_metadata=artifact.root_metadata,
+            root_doc_metadata=artifact.root_metadata,
             input_uri=parse_job.input_uri,
             processor_context=ProcessorContext(params_hash="", params=[]),
             processor=artifact.processor_metadata,

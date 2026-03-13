@@ -7,7 +7,8 @@ from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import Envelope, QueueGateway
-from pipeline_common.helpers.contracts import doc_id_from_source_uri
+from pipeline_common.helpers.contracts import doc_id_from_source_uri, utc_now_iso
+from pipeline_common.provenance import source_content_hash
 from pipeline_common.stages_contracts import ProcessResult, ProcessorContext, RootDocumentMetadata
 from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata
 from pipeline_common.startup.contracts import WorkerService
@@ -45,7 +46,7 @@ class WorkerScanService(WorkerService):
                 processed = 0
                 for key in keys:
                     work_item = self._build_work_item(key)
-                    process_result: ProcessResult = self._promote_source_object(work_item)
+                    process_result: ProcessResult = self._move_file(work_item)
                     output_uri = self._output_uri_from_process_result(process_result)
                     self._publish_scan_output(output_uri)
                     self._register_lineage_output(output_uri)
@@ -55,8 +56,9 @@ class WorkerScanService(WorkerService):
                 self._handle_scan_cycle_failure()
             self._sleep_until_next_cycle()
 
-    def _promote_source_object(self, work_item: ScanWorkItem) -> ProcessResult:
-        """Promote one source object and return the process result."""
+    def _move_file(self, work_item: ScanWorkItem) -> ProcessResult:
+        """Move one source object to its destination and return the process result."""
+        raw_payload = self._storage_gateway.read_object(uri=work_item.source_uri)
         self._register_lineage_input(work_item.source_uri)
         self._storage_gateway.copy_object(work_item.source_uri, work_item.destination_uri)
         self._storage_gateway.delete_object(work_item.source_uri)
@@ -72,11 +74,11 @@ class WorkerScanService(WorkerService):
             root_metadata=RootDocumentMetadata(
                 doc_id=doc_id_from_source_uri(work_item.source_uri),
                 source_uri=work_item.source_uri,
-                timestamp="",
+                timestamp=utc_now_iso(),
                 security_clearance="",
                 source_type=Path(work_item.source_uri).suffix.lower().lstrip("."),
                 content_type=str(mimetypes.guess_type(work_item.source_uri)[0] or "application/octet-stream"),
-                source_content_hash="",
+                source_content_hash=source_content_hash(raw_payload),
             ),
             input_uri=work_item.source_uri,
             processor_context=ProcessorContext(params_hash="", params=[]),

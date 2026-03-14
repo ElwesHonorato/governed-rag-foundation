@@ -6,9 +6,8 @@ import json
 import logging
 
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
-from pipeline_common.stages_contracts import ProcessResult, ProcessorContext
+from pipeline_common.stages_contracts import EmbeddingArtifact, ProcessResult, ProcessorContext
 from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata
-from services.embed_flow import EmbeddingArtifact
 from services.index_flow import IndexStatusArtifact, IndexStatusWriter
 from services.weaviate_gateway import upsert_chunk, verify_query
 

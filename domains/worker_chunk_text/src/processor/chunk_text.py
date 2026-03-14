@@ -1,6 +1,7 @@
 """Chunk-text processor that splits source artifacts and persists chunk outputs."""
 
 import json
+import logging
 from typing import Any, ClassVar, Iterator
 
 from chunking.stage_contract import ChunkingStage, ChunkingStages
@@ -14,6 +15,7 @@ from pipeline_common.stages_contracts import (
     Content,
     ProcessResult,
     ProcessorContext,
+    StageArtifact,
     StageArtifactMetadata,
     StorageStageArtifact,
 )
@@ -23,6 +25,8 @@ from processor.metadata import (
     ChunkingExecutionMetadata,
 )
 from pipeline_common.stages_contracts.step_00_common import FileMetadata
+
+logger = logging.getLogger(__name__)
 
 
 class ChunkTextProcessor(BaseProcessor):
@@ -251,11 +255,12 @@ class ChunkTextProcessor(BaseProcessor):
 
     def _chunk_object_key(self, doc_id: str, run_id: str, chunk_id: str) -> str:
         """Render the object-storage key for a chunk artifact."""
-        return self.CHUNK_OBJECT_KEY_PATTERN.format(
+        object_key = self.CHUNK_OBJECT_KEY_PATTERN.format(
             doc_id=doc_id,
             run_id=run_id,
             chunk_id=chunk_id,
         )
+        return f"{self.output_prefix}{object_key}"
 
     def _write_chunk_object(self, chunk_payload: dict[str, Any], *, destination_uri: str) -> None:
         """Write one chunk artifact payload to object storage as canonical JSON."""

@@ -8,6 +8,7 @@ from datahub.sdk import DataHubClient
 
 from infrastructure.datahub import DataHubGovernanceCatalogWriter
 from orchestration.governance_applier import GovernanceApplier
+from pipeline_common.helpers.config import _required_env
 from pipeline_common.settings import SettingsProvider, SettingsRequest
 from state_loader import GovernanceStateLoader
 
@@ -17,7 +18,8 @@ def main() -> int:
 
     settings = SettingsProvider(SettingsRequest(datahub=True)).bundle
     datahub_settings = settings.datahub
-    state = GovernanceStateLoader(datahub_settings.env).state
+    env_name = _required_env("DATAHUB_ENV")
+    state = GovernanceStateLoader(env_name).state
     client = DataHubClient(
         server=datahub_settings.server,
         token=datahub_settings.token,
@@ -29,7 +31,7 @@ def main() -> int:
     with DataHubGraph(graph_config) as graph:
         governance_writer = DataHubGovernanceCatalogWriter(graph=graph, client=client)
         return GovernanceApplier(
-            env_name=datahub_settings.env,
+            env_name=env_name,
             state=state,
             governance_writer=governance_writer,
         ).apply()

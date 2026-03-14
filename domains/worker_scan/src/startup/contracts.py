@@ -17,7 +17,14 @@ class RawScanStorageConfig:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> RawScanStorageConfig:
         """Build scan storage config from a dictionary payload."""
-        return cls(**payload)
+        source_prefix = payload.get("source_prefix", payload.get("input_prefix"))
+        if source_prefix is None:
+            raise KeyError("source_prefix")
+        return cls(
+            bucket=str(payload["bucket"]),
+            source_prefix=str(source_prefix),
+            output_prefix=str(payload["output_prefix"]),
+        )
 
 
 @dataclass(frozen=True)

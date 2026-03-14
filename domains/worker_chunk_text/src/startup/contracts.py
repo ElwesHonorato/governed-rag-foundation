@@ -5,6 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+
+DEFAULT_MANIFEST_PREFIX = "07_metadata/manifest/"
+
+
 @dataclass(frozen=True)
 class RawChunkStorageConfig:
     """Storage paths declared in job properties before environment scoping.
@@ -22,7 +26,11 @@ class RawChunkStorageConfig:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> RawChunkStorageConfig:
         """Build raw storage paths from a dictionary payload."""
-        return cls(**payload)
+        return cls(
+            bucket=str(payload["bucket"]),
+            output_prefix=str(payload["output_prefix"]),
+            manifest_prefix=str(payload.get("manifest_prefix", DEFAULT_MANIFEST_PREFIX)),
+        )
 
 
 @dataclass(frozen=True)

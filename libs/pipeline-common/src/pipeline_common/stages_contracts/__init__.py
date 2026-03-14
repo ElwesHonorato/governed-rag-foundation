@@ -10,6 +10,10 @@ from pipeline_common.stages_contracts.step_10_artifact_payloads import (
     StageArtifact,
     StageArtifactMetadata,
 )
+from pipeline_common.stages_contracts.embedding_artifact import (
+    EmbeddingArtifact,
+    EmbeddingArtifactMetadata,
+)
 from pipeline_common.stages_contracts.execution import (
     ExecutionStatus,
     ProcessResult,
@@ -23,6 +27,8 @@ __all__ = [
     "Content",
     "StageArtifact",
     "StageArtifactMetadata",
+    "EmbeddingArtifact",
+    "EmbeddingArtifactMetadata",
     "ExecutionStatus",
     "ProcessResult",
     "ProcessorContext",

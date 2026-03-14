@@ -384,8 +384,9 @@ class DataHubRuntimeLineage(LineageRuntimeGateway):
         return self._dpi_urn(run_id)
 
     def fail_run(self, error_message: str | None) -> str:
+        if self._active_context is None:
+            raise ValueError("No active run context available for failing run.")
         self._active_context.run.custom_properties.error_message = error_message
-        self._emit_dpi_event(status=DataProcessRunStatusClass.FAILURE)
         run_id = self._active_context.run.run_id
         self._clear_active_run()
         return self._dpi_urn(run_id)

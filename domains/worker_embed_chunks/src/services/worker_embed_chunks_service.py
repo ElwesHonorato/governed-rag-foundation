@@ -55,6 +55,7 @@ class WorkerEmbedChunksService(WorkerService):
                     self._lineage_gateway.fail_run(error_message=str(exc))
                 if message is not None:
                     message.nack(requeue=True)
+                logger.exception("Embedding failed for input artifact")
                 continue
             message.ack()
 

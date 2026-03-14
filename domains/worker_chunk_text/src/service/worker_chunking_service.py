@@ -1,6 +1,7 @@
 """Worker service that reads processed artifacts and emits chunk manifests."""
 
 import json
+import logging
 
 from chunking.resolver import ChunkingStagesResolver
 from pipeline_common.gateways.lineage import DatasetPlatform
@@ -12,6 +13,8 @@ from pipeline_common.helpers.run_ids import build_source_run_id
 from pipeline_common.stages_contracts import FileMetadata, ProcessResult, StageArtifact
 from pipeline_common.startup.contracts import WorkerService
 from processor.chunk_text import ChunkTextProcessor
+
+logger = logging.getLogger(__name__)
 
 
 class WorkerChunkingService(WorkerService):
@@ -64,6 +67,7 @@ class WorkerChunkingService(WorkerService):
                     self._lineage_gateway.fail_run(error_message=str(exc))
                 if message is not None:
                     message.nack(requeue=False)
+                logger.exception("Chunking failed for input artifact")
                 continue
             message.ack()
 

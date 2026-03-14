@@ -10,9 +10,15 @@ from dataclasses import dataclass
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.helpers.run_ids import build_source_run_id
 from pipeline_common.provenance import embedding_params_hash
-from pipeline_common.stages_contracts import FileMetadata, ProcessResult, ProcessorContext, StageArtifact
+from pipeline_common.stages_contracts import (
+    EmbeddingArtifact,
+    EmbeddingArtifactMetadata,
+    FileMetadata,
+    ProcessResult,
+    ProcessorContext,
+    StageArtifact,
+)
 from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata
-from services.embed_flow import EmbeddingArtifact, EmbeddingArtifactMetadata
 
 EMBEDDER_NAME = "deterministic_sha256"
 EMBEDDER_VERSION = "1.0.0"
@@ -34,7 +40,6 @@ class ChunkRecordPayload:
 
     index: int
     chunk_id: str
-    chunk_text: str
     offsets_start: int
     offsets_end: int
     chunk_text_hash: str

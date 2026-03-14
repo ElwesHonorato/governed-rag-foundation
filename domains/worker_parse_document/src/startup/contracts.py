@@ -16,7 +16,10 @@ class RawParseStorageConfig:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> RawParseStorageConfig:
         """Build parse storage config from a dictionary payload."""
-        return cls(**payload)
+        return cls(
+            bucket=str(payload["bucket"]),
+            output_prefix=str(payload["output_prefix"]),
+        )
 
 
 @dataclass(frozen=True)

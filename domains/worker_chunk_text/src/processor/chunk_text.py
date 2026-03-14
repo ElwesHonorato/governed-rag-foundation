@@ -14,7 +14,6 @@ from pipeline_common.stages_contracts import (
     Content,
     ProcessResult,
     ProcessorContext,
-    StageArtifact,
     StageArtifactMetadata,
     StorageStageArtifact,
 )
@@ -53,7 +52,8 @@ class ChunkTextProcessor(BaseProcessor):
     def process(
         self,
         *,
-        input_artifact: StageArtifact,
+        input_text: str,
+        root_doc_metadata: FileMetadata,
         input_uri: str,
         run_id: str,
         stages: ChunkingStages,
@@ -62,7 +62,8 @@ class ChunkTextProcessor(BaseProcessor):
         """Split one input artifact into chunk artifacts and persist the results.
 
         Args:
-            input_artifact: Parsed upstream stage artifact containing source text.
+            input_text: Source text extracted from the upstream stage artifact.
+            root_doc_metadata: Root document metadata carried across downstream stages.
             input_uri: Storage URI of the upstream artifact.
             run_id: Stable run identifier used in output object keys.
             stages: Ordered splitter stages to apply to the input text.
@@ -71,13 +72,12 @@ class ChunkTextProcessor(BaseProcessor):
             Processing result containing processor context and chunk execution metadata.
         """
         serialized_stages: list[dict[str, Any]] = stages.dict
-        root_doc_metadata: FileMetadata = input_artifact.root_doc_metadata
         processor_context: ProcessorContext = ProcessorContext(
             params_hash=chunk_params_hash(serialized_stages),
             params=serialized_stages,
         )
         docs: list[Document] = self._process_stages(
-            input_text=input_artifact.content.data,
+            input_text=input_text,
             stages=stages.stages,
         )
         execution_result: ChunkingExecutionMetadata = self._write_chunk_artifacts(

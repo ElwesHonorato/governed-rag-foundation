@@ -76,7 +76,8 @@ class WorkerChunkingService(WorkerService):
         input_artifact: StageArtifact = StageArtifact.from_dict(json.loads(raw_payload.decode("utf-8")))
         resolved_stages = self._chunking_resolver.resolve(input_artifact.root_doc_metadata.source_type)
         return self._processor.process(
-            input_artifact=input_artifact,
+            input_text=str(input_artifact.content.data),
+            root_doc_metadata=input_artifact.root_doc_metadata,
             input_uri=input_uri,
             run_id=build_source_run_id(input_uri),
             stages=resolved_stages,

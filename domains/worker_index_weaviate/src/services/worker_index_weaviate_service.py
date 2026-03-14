@@ -33,17 +33,22 @@ class WorkerIndexWeaviateService(WorkerService):
     def serve(self) -> None:
         """Run the indexing worker loop by polling queue messages."""
         while True:
+            message: ConsumedMessage | None = None
+            lineage_started = False
             try:
                 message = self._queue_gateway.wait_for_message(
                     poll_interval_seconds=self._poll_interval_seconds,
                 )
                 work_item = self._work_item_from_message(message)
                 self._register_lineage_input(work_item.uri)
+                lineage_started = True
                 process_result: ProcessResult = self._index_embeddings_payload(work_item.uri)
                 self._register_index_output_lineage(self._output_uri_from_process_result(process_result))
             except Exception as exc:
-                self._lineage_gateway.fail_run(error_message=str(exc))
-                message.nack(requeue=True)
+                if lineage_started:
+                    self._lineage_gateway.fail_run(error_message=str(exc))
+                if message is not None:
+                    message.nack(requeue=True)
                 continue
             message.ack()
 

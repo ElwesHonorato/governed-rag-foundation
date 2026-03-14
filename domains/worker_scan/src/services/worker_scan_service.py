@@ -6,6 +6,7 @@ from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import Envelope, QueueGateway
 from pipeline_common.helpers.contracts import doc_id_from_source_uri, utc_now_iso
+from pipeline_common.helpers.run_ids import build_source_run_id
 from pipeline_common.stages_contracts import FileMetadata, ProcessResult, ProcessorContext
 from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata
 from pipeline_common.startup.contracts import WorkerService
@@ -49,8 +50,8 @@ class WorkerScanService(WorkerService):
                     self._register_lineage_output(output_uri)
                     processed += 1
                 logger.info("Scan cycle processed %d item(s)", processed)
-            except Exception:
-                self._handle_scan_cycle_failure()
+            except Exception as exc:
+                self._handle_scan_cycle_failure(error_message=str(exc))
             self._sleep_until_next_cycle()
 
     def _move_file(self, work_item: ScanWorkItem) -> ProcessResult:
@@ -67,7 +68,7 @@ class WorkerScanService(WorkerService):
             doc_id_from_source_uri(work_item.destination_uri),
         )
         return ProcessResult(
-            run_id=work_item.destination_uri,
+            run_id=build_source_run_id(work_item.source_uri),
             root_doc_metadata=FileMetadata.from_source_bytes(
                 uri=work_item.source_uri,
                 payload=raw_payload,
@@ -121,7 +122,11 @@ class WorkerScanService(WorkerService):
             destination_uri=self._storage_gateway.build_uri(self._processor.bucket, destination_key),
         )
 
-    def _handle_scan_cycle_failure(self) -> None:
+    def _handle_scan_cycle_failure(self, *, error_message: str) -> None:
+        try:
+            self._lineage_gateway.fail_run(error_message=error_message)
+        except ValueError:
+            pass
         logger.exception("Scan cycle failed; continuing after poll interval")
 
     def _sleep_until_next_cycle(self) -> None:

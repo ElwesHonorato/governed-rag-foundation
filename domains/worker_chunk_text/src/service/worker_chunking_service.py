@@ -43,6 +43,8 @@ class WorkerChunkingService(WorkerService):
         processes it into chunk artifacts, writes a manifest, and records lineage.
         """
         while True:
+            message: ConsumedMessage | None = None
+            lineage_started = False
             try:
                 message = self._queue_gateway.wait_for_message(
                     poll_interval_seconds=self._poll_interval_seconds,
@@ -50,6 +52,7 @@ class WorkerChunkingService(WorkerService):
                 input_uri = self._input_uri_from_message(message)
 
                 self._register_lineage_input(input_uri)
+                lineage_started = True
                 
                 process_result: ProcessResult = self._transform_source_to_chunks(input_uri)
 
@@ -57,8 +60,10 @@ class WorkerChunkingService(WorkerService):
                 
                 self._register_manifest_output_lineage()
             except Exception as exc:
-                self._lineage_gateway.fail_run(error_message=str(exc))
-                message.nack(requeue=False)
+                if lineage_started:
+                    self._lineage_gateway.fail_run(error_message=str(exc))
+                if message is not None:
+                    message.nack(requeue=False)
                 continue
             message.ack()
 

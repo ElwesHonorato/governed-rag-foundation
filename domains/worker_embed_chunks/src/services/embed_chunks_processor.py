@@ -8,6 +8,7 @@ import uuid
 from dataclasses import dataclass
 
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
+from pipeline_common.helpers.run_ids import build_source_run_id
 from pipeline_common.provenance import embedding_params_hash
 from pipeline_common.stages_contracts import FileMetadata, ProcessResult, ProcessorContext, StageArtifact
 from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata
@@ -101,6 +102,7 @@ class EmbedChunksProcessor:
     ) -> ProcessResult:
         """Build one embedding artifact and return the process result."""
         chunk_payload = self.read_chunk_payload(raw_payload, source_uri=input_uri)
+        run_id = build_source_run_id(input_uri)
         stage_doc_metadata = FileMetadata.from_source_bytes(
             uri=input_uri,
             payload=raw_payload,
@@ -108,11 +110,12 @@ class EmbedChunksProcessor:
         )
         write_result = self.write_embedding_artifact(
             chunk_payload,
+            run_id=run_id,
             embedding_run_id=self._embedding_run_id(),
             stage_doc_metadata=stage_doc_metadata,
         )
         return ProcessResult(
-            run_id=write_result.chunk_id,
+            run_id=run_id,
             root_doc_metadata=chunk_payload.root_doc_metadata,
             stage_doc_metadata=stage_doc_metadata,
             input_uri=input_uri,
@@ -128,12 +131,14 @@ class EmbedChunksProcessor:
         self,
         payload: ChunkArtifactPayload,
         *,
+        run_id: str,
         embedding_run_id: str,
         stage_doc_metadata: FileMetadata,
     ) -> EmbeddingWriteResult:
         """Write one embedding artifact for the provided chunk payload."""
         embedding_payload = self._build_embedding_payload(
             payload,
+            run_id=run_id,
             embedding_run_id=embedding_run_id,
             stage_doc_metadata=stage_doc_metadata,
         )
@@ -163,6 +168,7 @@ class EmbedChunksProcessor:
         self,
         payload: ChunkArtifactPayload,
         *,
+        run_id: str,
         embedding_run_id: str,
         stage_doc_metadata: FileMetadata,
     ) -> EmbeddingArtifact:
@@ -177,7 +183,7 @@ class EmbedChunksProcessor:
             chunk_text=text,
             vector=self._deterministic_embedding_for(text, self._dimension),
             metadata=EmbeddingArtifactMetadata(
-                run_id="",
+                run_id=run_id,
                 embedder_name=EMBEDDER_NAME,
                 embedder_version=EMBEDDER_VERSION,
                 embedding_params_hash=embedding_params_hash(embedder_params),

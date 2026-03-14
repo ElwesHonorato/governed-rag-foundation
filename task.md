@@ -1,337 +1,585 @@
-You are a principal-level software architect and staff engineer specialized in LAG/RAG systems, distributed data pipelines, retrieval architecture, LLM evaluation, and Python backend design.
+You are a principal-level AI systems architect and staff software engineer specializing in:
 
-I am building a portfolio project and I want the implementation to feel state of the art, deliberate, and production-grade in architecture quality. I do NOT want shallow “AI wrapper” design. I want explicit domain boundaries, strong contracts, clean orchestration, real retrieval depth, prompt/version control, and evaluation capability.
+- LLM platforms
+- distributed systems
+- capability-oriented architectures
+- agent orchestration runtimes
+- AI platform infrastructure
 
-Your task is to help me design and implement a dedicated `llm_orchestration` domain for my project.
+Your task is to design and implement a **state-of-the-art capability-oriented AI agent platform** suitable for a portfolio project that demonstrates **elite architectural thinking**.
 
-## Project intent
+The goal is NOT to design a simple RAG system or a prompt wrapper.
 
-This project is a governed, queue-driven pipeline with independent workers, artifacts, manifests, contracts, and strong separation between domains and shared infrastructure.
+The goal is to design a **mini AI platform / Agent Operating System** capable of:
 
-I want `llm_orchestration` to be a first-class domain, not a helper module.
+- orchestrating LLM-assisted reasoning
+- executing capabilities and tools safely
+- integrating MCP-compatible services
+- interacting with real-world systems
+- composing reusable skills
+- managing stateful agent sessions
+- supervising multi-step execution
+- validating execution results
+- evaluating system performance
+- evolving prompts and capabilities safely over time
 
-This domain should be responsible for:
-- interpreting inference/task requests
-- deciding retrieval strategy
-- orchestrating retrieval calls
-- assembling context
-- building the final LLM request
-- enforcing output contracts
-- validating model responses
-- versioning prompts and inference configurations
-- supporting evaluation datasets and automated comparisons
-- making latency, token cost, and context tradeoffs explicit
+The architecture must appear credible to **senior platform engineers** reviewing the repository.
 
-For now, DO NOT include observability, telemetry, tracing, dashboards, metrics infrastructure, or monitoring concerns.
-Focus only on architecture, contracts, orchestration, versioning, evaluation design, and implementation design.
+Avoid shallow AI wrappers.
 
-## What I want from you
+Favor:
 
-Design this domain as if it were part of a serious portfolio project that should impress a picky hiring manager or staff engineer reviewing the repository.
+- explicit contracts
+- modular orchestration
+- runtime governance
+- capability composition
+- clean architecture boundaries
 
-The design must be:
-- explicit
-- modular
-- strongly typed
-- easy to evolve
-- aligned with clean architecture
-- realistic to implement incrementally
-- not overengineered for no reason
-- model-provider agnostic
+---
 
-## Core architectural expectations
+# Core Execution Principle
 
-The solution should treat “prompt building” as too narrow and instead model this as an orchestration capability.
+The LLM must **never directly execute actions**.
 
-The domain should likely cover concepts such as:
-- request classification
-- retrieval planning
-- retrieval execution
-- evidence/context selection
-- context compression or packing
-- prompt assembly
+Instead the system must enforce a supervised runtime flow:
+
+LLM reasoning / planning  
+→ structured capability or skill request  
+→ capability readiness validation  
+→ policy validation  
+→ execution engine  
+→ normalized result  
+→ postcondition validation  
+→ runtime state update  
+→ supervisor decision  
+→ continue / replan / pause / terminate
+
+Execution must always be **platform controlled**.
+
+---
+
+# Architectural Model
+
+The platform must follow a **Capability-Oriented Architecture**.
+
+Capabilities represent all actions the system can perform:
+
+Examples include:
+
+- retrieval
+- API calls
+- filesystem actions
+- command execution
+- workflow triggers
+- vector search
+- knowledge queries
+- document transformations
+- synthesis steps
+
+Capabilities must be:
+
+- discoverable
+- composable
+- policy-governed
+- execution-safe
+- pluggable
+- version-aware
+
+Capabilities may be implemented through:
+
+- MCP servers
+- HTTP APIs
+- local commands
+- filesystem operations
+- workflow engines
+- vector databases
+- lexical search engines
+- SDK integrations
+
+---
+
+# Skills-Oriented Layer
+
+The platform must support **skills**.
+
+A **skill** represents a reusable behavior composed of one or more capabilities.
+
+Example skills:
+
+- answer_customer_question
+- summarize_document
+- analyze_repository
+- generate_sales_report
+- create_support_ticket
+- investigate_system_failure
+
+A skill may internally generate an **ExecutionPlan**.
+
+Skills improve stability by providing **higher-level reusable behaviors** instead of planning raw capabilities each time.
+
+---
+
+# Control Plane vs Execution Plane
+
+The platform must clearly separate **control plane** and **execution plane** responsibilities.
+
+### Control Plane
+
+Responsible for configuration, governance, and evaluation.
+
+Responsibilities include:
+
+- capability registry
+- capability metadata
+- policies
 - prompt versioning
-- inference configuration versioning
-- response contract enforcement
-- response validation
-- evaluation set execution
-- automated result comparison
-- retrieval quality evaluation
-- token/cost/latency budgeting
-
-The architecture must distinguish:
-- domain policy
-- application/service orchestration
-- infrastructure gateways
-- contracts / DTOs / value objects
-- startup / composition concerns
-
-## Important design constraints
-
-- This is a portfolio project, so the architecture should look elite but still be understandable
-- Avoid fake complexity and meaningless abstractions
-- Avoid giant god objects
-- Avoid turning everything into generic frameworks
-- Prefer explicit classes over magical patterns
-- Keep functionality evolvable for future hybrid retrieval and multiple task types
-- Do not include observability yet
-- Do not rely on hidden global state
-- Keep contracts explicit and serialization predictable
-- Favor immutable dataclasses where appropriate
-- Use clear naming
-- Make boundaries obvious
-- Do not couple the design to one model vendor
-- LangChain may be used as an implementation detail, but it must not define the architecture
-
-## Technical expectations
-
-Assume Python.
-
-I want the domain to support or be ready for:
-- vector DB retrieval
-- keyword / lexical retrieval
-- metadata-filtered retrieval
-- object storage or file-backed context loading
-- future support for multiple retrieval strategies
-- strict output shape / schema enforcement
-- prompt version tracking
-- inference configuration version tracking
 - evaluation datasets
-- automated evaluation runs
-- retrieval evaluation
-- token and latency-aware request shaping
+- evaluation runs
+- skill definitions
+- supervisor configuration
+- planner configuration
+- capability enable/disable/versioning
 
-The design should make it possible to support different task types later, for example:
-- document question answering
-- code analysis
-- refactor guidance
-- summarization
-- contract review
+The control plane determines **how the system behaves**.
 
-## Prompt and evaluation expectations
+---
 
-The design must treat prompts as versioned assets, not inline strings.
+### Execution Plane
 
-It should account for:
-- prompt template versioning
-- prompt variant comparison
-- controlled prompt experiments
-- evaluation datasets for task-specific quality checks
-- automated comparisons between prompt versions or retrieval strategies
-- retrieval evaluation based on relevance/recall/context usefulness
-- answer evaluation based on correctness, faithfulness, and schema compliance
-- explicit handling of token budget, context size, and latency/cost tradeoffs
+Responsible for live runtime work.
 
-## LangChain expectation
+Responsibilities include:
 
-Assume LangChain may be used selectively, but the architecture must not be built around LangChain abstractions.
+- executing `AgentRun`
+- capability invocation
+- tool execution
+- API calls
+- retrieval
+- filesystem actions
+- workflow triggers
+- runtime state updates
+- approvals and pauses
+- result validation
+- runtime supervision
 
-If you recommend using LangChain, explain:
-- where it helps
-- where it should be isolated
-- where custom interfaces are better
-- how to avoid framework leakage into the domain model
+The execution plane performs **actual operations**.
 
-## Deliverables
+---
 
-Produce the answer in the following structure.
+# Agent Kernel (Session Runtime)
 
-# 1. Domain recommendation
-Explain whether `llm_orchestration` should be its own domain and why.
-State the core responsibility of the domain in one precise sentence.
+The platform must include an **Agent Kernel layer** between the control plane and the execution plane.
 
-# 2. Domain boundaries
-Clearly define:
-- what belongs inside the domain
-- what should stay in shared libs
-- what should remain infrastructure-specific
-- what should NOT belong here yet
+This kernel acts as the **Agent Operating System runtime**.
 
-# 3. Folder structure
-Propose a concrete folder structure for `domains/llm_orchestration`, including a short explanation of the responsibility of each folder.
+Responsibilities include:
 
-# 4. Core contracts
-Define the most important contracts/data structures this domain should have.
+- managing long-lived agent sessions
+- binding session context and memory
+- managing checkpoints
+- handling interrupts and resumes
+- supporting human approvals
+- tracking artifacts produced during execution
+- enabling handoffs between skills or agents
 
-At minimum, consider whether I need concepts like:
-- LlmInferenceRequest
-- RetrievalPlan
-- RetrievalQuery
-- RetrievedSnippet
-- EvidencePack
-- PromptTemplateVersion
+The kernel must define concepts such as:
+
+- AgentSession
+- SessionState
+- SessionCheckpoint
+- RunContext
+- ArtifactReference
+- HandoffRequest
+- HandoffResult
+- InterruptSignal
+- ResumeToken
+
+---
+
+# Required Repository Structure
+
+The design must respect the following structure.
+
+Explain responsibilities for each folder.
+
+
+domains/
+agent_platform/
+
+contracts/
+  agent_run.py
+  execution_plan.py
+  action_step.py
+  step_dependency.py
+  capability_descriptor.py
+  capability_request.py
+  capability_result.py
+  next_step_decision.py
+  replan_decision.py
+  termination_decision.py
+  prompt_template.py
+  prompt_version.py
+  inference_configuration.py
+  evaluation_case.py
+  evaluation_run.py
+
+services/
+  run_supervisor.py
+  capability_planning_service.py
+  next_step_decider.py
+  capability_execution_service.py
+  step_result_evaluation_service.py
+  plan_revision_service.py
+  prompt_assembly_service.py
+  response_validation_service.py
+  evaluation_execution_service.py
+
+policies/
+  capability_policy.py
+  approval_policy.py
+  termination_policy.py
+  token_budget_policy.py
+  cost_budget_policy.py
+  latency_budget_policy.py
+  sandbox_policy.py
+
+gateways/
+  capability_registry_gateway.py
+  vector_search_gateway.py
+  lexical_search_gateway.py
+  context_storage_gateway.py
+  model_gateway.py
+  mcp_gateway.py
+  command_execution_gateway.py
+  filesystem_gateway.py
+  workflow_gateway.py
+  prompt_template_repository.py
+  evaluation_dataset_gateway.py
+
+registry/
+  capability_registry.py
+  capability_catalog.py
+  capability_resolver.py
+
+runtime/
+  agent_run_manager.py
+  execution_state_manager.py
+  run_memory_manager.py
+  execution_journal.py
+
+approval/
+  approval_request_service.py
+  approval_state_store.py
+
+evaluation/
+  retrieval_evaluation_service.py
+  capability_selection_evaluation_service.py
+  answer_quality_evaluation_service.py
+  result_comparison_service.py
+
+kernel/
+  agent_session_manager.py
+  session_state_store.py
+  checkpoint_manager.py
+  artifact_registry.py
+  handoff_service.py
+  interrupt_manager.py
+
+startup/
+  contracts.py
+  config_extractor.py
+  service_factory.py
+
+libs/
+ai_infra/
+langchain_adapters/
+mcp_adapters/
+model_provider_adapters/
+vector_db_adapters/
+workflow_adapters/
+command_runners/
+filesystem_adapters/
+tokenization/
+schema_validation/
+
+interfaces/
+cli/
+agent_cli.py
+
+
+---
+
+# Capability Registry
+
+Capabilities must include metadata such as:
+
+- capability name
+- capability type
+- capability category
+- risk classification
+- execution backend
+- version
+- input schema
+- output schema
+- side effects
+- approval requirements
+- authentication scope
+- behavioral contracts
+
+---
+
+# Capability Behavioral Contracts
+
+Capabilities must define:
+
+### Preconditions
+Conditions required before execution.
+
+### Postconditions
+Expected state after execution.
+
+### Invariants
+Conditions that must remain true.
+
+Examples:
+
+- sandbox restrictions
+- filesystem boundaries
+- API allowlists
+- credential isolation
+- output validity expectations
+
+These contracts must influence:
+
+- planning
+- runtime validation
+- failure recovery
+- step evaluation
+
+---
+
+# Capability Graph
+
+Capabilities must expose dependency metadata so the system can construct a **capability graph**.
+
+The graph must describe:
+
+- required inputs
+- produced outputs
+- dependency chains
+- valid capability sequences
+
+This graph supports robust planning.
+
+---
+
+# Supervisor Runtime Loop
+
+The runtime must implement a supervised execution loop.
+
+Entities include:
+
+- AgentRun
+- ExecutionStepRecord
+- NextStepDecision
+- ReplanDecision
+- TerminationDecision
+
+Services include:
+
+- RunSupervisor
+- NextStepDecider
+- CapabilityExecutionService
+- StepResultEvaluationService
+- PlanRevisionService
+
+The runtime loop must:
+
+1. read run state
+2. check policies and budgets
+3. validate capability readiness
+4. select next step
+5. execute capability
+6. validate postconditions
+7. update state
+8. decide continue / replan / pause / terminate
+
+---
+
+# Run Budget Governance
+
+Runtime must enforce budgets such as:
+
+- max steps
+- max tool calls
+- max tokens
+- max latency
+- max cost
+
+Budgets influence planning, execution, and termination.
+
+---
+
+# Approval and Human-in-the-Loop
+
+Some actions must require approval.
+
+Examples:
+
+- filesystem modification
+- shell execution
+- workflow triggers
+- external system changes
+
+Approval system must support:
+
+- pause/resume
+- approval requests
+- approval rejection
+- persistent approval state
+
+---
+
+# Retrieval Integration
+
+Retrieval must be implemented as capabilities.
+
+Supported retrieval types include:
+
+- vector search
+- lexical search
+- metadata filtering
+- knowledge graph queries
+- document retrieval
+
+Explain how retrieval integrates with planning and prompt assembly.
+
+---
+
+# Prompt Versioning
+
+Prompts must be versioned assets.
+
+Define:
+
+- PromptTemplate
+- PromptVersion
 - PromptVariant
 - InferenceConfiguration
-- PromptAssemblyInput
-- LlmRequestPayload
-- ResponseContract
-- ValidatedLlmResponse
-- EvaluationDataset
-- EvaluationCase
-- EvaluationRun
-- EvaluationResult
-- RetrievalEvaluationResult
-- CostBudget
-- TokenBudget
 
-For each contract:
-- explain why it exists
-- explain what it should contain
-- explain whether it is a domain object, config contract, transport contract, or result contract
+Prompt versioning must support experiments and evaluation.
 
-# 5. Core services and policies
-Define the main services/policies/classes of the domain.
+---
 
-At minimum, consider whether I need:
-- TaskClassificationService
-- RetrievalPlanningService
-- ContextRetrievalService
-- ContextSelectionService
-- PromptAssemblyService
-- PromptVersioningService
-- ResponseValidationService
-- EvaluationExecutionService
-- RetrievalEvaluationService
-- ResultComparisonService
-- TokenBudgetPolicy
-- CostBudgetPolicy
-- LatencyBudgetPolicy
+# Evaluation Framework
 
-For each one:
-- explain its responsibility
-- explain what it must NOT do
-- explain its dependencies
-- explain how it collaborates with the others
+The platform must support evaluation-driven development.
 
-# 6. Gateway design
-Recommend the gateway interfaces the domain should depend on.
+Evaluation must measure:
 
-At minimum, consider:
-- VectorSearchGateway
-- LexicalSearchGateway
-- ContextStorageGateway
-- ModelGateway
-- PromptTemplateRepository
-- EvaluationDatasetGateway
+- retrieval usefulness
+- capability selection accuracy
+- answer correctness
+- schema compliance
+- task completion success
 
-For each gateway:
-- explain why it exists
-- define the boundary it protects
-- explain what methods it should expose at a high level
+Distinguish between:
 
-# 7. Prompt versioning design
-Explain how prompt versioning should work in this architecture.
+- offline evaluation
+- runtime evaluation
 
-Cover:
-- how prompt templates are represented
-- how versions are identified
-- how variants are compared
-- how an inference request selects a prompt version
-- how to avoid ad hoc inline prompt strings
-- how to keep prompt evolution explicit and reviewable
+---
 
-# 8. Evaluation design
-Explain how evaluation should be introduced without overengineering.
+# MCP Integration
 
-Cover:
-- evaluation datasets
-- evaluation cases
-- automated runs
-- comparison between prompt versions
-- comparison between retrieval strategies
-- answer quality evaluation
-- schema compliance checks
+The system must support **plug-and-play MCP capabilities**.
 
-# 9. Retrieval evaluation design
-Explain how retrieval quality should be evaluated.
+Explain how MCP providers integrate via adapters and behave as first-class capabilities.
 
-Cover:
-- recall
-- relevance
-- context usefulness
-- redundancy
-- hallucination risk from poor retrieval
+---
 
-Be concrete about what is realistically implementable in a portfolio project.
+# CLI Interface
 
-# 10. Latency, token, and cost tradeoffs
-Explain how the architecture should represent and enforce:
-- token budgets
-- max context size
-- latency constraints
-- model/provider cost awareness
+The platform must expose a CLI for interaction.
 
-Focus on architecture and policy, not monitoring.
+Example commands:
 
-# 11. LangChain recommendation
-Give a decisive recommendation on whether I should focus on LangChain or on model-agnostic architecture.
 
-Explain:
-- what role LangChain should play
-- what should remain custom
-- what would make the repo look stronger to senior engineers
-- what would make it look weaker or too framework-dependent
+agent run "analyze this repository"
+agent skill list
+agent capability list
+agent session show <session_id>
+agent approve list
+agent eval run benchmark_suite
 
-# 12. Execution flow
-Describe the end-to-end flow from incoming inference request to validated model response and optional evaluation result.
-Make the flow concrete and sequential.
-Show where each service participates.
 
-# 13. Anti-patterns to avoid
-List the most important implementation mistakes to avoid.
-Be adversarial and opinionated.
-Focus on mistakes that would make the design look shallow, confused, framework-driven, or fake-enterprise.
+CLI must interact with the kernel and runtime layers.
 
-# 14. Incremental implementation plan
-Give me a staged implementation plan.
-Start with the smallest credible version and then show how to evolve it.
-Each phase should be realistic and coherent.
+---
 
-# 15. Recommended naming
-Recommend strong names for:
-- the domain
-- the main facade
-- the request object
-- the final assembled prompt/request object
-- the prompt version object
-- the response validator
-- the retrieval result container
-- the evaluation run object
+# Deliverables
 
-# 16. Minimal elite version
-If I want the minimum version that still looks high-end in a portfolio, tell me the smallest set of folders, contracts, services, gateways, versioning pieces, and evaluation pieces I should implement first.
+Provide a detailed design covering:
 
-# 17. Example code skeleton
-Provide a clean Python code skeleton with:
-- key dataclasses
-- key protocols / interfaces
-- main service/facade
-- method signatures
-- no unnecessary implementation detail
+1. Domain Architecture Overview  
+2. Control Plane vs Execution Plane  
+3. Agent Kernel Design  
+4. Folder Structure Explanation  
+5. Contracts Layer  
+6. Capability Registry  
+7. Capability Behavioral Contracts  
+8. Capability Graph  
+9. Skills Layer  
+10. Services Layer  
+11. Policies Layer  
+12. Gateways Layer  
+13. Runtime Layer  
+14. Supervisor Loop  
+15. Replanning Strategy  
+16. Termination Model  
+17. Budget Governance  
+18. Approval Workflow  
+19. Result Normalization  
+20. Retrieval Integration  
+21. Prompt Versioning  
+22. Evaluation Framework  
+23. MCP Integration  
+24. Infrastructure Adapters  
+25. CLI Interface Design  
+26. End-to-End Execution Flow  
+27. Anti-patterns to Avoid  
+28. Minimal Portfolio Implementation  
+29. Example Python Code Skeleton
 
-## Output quality requirements
+---
 
-- Be concrete, not generic
-- Do not give shallow advice
-- Do not just list buzzwords
-- Make tradeoffs explicit
-- Prefer strong architectural judgment
-- If something feels like overengineering, say so directly
-- Optimize for portfolio quality and architectural credibility
-- Write as if you are helping build a repo that will be judged by senior engineers
+# Design Constraints
 
-## Additional instruction
+Use Python.
 
-When proposing the architecture, favor a design where:
-- workers can consume this domain cleanly
-- retrieval policy remains explicit
-- vector DB usage is behind a gateway
-- prompt composition is not treated as a string helper
-- response validation is first-class
-- prompt versioning is explicit
-- evaluation is designed in from the beginning
-- domain policy is separated from low-level mechanics
-- LangChain is optional and isolated
+Favor immutable dataclasses.
 
-Be decisive. I do not want multiple vague options unless there is a real tradeoff.
-Recommend the best architecture and explain why.
+Prefer explicit contracts.
+
+Avoid framework-driven architecture.
+
+Avoid hidden global state.
+
+Avoid LLM-controlled execution.
+
+Avoid one-shot planning.
+
+Use structured planning artifacts instead of chain-of-thought text.
+
+---
+
+# Output Expectations
+
+Your answer must:
+
+- be technically detailed
+- avoid vague architectural buzzwords
+- explain tradeoffs clearly
+- reflect modern AI platform architecture
+- optimize for portfolio credibility
+- demonstrate strong systems thinking

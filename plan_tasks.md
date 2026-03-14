@@ -1,235 +1,486 @@
-# Task Plan: Chunking Registry + Embedding Registry (Enterprise RAG Lineage)
+# MVP-First Implementation Plan: Capability-Oriented Agent Platform
 
 Source of truth:
-- `task.md` prompt requirements.
+- `task.md`
+- repo constraints from `AGENTS.md`
+- existing repo architecture in `docs/ARCHITECTURE.md`
+- DI guidance in `docs/patterns/dependency-injection.md`
 
 Objective:
-- Implement deterministic provenance registries for chunking and embedding while keeping DataHub lineage readable at dataset level.
+- implement a portfolio-grade capability-oriented AI agent platform in Python
+- keep the first delivery intentionally narrow, demonstrable, and aligned with existing repo patterns
+- avoid architecture overgrowth by shipping one credible vertical slice before expanding platform breadth
 
----
+## 1. Implementation stance
 
-## 0) Decisions and constraints
+### 1.1 Repo-aligned placement
+- Create a new deployable domain at `domains/agent_platform/` as the composition root and CLI surface.
+- Create a new shared library at `libs/ai_infra/` for reusable contracts, orchestration logic, policies, and gateway interfaces.
+- Keep deployable wiring and concrete adapters in `domains/agent_platform`.
+- Keep `libs/ai_infra` independent of `domains/`.
 
-### 0.1 Storage strategy
-- Default storage: S3-compatible object storage JSON append-only event objects + latest-state objects.
-- Keep schema evolution explicit and backward-safe.
+### 1.2 Delivery discipline
+- Favor immutable dataclasses and enums for contracts.
+- Prefer explicit services, registries, and gateways over framework-driven abstractions.
+- Represent plans, decisions, and execution results as typed artifacts.
+- Keep LLM output advisory and structured; never let it directly execute tools.
 
-### 0.2 Deterministic identity functions
-Implement shared canonical hashing helpers:
-- `source_content_hash = sha256(source_bytes)`
-- `chunk_params_hash = sha256(canonical_json(chunker_params))`
-- `chunk_id = sha256(source_dataset_urn + source_content_hash + chunker_name + chunker_version + chunk_params_hash + offsets.start + offsets.end)`
-- `embedding_params_hash = sha256(canonical_json(embedder_params))`
-- `embedding_id = sha256(chunk_id + embedder_name + embedder_version + embedding_params_hash + index_target)`
+### 1.3 MVP constraint
+- Build one end-to-end slice first.
+- Do not try to implement the full target platform surface in the first pass.
+- Ship the minimum that proves the architecture is real:
+  - typed capability registry
+  - one planner path
+  - one supervisor loop
+  - local session persistence
+  - prompt version selection
+  - one evaluation path
+
+## 2. MVP scope
+
+## 2.1 Build now
+
+The MVP should implement only these capabilities:
+- `vector_search`
+- `filesystem_read`
+- `command_run_safe`
+- `llm_synthesize`
+
+The MVP should implement only these skills:
+- `analyze_repository`
+- `summarize_document`
+
+The MVP should support only these runtime behaviors:
+- create session
+- plan from a selected skill
+- execute a step sequence under supervisor control
+- checkpoint and inspect run state
+- emit normalized execution records
+
+The MVP should support only these persistence choices:
+- local filesystem-backed stores for:
+  - sessions
+  - checkpoints
+  - prompt templates
+  - capability catalog
+  - evaluation runs
+  - vector index fixture data
+
+The MVP should support only these prompt/runtime features:
+- prompt template selection by version
+- one active prompt variant per skill
+- one model gateway interface with a local/mock adapter or narrow real adapter
+
+The MVP should support only this vector retrieval bootstrap strategy:
+- one reproducible local vector index fixture built from the current repo snapshot, using an allowlisted subset of files or extracted repo excerpts
+- fixture build happens outside the agent runtime through a small bootstrap script
+- fixture vectors are produced by a deterministic local embedding strategy or checked-in serialized vectors, not by a live external embedding service
+- `vector_search` queries only that local fixture in the first slice
+
+The MVP should support only these evaluation features:
+- offline replay/evaluation of captured runs
+- schema compliance and task completion scoring
+
+## 2.2 Explicitly deferred until after MVP works
+
+Defer these items:
+- handoffs between skills or agents
+- multi-agent orchestration
+- workflow trigger capabilities
+- cost-budget enforcement beyond simple placeholders
+- metadata filtering and knowledge graph queries
+- broad MCP provider support
+- runtime memory sophistication beyond persisted run/session state
+- result comparison across model variants
+- rich prompt experimentation system
+- production-grade auth and external credentials handling
+- filesystem mutation capabilities
+- approval pause/resume flows
+
+Reason:
+- these features increase surface area faster than they increase proof of architectural quality
+
+## 3. Target architecture for MVP
+
+### 3.1 Library layout
+- `libs/ai_infra/src/ai_infra/contracts/`
+- `libs/ai_infra/src/ai_infra/registry/`
+- `libs/ai_infra/src/ai_infra/policies/`
+- `libs/ai_infra/src/ai_infra/runtime/`
+- `libs/ai_infra/src/ai_infra/kernel/`
+- `libs/ai_infra/src/ai_infra/services/`
+- `libs/ai_infra/src/ai_infra/gateways/`
+- `libs/ai_infra/src/ai_infra/evaluation/`
+
+### 3.2 Domain layout
+- `domains/agent_platform/src/app.py`
+- `domains/agent_platform/src/cli/agent_cli.py`
+- `domains/agent_platform/src/startup/`
+- `domains/agent_platform/src/infrastructure/`
+- `domains/agent_platform/src/config/`
+- `domains/agent_platform/docs/ARCHITECTURE.md`
+- `domains/agent_platform/README.md`
+
+### 3.3 Boundary split
+- `libs/ai_infra`: stable contracts, supervisor/runtime logic, policies, registry, kernel abstractions.
+- `domains/agent_platform`: startup composition root, local adapters, CLI, config assets, concrete stores.
+
+## 4. MVP phases
+
+## 4.1 Phase 1: Core contracts and serialization
+
+Implement only the contracts required for the first vertical slice.
+
+Build now:
+- `AgentRun`
+- `ExecutionPlan`
+- `ActionStep`
+- `StepDependency`
+- `CapabilityDescriptor`
+- `CapabilityRequest`
+- `CapabilityResult`
+- `NextStepDecision`
+- `ReplanDecision`
+- `TerminationDecision`
+- `PromptTemplate`
+- `PromptVersion`
+- `InferenceConfiguration`
+- `AgentSession`
+- `SessionState`
+- `SessionCheckpoint`
+
+Defer:
+- `InterruptSignal`
+- `ResumeToken`
+- `HandoffRequest`
+- `HandoffResult`
+- advanced artifact graph contracts
+- prompt variants beyond the minimum needed for versioning
+- richer evaluation-case hierarchy
 
 Acceptance:
-- Stable across retries.
-- Same input produces same IDs in runtime behavior checks.
+- contracts are explicit dataclasses/enums
+- serialization is deterministic
+- cross-layer communication does not rely on untyped dict blobs
 
----
+## 4.2 Phase 2: Capability registry and catalog
 
-## 1) Registry data model and contracts
+Build a local file-backed capability registry.
 
-### 1.1 Create schemas/contracts
-Create typed contracts/models for:
-- Chunking Registry row
-- Embedding Registry row
-- Status enums:
-  - Chunk: `ACTIVE`, `DELETED`, `SUPERSEDED`
-  - Embedding: `STARTED`, `SUCCEEDED`, `FAILED`
+Build now:
+- capability metadata with:
+  - name
+  - category
+  - backend kind
+  - version
+  - risk classification
+  - input schema reference
+  - output schema reference
+  - side-effect flag
+  - preconditions
+  - postconditions
+  - invariants
+- `CapabilityRegistry`
+- `CapabilityCatalog`
+- `CapabilityResolver`
+- local YAML or JSON catalog under `domains/agent_platform/src/config/`
 
-### 1.2 Required chunking registry fields
-- `chunk_id` (PK)
-- `source_dataset_urn`
-- `source_s3_uri`
-- `source_content_hash`
-- `chunk_s3_uri`
-- `offsets_start`
-- `offsets_end`
-- `breadcrumb` (optional)
-- `chunk_text_hash`
-- `chunker_name`
-- `chunker_version`
-- `chunk_params_hash`
-- `chunking_run_id`
-- `created_at`
-- `observed_at`
-- `status`
+Defer:
+- dynamic capability enable/disable APIs
+- capability graph optimization beyond simple dependency checks
+- remote capability registry backends
 
-### 1.3 Required embedding registry fields
-- `embedding_id` (PK)
-- `chunk_id` (FK logical)
-- `index_target`
-- `embedder_name`
-- `embedder_version`
-- `embedding_params_hash`
-- `embedding_dim`
-- `embedding_vector_hash` (optional)
-- `embedding_run_id`
-- `chunking_run_id`
-- `attempt`
-- `status`
-- `error_message`
-- `started_at`
-- `finished_at`
-- `upserted_at`
-- `vector_record_id`
+Acceptance:
+- CLI can list capabilities
+- supervisor can resolve a capability by name/version
+- behavioral contracts are executable policy inputs
+- vector backends can be swapped through the gateway boundary without changing supervisor logic
 
----
+## 4.3 Phase 3: Skills and typed planning
 
-## 2) Canonical provenance envelope
+Build one planner path that turns a user goal plus skill into a typed plan.
 
-### 2.1 Implement envelope builders
-- `build_chunk_envelope(...) -> dict`
-- `build_embedding_envelope(...) -> dict`
+Build now:
+- skill definition contract
+- file-backed skill registry
+- `CapabilityPlanningService`
+- planning support for:
+  - `analyze_repository`
+  - `summarize_document`
 
-Requirements:
-- Include fields needed to join both registries by `chunk_id`.
-- Include run IDs and version/config hashes.
+Planner constraints:
+- emit step sequences from a bounded skill template
+- allow simple conditional replanning after failed steps
+- do not attempt general autonomous long-horizon planning
+- prefer `filesystem_read` or `command_run_safe` before `vector_search` when direct workspace inspection is sufficient
 
-### 2.2 Envelope usage
-- Persist envelope metadata with chunk objects in S3.
-- Persist envelope fields in registry rows.
-- Include envelope metadata in vector upsert payload metadata.
+Defer:
+- open-ended skill synthesis
+- multi-plan search
+- planner learning/evaluation loops
 
----
+Acceptance:
+- each plan step references a known capability
+- plans are inspectable before execution
+- the plan can be reissued in a deterministic serialized form
 
-## 3) Registry writer implementation (idempotent + concurrency-safe)
+## 4.4 Phase 4: Supervisor loop and execution runtime
 
-### 3.1 Chunking registry writer
-Capabilities:
-- Upsert by `chunk_id` semantics.
-- Append-only event write path (partitioned by `dt` + `chunking_run_id`).
-- Compaction into latest-state table keyed by `chunk_id`.
+Implement the minimal supervised loop.
 
-### 3.2 Embedding registry writer
-Capabilities:
-- Upsert by deterministic key (`embedding_id`) + attempt events.
-- Transition model: `STARTED -> SUCCEEDED/FAILED`.
-- Retry-safe with `attempt` increments.
-- Concurrent worker safety with append + compact strategy.
+Build now:
+- `RunSupervisor`
+- `NextStepDecider`
+- `CapabilityExecutionService`
+- `StepResultEvaluationService`
+- `PlanRevisionService`
+- `ResponseValidationService`
+- `AgentRunManager`
+- `ExecutionStateManager`
+- `ExecutionJournal`
 
-### 3.3 Query access layer
-Implement lookups:
-- By `chunk_id`
-- By `source_dataset_urn + source_content_hash`
-- By `chunking_run_id`
-- Latest embedding by `(chunk_id, index_target)`
+Required runtime loop:
+1. load run and session state
+2. validate current step readiness
+3. check sandbox and capability policies
+4. execute capability through a gateway
+5. normalize the result
+6. validate postconditions
+7. append execution record and checkpoint
+8. continue, replan, or terminate
 
----
+Defer:
+- sophisticated memory summarization
+- complex branching execution graphs
+- speculative parallel step execution
 
-## 4) Pipeline integration
+Acceptance:
+- no capability executes outside the supervisor
+- every step produces a normalized record
+- failure handling results in a typed replan or termination decision
+- `llm_synthesize` only consumes normalized tool outputs and prompt inputs assembled by platform services
 
-### 4.1 Chunking stage integration
-For each source file:
-- Compute `source_content_hash`
-- Chunk content
-- For each chunk:
-  - Compute deterministic `chunk_id`
-  - Write chunk object to `chunk_s3_uri` with envelope metadata
-  - Write chunking registry record (idempotent)
+## 4.5 Phase 5: Session persistence
 
-### 4.2 Embedding stage integration (async)
-For each work unit:
-- Resolve chunk from chunking registry (or payload input)
-- Mark embedding registry as `STARTED` (attempt increment)
-- Compute embedding
-- Upsert vector DB with metadata (`chunk_id`, `embedding_id`, versions, run IDs)
-- Mark `SUCCEEDED` with timestamps
-- On error: mark `FAILED` + `error_message`
+Make run state durable and inspectable.
 
----
+Build now:
+- `AgentSessionManager`
+- `SessionStateStore`
+- `CheckpointManager`
+- filesystem-backed session and checkpoint stores
 
-## 5) DataHub modeling (dataset-level only)
+Defer:
+- `InterruptManager`
 
-### 5.1 Datasets
-Model these datasets only:
-- Source file datasets
-- `chunk_store_dataset` (S3 prefix)
-- `chunking_registry_dataset`
-- `vector_index_dataset`
-- `embedding_registry_dataset`
+Acceptance:
+- a run can be resumed from the last checkpoint after process restart
+- session and run history are visible in CLI
 
-### 5.2 Static lineage
-- source -> chunking_job -> chunk_store
-- chunking_job -> chunking_registry
-- chunking_registry -> embedding_job -> vector_index
-- embedding_job -> embedding_registry
+## 4.6 Phase 6: Local adapters and CLI surface
 
-### 5.3 Runtime lineage (DPI)
-- Chunking DPI: include partition/manifest reference + chunk count.
-- Embedding DPI: include processed count, batch id, `chunking_run_id`.
+Add only the adapters needed for the MVP.
 
-Constraint:
-- Never create DataHub Dataset per chunk.
+Build now:
+- `FilesystemGateway`
+- `CommandExecutionGateway`
+- `VectorSearchGateway`
+- `ModelGateway`
+- `PromptTemplateRepository`
+- local adapters for each
+- a local vector index bootstrap script and fixture loader
+- CLI commands:
+  - `agent run "<task>"`
+  - `agent capability list`
+  - `agent skill list`
+  - `agent session show <session_id>`
 
----
+Constraints:
+- command execution must be allowlisted and read-only
+- filesystem access is read-only and workspace-bounded
+- `vector_search` should target one local backend with a narrow query/result contract
+- the first demo must not depend on an external pre-populated vector database
+- the first demo must not depend on a live external embedding API during bootstrap
+- the bootstrap path must be deterministic and documented
 
-## 6) Provenance query APIs
+Defer:
+- workflow gateway
+- MCP execution backend beyond interface seam
 
-Implement functions:
-- `get_chunk_provenance(chunk_id)`
-- `get_embedding_provenance(chunk_id, index_target)`
-- `trace_from_vector_result(chunk_id, index_target)`
+Acceptance:
+- a local end-to-end run is possible without external infrastructure
+- the CLI interacts with services and kernel layers rather than bypassing them
 
-Output contract:
-- Must provide full trace chain from vector result back to source dataset/version and runs.
+## 4.7 Phase 7: Prompt versioning and evaluation
 
----
+Add the minimum platform-control signals that make the project credible.
 
-## 7) Validation (tests deferred for now)
+Build now:
+- local prompt repository
+- prompt version selection in run metadata
+- prompt assembly service for the two MVP skills
+- `EvaluationRun`
+- offline evaluation runner for captured runs
+- initial evaluation checks:
+  - schema compliance
+  - task completion success
 
-Current policy for this task:
-- Automated tests were removed per request.
-- Validation relies on compile checks and runtime verification in worker flows.
+Defer:
+- prompt variant experiments
+- broad benchmark suites
+- retrieval usefulness scoring beyond a minimal relevance signal
 
-Deferred test backlog (future):
-- Deterministic `chunk_id`
-- Deterministic `embedding_id`
-- Upsert idempotency
-- Status transitions (`STARTED -> SUCCEEDED`, retry + failure paths)
-- Concurrency strategy correctness under parallel append events
-- Chunking stage writes envelope + registry
-- Embedding stage writes STARTED/SUCCEEDED/FAILED transitions
-- Query APIs return expected trace chain
+Acceptance:
+- every run records the prompt version used
+- an evaluation command can score a captured run artifact
 
----
+## 5. Build order
 
-## 8) Documentation deliverables
+1. Scaffold `libs/ai_infra`.
+2. Scaffold `domains/agent_platform`.
+3. Implement core contracts and serialization helpers.
+4. Implement local capability catalog and skill registry.
+5. Implement supervisor loop and runtime records.
+6. Implement filesystem-backed session and checkpoint stores.
+7. Implement the local vector index bootstrap script and sample fixture corpus.
+8. Implement the deterministic local embedding strategy or checked-in vector fixture format used by bootstrap.
+9. Implement local adapters for workspace file read, allowlisted commands, vector search, and model synthesis.
+10. Implement CLI commands.
+11. Implement prompt version selection and offline evaluation.
+12. Update docs.
 
-### 8.1 README/update doc
-Include:
-- Storage choice rationale
-- How to trace from vector DB result to source and runs
-- Async embedding representation in registry
-- Why DataHub lineage remains readable
+## 6. Concrete file plan for MVP
 
-### 8.2 File-by-file delivery format
-- Provide final implementation as file-by-file output with paths.
+### 6.1 Core library
+- `libs/ai_infra/src/ai_infra/contracts/agent_run.py`
+- `libs/ai_infra/src/ai_infra/contracts/execution_plan.py`
+- `libs/ai_infra/src/ai_infra/contracts/action_step.py`
+- `libs/ai_infra/src/ai_infra/contracts/step_dependency.py`
+- `libs/ai_infra/src/ai_infra/contracts/capability_descriptor.py`
+- `libs/ai_infra/src/ai_infra/contracts/capability_request.py`
+- `libs/ai_infra/src/ai_infra/contracts/capability_result.py`
+- `libs/ai_infra/src/ai_infra/contracts/next_step_decision.py`
+- `libs/ai_infra/src/ai_infra/contracts/replan_decision.py`
+- `libs/ai_infra/src/ai_infra/contracts/termination_decision.py`
+- `libs/ai_infra/src/ai_infra/contracts/prompt_template.py`
+- `libs/ai_infra/src/ai_infra/contracts/prompt_version.py`
+- `libs/ai_infra/src/ai_infra/contracts/inference_configuration.py`
+- `libs/ai_infra/src/ai_infra/contracts/evaluation_run.py`
 
----
+### 6.2 Runtime and services
+- `libs/ai_infra/src/ai_infra/services/run_supervisor.py`
+- `libs/ai_infra/src/ai_infra/services/capability_planning_service.py`
+- `libs/ai_infra/src/ai_infra/services/next_step_decider.py`
+- `libs/ai_infra/src/ai_infra/services/capability_execution_service.py`
+- `libs/ai_infra/src/ai_infra/services/step_result_evaluation_service.py`
+- `libs/ai_infra/src/ai_infra/services/plan_revision_service.py`
+- `libs/ai_infra/src/ai_infra/services/prompt_assembly_service.py`
+- `libs/ai_infra/src/ai_infra/services/response_validation_service.py`
+- `libs/ai_infra/src/ai_infra/runtime/agent_run_manager.py`
+- `libs/ai_infra/src/ai_infra/runtime/execution_state_manager.py`
+- `libs/ai_infra/src/ai_infra/runtime/execution_journal.py`
 
-## 9) Execution order (implementation sequence)
+### 6.3 Kernel, policies, registry, evaluation
+- `libs/ai_infra/src/ai_infra/kernel/agent_session_manager.py`
+- `libs/ai_infra/src/ai_infra/kernel/session_state_store.py`
+- `libs/ai_infra/src/ai_infra/kernel/checkpoint_manager.py`
+- `libs/ai_infra/src/ai_infra/policies/capability_policy.py`
+- `libs/ai_infra/src/ai_infra/policies/termination_policy.py`
+- `libs/ai_infra/src/ai_infra/policies/sandbox_policy.py`
+- `libs/ai_infra/src/ai_infra/gateways/model_gateway.py`
+- `libs/ai_infra/src/ai_infra/gateways/vector_search_gateway.py`
+- `libs/ai_infra/src/ai_infra/gateways/command_execution_gateway.py`
+- `libs/ai_infra/src/ai_infra/gateways/filesystem_gateway.py`
+- `libs/ai_infra/src/ai_infra/gateways/prompt_template_repository.py`
+- `libs/ai_infra/src/ai_infra/registry/capability_registry.py`
+- `libs/ai_infra/src/ai_infra/registry/capability_catalog.py`
+- `libs/ai_infra/src/ai_infra/registry/capability_resolver.py`
+- `libs/ai_infra/src/ai_infra/evaluation/offline_evaluation_runner.py`
 
-1. Shared deterministic hashing + canonical JSON helpers.
-2. Registry row contracts + status enums.
-3. Chunk/embedding envelope builders.
-4. S3 object-storage JSON registry writer (append events + latest-state objects).
-5. Chunking stage integration.
-6. Embedding stage integration with STARTED/SUCCEEDED/FAILED lifecycle.
-7. Query APIs.
-8. DataHub lineage extensions.
-9. Validation via compile and runtime checks (tests deferred).
-10. README + docs.
+### 6.4 Domain startup, config, infrastructure, CLI
+- `domains/agent_platform/src/app.py`
+- `domains/agent_platform/src/cli/agent_cli.py`
+- `domains/agent_platform/src/startup/contracts.py`
+- `domains/agent_platform/src/startup/config_extractor.py`
+- `domains/agent_platform/src/startup/service_factory.py`
+- `domains/agent_platform/src/infrastructure/local_command_runner.py`
+- `domains/agent_platform/src/infrastructure/local_filesystem_adapter.py`
+- `domains/agent_platform/src/infrastructure/local_vector_search.py`
+- `domains/agent_platform/src/infrastructure/bootstrap_vector_index.py`
+- `domains/agent_platform/src/infrastructure/local_embedding_fixture.py`
+- `domains/agent_platform/src/infrastructure/local_prompt_repository.py`
+- `domains/agent_platform/src/infrastructure/local_session_store.py`
+- `domains/agent_platform/src/infrastructure/local_checkpoint_store.py`
+- `domains/agent_platform/src/infrastructure/local_capability_catalog.py`
+- `domains/agent_platform/src/config/capabilities.yaml`
+- `domains/agent_platform/src/config/skills.yaml`
+- `domains/agent_platform/src/config/prompts/`
+- `domains/agent_platform/src/config/vector_fixture/`
 
----
+## 7. Validation plan
 
-## 10) Definition of done
+### 7.1 Required checks
+- `python3 -m compileall libs domains`
+- project-level pytest for the new modules if test scaffolding is added
+- bootstrap the local vector fixture and verify at least one deterministic query returns seeded hits
+- verify bootstrap output is reproducible across repeated runs on the same fixture corpus
+- CLI smoke tests for:
+  - capability listing
+  - skill listing
+  - safe end-to-end run
+  - resumed run from stored checkpoint
 
-- Deterministic IDs validated by deterministic function definitions and runtime behavior checks.
-- Both registries operational and authoritative for provenance.
-- Async embedding retries handled with idempotent, concurrency-safe writes.
-- Query APIs resolve full provenance chain.
-- DataHub lineage remains dataset-level and readable.
-- Documentation updated with usage and tracing workflow.
-- Automated tests intentionally deferred/removed for this iteration.
+### 7.2 MVP scenarios
+- run `analyze_repository` against this repo using `filesystem_read` and `command_run_safe`
+- run the vector bootstrap script against the current repo snapshot, then run a task that enriches direct workspace inspection with `vector_search`
+- confirm `llm_synthesize` receives normalized tool outputs and produces the final answer artifact
+- force a step failure and confirm typed replan or termination
+- evaluate a captured run artifact offline
+
+## 8. Documentation deliverables
+
+- update `docs/ARCHITECTURE.md` with `domains/agent_platform` and `libs/ai_infra`
+- add `domains/agent_platform/docs/ARCHITECTURE.md`
+- add `domains/agent_platform/README.md`
+- document:
+  - control plane vs execution plane in MVP terms
+  - supervisor loop
+  - capability registry shape
+  - vector search adapter boundary
+  - vector fixture bootstrap workflow for the current repo snapshot
+  - deferred items and why they were deferred
+
+## 9. Post-MVP expansion order
+
+Only after the MVP works end-to-end:
+1. add approval-gated mutation capabilities such as `filesystem_write`
+2. add MCP gateway implementation beyond a stub
+3. add workflow trigger capabilities
+4. add richer budget governance
+5. add prompt variants and comparison evaluation
+6. add artifact registry and handoff flows
+7. add more advanced retrieval and context assembly
+
+## 10. Risks and controls
+
+### 10.1 Risk: architecture theater
+- Control: require every new abstraction to serve the MVP flow directly.
+
+### 10.2 Risk: hidden LLM execution authority
+- Control: only typed capabilities resolved by the registry may execute.
+
+### 10.3 Risk: repo pattern drift
+- Control: keep composition roots in `domains/`, reusable logic in `libs/`, and use explicit startup wiring.
+
+### 10.4 Risk: too many integrations too early
+- Control: local adapters first, external systems later.
+
+## 11. Definition of done for MVP
+
+- `domains/agent_platform` exists with a functioning CLI
+- `libs/ai_infra` provides the runtime contracts and supervisor services required for the vertical slice
+- capability registry, skills, supervisor loop, vector retrieval, and session persistence work end-to-end
+- prompt version used for each run is recorded
+- offline evaluation can score a captured run
+- documentation explains the architecture and the intentionally deferred scope
+- affected code compiles and MVP smoke checks pass

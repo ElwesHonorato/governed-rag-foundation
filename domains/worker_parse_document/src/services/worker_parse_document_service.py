@@ -5,9 +5,12 @@ from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGateway
+
+from pathlib import Path
+
 from pipeline_common.helpers.contracts import doc_id_from_source_uri, utc_now_iso
 from pipeline_common.provenance import source_content_hash
-from pipeline_common.stages_contracts import ProcessResult, ProcessorContext, StageArtifact
+from pipeline_common.stages_contracts import FileMetadata, ProcessResult, ProcessorContext, StageArtifact
 from pipeline_common.startup.contracts import WorkerService
 from services.parse_flow_components import (
     DocumentParserProcessor,
@@ -89,7 +92,16 @@ class WorkerParseDocumentService(WorkerService):
         artifact = StageArtifact.from_dict(payload)
         return ProcessResult(
             run_id=parse_job.doc_id,
-            root_doc_metadata=artifact.root_metadata,
+            root_doc_metadata=artifact.root_doc_metadata,
+            stage_doc_metadata=FileMetadata(
+                doc_id=parse_job.doc_id,
+                uri=parse_job.input_uri,
+                timestamp=artifact.root_doc_metadata.timestamp,
+                security_clearance=artifact.root_doc_metadata.security_clearance,
+                source_type=Path(parse_job.input_uri).suffix.lower().lstrip("."),
+                content_type="application/octet-stream",
+                source_content_hash=source_content_hash(raw_payload),
+            ),
             input_uri=parse_job.input_uri,
             processor_context=ProcessorContext(params_hash="", params=[]),
             processor=artifact.processor_metadata,

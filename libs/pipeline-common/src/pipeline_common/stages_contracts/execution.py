@@ -33,7 +33,8 @@ class ProcessResult:
     Attributes:
         schema_version: Serialized schema version for the result payload.
         run_id: Deterministic run identifier for this processing execution.
-        root_doc_metadata: File metadata associated with the input.
+        root_doc_metadata: Root/original file metadata associated with the lineage chain.
+        stage_doc_metadata: Metadata for the concrete input file consumed by this stage.
         input_uri: Fully qualified storage URI for the input artifact.
         processor_context: Serialized processor parameter context.
         processor: Processor metadata emitted for this run.
@@ -44,6 +45,7 @@ class ProcessResult:
     schema_version: str = field(init=False)
     run_id: str
     root_doc_metadata: FileMetadata
+    stage_doc_metadata: FileMetadata
     input_uri: str
     processor_context: ProcessorContext
     processor: ProcessorMetadata

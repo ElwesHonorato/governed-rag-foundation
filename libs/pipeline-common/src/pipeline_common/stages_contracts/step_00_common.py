@@ -3,7 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
+import mimetypes
+from pathlib import Path
 from typing import Any, ClassVar, Mapping
+
+from pipeline_common.helpers.contracts import doc_id_from_source_uri, utc_now_iso
+from pipeline_common.provenance import source_content_hash
 
 
 @dataclass(frozen=True)
@@ -12,7 +17,7 @@ class FileMetadata:
 
     Attributes:
         doc_id: Stable identifier of the logical document.
-        source_uri: Storage URI where the original file resides.
+        uri: Storage URI where the file resides.
         timestamp: ISO timestamp representing ingestion or creation time.
         security_clearance: Security classification required to access the document.
         source_type: Origin of the document (e.g. email, pdf, contract).
@@ -24,7 +29,7 @@ class FileMetadata:
     SCHEMA_VERSION: ClassVar[str] = "1.0"
 
     doc_id: str
-    source_uri: str
+    uri: str
     timestamp: str
     security_clearance: str
     source_type: str
@@ -41,6 +46,29 @@ class FileMetadata:
         metadata_payload = dict(payload)
         metadata_payload.pop("schema_version", None)
         return cls(**metadata_payload)
+
+    @classmethod
+    def from_source_bytes(
+        cls,
+        *,
+        uri: str,
+        payload: bytes,
+        security_clearance: str = "",
+        default_content_type: str = "application/octet-stream",
+    ) -> "FileMetadata":
+        """Build metadata for a source object directly from its storage URI and raw bytes."""
+        resolved_content_type = mimetypes.guess_type(uri)[0]
+        if resolved_content_type is None:
+            resolved_content_type = default_content_type
+        return cls(
+            doc_id=doc_id_from_source_uri(uri),
+            uri=uri,
+            timestamp=utc_now_iso(),
+            security_clearance=security_clearance,
+            source_type=Path(uri).suffix.lower().lstrip("."),
+            content_type=resolved_content_type,
+            source_content_hash=source_content_hash(payload),
+        )
 
     @property
     def to_dict(self) -> dict[str, Any]:

@@ -38,7 +38,7 @@ class DocumentParserProcessor(BaseProcessor):
         parsed_payload = parser.parse(raw_text)
         root_metadata = FileMetadata(
             doc_id=doc_id,
-            source_uri=source_uri,
+            uri=source_uri,
             timestamp=timestamp,
             security_clearance=self._security_clearance,
             source_type=Path(source_uri).suffix.lower().lstrip("."),
@@ -49,7 +49,8 @@ class DocumentParserProcessor(BaseProcessor):
         return StageArtifact(
             metadata=StageArtifactMetadata(
                 processor=processor_metadata,
-                root=root_metadata,
+                root_doc_metadata=root_metadata,
+                stage_doc_metadata=root_metadata,
                 content={"contract": "Content"},
                 params=[],
             ),

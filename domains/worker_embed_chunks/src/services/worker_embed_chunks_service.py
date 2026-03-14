@@ -1,3 +1,4 @@
+import json
 import logging
 import uuid
 from pathlib import Path
@@ -6,6 +7,8 @@ from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGateway
+from pipeline_common.helpers.contracts import doc_id_from_source_uri
+from pipeline_common.provenance import source_content_hash
 from pipeline_common.stages_contracts import FileMetadata, ProcessResult, ProcessorContext
 from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata
 from pipeline_common.startup.contracts import WorkerService
@@ -95,17 +98,40 @@ class WorkerEmbedChunksService(WorkerService):
             embedding_run_id=uuid.uuid4().hex,
         )
         logger.info("Wrote embedding object '%s'", write_result.destination_key)
+        chunk_payload_bytes = json.dumps(
+            {
+                "index": chunk_payload.chunk_record.index,
+                "chunk_id": chunk_payload.chunk_record.chunk_id,
+                "chunk_text": chunk_payload.chunk_record.chunk_text,
+                "offsets_start": chunk_payload.chunk_record.offsets_start,
+                "offsets_end": chunk_payload.chunk_record.offsets_end,
+                "chunk_text_hash": chunk_payload.chunk_record.chunk_text_hash,
+            },
+            sort_keys=True,
+            ensure_ascii=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        stage_doc_metadata = FileMetadata(
+            doc_id=doc_id_from_source_uri(input_uri),
+            uri=input_uri,
+            timestamp="",
+            security_clearance="",
+            source_type=Path(input_uri).suffix.lower().lstrip("."),
+            content_type="application/json",
+            source_content_hash=source_content_hash(chunk_payload_bytes),
+        )
         return ProcessResult(
             run_id=write_result.chunk_id,
             root_doc_metadata=FileMetadata(
                 doc_id=write_result.doc_id,
-                source_uri=input_uri,
+                uri=input_uri,
                 timestamp="",
                 security_clearance="",
                 source_type=Path(input_uri).suffix.lower().lstrip("."),
                 content_type="application/json",
                 source_content_hash=chunk_payload.chunk_record.chunk_text_hash,
             ),
+            stage_doc_metadata=stage_doc_metadata,
             input_uri=input_uri,
             processor_context=ProcessorContext(params_hash="", params=[]),
             processor=ProcessorMetadata(name="EmbedChunksProcessor", version="1.0.0"),

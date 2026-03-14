@@ -9,7 +9,7 @@ from pipeline_common.gateways.object_storage import ManifestWriter
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGateway
 from pipeline_common.helpers.run_ids import build_source_run_id
-from pipeline_common.stages_contracts import ProcessResult, StageArtifact
+from pipeline_common.stages_contracts import FileMetadata, ProcessResult, StageArtifact
 from pipeline_common.startup.contracts import WorkerService
 from processor.chunk_text import ChunkTextProcessor
 
@@ -74,12 +74,17 @@ class WorkerChunkingService(WorkerService):
         """Load an input artifact, resolve stages, and run the chunk processor."""
         raw_payload = self._storage_gateway.read_object(uri=input_uri)
         input_artifact: StageArtifact = StageArtifact.from_dict(json.loads(raw_payload.decode("utf-8")))
-        resolved_stages = self._chunking_resolver.resolve(input_artifact.root_metadata.source_type)
+        resolved_stages = self._chunking_resolver.resolve(input_artifact.root_doc_metadata.source_type)
         return self._processor.process(
             input_artifact=input_artifact,
             input_uri=input_uri,
             run_id=build_source_run_id(input_uri),
             stages=resolved_stages,
+            stage_doc_metadata=FileMetadata.from_source_bytes(
+                uri=input_uri,
+                payload=raw_payload,
+                default_content_type="application/json",
+            ),
         )
 
     def _write_manifest(self, process_result: ProcessResult) -> None:

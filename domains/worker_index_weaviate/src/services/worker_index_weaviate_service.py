@@ -1,3 +1,4 @@
+import json
 import logging
 from pathlib import Path
 from typing import Any
@@ -6,6 +7,8 @@ from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGateway
+from pipeline_common.helpers.contracts import doc_id_from_source_uri
+from pipeline_common.provenance import source_content_hash
 from pipeline_common.stages_contracts import FileMetadata, ProcessResult, ProcessorContext
 from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata
 from services.index_flow import IndexStatusWriter, IndexWorkItem
@@ -118,16 +121,31 @@ class WorkerIndexWeaviateService(WorkerService):
         self._write_indexed_object(destination_key, resolved_doc_id, resolved_chunk_id)
         metadata = dict(payload.get("metadata", {}))
         source_uri = str(metadata.get("source_uri") or "")
+        stage_payload_bytes = json.dumps(
+            payload,
+            sort_keys=True,
+            ensure_ascii=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
         return ProcessResult(
             run_id=resolved_chunk_id or resolved_doc_id,
             root_doc_metadata=FileMetadata(
                 doc_id=resolved_doc_id,
-                source_uri=source_uri,
+                uri=source_uri,
                 timestamp=str(metadata.get("timestamp") or ""),
                 security_clearance=str(metadata.get("security_clearance") or ""),
                 source_type=Path(source_uri).suffix.lower().lstrip("."),
                 content_type="application/json",
                 source_content_hash="",
+            ),
+            stage_doc_metadata=FileMetadata(
+                doc_id=doc_id_from_source_uri(input_uri),
+                uri=input_uri,
+                timestamp=str(metadata.get("timestamp") or ""),
+                security_clearance=str(metadata.get("security_clearance") or ""),
+                source_type=Path(input_uri).suffix.lower().lstrip("."),
+                content_type="application/json",
+                source_content_hash=source_content_hash(stage_payload_bytes),
             ),
             input_uri=input_uri,
             processor_context=ProcessorContext(params_hash="", params=[]),

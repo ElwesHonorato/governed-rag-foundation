@@ -102,7 +102,7 @@ Preferred:
 
 ```python
 return cls(
-    root_doc_metadata=FileMetadata(**payload["root_doc_metadata"]),
+    root_doc_metadata=FileMetadata.from_dict(payload["root_doc_metadata"]),
     content=content_type(**payload["content"]),
     processor_metadata=ProcessorMetadata(**payload["processor_metadata"]),
 )
@@ -237,7 +237,8 @@ metadata_payload = payload["metadata"]
 return cls(
     metadata=StageArtifactMetadata(
         processor=ProcessorMetadata(**metadata_payload["processor"]),
-        root=FileMetadata(**metadata_payload["root"]),
+        root_doc_metadata=FileMetadata.from_dict(metadata_payload["root_doc_metadata"]),
+        stage_doc_metadata=FileMetadata.from_dict(metadata_payload["stage_doc_metadata"]),
         content=metadata_payload["content"],
         params=metadata_payload["params"],
     ),

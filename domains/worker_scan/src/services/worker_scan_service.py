@@ -1,14 +1,11 @@
 import logging
-import mimetypes
 import time
-from pathlib import Path
 
 from pipeline_common.gateways.lineage import DatasetPlatform
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import Envelope, QueueGateway
 from pipeline_common.helpers.contracts import doc_id_from_source_uri, utc_now_iso
-from pipeline_common.provenance import source_content_hash
 from pipeline_common.stages_contracts import FileMetadata, ProcessResult, ProcessorContext
 from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata
 from pipeline_common.startup.contracts import WorkerService
@@ -71,14 +68,15 @@ class WorkerScanService(WorkerService):
         )
         return ProcessResult(
             run_id=work_item.destination_uri,
-            root_doc_metadata=FileMetadata(
-                doc_id=doc_id_from_source_uri(work_item.source_uri),
-                source_uri=work_item.source_uri,
-                timestamp=utc_now_iso(),
-                security_clearance="",
-                source_type=Path(work_item.source_uri).suffix.lower().lstrip("."),
-                content_type=str(mimetypes.guess_type(work_item.source_uri)[0] or "application/octet-stream"),
-                source_content_hash=source_content_hash(raw_payload),
+            root_doc_metadata=FileMetadata.from_source_bytes(
+                uri=work_item.source_uri,
+                payload=raw_payload,
+                default_content_type="application/octet-stream",
+            ),
+            stage_doc_metadata=FileMetadata.from_source_bytes(
+                uri=work_item.source_uri,
+                payload=raw_payload,
+                default_content_type="application/octet-stream",
             ),
             input_uri=work_item.source_uri,
             processor_context=ProcessorContext(params_hash="", params=[]),

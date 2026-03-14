@@ -57,6 +57,7 @@ class ChunkTextProcessor(BaseProcessor):
         input_uri: str,
         run_id: str,
         stages: ChunkingStages,
+        stage_doc_metadata: FileMetadata,
     ) -> ProcessResult:
         """Split one input artifact into chunk artifacts and persist the results.
 
@@ -70,7 +71,7 @@ class ChunkTextProcessor(BaseProcessor):
             Processing result containing processor context and chunk execution metadata.
         """
         serialized_stages: list[dict[str, Any]] = stages.dict
-        root_metadata: FileMetadata = input_artifact.root_metadata
+        root_doc_metadata: FileMetadata = input_artifact.root_doc_metadata
         processor_context: ProcessorContext = ProcessorContext(
             params_hash=chunk_params_hash(serialized_stages),
             params=serialized_stages,
@@ -84,12 +85,14 @@ class ChunkTextProcessor(BaseProcessor):
             serialized_stages=serialized_stages,
             input_uri=input_uri,
             run_id=run_id,
-            root_doc_metadata=root_metadata,
+            root_metadata=root_doc_metadata,
+            stage_doc_metadata=stage_doc_metadata,
         )
 
         return ProcessResult(
             run_id=run_id,
-            root_doc_metadata=root_metadata,
+            root_doc_metadata=root_doc_metadata,
+            stage_doc_metadata=stage_doc_metadata,
             input_uri=input_uri,
             processor_context=processor_context,
             processor=self.processor_metadata,
@@ -142,6 +145,7 @@ class ChunkTextProcessor(BaseProcessor):
         input_uri: str,
         run_id: str,
         root_metadata: FileMetadata,
+        stage_doc_metadata: FileMetadata,
     ) -> ChunkingExecutionMetadata:
         """Persist chunk artifacts, enqueue their URIs, and summarize write results."""
         chunk_count_expected = 0
@@ -154,6 +158,7 @@ class ChunkTextProcessor(BaseProcessor):
             input_uri=input_uri,
             run_id=run_id,
             root_metadata=root_metadata,
+            stage_doc_metadata=stage_doc_metadata,
         ):
             chunk_count_expected += 1
             chunk_entries.append(storage_stage_artifact.destination_key)
@@ -179,9 +184,9 @@ class ChunkTextProcessor(BaseProcessor):
         input_uri: str,
         run_id: str,
         root_metadata: FileMetadata,
+        stage_doc_metadata: FileMetadata,
     ) -> Iterator[StorageStageArtifact]:
         """Yield storage artifacts for each chunk emitted from the split documents."""
-        root_metadata_payload = root_metadata.to_dict
         processor_metadata_payload = self.processor_metadata.to_dict
 
         for chunk_index, doc in enumerate(docs):
@@ -189,7 +194,6 @@ class ChunkTextProcessor(BaseProcessor):
                 chunk_index=chunk_index,
                 doc=doc,
                 input_uri=input_uri,
-                root_metadata=root_metadata_payload,
                 processor=processor_metadata_payload,
                 params=serialized_stages,
             )
@@ -197,7 +201,8 @@ class ChunkTextProcessor(BaseProcessor):
                 artifact=StageArtifact(
                     metadata=StageArtifactMetadata(
                         processor=self.processor_metadata,
-                        root=root_metadata,
+                        root_doc_metadata=root_metadata,
+                        stage_doc_metadata=stage_doc_metadata,
                         params=serialized_stages,
                         content=chunk_metadata,
                     ),
@@ -217,7 +222,6 @@ class ChunkTextProcessor(BaseProcessor):
         chunk_index: int,
         doc: Document,
         input_uri: str,
-        root_metadata: dict[str, Any],
         processor: dict[str, Any],
         params: list[dict[str, Any]],
     ) -> ChunkMetadata:
@@ -228,7 +232,6 @@ class ChunkTextProcessor(BaseProcessor):
         offsets_end = offsets_start + len(chunk_text)
         chunk_id = build_id(
             source_uri=input_uri,
-            source_metadata=root_metadata,
             processor=processor,
             params=params,
             content={

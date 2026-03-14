@@ -1,170 +1,337 @@
-# Prompt: Implement Chunking Registry + Embedding Registry (Enterprise RAG Lineage)
+You are a principal-level software architect and staff engineer specialized in LAG/RAG systems, distributed data pipelines, retrieval architecture, LLM evaluation, and Python backend design.
 
-You are a senior platform engineer implementing enterprise-grade provenance for a RAG pipeline.
-We persist chunks to S3 and index embeddings asynchronously in a vector DB.
-We want TWO registries:
-1) Chunking Registry: one row per chunk produced
-2) Embedding Registry: one row per (chunk_id, embedder_version, index_target) produced (and optionally per attempt/run)
+I am building a portfolio project and I want the implementation to feel state of the art, deliberate, and production-grade in architecture quality. I do NOT want shallow “AI wrapper” design. I want explicit domain boundaries, strong contracts, clean orchestration, real retrieval depth, prompt/version control, and evaluation capability.
 
-Goal: keep DataHub lineage UI readable (dataset-level), while allowing deterministic traceability:
-vector_result(chunk_id) -> chunk registry -> embedding registry -> exact source file version + exact run(s) + exact code/config.
+Your task is to help me design and implement a dedicated `llm_orchestration` domain for my project.
 
-## Hard requirements
+## Project intent
 
-### Deterministic identity
-- Define `source_content_hash = sha256(source_bytes)`
-- Define `chunk_params_hash = sha256(canonical_json(chunker_params))`
-- Define `chunk_id = sha256(
-    source_dataset_urn
-    + source_content_hash
-    + chunker_name + chunker_version + chunk_params_hash
-    + offsets.start + offsets.end
-  )`
-- Define `embedding_params_hash = sha256(canonical_json(embedder_params))`
-- Define `embedding_id = sha256(
-    chunk_id
-    + embedder_name + embedder_version + embedding_params_hash
-    + index_target
-  )`
+This project is a governed, queue-driven pipeline with independent workers, artifacts, manifests, contracts, and strong separation between domains and shared infrastructure.
 
-IDs must be stable across retries.
+I want `llm_orchestration` to be a first-class domain, not a helper module.
 
-### Registries are authoritative
-- Chunking Registry is the source of truth for “what chunks exist and where”.
-- Embedding Registry is the source of truth for “what got embedded/indexed, with what model, when, and where”.
+This domain should be responsible for:
+- interpreting inference/task requests
+- deciding retrieval strategy
+- orchestrating retrieval calls
+- assembling context
+- building the final LLM request
+- enforcing output contracts
+- validating model responses
+- versioning prompts and inference configurations
+- supporting evaluation datasets and automated comparisons
+- making latency, token cost, and context tradeoffs explicit
 
-### Async embedding
-Embedding workers run independently, out-of-order, with retries. Registry writes must be:
-- idempotent
-- safe under concurrency
-- track status transitions (STARTED -> SUCCEEDED/FAILED), and allow multiple attempts.
+For now, DO NOT include observability, telemetry, tracing, dashboards, metrics infrastructure, or monitoring concerns.
+Focus only on architecture, contracts, orchestration, versioning, evaluation design, and implementation design.
+
+## What I want from you
+
+Design this domain as if it were part of a serious portfolio project that should impress a picky hiring manager or staff engineer reviewing the repository.
+
+The design must be:
+- explicit
+- modular
+- strongly typed
+- easy to evolve
+- aligned with clean architecture
+- realistic to implement incrementally
+- not overengineered for no reason
+- model-provider agnostic
+
+## Core architectural expectations
+
+The solution should treat “prompt building” as too narrow and instead model this as an orchestration capability.
+
+The domain should likely cover concepts such as:
+- request classification
+- retrieval planning
+- retrieval execution
+- evidence/context selection
+- context compression or packing
+- prompt assembly
+- prompt versioning
+- inference configuration versioning
+- response contract enforcement
+- response validation
+- evaluation set execution
+- automated result comparison
+- retrieval quality evaluation
+- token/cost/latency budgeting
+
+The architecture must distinguish:
+- domain policy
+- application/service orchestration
+- infrastructure gateways
+- contracts / DTOs / value objects
+- startup / composition concerns
+
+## Important design constraints
+
+- This is a portfolio project, so the architecture should look elite but still be understandable
+- Avoid fake complexity and meaningless abstractions
+- Avoid giant god objects
+- Avoid turning everything into generic frameworks
+- Prefer explicit classes over magical patterns
+- Keep functionality evolvable for future hybrid retrieval and multiple task types
+- Do not include observability yet
+- Do not rely on hidden global state
+- Keep contracts explicit and serialization predictable
+- Favor immutable dataclasses where appropriate
+- Use clear naming
+- Make boundaries obvious
+- Do not couple the design to one model vendor
+- LangChain may be used as an implementation detail, but it must not define the architecture
+
+## Technical expectations
+
+Assume Python.
+
+I want the domain to support or be ready for:
+- vector DB retrieval
+- keyword / lexical retrieval
+- metadata-filtered retrieval
+- object storage or file-backed context loading
+- future support for multiple retrieval strategies
+- strict output shape / schema enforcement
+- prompt version tracking
+- inference configuration version tracking
+- evaluation datasets
+- automated evaluation runs
+- retrieval evaluation
+- token and latency-aware request shaping
+
+The design should make it possible to support different task types later, for example:
+- document question answering
+- code analysis
+- refactor guidance
+- summarization
+- contract review
+
+## Prompt and evaluation expectations
+
+The design must treat prompts as versioned assets, not inline strings.
+
+It should account for:
+- prompt template versioning
+- prompt variant comparison
+- controlled prompt experiments
+- evaluation datasets for task-specific quality checks
+- automated comparisons between prompt versions or retrieval strategies
+- retrieval evaluation based on relevance/recall/context usefulness
+- answer evaluation based on correctness, faithfulness, and schema compliance
+- explicit handling of token budget, context size, and latency/cost tradeoffs
+
+## LangChain expectation
+
+Assume LangChain may be used selectively, but the architecture must not be built around LangChain abstractions.
+
+If you recommend using LangChain, explain:
+- where it helps
+- where it should be isolated
+- where custom interfaces are better
+- how to avoid framework leakage into the domain model
 
 ## Deliverables
 
-### 1) Data model (schemas)
-Implement schemas and storage for both registries (choose one storage option; default: Parquet on S3 with partitioning by date and/or run_id, plus a compacted “latest” table; or Postgres if simpler).
-Provide CREATE TABLE if using SQL.
+Produce the answer in the following structure.
 
-#### Chunking Registry schema (minimum)
-- chunk_id (PK)
-- source_dataset_urn
-- source_s3_uri (or canonical source uri)
-- source_content_hash
-- chunk_s3_uri (location of stored chunk object)
-- offsets_start
-- offsets_end
-- breadcrumb (optional)
-- chunk_text_hash (sha256)
-- chunker_name
-- chunker_version
-- chunk_params_hash
-- chunking_run_id
-- created_at (timestamp)
-- observed_at (timestamp)  # last time seen/verified
-- status (ENUM: ACTIVE, DELETED, SUPERSEDED)  # choose minimal status semantics
+# 1. Domain recommendation
+Explain whether `llm_orchestration` should be its own domain and why.
+State the core responsibility of the domain in one precise sentence.
 
-#### Embedding Registry schema (minimum)
-- embedding_id (PK)  # deterministic
-- chunk_id (FK to chunking registry)
-- index_target (e.g. "qdrant://collection=x" or "pgvector://schema.table")
-- embedder_name
-- embedder_version
-- embedding_params_hash
-- embedding_dim
-- embedding_vector_hash (optional)  # hash of embedding bytes if you want
-- embedding_run_id
-- chunking_run_id (copied for convenience)
-- attempt (int)
-- status (ENUM: STARTED, SUCCEEDED, FAILED)
-- error_message (nullable)
-- started_at
-- finished_at (nullable)
-- upserted_at (timestamp)
-- vector_record_id (id used in vector db, typically chunk_id or embedding_id)
+# 2. Domain boundaries
+Clearly define:
+- what belongs inside the domain
+- what should stay in shared libs
+- what should remain infrastructure-specific
+- what should NOT belong here yet
 
-Add any extra fields you need for your runtime (tenant, domain, namespace, etc).
+# 3. Folder structure
+Propose a concrete folder structure for `domains/llm_orchestration`, including a short explanation of the responsibility of each folder.
 
-### 2) Canonical provenance envelope
-Implement:
-- `build_chunk_envelope(...) -> dict` (for chunk objects and registry writes)
-- `build_embedding_envelope(...) -> dict` (for vector records and embedding registry writes)
-Ensure envelopes contain all fields to join across registries by chunk_id.
+# 4. Core contracts
+Define the most important contracts/data structures this domain should have.
 
-### 3) Writers with idempotency + concurrency safety
-Implement registry writers that support:
-- upsert semantics by PK
-- status transitions with optimistic concurrency (if DB) or “append + compact” (if S3 parquet)
-- ability to query:
-  - by chunk_id
-  - by source_dataset_urn + source_content_hash
-  - by chunking_run_id
-  - embedding latest for a chunk_id and index_target
+At minimum, consider whether I need concepts like:
+- LlmInferenceRequest
+- RetrievalPlan
+- RetrievalQuery
+- RetrievedSnippet
+- EvidencePack
+- PromptTemplateVersion
+- PromptVariant
+- InferenceConfiguration
+- PromptAssemblyInput
+- LlmRequestPayload
+- ResponseContract
+- ValidatedLlmResponse
+- EvaluationDataset
+- EvaluationCase
+- EvaluationRun
+- EvaluationResult
+- RetrievalEvaluationResult
+- CostBudget
+- TokenBudget
 
-If using S3 parquet:
-- Write append-only partitions (e.g., dt=YYYY-MM-DD/run_id=...)
-- Provide a compaction job that materializes “latest state” tables for fast lookup.
+For each contract:
+- explain why it exists
+- explain what it should contain
+- explain whether it is a domain object, config contract, transport contract, or result contract
 
-### 4) Pipeline integration
-Update pipeline stages:
+# 5. Core services and policies
+Define the main services/policies/classes of the domain.
 
-#### Chunking stage
-For each input file:
-- compute source_content_hash
-- chunk into segments
-- for each segment:
-  - compute chunk_id deterministically
-  - write chunk object to S3 at chunk_s3_uri (include envelope metadata in object)
-  - write row to chunking registry (upsert/append)
-At end of run:
-- produce a run manifest (optional) OR rely on chunking_run_id partition in registry.
+At minimum, consider whether I need:
+- TaskClassificationService
+- RetrievalPlanningService
+- ContextRetrievalService
+- ContextSelectionService
+- PromptAssemblyService
+- PromptVersioningService
+- ResponseValidationService
+- EvaluationExecutionService
+- RetrievalEvaluationService
+- ResultComparisonService
+- TokenBudgetPolicy
+- CostBudgetPolicy
+- LatencyBudgetPolicy
 
-#### Embedding stage (async workers)
-Each worker receives (chunking_run_id, batch_id) OR queries chunking registry for unembedded chunks:
-- mark embedding registry row as STARTED with attempt increment
-- compute embedding
-- upsert embedding to vector DB with metadata including chunk_id + embedding_id + versions + run ids
-- mark embedding registry row SUCCEEDED with finished_at
-On error:
-- mark FAILED with error_message
+For each one:
+- explain its responsibility
+- explain what it must NOT do
+- explain its dependencies
+- explain how it collaborates with the others
 
-### 5) DataHub modeling (dataset-level only)
-Emit DataHub entities and lineage:
-- Dataset: source file datasets (already)
-- Dataset: chunk_store_dataset (S3 prefix)
-- Dataset: chunking_registry_dataset (table/prefix)
-- Dataset: vector_index_dataset (vector collection)
-- Dataset: embedding_registry_dataset (table/prefix)
+# 6. Gateway design
+Recommend the gateway interfaces the domain should depend on.
 
-Static lineage:
-- source_file_dataset -> chunking_job -> chunk_store_dataset
-- chunking_job -> chunking_registry_dataset
-- chunking_registry_dataset -> embedding_job -> vector_index_dataset
-- embedding_job -> embedding_registry_dataset
+At minimum, consider:
+- VectorSearchGateway
+- LexicalSearchGateway
+- ContextStorageGateway
+- ModelGateway
+- PromptTemplateRepository
+- EvaluationDatasetGateway
 
-Runtime lineage (DPI):
-- chunking DPI includes manifest/partition pointer and chunk_count
-- embedding DPI includes processed_count, batch_id, and references to chunking_run_id
+For each gateway:
+- explain why it exists
+- define the boundary it protects
+- explain what methods it should expose at a high level
 
-IMPORTANT: Do NOT create a DataHub Dataset per chunk.
+# 7. Prompt versioning design
+Explain how prompt versioning should work in this architecture.
 
-### 6) Queries / APIs to implement
-Provide functions:
-- `get_chunk_provenance(chunk_id) -> {source_urn, source_hash, chunk_s3_uri, offsets, chunker...}`
-- `get_embedding_provenance(chunk_id, index_target) -> {embedding_id, embedder..., status, run_ids, vector_record_id}`
-- `trace_from_vector_result(chunk_id) -> full chain`
+Cover:
+- how prompt templates are represented
+- how versions are identified
+- how variants are compared
+- how an inference request selects a prompt version
+- how to avoid ad hoc inline prompt strings
+- how to keep prompt evolution explicit and reviewable
 
-### 7) Testing
-Add unit tests for:
-- deterministic chunk_id
-- deterministic embedding_id
-- registry upsert/idempotency behavior
-- status transition logic (STARTED->SUCCEEDED, retries)
-- concurrency safety strategy (append+compact or db upsert)
+# 8. Evaluation design
+Explain how evaluation should be introduced without overengineering.
 
-## Output format
-- Provide file-by-file code blocks with paths.
-- Include a short README explaining:
-  - registry storage choice
-  - how to trace a chunk from vector DB back to source and runs
-  - how async embedding is represented
-  - how DataHub lineage remains readable
+Cover:
+- evaluation datasets
+- evaluation cases
+- automated runs
+- comparison between prompt versions
+- comparison between retrieval strategies
+- answer quality evaluation
+- schema compliance checks
+
+# 9. Retrieval evaluation design
+Explain how retrieval quality should be evaluated.
+
+Cover:
+- recall
+- relevance
+- context usefulness
+- redundancy
+- hallucination risk from poor retrieval
+
+Be concrete about what is realistically implementable in a portfolio project.
+
+# 10. Latency, token, and cost tradeoffs
+Explain how the architecture should represent and enforce:
+- token budgets
+- max context size
+- latency constraints
+- model/provider cost awareness
+
+Focus on architecture and policy, not monitoring.
+
+# 11. LangChain recommendation
+Give a decisive recommendation on whether I should focus on LangChain or on model-agnostic architecture.
+
+Explain:
+- what role LangChain should play
+- what should remain custom
+- what would make the repo look stronger to senior engineers
+- what would make it look weaker or too framework-dependent
+
+# 12. Execution flow
+Describe the end-to-end flow from incoming inference request to validated model response and optional evaluation result.
+Make the flow concrete and sequential.
+Show where each service participates.
+
+# 13. Anti-patterns to avoid
+List the most important implementation mistakes to avoid.
+Be adversarial and opinionated.
+Focus on mistakes that would make the design look shallow, confused, framework-driven, or fake-enterprise.
+
+# 14. Incremental implementation plan
+Give me a staged implementation plan.
+Start with the smallest credible version and then show how to evolve it.
+Each phase should be realistic and coherent.
+
+# 15. Recommended naming
+Recommend strong names for:
+- the domain
+- the main facade
+- the request object
+- the final assembled prompt/request object
+- the prompt version object
+- the response validator
+- the retrieval result container
+- the evaluation run object
+
+# 16. Minimal elite version
+If I want the minimum version that still looks high-end in a portfolio, tell me the smallest set of folders, contracts, services, gateways, versioning pieces, and evaluation pieces I should implement first.
+
+# 17. Example code skeleton
+Provide a clean Python code skeleton with:
+- key dataclasses
+- key protocols / interfaces
+- main service/facade
+- method signatures
+- no unnecessary implementation detail
+
+## Output quality requirements
+
+- Be concrete, not generic
+- Do not give shallow advice
+- Do not just list buzzwords
+- Make tradeoffs explicit
+- Prefer strong architectural judgment
+- If something feels like overengineering, say so directly
+- Optimize for portfolio quality and architectural credibility
+- Write as if you are helping build a repo that will be judged by senior engineers
+
+## Additional instruction
+
+When proposing the architecture, favor a design where:
+- workers can consume this domain cleanly
+- retrieval policy remains explicit
+- vector DB usage is behind a gateway
+- prompt composition is not treated as a string helper
+- response validation is first-class
+- prompt versioning is explicit
+- evaluation is designed in from the beginning
+- domain policy is separated from low-level mechanics
+- LangChain is optional and isolated
+
+Be decisive. I do not want multiple vague options unless there is a real tradeoff.
+Recommend the best architecture and explain why.

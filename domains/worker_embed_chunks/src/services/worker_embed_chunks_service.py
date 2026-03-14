@@ -1,19 +1,16 @@
-import json
-import logging
-import uuid
-from pathlib import Path
+"""Worker service for worker_embed_chunks."""
 
-from pipeline_common.gateways.lineage import DatasetPlatform
-from pipeline_common.gateways.lineage import LineageRuntimeGateway
+from __future__ import annotations
+
+import logging
+
+from pipeline_common.gateways.lineage import DatasetPlatform, LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGateway
-from pipeline_common.helpers.contracts import doc_id_from_source_uri
-from pipeline_common.provenance import source_content_hash
-from pipeline_common.stages_contracts import FileMetadata, ProcessResult, ProcessorContext
-from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata
+from pipeline_common.stages_contracts import ProcessResult
 from pipeline_common.startup.contracts import WorkerService
 from services.embed_flow import EmbedWorkItem
-from services.embed_chunks_processor import ChunkArtifactPayload, EmbedChunksProcessor
+from services.embed_chunks_processor import EmbedChunksProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -28,20 +25,14 @@ class WorkerEmbedChunksService(WorkerService):
         object_storage: ObjectStorageGateway,
         lineage: LineageRuntimeGateway,
         poll_interval_seconds: int,
-        storage_bucket: str,
-        work_item_type: type[EmbedWorkItem],
         processor: EmbedChunksProcessor,
-        chunks_suffix: str = ".chunk.json",
     ) -> None:
         """Initialize embedding worker dependencies and runtime settings."""
         self._queue_gateway = stage_queue
         self._storage_gateway = object_storage
         self._lineage_gateway = lineage
         self._poll_interval_seconds = poll_interval_seconds
-        self._storage_bucket = storage_bucket
-        self._work_item_type = work_item_type
         self._processor = processor
-        self._chunks_suffix = chunks_suffix
 
     def serve(self) -> None:
         """Run the embedding worker loop by polling queue messages."""
@@ -52,11 +43,7 @@ class WorkerEmbedChunksService(WorkerService):
                 )
                 work_item = self._work_item_from_message(message)
                 self._register_lineage_input(work_item.uri)
-                chunk_payload = self._read_chunk_payload(work_item.uri)
-                process_result: ProcessResult = self._transform_chunk_to_embeddings(
-                    chunk_payload=chunk_payload,
-                    input_uri=work_item.uri,
-                )
+                process_result: ProcessResult = self._transform_chunk_to_embeddings(work_item.uri)
                 output_uri = self._output_uri_from_process_result(process_result)
                 self._enqueue_embeddings_object(output_uri)
                 self._register_embedding_output_lineage(output_uri)
@@ -82,64 +69,12 @@ class WorkerEmbedChunksService(WorkerService):
         )
         self._lineage_gateway.complete_run()
 
-    def _read_chunk_payload(self, uri: str) -> ChunkArtifactPayload:
-        raw_payload = self._storage_gateway.read_object(uri=uri)
-        return self._processor.read_chunk_payload(raw_payload, source_uri=uri)
-
-    def _transform_chunk_to_embeddings(
-        self,
-        *,
-        chunk_payload: ChunkArtifactPayload,
-        input_uri: str,
-    ) -> ProcessResult:
-        """Write one embeddings artifact and return the process result."""
-        write_result = self._processor.write_embedding_artifact(
-            chunk_payload,
-            embedding_run_id=uuid.uuid4().hex,
-        )
-        logger.info("Wrote embedding object '%s'", write_result.destination_key)
-        chunk_payload_bytes = json.dumps(
-            {
-                "index": chunk_payload.chunk_record.index,
-                "chunk_id": chunk_payload.chunk_record.chunk_id,
-                "chunk_text": chunk_payload.chunk_record.chunk_text,
-                "offsets_start": chunk_payload.chunk_record.offsets_start,
-                "offsets_end": chunk_payload.chunk_record.offsets_end,
-                "chunk_text_hash": chunk_payload.chunk_record.chunk_text_hash,
-            },
-            sort_keys=True,
-            ensure_ascii=True,
-            separators=(",", ":"),
-        ).encode("utf-8")
-        stage_doc_metadata = FileMetadata(
-            doc_id=doc_id_from_source_uri(input_uri),
-            uri=input_uri,
-            timestamp="",
-            security_clearance="",
-            source_type=Path(input_uri).suffix.lower().lstrip("."),
-            content_type="application/json",
-            source_content_hash=source_content_hash(chunk_payload_bytes),
-        )
-        return ProcessResult(
-            run_id=write_result.chunk_id,
-            root_doc_metadata=FileMetadata(
-                doc_id=write_result.doc_id,
-                uri=input_uri,
-                timestamp="",
-                security_clearance="",
-                source_type=Path(input_uri).suffix.lower().lstrip("."),
-                content_type="application/json",
-                source_content_hash=chunk_payload.chunk_record.chunk_text_hash,
-            ),
-            stage_doc_metadata=stage_doc_metadata,
-            input_uri=input_uri,
-            processor_context=ProcessorContext(params_hash="", params=[]),
-            processor=ProcessorMetadata(name="EmbedChunksProcessor", version="1.0.0"),
-            result={
-                "destination_key": write_result.destination_key,
-                "output_uri": self._processor.output_uri(write_result.destination_key),
-            },
-        )
+    def _transform_chunk_to_embeddings(self, input_uri: str) -> ProcessResult:
+        """Read one chunk artifact and build the embedding process result."""
+        raw_payload = self._storage_gateway.read_object(uri=input_uri)
+        process_result = self._processor.process(input_uri=input_uri, raw_payload=raw_payload)
+        logger.info("Wrote embedding object '%s'", process_result.result["destination_key"])
+        return process_result
 
     def _enqueue_embeddings_object(self, uri: str) -> None:
         self._queue_gateway.push(
@@ -155,4 +90,4 @@ class WorkerEmbedChunksService(WorkerService):
     def _work_item_from_message(self, message: ConsumedMessage) -> EmbedWorkItem:
         """Parse source URI from queue payload."""
         envelope: Envelope = Envelope.from_dict(message.payload)
-        return self._work_item_type(uri=str(envelope.payload))
+        return EmbedWorkItem(uri=str(envelope.payload))

@@ -30,7 +30,6 @@ class ParseServiceFactory(WorkerServiceFactory[RuntimeParseJobConfig, WorkerPars
             object_storage=runtime.object_storage_gateway,
             lineage=runtime.lineage_gateway,
             poll_interval_seconds=worker_config.poll_interval_seconds,
-            storage_bucket=worker_config.storage.bucket,
             output_prefix=worker_config.storage.output_prefix,
             parser_processor=parser_processor,
             output_writer=output_writer,

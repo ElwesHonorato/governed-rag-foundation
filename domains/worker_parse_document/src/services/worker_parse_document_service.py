@@ -1,24 +1,17 @@
-import logging
-from typing import Any
+"""Worker service for worker_parse_document."""
 
-from pipeline_common.gateways.lineage import DatasetPlatform
-from pipeline_common.gateways.lineage import LineageRuntimeGateway
+from __future__ import annotations
+
+import logging
+from pipeline_common.gateways.lineage import DatasetPlatform, LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGateway
 
-from pathlib import Path
-
 from pipeline_common.helpers.contracts import doc_id_from_source_uri, utc_now_iso
-from pipeline_common.provenance import source_content_hash
-from pipeline_common.stages_contracts import FileMetadata, ProcessResult, ProcessorContext, StageArtifact
+from pipeline_common.stages_contracts import ProcessResult
 from pipeline_common.startup.contracts import WorkerService
-from services.parse_flow_components import (
-    DocumentParserProcessor,
-)
-from services.parse_output import (
-    ParseWorkItem,
-    ParseOutputWriter,
-)
+from services.parse_flow_components import DocumentParserProcessor
+from services.parse_output import ParseOutputWriter, ParseWorkItem
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +26,6 @@ class WorkerParseDocumentService(WorkerService):
         object_storage: ObjectStorageGateway,
         lineage: LineageRuntimeGateway,
         poll_interval_seconds: int,
-        storage_bucket: str,
         output_prefix: str,
         parser_processor: DocumentParserProcessor,
         output_writer: ParseOutputWriter,
@@ -43,7 +35,6 @@ class WorkerParseDocumentService(WorkerService):
         self._storage_gateway = object_storage
         self._lineage_gateway = lineage
         self._poll_interval_seconds = poll_interval_seconds
-        self._storage_bucket = storage_bucket
         self._output_prefix = output_prefix
         self._parser_processor = parser_processor
         self._output_writer = output_writer
@@ -81,37 +72,15 @@ class WorkerParseDocumentService(WorkerService):
     def _transform_source_to_processed_document(self, parse_job: ParseWorkItem) -> ProcessResult:
         """Build the process result for one parsed document."""
         raw_payload = self._storage_gateway.read_object(uri=parse_job.input_uri)
-        raw_text = raw_payload.decode("utf-8", errors="ignore")
-        payload = self._parser_processor.build_payload(
+        return self._parser_processor.process(
             source_uri=parse_job.input_uri,
             doc_id=parse_job.doc_id,
-            raw_text=raw_text,
-            raw_content_hash=source_content_hash(raw_payload),
-            timestamp=utc_now_iso(),
-        )
-        artifact = StageArtifact.from_dict(payload)
-        return ProcessResult(
-            run_id=parse_job.doc_id,
-            root_doc_metadata=artifact.root_doc_metadata,
-            stage_doc_metadata=FileMetadata(
-                doc_id=parse_job.doc_id,
-                uri=parse_job.input_uri,
-                timestamp=artifact.root_doc_metadata.timestamp,
-                security_clearance=artifact.root_doc_metadata.security_clearance,
-                source_type=Path(parse_job.input_uri).suffix.lower().lstrip("."),
-                content_type="application/octet-stream",
-                source_content_hash=source_content_hash(raw_payload),
-            ),
-            input_uri=parse_job.input_uri,
-            processor_context=ProcessorContext(params_hash="", params=[]),
-            processor=artifact.processor_metadata,
-            result={
-                "payload": payload,
-                "destination_key": parse_job.destination_key,
-            },
+            raw_payload=raw_payload,
+            destination_key=parse_job.destination_key,
         )
 
     def _write_processed_payload(self, process_result: ProcessResult) -> None:
+        """Write the processed parse artifact for a completed run."""
         self._output_writer.write(
             destination_key=str(process_result.result["destination_key"]),
             payload=dict(process_result.result["payload"]),
@@ -120,15 +89,13 @@ class WorkerParseDocumentService(WorkerService):
     def _register_parse_output_lineage(self, process_result: ProcessResult) -> None:
         """Register the written processed artifact as lineage output."""
         self._lineage_gateway.add_output(
-            name=self._storage_gateway.build_uri(
-                self._storage_bucket,
-                str(process_result.result["destination_key"]),
-            ),
+            name=self._output_writer.output_uri(str(process_result.result["destination_key"])),
             platform=DatasetPlatform.S3,
         )
         self._lineage_gateway.complete_run()
 
     def _publish_parse_output(self, process_result: ProcessResult) -> None:
+        """Publish the written parse artifact URI to the downstream queue."""
         self._queue_gateway.push(
             self._output_writer.build_output_message(
                 destination_key=str(process_result.result["destination_key"])

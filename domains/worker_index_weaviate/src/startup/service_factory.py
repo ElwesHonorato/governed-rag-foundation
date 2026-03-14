@@ -18,14 +18,16 @@ class IndexWeaviateServiceFactory(WorkerServiceFactory[RuntimeIndexWeaviateJobCo
     ) -> WorkerIndexWeaviateService:
         """Construct worker index_weaviate service object graph."""
         ensure_schema(worker_config.weaviate_url)
-        processor: IndexWeaviateProcessor = IndexWeaviateProcessor(
-            object_storage=runtime.object_storage_gateway,
-            storage_bucket=worker_config.storage.bucket,
-            output_prefix=worker_config.storage.output_prefix,
-        )
         status_writer: IndexStatusWriter = IndexStatusWriter(
             object_storage=runtime.object_storage_gateway,
             storage_bucket=worker_config.storage.bucket,
+        )
+        processor: IndexWeaviateProcessor = IndexWeaviateProcessor(
+            object_storage=runtime.object_storage_gateway,
+            status_writer=status_writer,
+            storage_bucket=worker_config.storage.bucket,
+            output_prefix=worker_config.storage.output_prefix,
+            weaviate_url=worker_config.weaviate_url,
         )
         return WorkerIndexWeaviateService(
             stage_queue=runtime.stage_queue_gateway,
@@ -33,6 +35,4 @@ class IndexWeaviateServiceFactory(WorkerServiceFactory[RuntimeIndexWeaviateJobCo
             lineage=runtime.lineage_gateway,
             poll_interval_seconds=worker_config.poll_interval_seconds,
             processor=processor,
-            status_writer=status_writer,
-            weaviate_url=worker_config.weaviate_url,
         )

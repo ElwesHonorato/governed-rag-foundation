@@ -73,7 +73,8 @@ class StorageStageArtifact:
 
     @property
     def to_payload(self) -> dict[str, Any]:
-        return self.artifact.content_metadata.to_dict
+        """Serialize the full stage artifact payload for storage persistence."""
+        return self.artifact.to_dict
 
     @property
     def to_dict(self) -> dict[str, Any]:

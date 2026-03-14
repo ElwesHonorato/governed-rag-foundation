@@ -6,7 +6,7 @@ from typing import Any
 from startup.contracts import (
     RawChunkJobConfig,
     RuntimeChunkJobConfig,
-    RuntimeStoragePathsContract,
+    RuntimeChunkStorageConfig,
 )
 from pipeline_common.startup import WorkerConfigExtractor
 
@@ -32,6 +32,6 @@ class ChunkTextConfigExtractor(WorkerConfigExtractor[RuntimeChunkJobConfig]):
         raw_job_config_payload = job_properties["job"]
         raw_job_config: RawChunkJobConfig = RawChunkJobConfig.from_dict(raw_job_config_payload)
         return RuntimeChunkJobConfig(
-            storage=RuntimeStoragePathsContract.from_raw(raw_job_config.storage, env=env),
+            storage=RuntimeChunkStorageConfig.from_raw(raw_job_config.storage, env=env),
             poll_interval_seconds=raw_job_config.poll_interval_seconds,
         )

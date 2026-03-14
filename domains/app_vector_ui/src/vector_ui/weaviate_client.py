@@ -64,7 +64,7 @@ class WeaviateClient:
             "{Get{DocumentChunk("
             + where
             + f"limit:{safe_limit})"
-            + "{chunk_id doc_id chunk_text source_key security_clearance}}}"
+            + "{chunk_id doc_id chunk_text source_uri security_clearance}}}"
         )
 
 

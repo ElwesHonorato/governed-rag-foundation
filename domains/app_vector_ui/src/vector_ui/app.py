@@ -3,7 +3,7 @@ from flask import Flask, jsonify, render_template, request
 from vector_ui.config import Settings
 from vector_ui.weaviate_client import WeaviateClient
 
-ALLOWED_SORT_FIELDS = {"chunk_id", "doc_id", "source_key", "security_clearance"}
+ALLOWED_SORT_FIELDS = {"chunk_id", "doc_id", "source_uri", "security_clearance"}
 
 
 def create_app() -> Flask:

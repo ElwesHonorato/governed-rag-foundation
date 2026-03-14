@@ -1,6 +1,5 @@
-"""worker_embed_chunks entrypoint."""
+"""Composition root for the ``worker_embed_chunks`` domain."""
 
-from contracts.startup import RuntimeEmbedChunksJobConfig
 from registry import DataHubDataJobKey, DataHubPipelineJobs, GovernedRagJobId
 from pipeline_common.settings import SettingsBundle, SettingsProvider, SettingsRequest
 from pipeline_common.startup import (
@@ -8,12 +7,13 @@ from pipeline_common.startup import (
 )
 from pipeline_common.startup.runtime_context import WorkerRuntimeContext
 from services.worker_embed_chunks_service import WorkerEmbedChunksService
+from startup.contracts import RuntimeEmbedChunksJobConfig
 from startup.config_extractor import EmbedChunksConfigExtractor
 from startup.service_factory import EmbedChunksServiceFactory
 
 
 def run() -> None:
-    """Start embed_chunks worker."""
+    """Build the runtime graph and start the embed-chunks worker service."""
     settings: SettingsBundle = SettingsProvider(
         SettingsRequest(datahub=True, storage=True, queue=True),
     ).bundle
@@ -27,7 +27,8 @@ def run() -> None:
     ).build()
 
     runtime_job_config: RuntimeEmbedChunksJobConfig = EmbedChunksConfigExtractor().extract(
-        runtime_context.job_properties
+        runtime_context.job_properties,
+        env=runtime_context.env,
     )
     service: WorkerEmbedChunksService = EmbedChunksServiceFactory().build(runtime_context, runtime_job_config)
     service.serve()

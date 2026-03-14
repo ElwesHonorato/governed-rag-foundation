@@ -104,6 +104,10 @@ What belongs where:
 - Governance definitions: `domains/gov_governance/definitions`.
 - Cross-system architecture docs: `docs/`.
 
+Editor note:
+- [`/.vscode/settings.json`](/home/sultan/repos/governed-rag-foundation/.vscode/settings.json) uses per-domain Pylance execution environments only to keep click-through and "Go to Definition" working.
+- This is needed because multiple worker `src/` roots expose the same top-level package names such as `startup` and `services`.
+
 Dependency flow:
 - `domains/*` may depend on `libs/pipeline-common` and `registry`.
 - `libs/*` must not depend on `domains/*`.

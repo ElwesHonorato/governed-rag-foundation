@@ -24,7 +24,7 @@ def ensure_schema(weaviate_url: str) -> None:
         {"name": "chunk_id", "dataType": ["text"]},
         {"name": "doc_id", "dataType": ["text"]},
         {"name": "chunk_text", "dataType": ["text"]},
-        {"name": "source_key", "dataType": ["text"]},
+        {"name": "source_uri", "dataType": ["text"]},
         {"name": "security_clearance", "dataType": ["text"]},
         {"name": "run_id", "dataType": ["text"]},
         {"name": "embedding_id", "dataType": ["text"]},

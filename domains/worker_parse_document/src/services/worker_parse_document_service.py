@@ -1,19 +1,17 @@
-import logging
-import json
-from typing import Any
+"""Worker service for worker_parse_document."""
 
-from pipeline_common.gateways.lineage import DatasetPlatform
-from pipeline_common.gateways.lineage import LineageRuntimeGateway
+from __future__ import annotations
+
+import logging
+from pipeline_common.gateways.lineage import DatasetPlatform, LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import ConsumedMessage, Envelope, QueueGateway
-from pipeline_common.helpers.contracts import doc_id_from_source_key, utc_now_iso
-from pipeline_common.provenance import source_content_hash
+
+from pipeline_common.helpers.contracts import doc_id_from_source_uri, utc_now_iso
+from pipeline_common.stages_contracts import ProcessResult
 from pipeline_common.startup.contracts import WorkerService
-from services.parse_flow_components import (
-    DocumentParserProcessor,
-    ParseOutputMessageFactory,
-    ParseWorkItem,
-)
+from services.parse_flow_components import DocumentParserProcessor
+from services.parse_output import ParseOutputWriter, ParseWorkItem
 
 logger = logging.getLogger(__name__)
 
@@ -28,18 +26,18 @@ class WorkerParseDocumentService(WorkerService):
         object_storage: ObjectStorageGateway,
         lineage: LineageRuntimeGateway,
         poll_interval_seconds: int,
-        storage_bucket: str,
         output_prefix: str,
         parser_processor: DocumentParserProcessor,
+        output_writer: ParseOutputWriter,
     ) -> None:
         """Initialize parse worker dependencies and runtime settings."""
         self._queue_gateway = stage_queue
         self._storage_gateway = object_storage
         self._lineage_gateway = lineage
         self._poll_interval_seconds = poll_interval_seconds
-        self._storage_bucket = storage_bucket
         self._output_prefix = output_prefix
         self._parser_processor = parser_processor
+        self._output_writer = output_writer
 
     def serve(self) -> None:
         """Run the parse worker loop by polling queue messages."""
@@ -48,93 +46,67 @@ class WorkerParseDocumentService(WorkerService):
                 poll_interval_seconds=self._poll_interval_seconds,
             )
             input_uri = self._input_uri_from_message(message)
-            if input_uri is None:
-                continue
             try:
-                self._handle_parse_request(input_uri)
-            except Exception:
+                parse_job = self._build_parse_job(input_uri)
+                self._register_lineage_input(parse_job)
+                process_result: ProcessResult = self._transform_source_to_processed_document(parse_job)
+                self._write_processed_payload(process_result)
+                self._publish_parse_output(process_result)
+                self._register_parse_output_lineage(process_result)
+                logger.info("Wrote processed document '%s'", parse_job.destination_key)
+            except Exception as exc:
+                self._handle_parse_failure(input_uri, error_message=str(exc))
                 message.nack(requeue=True)
                 logger.exception("Failed processing input URI '%s'; requeued message", input_uri)
                 continue
             message.ack()
 
-    def _handle_parse_request(self, input_uri: str) -> None:
-        """Orchestrate one parse unit: read -> parse -> write -> enqueue."""
-        parse_job = self._build_parse_job(input_uri)
-        if parse_job is None:
-            return
-
-        self._register_lineage_input(parse_job)
-        if self._skip_if_destination_exists(parse_job):
-            return
-
-        try:
-            payload = self._build_processed_payload(parse_job)
-            self._write_processed_payload(parse_job, payload)
-            self._publish_parse_output(parse_job)
-            self._lineage_gateway.complete_run()
-            logger.info("Wrote processed document '%s'", parse_job.destination_key)
-        except Exception as exc:
-            self._handle_parse_failure(parse_job, str(exc))
-            logger.exception("Failed parsing source key '%s'; sent to DLQ", parse_job.source_key)
-
     def _register_lineage_input(self, parse_job: ParseWorkItem) -> None:
+        """Start a lineage run and register the source document."""
         self._lineage_gateway.start_run()
         self._lineage_gateway.add_input(
-            name=f"{self._storage_bucket}/{parse_job.source_key}",
+            name=parse_job.input_uri,
             platform=DatasetPlatform.S3,
         )
 
-    def _skip_if_destination_exists(self, parse_job: ParseWorkItem) -> bool:
-        if not self._storage_gateway.object_exists(self._storage_bucket, parse_job.destination_key):
-            return False
-        logger.info(
-            "Skipping parse for source '%s' because destination already exists: '%s'",
-            parse_job.source_key,
-            parse_job.destination_key,
+    def _transform_source_to_processed_document(self, parse_job: ParseWorkItem) -> ProcessResult:
+        """Build the process result for one parsed document."""
+        raw_payload = self._storage_gateway.read_object(uri=parse_job.input_uri)
+        return self._parser_processor.process(
+            source_uri=parse_job.input_uri,
+            doc_id=parse_job.doc_id,
+            raw_payload=raw_payload,
+            destination_key=parse_job.destination_key,
+        )
+
+    def _write_processed_payload(self, process_result: ProcessResult) -> None:
+        """Write the processed parse artifact for a completed run."""
+        self._output_writer.write(
+            destination_key=str(process_result.result["destination_key"]),
+            payload=dict(process_result.result["payload"]),
+        )
+
+    def _register_parse_output_lineage(self, process_result: ProcessResult) -> None:
+        """Register the written processed artifact as lineage output."""
+        self._lineage_gateway.add_output(
+            name=self._output_writer.output_uri(str(process_result.result["destination_key"])),
+            platform=DatasetPlatform.S3,
         )
         self._lineage_gateway.complete_run()
-        return True
 
-    def _build_processed_payload(self, parse_job: ParseWorkItem) -> dict[str, Any]:
-        raw_payload = self._storage_gateway.read_object(uri=parse_job.input_uri)
-        raw_text = raw_payload.decode("utf-8", errors="ignore")
-        return self._parser_processor.build_payload(
-            source_key=parse_job.source_key,
-            doc_id=parse_job.doc_id,
-            raw_text=raw_text,
-            raw_content_hash=source_content_hash(raw_payload),
-            timestamp=utc_now_iso(),
+    def _publish_parse_output(self, process_result: ProcessResult) -> None:
+        """Publish the written parse artifact URI to the downstream queue."""
+        self._queue_gateway.push(
+            self._output_writer.build_output_message(
+                destination_key=str(process_result.result["destination_key"])
+            ).to_payload
         )
 
-    def _write_processed_payload(self, parse_job: ParseWorkItem, payload: dict[str, Any]) -> None:
-        destination_uri = self._storage_gateway.build_uri(
-            self._storage_bucket,
-            parse_job.destination_key,
-        )
-        self._storage_gateway.write_object(
-            uri=destination_uri,
-            payload=json.dumps(payload, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode("utf-8"),
-            content_type="application/json",
-        )
-        self._lineage_gateway.add_output(
-            name=f"{self._storage_bucket}/{parse_job.destination_key}",
-            platform=DatasetPlatform.S3,
-        )
-
-    def _publish_parse_output(self, parse_job: ParseWorkItem) -> None:
-        destination_uri = self._storage_gateway.build_uri(
-            self._storage_bucket,
-            parse_job.destination_key,
-        )
-        self._queue_gateway.push(ParseOutputMessageFactory.build(input_uri=destination_uri).to_payload)
-
-    def _handle_parse_failure(self, parse_job: ParseWorkItem, error_message: str) -> None:
+    def _handle_parse_failure(self, input_uri: str, *, error_message: str) -> None:
         self._queue_gateway.push_dlq(
             Envelope(
                 payload={
-                    "uri": parse_job.input_uri,
-                    "doc_id": parse_job.doc_id,
+                    "uri": input_uri,
                     "error": error_message,
                     "failed_at": utc_now_iso(),
                 },
@@ -143,38 +115,16 @@ class WorkerParseDocumentService(WorkerService):
         )
         self._lineage_gateway.fail_run(error_message=error_message)
 
-    def _build_parse_job(self, input_uri: str) -> ParseWorkItem | None:
-        source_key = self._source_key_from_uri(input_uri)
-        doc_id = doc_id_from_source_key(source_key)
+    def _build_parse_job(self, input_uri: str) -> ParseWorkItem:
+        doc_id = doc_id_from_source_uri(input_uri)
         destination_key = f"{self._output_prefix}{doc_id}.json"
         return ParseWorkItem(
             input_uri=input_uri,
-            source_key=source_key,
             doc_id=doc_id,
             destination_key=destination_key,
         )
 
-    def _input_uri_from_message(self, message: ConsumedMessage) -> str | None:
-        """Parse input URI from queue payload; route invalid payloads to DLQ."""
-        try:
-            envelope: Envelope = Envelope.from_dict(message.payload)
-            return str(envelope.payload)
-        except Exception as exc:
-            self._queue_gateway.push_dlq(
-                Envelope(
-                    payload={
-                        "error": str(exc),
-                        "message_payload": message.payload,
-                        "failed_at": utc_now_iso(),
-                    },
-                ).to_payload
-            )
-            message.ack()
-            logger.exception("Invalid parse queue message payload; sent to DLQ and acknowledged")
-            return None
-
-    def _source_key_from_uri(self, uri: str) -> str:
-        uri_prefix = self._storage_gateway.build_uri(self._storage_bucket, "")
-        if not uri.startswith(uri_prefix):
-            raise ValueError(f"Parse source URI must start with '{uri_prefix}': {uri}")
-        return uri.removeprefix(uri_prefix)
+    def _input_uri_from_message(self, message: ConsumedMessage) -> str:
+        """Parse input URI from queue payload."""
+        envelope: Envelope = Envelope.from_dict(message.payload)
+        return str(envelope.payload)

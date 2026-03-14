@@ -1,10 +1,24 @@
+"""Embedding processor implementation for worker_embed_chunks."""
+
+from __future__ import annotations
+
 import hashlib
 import json
+import uuid
 from dataclasses import dataclass
-from typing import Any
 
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
+from pipeline_common.helpers.run_ids import build_source_run_id
 from pipeline_common.provenance import embedding_params_hash
+from pipeline_common.stages_contracts import (
+    EmbeddingArtifact,
+    EmbeddingArtifactMetadata,
+    FileMetadata,
+    ProcessResult,
+    ProcessorContext,
+    StageArtifact,
+)
+from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata
 
 EMBEDDER_NAME = "deterministic_sha256"
 EMBEDDER_VERSION = "1.0.0"
@@ -12,6 +26,8 @@ EMBEDDER_VERSION = "1.0.0"
 
 @dataclass(frozen=True)
 class EmbeddingWriteResult:
+    """Result of attempting to write one embedding artifact."""
+
     destination_key: str
     doc_id: str
     chunk_id: str
@@ -20,9 +36,10 @@ class EmbeddingWriteResult:
 
 @dataclass(frozen=True)
 class ChunkRecordPayload:
+    """Chunk fields required to derive an embedding artifact."""
+
     index: int
     chunk_id: str
-    chunk_text: str
     offsets_start: int
     offsets_end: int
     chunk_text_hash: str
@@ -30,14 +47,22 @@ class ChunkRecordPayload:
 
 @dataclass(frozen=True)
 class ChunkArtifactPayload:
+    """Chunk artifact fields used to derive an embedding artifact."""
+
     chunk_record: ChunkRecordPayload
-    destination_key: str
+    chunk_text: str
+    root_doc_metadata: FileMetadata
+    source_uri: str
 
     @classmethod
-    def from_dict(cls, payload: dict[str, Any], *, destination_key: str) -> "ChunkArtifactPayload":
+    def from_stage_artifact(cls, artifact: StageArtifact, *, source_uri: str) -> "ChunkArtifactPayload":
+        """Build the embedding input payload from a stored chunk artifact."""
+        chunk_record_payload = dict(artifact.content_metadata)
         return cls(
-            chunk_record=ChunkRecordPayload(**dict(payload)),
-            destination_key=destination_key,
+            chunk_record=ChunkRecordPayload(**chunk_record_payload),
+            chunk_text=str(artifact.content.data),
+            root_doc_metadata=artifact.root_doc_metadata,
+            source_uri=source_uri,
         )
 
 
@@ -52,6 +77,7 @@ class EmbedChunksProcessor:
         storage_bucket: str,
         output_prefix: str,
     ) -> None:
+        """Initialize embedding processor dependencies."""
         self._dimension = dimension
         self._storage_gateway = object_storage
         self._storage_bucket = storage_bucket
@@ -67,102 +93,119 @@ class EmbedChunksProcessor:
         return values
 
     @staticmethod
-    def read_chunk_payload(raw_payload: bytes, *, source_key: str) -> ChunkArtifactPayload:
+    def read_chunk_payload(raw_payload: bytes, *, source_uri: str) -> ChunkArtifactPayload:
+        """Parse one stored chunk artifact payload."""
         payload = dict(json.loads(raw_payload.decode("utf-8", errors="ignore")))
-        return ChunkArtifactPayload.from_dict(payload, destination_key=source_key)
+        artifact = StageArtifact.from_dict(payload)
+        return ChunkArtifactPayload.from_stage_artifact(artifact, source_uri=source_uri)
+
+    def process(
+        self,
+        *,
+        input_uri: str,
+        raw_payload: bytes,
+    ) -> ProcessResult:
+        """Build one embedding artifact and return the process result."""
+        chunk_payload = self.read_chunk_payload(raw_payload, source_uri=input_uri)
+        run_id = build_source_run_id(input_uri)
+        stage_doc_metadata = FileMetadata.from_source_bytes(
+            uri=input_uri,
+            payload=raw_payload,
+            default_content_type="application/json",
+        )
+        write_result = self.write_embedding_artifact(
+            chunk_payload,
+            run_id=run_id,
+            embedding_run_id=self._embedding_run_id(),
+            stage_doc_metadata=stage_doc_metadata,
+        )
+        return ProcessResult(
+            run_id=run_id,
+            root_doc_metadata=chunk_payload.root_doc_metadata,
+            stage_doc_metadata=stage_doc_metadata,
+            input_uri=input_uri,
+            processor_context=ProcessorContext(params_hash="", params=[]),
+            processor=ProcessorMetadata(name="EmbedChunksProcessor", version="1.0.0"),
+            result={
+                "destination_key": write_result.destination_key,
+                "output_uri": self.output_uri(write_result.destination_key),
+            },
+        )
 
     def write_embedding_artifact(
         self,
         payload: ChunkArtifactPayload,
         *,
+        run_id: str,
         embedding_run_id: str,
+        stage_doc_metadata: FileMetadata,
     ) -> EmbeddingWriteResult:
-        embedding_payload = self._build_embedding_payload_local(payload, embedding_run_id=embedding_run_id)
+        """Write one embedding artifact for the provided chunk payload."""
+        embedding_payload = self._build_embedding_payload(
+            payload,
+            run_id=run_id,
+            embedding_run_id=embedding_run_id,
+            stage_doc_metadata=stage_doc_metadata,
+        )
         return self._write_embedding_payload(embedding_payload)
 
-    def _write_embedding_payload(self, embedding_payload: dict[str, Any]) -> EmbeddingWriteResult:
-        doc_id = str(embedding_payload["doc_id"])
-        chunk_id = str(embedding_payload["chunk_id"])
+    def _write_embedding_payload(self, embedding_artifact: EmbeddingArtifact) -> EmbeddingWriteResult:
+        """Persist one embedding payload if it does not already exist."""
+        doc_id = embedding_artifact.doc_id
+        chunk_id = embedding_artifact.chunk_id
         destination_key = self._embedding_object_key(doc_id, chunk_id)
         destination_uri = self._storage_gateway.build_uri(self._storage_bucket, destination_key)
         if self._storage_gateway.object_exists(self._storage_bucket, destination_key):
             return EmbeddingWriteResult(destination_key=destination_key, doc_id=doc_id, chunk_id=chunk_id, wrote=False)
         self._storage_gateway.write_object(
             uri=destination_uri,
-            payload=json.dumps(embedding_payload, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode("utf-8"),
+            payload=json.dumps(
+                embedding_artifact.to_dict,
+                sort_keys=True,
+                ensure_ascii=True,
+                separators=(",", ":"),
+            ).encode("utf-8"),
             content_type="application/json",
         )
         return EmbeddingWriteResult(destination_key=destination_key, doc_id=doc_id, chunk_id=chunk_id, wrote=True)
 
-    def _build_embedding_payload_local(
+    def _build_embedding_payload(
         self,
         payload: ChunkArtifactPayload,
         *,
+        run_id: str,
         embedding_run_id: str,
-    ) -> dict[str, Any]:
-        text = payload.chunk_record.chunk_text
-        doc_id = self._doc_id_from_destination_key(payload.destination_key)
+        stage_doc_metadata: FileMetadata,
+    ) -> EmbeddingArtifact:
+        """Build the storage payload for one embedding artifact."""
+        text = payload.chunk_text
+        doc_id = payload.root_doc_metadata.doc_id
         chunk_id = payload.chunk_record.chunk_id
         embedder_params = {"dimension": int(self._dimension)}
-        return {
-            "doc_id": doc_id,
-            "chunk_id": chunk_id,
-            "vector": self._deterministic_embedding_for(text, self._dimension),
-            "metadata": self._metadata_from_payload(
-                source_type=None,
-                timestamp=None,
-                security_clearance=None,
-                doc_id=doc_id,
-                source_key=payload.destination_key,
-                chunk_index=payload.chunk_record.index,
-                text=text,
-                run_id="",
+        return EmbeddingArtifact(
+            doc_id=doc_id,
+            chunk_id=chunk_id,
+            chunk_text=text,
+            vector=self._deterministic_embedding_for(text, self._dimension),
+            metadata=EmbeddingArtifactMetadata(
+                run_id=run_id,
                 embedder_name=EMBEDDER_NAME,
                 embedder_version=EMBEDDER_VERSION,
                 embedding_params_hash=embedding_params_hash(embedder_params),
                 embedding_run_id=embedding_run_id,
+                root_doc_metadata=payload.root_doc_metadata,
+                stage_doc_metadata=stage_doc_metadata,
             ),
-        }
-
-    @staticmethod
-    def _metadata_from_payload(
-        *,
-        source_type: Any,
-        timestamp: Any,
-        security_clearance: Any,
-        doc_id: str,
-        source_key: Any,
-        chunk_index: Any,
-        text: str,
-        run_id: str,
-        embedder_name: str,
-        embedder_version: str,
-        embedding_params_hash: str,
-        embedding_run_id: str,
-    ) -> dict[str, Any]:
-        return {
-            "source_type": source_type,
-            "timestamp": timestamp,
-            "security_clearance": security_clearance,
-            "doc_id": doc_id,
-            "source_key": source_key,
-            "chunk_index": chunk_index,
-            "chunk_text": text,
-            "run_id": run_id,
-            "embedder_name": embedder_name,
-            "embedder_version": embedder_version,
-            "embedding_params_hash": embedding_params_hash,
-            "embedding_run_id": embedding_run_id,
-        }
+        )
 
     def _embedding_object_key(self, doc_id: str, chunk_id: str) -> str:
         return f"{self._output_prefix}{doc_id}/{chunk_id}.embedding.json"
 
+    def output_uri(self, destination_key: str) -> str:
+        """Build the storage URI for a written embedding artifact."""
+        return self._storage_gateway.build_uri(self._storage_bucket, destination_key)
+
     @staticmethod
-    def _doc_id_from_destination_key(destination_key: str) -> str:
-        parts = [part for part in destination_key.split("/") if part]
-        try:
-            chunks_index = parts.index("chunks")
-            return parts[chunks_index + 1]
-        except (ValueError, IndexError) as exc:
-            raise ValueError(f"Could not extract doc_id from chunk destination key: {destination_key}") from exc
+    def _embedding_run_id() -> str:
+        """Build a unique run identifier for one embedding write."""
+        return uuid.uuid4().hex

@@ -7,20 +7,44 @@ from typing import Any
 
 
 @dataclass(frozen=True)
-class ParseStorageConfigContract:
-    """Typed storage contract for parse processing runtime."""
+class RawParseStorageConfig:
+    """Storage config declared in job properties."""
 
     bucket: str
     output_prefix: str
 
     @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> ParseStorageConfigContract:
+    def from_dict(cls, payload: dict[str, Any]) -> RawParseStorageConfig:
         """Build parse storage config from a dictionary payload."""
-        return cls(**payload)
+        return cls(
+            bucket=str(payload["bucket"]),
+            output_prefix=str(payload["output_prefix"]),
+        )
 
 
 @dataclass(frozen=True)
-class ParseSecurityConfigContract:
+class RuntimeParseStorageConfig:
+    """Runtime storage config consumed by the parse worker."""
+
+    bucket: str
+    output_prefix: str
+
+    @classmethod
+    def from_raw(
+        cls,
+        raw: RawParseStorageConfig,
+        *,
+        env: str | None,
+    ) -> RuntimeParseStorageConfig:
+        """Build runtime storage config from raw startup config."""
+        return cls(
+            bucket=raw.bucket,
+            output_prefix=f"{env}/{raw.output_prefix}",
+        )
+
+
+@dataclass(frozen=True)
+class RuntimeParseSecurityConfig:
     """Typed security contract for parse processing runtime."""
 
     clearance: str
@@ -30,7 +54,7 @@ class ParseSecurityConfigContract:
 class RawParseJobConfig:
     """Raw parse job config parsed directly from job properties."""
 
-    storage: ParseStorageConfigContract
+    storage: RawParseStorageConfig
     poll_interval_seconds: int
     security_clearance: str
 
@@ -38,7 +62,7 @@ class RawParseJobConfig:
     def from_dict(cls, payload: dict[str, Any]) -> RawParseJobConfig:
         """Build raw parse job config from a dictionary payload."""
         return cls(
-            storage=ParseStorageConfigContract.from_dict(payload["storage"]),
+            storage=RawParseStorageConfig.from_dict(payload["storage"]),
             poll_interval_seconds=int(payload["poll_interval_seconds"]),
             security_clearance=str(payload["security"]["clearance"]),
         )
@@ -48,6 +72,6 @@ class RawParseJobConfig:
 class RuntimeParseJobConfig:
     """Runtime parse job config after startup-time shaping."""
 
-    storage: ParseStorageConfigContract
+    storage: RuntimeParseStorageConfig
     poll_interval_seconds: int
-    security: ParseSecurityConfigContract
+    security: RuntimeParseSecurityConfig

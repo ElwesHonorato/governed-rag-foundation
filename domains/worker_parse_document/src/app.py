@@ -1,8 +1,5 @@
-"""worker_parse_document entrypoint."""
+"""Composition root for the ``worker_parse_document`` domain."""
 
-from contracts.startup import RuntimeParseJobConfig
-from parsing.html import HtmlParser
-from parsing.registry import ParserRegistry
 from registry import DataHubDataJobKey, DataHubPipelineJobs, GovernedRagJobId
 from pipeline_common.settings import SettingsBundle, SettingsProvider, SettingsRequest
 from pipeline_common.startup import (
@@ -10,12 +7,13 @@ from pipeline_common.startup import (
 )
 from pipeline_common.startup.runtime_context import WorkerRuntimeContext
 from services.worker_parse_document_service import WorkerParseDocumentService
+from startup.contracts import RuntimeParseJobConfig
 from startup.config_extractor import ParseConfigExtractor
 from startup.service_factory import ParseServiceFactory
 
 
 def run() -> None:
-    """Start parse_document worker."""
+    """Build the runtime graph and start the parse-document worker service."""
     settings: SettingsBundle = SettingsProvider(
         SettingsRequest(datahub=True, storage=True, queue=True),
     ).bundle
@@ -28,10 +26,11 @@ def run() -> None:
         settings_bundle=settings,
     ).build()
 
-    runtime_job_config: RuntimeParseJobConfig = ParseConfigExtractor().extract(runtime_context.job_properties)
-    service: WorkerParseDocumentService = ParseServiceFactory(
-        parser_registry=ParserRegistry(parsers=[HtmlParser()]),
-    ).build(runtime_context, runtime_job_config)
+    runtime_job_config: RuntimeParseJobConfig = ParseConfigExtractor().extract(
+        runtime_context.job_properties,
+        env=runtime_context.env,
+    )
+    service: WorkerParseDocumentService = ParseServiceFactory().build(runtime_context, runtime_job_config)
     service.serve()
 
 

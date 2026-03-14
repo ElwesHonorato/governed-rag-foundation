@@ -1,30 +1,27 @@
-from dataclasses import dataclass
+"""Parse processor implementation for worker_parse_document."""
+
+from __future__ import annotations
+
 import mimetypes
 from pathlib import Path
 from typing import Any
 
 from parsing.registry import ParserRegistry
+from pipeline_common.helpers.contracts import utc_now_iso
+from pipeline_common.provenance import source_content_hash
 from pipeline_common.stages_contracts import (
     BaseProcessor,
+    FileMetadata,
+    ProcessResult,
+    ProcessorContext,
     StageArtifact,
     StageArtifactMetadata,
-    SourceDocumentMetadata,
 )
-from pipeline_common.gateways.queue import Envelope
-
-
-@dataclass(frozen=True)
-class ParseWorkItem:
-    """One parse work item derived from inbound queue payload."""
-
-    input_uri: str
-    source_key: str
-    doc_id: str
-    destination_key: str
 
 
 class DocumentParserProcessor(BaseProcessor):
     """Transform source text into processed parse payload."""
+
     VERSION = "1.0.0"
     STAGE_NAME = "parse_document"
 
@@ -34,46 +31,80 @@ class DocumentParserProcessor(BaseProcessor):
         parser_registry: ParserRegistry,
         security_clearance: str,
     ) -> None:
+        """Initialize parse processor dependencies."""
         self._parser_registry = parser_registry
         self._security_clearance = security_clearance
 
-    def build_payload(
+    def process(
         self,
         *,
-        source_key: str,
+        source_uri: str,
+        doc_id: str,
+        raw_payload: bytes,
+        destination_key: str,
+    ) -> ProcessResult:
+        """Parse one source payload and build the process result."""
+        timestamp = utc_now_iso()
+        raw_text = raw_payload.decode("utf-8", errors="ignore")
+        raw_content_hash = source_content_hash(raw_payload)
+        payload = self._build_payload(
+            source_uri=source_uri,
+            doc_id=doc_id,
+            raw_text=raw_text,
+            raw_content_hash=raw_content_hash,
+            timestamp=timestamp,
+        )
+        artifact = StageArtifact.from_dict(payload)
+        return ProcessResult(
+            run_id=doc_id,
+            root_doc_metadata=artifact.root_doc_metadata,
+            stage_doc_metadata=FileMetadata(
+                doc_id=doc_id,
+                uri=source_uri,
+                timestamp=timestamp,
+                security_clearance=artifact.root_doc_metadata.security_clearance,
+                source_type=Path(source_uri).suffix.lower().lstrip("."),
+                content_type="application/octet-stream",
+                source_content_hash=raw_content_hash,
+            ),
+            input_uri=source_uri,
+            processor_context=ProcessorContext(params_hash="", params=[]),
+            processor=artifact.processor_metadata,
+            result={
+                "payload": payload,
+                "destination_key": destination_key,
+            },
+        )
+
+    def _build_payload(
+        self,
+        *,
+        source_uri: str,
         doc_id: str,
         raw_text: str,
         raw_content_hash: str,
         timestamp: str,
     ) -> dict[str, Any]:
-        parser = self._parser_registry.resolve(source_key)
+        """Build the parse stage artifact payload."""
+        parser = self._parser_registry.resolve(source_uri)
         parsed_payload = parser.parse(raw_text)
-        metadata = SourceDocumentMetadata.build(
+        root_metadata = FileMetadata(
             doc_id=doc_id,
-            source_key=source_key,
+            uri=source_uri,
             timestamp=timestamp,
             security_clearance=self._security_clearance,
-            source_type=Path(source_key).suffix.lower().lstrip("."),
-            content_type=str(mimetypes.guess_type(source_key)[0] or "application/octet-stream"),
+            source_type=Path(source_uri).suffix.lower().lstrip("."),
+            content_type=str(mimetypes.guess_type(source_uri)[0] or "application/octet-stream"),
             source_content_hash=raw_content_hash,
         )
         processor_metadata = self._build_processor_metadata()
         return StageArtifact(
             metadata=StageArtifactMetadata(
                 processor=processor_metadata,
-                source=metadata,
-                content={"contract": "Content"},
+                root_doc_metadata=root_metadata,
+                stage_doc_metadata=root_metadata,
+                content_metadata={"contract": "Content"},
                 params=[],
             ),
             content=parsed_payload,
         ).to_dict
-
-
-class ParseOutputMessageFactory:
-    """Build downstream output message after successful parse write."""
-
-    @staticmethod
-    def build(*, input_uri: str) -> Envelope:
-        return Envelope(
-            payload=input_uri,
-        )

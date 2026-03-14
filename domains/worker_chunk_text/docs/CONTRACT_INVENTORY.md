@@ -7,8 +7,8 @@ This document lists the contracts used by `domains/worker_chunk_text`, grouped b
 | Name | Brief Description | Location |
 | --- | --- | --- |
 | `RawChunkJobConfig` | Raw job-level config parsed directly from `job_properties`. | `domains/worker_chunk_text/src/startup/contracts.py` |
-| `RawStoragePathsContract` | Raw storage paths declared in job properties before environment scoping. | `domains/worker_chunk_text/src/startup/contracts.py` |
-| `RuntimeStoragePathsContract` | Environment-dependent runtime storage paths built from raw storage paths during startup extraction. | `domains/worker_chunk_text/src/startup/contracts.py` |
+| `RawChunkStorageConfig` | Raw storage paths declared in job properties before environment scoping. | `domains/worker_chunk_text/src/startup/contracts.py` |
+| `RuntimeChunkStorageConfig` | Environment-dependent runtime storage paths built from raw storage paths during startup extraction. | `domains/worker_chunk_text/src/startup/contracts.py` |
 | `WorkerRuntimeContext` | Shared runtime dependency bundle injected into the service factory and built in `app.py`. | `libs/pipeline-common/src/pipeline_common/startup/runtime_context.py` |
 | `WorkerServiceFactory` | Startup contract implemented by `ChunkTextServiceFactory` to build the concrete worker service. | `libs/pipeline-common/src/pipeline_common/startup/contracts.py` |
 
@@ -24,9 +24,9 @@ This document lists the contracts used by `domains/worker_chunk_text`, grouped b
 | --- | --- | --- |
 | `ProcessResult` | Top-level result payload returned by `ChunkTextProcessor` and consumed by manifest writers and factories. | `libs/pipeline-common/src/pipeline_common/stages_contracts/execution.py` |
 | `ProcessorContext` | Captures processor parameter hash and normalized params for the run result. | `libs/pipeline-common/src/pipeline_common/stages_contracts/execution.py` |
-| `ChunkingExecutionMetadata` | Summarizes expected vs written chunks and derives execution status. | `domains/worker_chunk_text/src/processor/metadata.py` |
+| `ChunkingExecutionMetadata` | Summarizes expected vs written chunks, stores written entries, and derives execution status. | `domains/worker_chunk_text/src/processor/metadata.py` |
 | `ExecutionStatus` | Enum for `success`, `partial`, and `fail`, used through `ChunkingExecutionMetadata.status`. | `libs/pipeline-common/src/pipeline_common/stages_contracts/execution.py` |
-| `ChunkMetadata` | Metadata attached to each persisted chunk artifact, including source URI, ordinal, and character count. | `domains/worker_chunk_text/src/processor/metadata.py` |
+| `ChunkMetadata` | Metadata attached to each persisted chunk artifact, including chunk index, offsets, and text hash. | `domains/worker_chunk_text/src/processor/metadata.py` |
 | `StorageStageArtifact` | Wraps a chunk `StageArtifact` plus destination key before writing to storage. | `libs/pipeline-common/src/pipeline_common/stages_contracts/execution.py` |
 
 ## Shared Stage And Content Contracts
@@ -36,7 +36,7 @@ This document lists the contracts used by `domains/worker_chunk_text`, grouped b
 | `StageArtifact` | Shared artifact envelope read from input storage and written for chunk outputs. | `libs/pipeline-common/src/pipeline_common/stages_contracts` |
 | `StageArtifactMetadata` | Metadata wrapper used when constructing new chunk artifacts. | `libs/pipeline-common/src/pipeline_common/stages_contracts` |
 | `Content` | Content payload wrapper used when writing chunk artifacts. | `libs/pipeline-common/src/pipeline_common/stages_contracts` |
-| `SourceDocumentMetadata` | Shared source-document metadata embedded in `ProcessResult` and reused from input artifacts. | `libs/pipeline-common/src/pipeline_common/stages_contracts/step_00_common.py` |
+| `FileMetadata` | Shared root-document metadata embedded in `ProcessResult` and reused from input artifacts. | `libs/pipeline-common/src/pipeline_common/stages_contracts/step_00_common.py` |
 | `ProcessorMetadata` | Shared processor descriptor embedded in `ProcessResult` and artifact metadata. | `libs/pipeline-common/src/pipeline_common/stages_contracts/step_00_common.py` |
 
 ## Queue And Messaging Contracts

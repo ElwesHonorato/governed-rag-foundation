@@ -72,7 +72,7 @@ class PromptService:
             "assistant_message": assistant_message,
             "citations": [
                 {
-                    "source_key": chunk.source_key,
+                    "source_uri": chunk.source_uri,
                     "doc_id": chunk.doc_id,
                     "chunk_id": chunk.chunk_id,
                     "quote": self._quote_excerpt(chunk.chunk_text),
@@ -110,17 +110,17 @@ class PromptService:
         instruction = (
             "You are a retrieval-grounded assistant. Use only the provided CONTEXT.\n"
             "If context is insufficient, say so.\n"
-            "For every factual claim, cite exact source_key values in square brackets like [02_raw/example.html].\n"
+            "For every factual claim, cite exact source_uri values in square brackets like [s3a://bucket/02_raw/example.html].\n"
             "When possible, include exact quoted snippets from context."
         )
 
         if retrieved:
             context_lines = []
             for chunk in retrieved:
-                source_key = chunk.source_key or "unknown-source"
+                source_uri = chunk.source_uri or "unknown-source"
                 quote = self._quote_excerpt(chunk.chunk_text)
                 context_lines.append(
-                    f"source_key={source_key}\nquote=\"{quote}\""
+                    f"source_uri={source_uri}\nquote=\"{quote}\""
                 )
             context_block = "CONTEXT:\n" + "\n\n".join(context_lines)
         else:

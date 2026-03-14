@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any, Mapping
 
-from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata, SourceDocumentMetadata
+from pipeline_common.stages_contracts.step_00_common import FileMetadata, ProcessorMetadata
 
 
 @dataclass(frozen=True)
@@ -22,8 +22,9 @@ class Content:
 @dataclass(frozen=True)
 class StageArtifactMetadata:
     processor: ProcessorMetadata
-    source: SourceDocumentMetadata
-    content: Any
+    root_doc_metadata: FileMetadata
+    stage_doc_metadata: FileMetadata
+    content_metadata: Any
     params: list[dict[str, Any]]
 
 
@@ -35,8 +36,12 @@ class StageArtifact:
     content: Content
 
     @property
-    def source_metadata(self) -> SourceDocumentMetadata:
-        return self.metadata.source
+    def root_doc_metadata(self) -> FileMetadata:
+        return self.metadata.root_doc_metadata
+
+    @property
+    def stage_doc_metadata(self) -> FileMetadata:
+        return self.metadata.stage_doc_metadata
 
     @property
     def processor_metadata(self) -> ProcessorMetadata:
@@ -44,7 +49,7 @@ class StageArtifact:
 
     @property
     def content_metadata(self) -> Any:
-        return self.metadata.content
+        return self.metadata.content_metadata
 
     @property
     def params(self) -> list[dict[str, Any]]:
@@ -60,8 +65,9 @@ class StageArtifact:
         return cls(
             metadata=StageArtifactMetadata(
                 processor=ProcessorMetadata(**metadata_payload["processor"]),
-                source=SourceDocumentMetadata(**metadata_payload["source"]),
-                content=metadata_payload["content"],
+                root_doc_metadata=FileMetadata.from_dict(metadata_payload["root_doc_metadata"]),
+                stage_doc_metadata=FileMetadata.from_dict(metadata_payload["stage_doc_metadata"]),
+                content_metadata=metadata_payload["content_metadata"],
                 params=metadata_payload["params"],
             ),
             content=Content(**payload["content"]),

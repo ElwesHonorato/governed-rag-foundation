@@ -5,11 +5,11 @@ from parsing.base_parser import DocumentParser
 
 
 class UnsupportedDocumentTypeError(ValueError):
-    """Raised when no parser is registered for a given source key."""
+    """Raised when no parser is registered for a given source URI."""
 
 
 class ParserRegistry:
-    """Registry-based parser resolution by source-key extension."""
+    """Registry-based parser resolution by source-URI extension."""
 
     def __init__(self, parsers: Iterable[DocumentParser] | None = None) -> None:
         """Initialize parser storage and preload provided parsers."""
@@ -22,20 +22,20 @@ class ParserRegistry:
         for extension in self._iter_normalized_extensions(parser):
             self._register_extension(extension, parser)
 
-    def resolve(self, source_key: str) -> DocumentParser:
-        """Return parser for source key or raise unsupported type error."""
-        parser = self._parser_for_source_key(source_key)
+    def resolve(self, source_uri: str) -> DocumentParser:
+        """Return parser for source URI or raise unsupported type error."""
+        parser = self._parser_for_source_uri(source_uri)
         if parser is None:
-            self._raise_unsupported_source_key(source_key)
+            self._raise_unsupported_source_uri(source_uri)
         return parser
 
     def _normalize_extension(self, extension: str) -> str:
         """Normalize extension to lowercase with no leading dot."""
         return extension.strip().lower().lstrip(".")
 
-    def _extension_from_key(self, source_key: str) -> str:
-        """Extract lowercase file extension from source key."""
-        normalized = source_key.lower().strip()
+    def _extension_from_uri(self, source_uri: str) -> str:
+        """Extract lowercase file extension from source URI."""
+        normalized = source_uri.lower().strip()
         if "." not in normalized:
             return ""
         return normalized.rsplit(".", maxsplit=1)[1]
@@ -57,10 +57,10 @@ class ParserRegistry:
         """Return whether one parser is already bound to extension."""
         return extension in self._parsers_by_extension
 
-    def _parser_for_source_key(self, source_key: str) -> DocumentParser | None:
-        """Return parser mapped to source key extension when present."""
-        return self._parsers_by_extension.get(self._extension_from_key(source_key))
+    def _parser_for_source_uri(self, source_uri: str) -> DocumentParser | None:
+        """Return parser mapped to source URI extension when present."""
+        return self._parsers_by_extension.get(self._extension_from_uri(source_uri))
 
-    def _raise_unsupported_source_key(self, source_key: str) -> None:
-        """Raise unsupported document type error for source key."""
-        raise UnsupportedDocumentTypeError(f"Unsupported document type for key: {source_key}")
+    def _raise_unsupported_source_uri(self, source_uri: str) -> None:
+        """Raise unsupported document type error for source URI."""
+        raise UnsupportedDocumentTypeError(f"Unsupported document type for URI: {source_uri}")

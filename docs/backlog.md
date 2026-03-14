@@ -29,3 +29,11 @@
    d. Update worker message contracts where needed to avoid ambiguous URI/key handling.
    e. Add tests covering URI parsing/building behavior for configured schemes.
    f. Update architecture/pattern docs with the final storage URI policy and migration notes.
+
+5. Replace scan-stage payload reads with metadata-based source checksums.
+   a. Extend the object-storage gateway with a metadata/head operation that can return checksum fields without downloading the object body.
+   b. Define the canonical checksum contract for workers: prefer storage-provided SHA-256 (or equivalent explicit checksum metadata), and reject ambiguous substitutes such as multipart `ETag`.
+   c. Update the ingest/upload path to persist the canonical source checksum in object metadata when the storage backend does not provide it automatically.
+   d. Refactor `worker_scan` to use metadata-only checksum lookup so scan remains a pure move operation and does not pull full source payloads into worker memory.
+   e. Add tests covering checksum lookup success, missing checksum metadata, and the fail-fast behavior for unsupported objects.
+   f. Document the storage checksum policy and the temporary current-state exception: until this lands, `worker_scan` keeps the existing read-and-hash implementation.

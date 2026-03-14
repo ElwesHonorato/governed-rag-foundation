@@ -144,7 +144,7 @@ flowchart TD
 - Why exists: workers expose a consistent runtime boundary.
 - Depends on: concrete service internals.
 - Depended on by: worker entrypoint path.
-- Safe extension: keep `serve()` blocking and lifecycle-owned by service implementation.
+- Safe extension: keep `serve()` blocking and lifecycle-owned by service implementation, without embedding stage-payload or app/query contract helpers.
 
 `RuntimeContextFactory`
 - Represents: shared runtime dependency assembler.

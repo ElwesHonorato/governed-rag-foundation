@@ -2,56 +2,72 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
-from typing import Any, ClassVar
+from dataclasses import asdict, dataclass, field
+import mimetypes
+from pathlib import Path
+from typing import Any, ClassVar, Mapping
 
-PROCESSED_DOCUMENT_SCHEMA_VERSION = "1.0"
+from pipeline_common.helpers.contracts import doc_id_from_source_uri, utc_now_iso
+from pipeline_common.provenance import source_content_hash
 
 
 @dataclass(frozen=True)
-class SourceDocumentMetadata:
-    """Metadata contract for processed-document payloads."""
+class FileMetadata:
+    """Metadata contract for root-document payloads.
 
-    FIELD_SCHEMA_VERSION: ClassVar[str] = "schema_version"
-    FIELD_DOC_ID: ClassVar[str] = "doc_id"
-    FIELD_SOURCE_KEY: ClassVar[str] = "source_key"
-    FIELD_TIMESTAMP: ClassVar[str] = "timestamp"
-    FIELD_SECURITY_CLEARANCE: ClassVar[str] = "security_clearance"
-    FIELD_SOURCE_TYPE: ClassVar[str] = "source_type"
-    FIELD_CONTENT_TYPE: ClassVar[str] = "content_type"
-    FIELD_SOURCE_CONTENT_HASH: ClassVar[str] = "source_content_hash"
+    Attributes:
+        doc_id: Stable identifier of the logical document.
+        uri: Storage URI where the file resides.
+        timestamp: ISO timestamp representing ingestion or creation time.
+        security_clearance: Security classification required to access the document.
+        source_type: Origin of the document (e.g. email, pdf, contract).
+        content_type: MIME type of the source document.
+        source_content_hash: SHA256 hash of the original document content.
+        schema_version: Version of the metadata schema.
+    """
 
-    schema_version: str
+    SCHEMA_VERSION: ClassVar[str] = "1.0"
+
     doc_id: str
-    source_key: str
+    uri: str
     timestamp: str
     security_clearance: str
     source_type: str
     content_type: str
     source_content_hash: str
+    schema_version: str = field(init=False)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "schema_version", self.SCHEMA_VERSION)
 
     @classmethod
-    def build(
+    def from_dict(cls, payload: Mapping[str, Any]) -> "FileMetadata":
+        """Build metadata from a payload while enforcing the current schema version."""
+        metadata_payload = dict(payload)
+        metadata_payload.pop("schema_version", None)
+        return cls(**metadata_payload)
+
+    @classmethod
+    def from_source_bytes(
         cls,
         *,
-        doc_id: str,
-        source_key: str,
-        timestamp: str,
-        security_clearance: str,
-        source_type: str,
-        content_type: str,
-        source_content_hash: str,
-    ) -> "SourceDocumentMetadata":
-        """Build versioned processed-document metadata."""
+        uri: str,
+        payload: bytes,
+        security_clearance: str = "",
+        default_content_type: str = "application/octet-stream",
+    ) -> "FileMetadata":
+        """Build metadata for a source object directly from its storage URI and raw bytes."""
+        resolved_content_type = mimetypes.guess_type(uri)[0]
+        if resolved_content_type is None:
+            resolved_content_type = default_content_type
         return cls(
-            schema_version=PROCESSED_DOCUMENT_SCHEMA_VERSION,
-            doc_id=str(doc_id),
-            source_key=str(source_key),
-            timestamp=str(timestamp),
-            security_clearance=str(security_clearance),
-            source_type=str(source_type),
-            content_type=str(content_type),
-            source_content_hash=str(source_content_hash),
+            doc_id=doc_id_from_source_uri(uri),
+            uri=uri,
+            timestamp=utc_now_iso(),
+            security_clearance=security_clearance,
+            source_type=Path(uri).suffix.lower().lstrip("."),
+            content_type=resolved_content_type,
+            source_content_hash=source_content_hash(payload),
         )
 
     @property

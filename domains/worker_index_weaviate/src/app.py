@@ -1,7 +1,5 @@
-"""worker_index_weaviate entrypoint."""
+"""Composition root for the ``worker_index_weaviate`` domain."""
 
-from contracts.startup import RuntimeIndexWeaviateJobConfig
-from pipeline_common.helpers.config import _required_env
 from registry import DataHubDataJobKey, DataHubPipelineJobs, GovernedRagJobId
 from pipeline_common.settings import SettingsBundle, SettingsProvider, SettingsRequest
 from pipeline_common.startup import (
@@ -9,12 +7,13 @@ from pipeline_common.startup import (
 )
 from pipeline_common.startup.runtime_context import WorkerRuntimeContext
 from services.worker_index_weaviate_service import WorkerIndexWeaviateService
+from startup.contracts import RuntimeIndexWeaviateJobConfig
 from startup.config_extractor import IndexWeaviateConfigExtractor
 from startup.service_factory import IndexWeaviateServiceFactory
 
 
 def run() -> None:
-    """Start index_weaviate worker."""
+    """Build the runtime graph and start the index-weaviate worker service."""
     settings: SettingsBundle = SettingsProvider(
         SettingsRequest(datahub=True, storage=True, queue=True),
     ).bundle
@@ -28,11 +27,10 @@ def run() -> None:
     ).build()
 
     runtime_job_config: RuntimeIndexWeaviateJobConfig = IndexWeaviateConfigExtractor().extract(
-        runtime_context.job_properties
+        runtime_context.job_properties,
+        env=runtime_context.env,
     )
-    service: WorkerIndexWeaviateService = IndexWeaviateServiceFactory(
-        weaviate_url=_required_env("WEAVIATE_URL"),
-    ).build(runtime_context, runtime_job_config)
+    service: WorkerIndexWeaviateService = IndexWeaviateServiceFactory().build(runtime_context, runtime_job_config)
     service.serve()
 
 

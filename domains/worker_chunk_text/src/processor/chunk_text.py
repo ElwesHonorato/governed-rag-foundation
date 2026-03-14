@@ -1,6 +1,7 @@
 """Chunk-text processor that splits source artifacts and persists chunk outputs."""
 
 import json
+import logging
 from typing import Any, ClassVar, Iterator
 
 from chunking.stage_contract import ChunkingStage, ChunkingStages
@@ -23,7 +24,9 @@ from processor.metadata import (
     ChunkMetadata,
     ChunkingExecutionMetadata,
 )
-from pipeline_common.stages_contracts.step_00_common import SourceDocumentMetadata
+from pipeline_common.stages_contracts.step_00_common import FileMetadata
+
+logger = logging.getLogger(__name__)
 
 
 class ChunkTextProcessor(BaseProcessor):
@@ -53,15 +56,18 @@ class ChunkTextProcessor(BaseProcessor):
     def process(
         self,
         *,
-        input_artifact: StageArtifact,
+        input_text: str,
+        root_doc_metadata: FileMetadata,
         input_uri: str,
         run_id: str,
         stages: ChunkingStages,
+        stage_doc_metadata: FileMetadata,
     ) -> ProcessResult:
         """Split one input artifact into chunk artifacts and persist the results.
 
         Args:
-            input_artifact: Parsed upstream stage artifact containing source text.
+            input_text: Source text extracted from the upstream stage artifact.
+            root_doc_metadata: Root document metadata carried across downstream stages.
             input_uri: Storage URI of the upstream artifact.
             run_id: Stable run identifier used in output object keys.
             stages: Ordered splitter stages to apply to the input text.
@@ -70,13 +76,12 @@ class ChunkTextProcessor(BaseProcessor):
             Processing result containing processor context and chunk execution metadata.
         """
         serialized_stages: list[dict[str, Any]] = stages.dict
-        source_metadata: SourceDocumentMetadata = input_artifact.source_metadata
         processor_context: ProcessorContext = ProcessorContext(
             params_hash=chunk_params_hash(serialized_stages),
             params=serialized_stages,
         )
         docs: list[Document] = self._process_stages(
-            input_text=input_artifact.content.data,
+            input_text=input_text,
             stages=stages.stages,
         )
         execution_result: ChunkingExecutionMetadata = self._write_chunk_artifacts(
@@ -84,16 +89,18 @@ class ChunkTextProcessor(BaseProcessor):
             serialized_stages=serialized_stages,
             input_uri=input_uri,
             run_id=run_id,
-            source_metadata=source_metadata,
+            root_metadata=root_doc_metadata,
+            stage_doc_metadata=stage_doc_metadata,
         )
 
         return ProcessResult(
             run_id=run_id,
-            source_metadata=source_metadata,
+            root_doc_metadata=root_doc_metadata,
+            stage_doc_metadata=stage_doc_metadata,
             input_uri=input_uri,
             processor_context=processor_context,
             processor=self.processor_metadata,
-            result=execution_result,
+            result=execution_result.to_dict,
         )
 
     def _process_stages(
@@ -141,7 +148,8 @@ class ChunkTextProcessor(BaseProcessor):
         serialized_stages: list[dict[str, Any]],
         input_uri: str,
         run_id: str,
-        source_metadata: SourceDocumentMetadata,
+        root_metadata: FileMetadata,
+        stage_doc_metadata: FileMetadata,
     ) -> ChunkingExecutionMetadata:
         """Persist chunk artifacts, enqueue their URIs, and summarize write results."""
         chunk_count_expected = 0
@@ -153,7 +161,8 @@ class ChunkTextProcessor(BaseProcessor):
             serialized_stages=serialized_stages,
             input_uri=input_uri,
             run_id=run_id,
-            source_metadata=source_metadata,
+            root_metadata=root_metadata,
+            stage_doc_metadata=stage_doc_metadata,
         ):
             chunk_count_expected += 1
             chunk_entries.append(storage_stage_artifact.destination_key)
@@ -178,10 +187,10 @@ class ChunkTextProcessor(BaseProcessor):
         serialized_stages: list[dict[str, Any]],
         input_uri: str,
         run_id: str,
-        source_metadata: SourceDocumentMetadata,
+        root_metadata: FileMetadata,
+        stage_doc_metadata: FileMetadata,
     ) -> Iterator[StorageStageArtifact]:
         """Yield storage artifacts for each chunk emitted from the split documents."""
-        source_metadata_payload = source_metadata.to_dict
         processor_metadata_payload = self.processor_metadata.to_dict
 
         for chunk_index, doc in enumerate(docs):
@@ -189,7 +198,6 @@ class ChunkTextProcessor(BaseProcessor):
                 chunk_index=chunk_index,
                 doc=doc,
                 input_uri=input_uri,
-                source_metadata=source_metadata_payload,
                 processor=processor_metadata_payload,
                 params=serialized_stages,
             )
@@ -197,14 +205,15 @@ class ChunkTextProcessor(BaseProcessor):
                 artifact=StageArtifact(
                     metadata=StageArtifactMetadata(
                         processor=self.processor_metadata,
-                        source=source_metadata,
+                        root_doc_metadata=root_metadata,
+                        stage_doc_metadata=stage_doc_metadata,
                         params=serialized_stages,
-                        content=chunk_metadata,
+                        content_metadata=chunk_metadata.to_dict,
                     ),
                     content=Content(data=doc.page_content),
                 ),
                 destination_key=self._chunk_object_key(
-                    doc_id=source_metadata.doc_id,
+                    doc_id=root_metadata.doc_id,
                     run_id=run_id,
                     chunk_id=chunk_metadata.chunk_id,
                 ),
@@ -217,7 +226,6 @@ class ChunkTextProcessor(BaseProcessor):
         chunk_index: int,
         doc: Document,
         input_uri: str,
-        source_metadata: dict[str, Any],
         processor: dict[str, Any],
         params: list[dict[str, Any]],
     ) -> ChunkMetadata:
@@ -228,7 +236,6 @@ class ChunkTextProcessor(BaseProcessor):
         offsets_end = offsets_start + len(chunk_text)
         chunk_id = build_id(
             source_uri=input_uri,
-            source_metadata=source_metadata,
             processor=processor,
             params=params,
             content={
@@ -248,11 +255,12 @@ class ChunkTextProcessor(BaseProcessor):
 
     def _chunk_object_key(self, doc_id: str, run_id: str, chunk_id: str) -> str:
         """Render the object-storage key for a chunk artifact."""
-        return self.CHUNK_OBJECT_KEY_PATTERN.format(
+        object_key = self.CHUNK_OBJECT_KEY_PATTERN.format(
             doc_id=doc_id,
             run_id=run_id,
             chunk_id=chunk_id,
         )
+        return f"{self.output_prefix}{object_key}"
 
     def _write_chunk_object(self, chunk_payload: dict[str, Any], *, destination_uri: str) -> None:
         """Write one chunk artifact payload to object storage as canonical JSON."""

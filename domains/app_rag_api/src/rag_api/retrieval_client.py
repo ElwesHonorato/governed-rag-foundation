@@ -10,7 +10,7 @@ class RetrievedChunk:
     chunk_id: str
     doc_id: str
     chunk_text: str
-    source_key: str
+    source_uri: str
     security_clearance: str
     distance: float | None
 
@@ -49,7 +49,7 @@ class RetrievalClient:
             "{Get{DocumentChunk("
             + f"nearVector:{{vector:[{vector_values}]}}"
             + f",limit:{limit})"
-            + "{chunk_id doc_id chunk_text source_key security_clearance _additional{distance}}}}"
+            + "{chunk_id doc_id chunk_text source_uri security_clearance _additional{distance}}}}"
         )
         payload = self._graphql(gql)
         return self._parse_chunks(payload)
@@ -73,7 +73,7 @@ class RetrievalClient:
             "{Get{DocumentChunk("
             + f"where:{where_clause}"
             + f",limit:{limit})"
-            + "{chunk_id doc_id chunk_text source_key security_clearance}}}"
+            + "{chunk_id doc_id chunk_text source_uri security_clearance}}}"
         )
         payload = self._graphql(gql)
         return self._parse_chunks(payload)
@@ -124,7 +124,7 @@ class RetrievalClient:
                     chunk_id=str(item.get("chunk_id", "")),
                     doc_id=str(item.get("doc_id", "")),
                     chunk_text=str(item.get("chunk_text", "")),
-                    source_key=str(item.get("source_key", "")),
+                    source_uri=str(item.get("source_uri", "")),
                     security_clearance=str(item.get("security_clearance", "")),
                     distance=distance,
                 )

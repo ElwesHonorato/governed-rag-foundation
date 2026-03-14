@@ -96,7 +96,7 @@ class ChunkTextProcessor(BaseProcessor):
             input_uri=input_uri,
             processor_context=processor_context,
             processor=self.processor_metadata,
-            result=execution_result,
+            result=execution_result.to_dict,
         )
 
     def _process_stages(
@@ -204,7 +204,7 @@ class ChunkTextProcessor(BaseProcessor):
                         root_doc_metadata=root_metadata,
                         stage_doc_metadata=stage_doc_metadata,
                         params=serialized_stages,
-                        content=chunk_metadata,
+                        content_metadata=chunk_metadata.to_dict,
                     ),
                     content=Content(data=doc.page_content),
                 ),

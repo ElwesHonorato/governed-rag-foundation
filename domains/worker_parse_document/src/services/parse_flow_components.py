@@ -103,7 +103,7 @@ class DocumentParserProcessor(BaseProcessor):
                 processor=processor_metadata,
                 root_doc_metadata=root_metadata,
                 stage_doc_metadata=root_metadata,
-                content={"contract": "Content"},
+                content_metadata={"contract": "Content"},
                 params=[],
             ),
             content=parsed_payload,

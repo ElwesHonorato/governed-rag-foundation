@@ -9,7 +9,7 @@ from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.stages_contracts import ProcessResult, ProcessorContext
 from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata
 from services.embed_flow import EmbeddingArtifact
-from services.index_flow import IndexStatusWriter
+from services.index_flow import IndexStatusArtifact, IndexStatusWriter
 from services.weaviate_gateway import upsert_chunk, verify_query
 
 logger = logging.getLogger(__name__)
@@ -74,10 +74,10 @@ class IndexWeaviateProcessor:
                 "vector": payload.vector,
                 "properties": {
                     "chunk_id": payload.chunk_id,
-                    "doc_id": payload.metadata.doc_id,
-                    "chunk_text": payload.metadata.chunk_text,
-                    "source_uri": payload.metadata.source_uri,
-                    "security_clearance": payload.metadata.security_clearance,
+                    "doc_id": payload.doc_id,
+                    "chunk_text": payload.chunk_text,
+                    "source_uri": payload.metadata.root_doc_metadata.uri,
+                    "security_clearance": payload.metadata.root_doc_metadata.security_clearance,
                     "run_id": payload.metadata.run_id,
                     "embedder_name": payload.metadata.embedder_name,
                     "embedder_version": payload.metadata.embedder_version,
@@ -94,12 +94,9 @@ class IndexWeaviateProcessor:
         return f"{self._output_prefix}{doc_id}.indexed.json"
 
     @staticmethod
-    def build_index_status_payload(doc_id: str, chunk_id: str) -> dict[str, Any]:
+    def build_index_status_payload(doc_id: str, chunk_id: str) -> IndexStatusArtifact:
         """Build the storage payload for one successful indexing status."""
-        status_payload: dict[str, Any] = {"doc_id": doc_id, "status": "indexed"}
-        if chunk_id:
-            status_payload["chunk_id"] = chunk_id
-        return status_payload
+        return IndexStatusArtifact(doc_id=doc_id, status="indexed", chunk_id=chunk_id)
 
     def _upsert_embeddings(self, payload: EmbeddingArtifact) -> None:
         """Upsert the embedding records into Weaviate."""

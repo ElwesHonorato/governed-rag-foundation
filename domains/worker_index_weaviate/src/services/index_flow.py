@@ -1,10 +1,9 @@
-"""Index worker orchestration contracts and writers."""
+"""Index worker orchestration contracts, artifacts, and writers."""
 
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
-from typing import Any
+from dataclasses import asdict, dataclass
 
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 
@@ -14,6 +13,23 @@ class IndexWorkItem:
     """One indexing work item derived from an inbound URI."""
 
     uri: str
+
+
+@dataclass(frozen=True)
+class IndexStatusArtifact:
+    """Canonical persisted status artifact for one successful index write."""
+
+    doc_id: str
+    status: str
+    chunk_id: str = ""
+
+    @property
+    def to_dict(self) -> dict[str, str]:
+        """Serialize one index status artifact for storage persistence."""
+        payload = asdict(self)
+        if not self.chunk_id:
+            payload.pop("chunk_id")
+        return payload
 
 
 class IndexStatusWriter:
@@ -28,11 +44,13 @@ class IndexStatusWriter:
         self._object_storage = object_storage
         self._storage_bucket = storage_bucket
 
-    def write(self, *, destination_key: str, payload: dict[str, Any]) -> None:
+    def write(self, *, destination_key: str, payload: IndexStatusArtifact) -> None:
         """Write one index status payload to object storage."""
         self._object_storage.write_object(
             uri=self.output_uri(destination_key),
-            payload=json.dumps(payload, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode("utf-8"),
+            payload=json.dumps(payload.to_dict, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode(
+                "utf-8"
+            ),
             content_type="application/json",
         )
 

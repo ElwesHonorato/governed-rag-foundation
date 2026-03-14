@@ -19,13 +19,6 @@ class EmbedWorkItem:
 class EmbeddingArtifactMetadata:
     """Metadata stored with one embedding artifact."""
 
-    source_type: str
-    timestamp: str
-    security_clearance: str
-    doc_id: str
-    source_uri: str
-    chunk_index: int
-    chunk_text: str
     run_id: str
     embedder_name: str
     embedder_version: str
@@ -54,6 +47,7 @@ class EmbeddingArtifact:
 
     doc_id: str
     chunk_id: str
+    chunk_text: str
     vector: list[float]
     metadata: EmbeddingArtifactMetadata
 
@@ -63,6 +57,7 @@ class EmbeddingArtifact:
         return cls(
             doc_id=str(payload["doc_id"]),
             chunk_id=str(payload["chunk_id"]),
+            chunk_text=str(payload["chunk_text"]),
             vector=[float(value) for value in payload["vector"]],
             metadata=EmbeddingArtifactMetadata.from_dict(dict(payload["metadata"])),
         )

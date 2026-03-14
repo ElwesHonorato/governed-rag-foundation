@@ -38,7 +38,7 @@ class ProcessResult:
         input_uri: Fully qualified storage URI for the input artifact.
         processor_context: Serialized processor parameter context.
         processor: Processor metadata emitted for this run.
-        result: Stage-specific execution summary payload.
+        result: Stage-specific serialized execution summary payload.
     """
 
     SCHEMA_VERSION: ClassVar[str] = "1.0"
@@ -49,7 +49,7 @@ class ProcessResult:
     input_uri: str
     processor_context: ProcessorContext
     processor: ProcessorMetadata
-    result: Any
+    result: dict[str, Any]
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "schema_version", self.SCHEMA_VERSION)
@@ -79,17 +79,3 @@ class StorageStageArtifact:
     @property
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
-
-    @classmethod
-    def from_dict(
-        cls,
-        payload: dict[str, Any],
-        *,
-        destination_key: str,
-        artifact: StageArtifact,
-    ) -> "StorageStageArtifact":
-        _ = payload
-        return cls(
-            artifact=artifact,
-            destination_key=destination_key,
-        )

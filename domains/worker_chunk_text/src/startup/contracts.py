@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 @dataclass(frozen=True)
-class RawStoragePathsContract:
+class RawChunkStorageConfig:
     """Storage paths declared in job properties before environment scoping.
 
     Attributes:
@@ -20,13 +20,13 @@ class RawStoragePathsContract:
     manifest_prefix: str
 
     @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> RawStoragePathsContract:
+    def from_dict(cls, payload: dict[str, Any]) -> RawChunkStorageConfig:
         """Build raw storage paths from a dictionary payload."""
         return cls(**payload)
 
 
 @dataclass(frozen=True)
-class RuntimeStoragePathsContract:
+class RuntimeChunkStorageConfig:
     """Environment-scoped storage locations used by the running worker.
 
     Attributes:
@@ -42,10 +42,10 @@ class RuntimeStoragePathsContract:
     @classmethod
     def from_raw(
         cls,
-        raw: RawStoragePathsContract,
+        raw: RawChunkStorageConfig,
         *,
         env: str | None,
-    ) -> RuntimeStoragePathsContract:
+    ) -> RuntimeChunkStorageConfig:
         """Build runtime storage paths by prefixing raw paths with the active environment.
 
         Args:
@@ -71,14 +71,14 @@ class RawChunkJobConfig:
         poll_interval_seconds: Queue poll timeout used by the worker loop.
     """
 
-    storage: RawStoragePathsContract
+    storage: RawChunkStorageConfig
     poll_interval_seconds: int
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> RawChunkJobConfig:
         """Build raw chunk job config from a dictionary payload."""
         return cls(
-            storage=RawStoragePathsContract.from_dict(payload["storage"]),
+            storage=RawChunkStorageConfig.from_dict(payload["storage"]),
             poll_interval_seconds=int(payload["poll_interval_seconds"]),
         )
 
@@ -93,4 +93,4 @@ class RuntimeChunkJobConfig:
     """
 
     poll_interval_seconds: int
-    storage: RuntimeStoragePathsContract
+    storage: RuntimeChunkStorageConfig

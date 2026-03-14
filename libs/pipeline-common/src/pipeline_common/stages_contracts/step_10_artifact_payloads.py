@@ -24,7 +24,7 @@ class StageArtifactMetadata:
     processor: ProcessorMetadata
     root_doc_metadata: FileMetadata
     stage_doc_metadata: FileMetadata
-    content: Any
+    content_metadata: Any
     params: list[dict[str, Any]]
 
 
@@ -49,7 +49,7 @@ class StageArtifact:
 
     @property
     def content_metadata(self) -> Any:
-        return self.metadata.content
+        return self.metadata.content_metadata
 
     @property
     def params(self) -> list[dict[str, Any]]:
@@ -67,7 +67,7 @@ class StageArtifact:
                 processor=ProcessorMetadata(**metadata_payload["processor"]),
                 root_doc_metadata=FileMetadata.from_dict(metadata_payload["root_doc_metadata"]),
                 stage_doc_metadata=FileMetadata.from_dict(metadata_payload["stage_doc_metadata"]),
-                content=metadata_payload["content"],
+                content_metadata=metadata_payload["content_metadata"],
                 params=metadata_payload["params"],
             ),
             content=Content(**payload["content"]),

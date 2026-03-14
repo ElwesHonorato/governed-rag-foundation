@@ -6,12 +6,9 @@ import hashlib
 import json
 import uuid
 from dataclasses import dataclass
-from pathlib import Path
 
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
-from pipeline_common.helpers.contracts import doc_id_from_source_uri
 from pipeline_common.provenance import embedding_params_hash
-from pipeline_common.provenance import source_content_hash
 from pipeline_common.stages_contracts import FileMetadata, ProcessResult, ProcessorContext, StageArtifact
 from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata
 from services.embed_flow import EmbeddingArtifact, EmbeddingArtifactMetadata
@@ -104,14 +101,10 @@ class EmbedChunksProcessor:
     ) -> ProcessResult:
         """Build one embedding artifact and return the process result."""
         chunk_payload = self.read_chunk_payload(raw_payload, source_uri=input_uri)
-        stage_doc_metadata = FileMetadata(
-            doc_id=doc_id_from_source_uri(input_uri),
+        stage_doc_metadata = FileMetadata.from_source_bytes(
             uri=input_uri,
-            timestamp="",
-            security_clearance="",
-            source_type=Path(input_uri).suffix.lower().lstrip("."),
-            content_type="application/json",
-            source_content_hash=source_content_hash(raw_payload),
+            payload=raw_payload,
+            default_content_type="application/json",
         )
         write_result = self.write_embedding_artifact(
             chunk_payload,
@@ -181,15 +174,9 @@ class EmbedChunksProcessor:
         return EmbeddingArtifact(
             doc_id=doc_id,
             chunk_id=chunk_id,
+            chunk_text=text,
             vector=self._deterministic_embedding_for(text, self._dimension),
             metadata=EmbeddingArtifactMetadata(
-                source_type=payload.root_doc_metadata.source_type,
-                timestamp=payload.root_doc_metadata.timestamp,
-                security_clearance=payload.root_doc_metadata.security_clearance,
-                doc_id=doc_id,
-                source_uri=payload.root_doc_metadata.uri,
-                chunk_index=payload.chunk_record.index,
-                chunk_text=text,
                 run_id="",
                 embedder_name=EMBEDDER_NAME,
                 embedder_version=EMBEDDER_VERSION,

@@ -17,7 +17,7 @@ This domain reads processed document artifacts, splits their text into retrieval
 ### Payload characteristics
 - Input payloads are queue envelopes whose inner payload is a storage URI.
 - Output chunk artifacts contain stage metadata plus the chunk text in `content.data`.
-- Chunk metadata includes `source_doc_uri`, `chunk_id`, `ordinal`, and `characters`.
+- Chunk metadata includes `index`, `chunk_id`, `offsets_start`, `offsets_end`, and `chunk_text_hash`.
 
 ### Runtime dependencies
 - Queue: `BROKER_URL`.

@@ -60,7 +60,6 @@ class WorkerChunkingService(WorkerService):
                 process_result: ProcessResult = self._transform_source_to_chunks(input_uri)
 
                 self._write_manifest(process_result)
-                
                 self._register_manifest_output_lineage()
             except Exception as exc:
                 if lineage_started:
@@ -104,6 +103,8 @@ class WorkerChunkingService(WorkerService):
     def _register_manifest_output_lineage(self) -> None:
         """Register the written manifest as a lineage output."""
         manifest_uri = self._manifest_writer.manifest_uri
+        if manifest_uri is None:
+            raise ValueError("Manifest URI is unavailable after manifest write.")
         self._lineage_gateway.add_output(
             name=manifest_uri,
             platform=DatasetPlatform.S3,

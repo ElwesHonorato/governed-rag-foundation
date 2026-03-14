@@ -61,10 +61,14 @@ class WorkerIndexWeaviateService(WorkerService):
         )
 
     def _register_index_output_lineage(self, uri: str) -> None:
-        """Register the written index status artifact as lineage output."""
+        """Register the written index status artifact and Weaviate sink as outputs."""
         self._lineage_gateway.add_output(
             name=uri,
             platform=DatasetPlatform.S3,
+        )
+        self._lineage_gateway.add_output(
+            name=self._processor.weaviate_output_name(),
+            platform=DatasetPlatform.WEAVIATE,
         )
         self._lineage_gateway.complete_run()
 

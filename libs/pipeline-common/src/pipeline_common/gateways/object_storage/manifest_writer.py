@@ -39,8 +39,9 @@ class ManifestWriter:
         self.manifest_uri = manifest_uri
 
     def _manifest_object_key(self, doc_id: str, run_id: str) -> str:
-        return self.MANIFEST_OBJECT_KEY_PATTERN.format(
+        object_key = self.MANIFEST_OBJECT_KEY_PATTERN.format(
             doc_id=doc_id,
             run_id=run_id,
             file_name=self.MANIFEST_FILE_NAME,
         )
+        return f"{self.manifest_prefix}{object_key}"

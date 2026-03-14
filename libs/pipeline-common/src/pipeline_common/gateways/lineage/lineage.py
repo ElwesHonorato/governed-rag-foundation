@@ -24,9 +24,11 @@ from datahub.metadata.schema_classes import (
     DataProcessInstancePropertiesClass,
     DataProcessInstanceRelationshipsClass,
     DataProcessInstanceRunEventClass,
+    DataProcessInstanceRunResultClass,
     DataProcessRunStatusClass,
     DatasetPropertiesClass,
     EdgeClass,
+    RunResultTypeClass,
 )
 
 from pipeline_common.gateways.lineage.contracts import DataHubDataJobKey, DatasetPlatform, ResolvedDataHubFlowConfig
@@ -79,6 +81,7 @@ class DataProcessInstanceMcpFactory:
         run: RunSpec,
         now_ms: int,
         status: DataProcessRunStatusClass,
+        run_result_type: RunResultTypeClass | None = None,
     ) -> None:
         """Initialize context for one DataProcessInstance event."""
         self.dpi_urn = dpi_urn
@@ -86,6 +89,7 @@ class DataProcessInstanceMcpFactory:
         self.run = run
         self.now_ms = now_ms
         self.status = status
+        self.run_result_type = run_result_type
         self.dpi_properties_aspect: DataProcessInstancePropertiesClass | None = None
         self.dpi_relationships_aspect: DataProcessInstanceRelationshipsClass | None = None
         self.dpi_input_aspect: DataProcessInstanceInput | None = None
@@ -138,6 +142,14 @@ class DataProcessInstanceMcpFactory:
             timestampMillis=self.now_ms,
             status=self.status,
             attempt=1,
+            result=(
+                DataProcessInstanceRunResultClass(
+                    type=self.run_result_type,
+                    nativeResultType=self.run_result_type,
+                )
+                if self.run_result_type is not None
+                else None
+            ),
         )
 
     def _build_dpi_mcp_batch(self) -> list[MetadataChangeProposalWrapper]:
@@ -378,7 +390,10 @@ class DataHubRuntimeLineage(LineageRuntimeGateway):
         return f"{int(time.time() * 1000)}-{self._ensure_job_metadata_resolved().job_id}-{uuid.uuid4()}"
 
     def complete_run(self) -> str:
-        self._emit_dpi_event(status=DataProcessRunStatusClass.COMPLETE)
+        self._emit_dpi_event(
+            status=DataProcessRunStatusClass.COMPLETE,
+            run_result_type=RunResultTypeClass.SUCCESS,
+        )
         run_id = self._active_context.run.run_id
         self._clear_active_run()
         return self._dpi_urn(run_id)
@@ -387,6 +402,10 @@ class DataHubRuntimeLineage(LineageRuntimeGateway):
         if self._active_context is None:
             raise ValueError("No active run context available for failing run.")
         self._active_context.run.custom_properties.error_message = error_message
+        self._emit_dpi_event(
+            status=DataProcessRunStatusClass.COMPLETE,
+            run_result_type=RunResultTypeClass.FAILURE,
+        )
         run_id = self._active_context.run.run_id
         self._clear_active_run()
         return self._dpi_urn(run_id)
@@ -399,7 +418,11 @@ class DataHubRuntimeLineage(LineageRuntimeGateway):
             return str(value)
         return "unknown"
 
-    def _emit_dpi_event(self, status: DataProcessRunStatusClass) -> str:
+    def _emit_dpi_event(
+        self,
+        status: DataProcessRunStatusClass,
+        run_result_type: RunResultTypeClass | None = None,
+    ) -> str:
         if self._active_context is None:
             raise ValueError("No active run context available for emitting DPI event.")
         dpi_urn = self._dpi_urn(self._active_context.run.run_id)
@@ -409,6 +432,7 @@ class DataHubRuntimeLineage(LineageRuntimeGateway):
             run=self._active_context.run,
             now_ms=self._now_ms(),
             status=status,
+            run_result_type=run_result_type,
         ).build()
         self.graph_client.emit_mcps(mcps=mcps)
         return dpi_urn

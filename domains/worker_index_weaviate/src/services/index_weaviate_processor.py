@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+from typing import ClassVar
 
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.stages_contracts import EmbeddingArtifact, ProcessResult, ProcessorContext
@@ -16,6 +17,8 @@ logger = logging.getLogger(__name__)
 
 class IndexWeaviateProcessor:
     """Build indexing instructions and status payloads."""
+
+    WEAVIATE_OUTPUT_NAME: ClassVar[str] = "DocumentChunk"
 
     def __init__(
         self,
@@ -91,6 +94,10 @@ class IndexWeaviateProcessor:
         if chunk_id:
             return f"{self._output_prefix}{doc_id}/{chunk_id}.indexed.json"
         return f"{self._output_prefix}{doc_id}.indexed.json"
+
+    def weaviate_output_name(self) -> str:
+        """Build the logical Weaviate sink name for lineage output."""
+        return self.WEAVIATE_OUTPUT_NAME
 
     @staticmethod
     def build_index_status_payload(doc_id: str, chunk_id: str) -> IndexStatusArtifact:

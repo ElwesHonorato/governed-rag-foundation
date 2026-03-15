@@ -14,3 +14,4 @@ Deployment shape:
 - managed through `./stack.sh up ai_backend`
 - depends on `libs/agent_platform` and `libs/ai_infra`
 - consumes the repo workspace through a bind mount at `/workspace`
+- configured through `.env` values documented in `.env.example`

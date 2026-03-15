@@ -20,13 +20,15 @@ It does not:
 
 - app.py: app factory and composition root.
 - routes.py: endpoint registration.
+- ../../libs/runtime/src/runtime/provider.py: runtime settings loader.
 - ai_infra.AiBackendClient: backend HTTP adapter from the shared library.
 
 # 4. Module Structure
 
 - src/ai_ui/app.py
 - src/ai_ui/routes.py
-- src/ai_ui/config.py
+- .env.example
+- ../../libs/runtime/src/runtime/provider.py
 - ../../libs/ai_infra/src/ai_infra/ai_backend_client.py
 
 ```mermaid

@@ -11,12 +11,20 @@ Local stack path:
 
 Required environment:
 
+- `AI_BACKEND_HOST` (optional, defaults to `0.0.0.0`)
+- `AI_BACKEND_PORT` (optional, defaults to `8010`)
+- `AGENT_PLATFORM_WORKSPACE_ROOT` (container default `/workspace`)
 - `LLM_URL`
 - `LLM_MODEL`
 - `LLM_TIMEOUT_SECONDS`
 - `WEAVIATE_URL`
 - `EMBEDDING_DIM`
 - `WEAVIATE_QUERY_DEFAULTS_LIMIT` (optional, defaults to `5`)
+- `STACK_NETWORK` for the shared Docker network
+
+Local env template:
+
+- Copy `.env.example` to `.env` and adjust values for your stack.
 
 Container runtime contract:
 

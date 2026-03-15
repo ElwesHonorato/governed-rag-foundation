@@ -34,14 +34,6 @@ class AiBackendHandlers:
             status=HTTPStatus.OK,
         )
 
-    def get_session(self, session_id: str) -> JsonResponse:
-        session = self._agent_app.session_store.load_session(session_id)
-        return JsonResponse(payload=session.to_dict(), status=HTTPStatus.OK)
-
-    def get_run(self, run_id: str) -> JsonResponse:
-        run = self._agent_app.run_store.load_run(run_id)
-        return JsonResponse(payload=run.to_dict(), status=HTTPStatus.OK)
-
     def create_run(self, body: dict[str, object]) -> JsonResponse:
         objective = str(body.get("objective", "")).strip()
         skill_name = str(body.get("skill_name", "analyze_repository")).strip()

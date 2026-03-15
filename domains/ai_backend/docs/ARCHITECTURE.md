@@ -10,8 +10,8 @@ Current responsibilities:
 - remain a thin transport layer over `agent_platform`
 
 Key runtime wiring:
-- `src/ai_backend/app_factory.py` is the composition root.
-- `src/ai_backend/app.py` owns process startup.
+- `src/ai_backend/app.py` is the process startup entrypoint and assembles runtime inputs.
+- `src/ai_backend/app_factory.py` contains the class-based composition root that builds the WSGI application.
 - `src/ai_backend/application.py` handles the WSGI application boundary.
 - `src/ai_backend/request_normalization.py` handles WSGI request normalization.
 - `../../libs/runtime/src/runtime/provider.py` loads backend runtime settings via a shared settings provider pattern.

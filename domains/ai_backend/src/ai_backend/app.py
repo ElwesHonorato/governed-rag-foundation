@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from wsgiref.simple_server import make_server
 
-from ai_backend.app_factory import create_app
+from ai_backend.app_factory import AiBackendApplicationFactory
 from runtime.provider import SettingsProvider, SettingsRequest
 
 
 def main() -> int:
     settings = SettingsProvider(SettingsRequest(backend_ai_backend=True)).bundle.backend_ai_backend
-    app = create_app()
+    app = AiBackendApplicationFactory(settings=settings).create()
     with make_server(settings.host, settings.port, app) as server:
         server.serve_forever()
     return 0

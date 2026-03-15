@@ -52,7 +52,7 @@ Overall design:
 - `libs/agent_platform` now also owns reusable RAG backend logic: LLM access, Weaviate retrieval, and retrieval-grounded response orchestration.
 
 Layering (observed in code):
-- Composition roots: domain entrypoints (`app.py`, `apply.py`).
+- Composition roots: package entrypoints (`<package>.app`, `apply.py`).
 - Startup wiring: `pipeline_common.startup` for workers.
 - Infrastructure adapters: `pipeline_common.gateways`.
 - Configuration adapter: `pipeline_common.settings`.
@@ -80,7 +80,6 @@ Repository structure (architecture-relevant):
 - `libs/pipeline-common/`: shared worker/runtime abstractions and adapters.
 - `libs/ai_infra/`: shared contracts, policies, registries, and orchestration services for the agent platform.
 - `libs/agent_platform/`: reusable agent runtime package with CLI, local adapters, packaged config assets, and shared RAG backend services.
-- `registry/`: DataHub job-key registry used by worker entrypoints.
 - `docs/`: architecture and standards documentation.
 - `stack.sh` + domain compose files: local stack orchestration.
 
@@ -120,7 +119,7 @@ Editor note:
 - This is still useful because the repo has many separate Python source roots, even though the worker and agent projects now use namespaced package roots instead of generic top-level modules.
 
 Dependency flow:
-- `domains/*` may depend on `libs/pipeline-common`, `registry`, and reusable `libs/*` packages.
+- `domains/*` may depend on reusable `libs/*` packages.
 - `domains/ai_backend` may depend on `libs/agent_platform` and `libs/ai_infra`.
 - `libs/*` must not depend on `domains/*`.
 - Driver SDKs are concentrated in gateway/infrastructure adapters.
@@ -137,7 +136,6 @@ graph TD
 
     H[domains/app_*] --> I[Flask + local clients]
 
-    J[registry] --> A
 ```
 
 # 5. Runtime Flow (Golden Path)
@@ -159,7 +157,7 @@ Shutdown/termination behavior:
 
 ```mermaid
 flowchart TD
-    A[worker_*/app.py] --> B[SettingsProvider]
+    A[worker_*.app] --> B[SettingsProvider]
     B --> C[RuntimeContextFactory]
     C --> D[Extract config + build service]
     D --> E[WorkerService.serve]

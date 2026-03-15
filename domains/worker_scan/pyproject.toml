@@ -3,18 +3,17 @@ name = "worker-scan"
 version = "0.1.0"
 description = "Worker stage: incoming -> raw"
 authors = [{ name = "Governed RAG Foundation" }]
-requires-python = ">=3.11,<3.12"
-dynamic = ["dependencies"]
+requires-python = "==3.11.14"
+dependencies = [
+  "pipeline-common @ ../../libs/pipeline-common",
+]
+
+[project.scripts]
+worker-scan = "worker_scan.app:main"
 
 [tool.poetry]
-package-mode = false
-
-[tool.poetry.dependencies]
-python = ">=3.11,<3.12"
-boto3 = "1.37.0"
-pika = "1.3.2"
-acryl-datahub = "1.4.0.2"
+packages = [{ include = "worker_scan", from = "src" }]
 
 [build-system]
-requires = ["poetry-core==2.0.0"]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"

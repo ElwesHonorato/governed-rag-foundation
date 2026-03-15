@@ -32,7 +32,7 @@ Non-responsibilities:
 # 3. Architectural Overview
 
 Design:
-- Composition root in src/app.py.
+- Composition root in `src/worker_embed_chunks/app.py`.
 - Startup extension points in src/startup/config_extractor.py and src/startup/service_factory.py.
 - Processing logic in src/services.
 - Embedding-vector compute path uses local deterministic execution.
@@ -45,7 +45,7 @@ Patterns:
 
 # 4. Module Structure
 
-- src/app.py
+- src/worker_embed_chunks/app.py
 - src/contracts/contracts.py
 - src/startup/config_extractor.py
 - src/startup/service_factory.py

@@ -27,4 +27,4 @@ This domain reads processed document artifacts, splits their text into retrieval
 ### Operational notes
 - Service container: `pipeline-worker-chunk-text`.
 - Queue contract stage: `chunk_text`.
-- Composition root: `src/app.py`.
+- Composition root: `src/worker_chunk_text/app.py`.

@@ -8,7 +8,7 @@ Applies to `libs/pipeline-common/`.
 - Keep startup contracts (`WorkerService`, extractor/factory contracts, runtime context) minimal and framework-agnostic.
 
 ## If You Change X, Also Update Y
-- If startup contracts or constructor signatures change, update all worker app composition roots under `domains/worker_*/src/app.py`.
+- If startup contracts or constructor signatures change, update all worker app composition roots under `domains/worker_*/src/<worker_package>/app.py`.
 - If startup architecture changes, update:
   - `docs/ARCHITECTURE.md`
   - `docs/patterns/composition-root.md`

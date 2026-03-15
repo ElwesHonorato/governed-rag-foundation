@@ -1,23 +1,19 @@
-"""Composition root for the ``worker_chunk_text`` domain."""
+"""Installable entrypoint for the ``worker_chunk_text`` domain."""
 
-from registry import DataHubDataJobKey, DataHubPipelineJobs, GovernedRagJobId
+from pipeline_common.registry import DataHubDataJobKey, DataHubPipelineJobs, GovernedRagJobId
 from pipeline_common.settings import SettingsBundle, SettingsProvider, SettingsRequest
-from pipeline_common.startup import (
-    RuntimeContextFactory,
-)
+from pipeline_common.startup import RuntimeContextFactory
 from pipeline_common.startup.runtime_context import WorkerRuntimeContext
 from worker_chunk_text.service.worker_chunking_service import WorkerChunkingService
-from worker_chunk_text.startup.contracts import RuntimeChunkJobConfig
 from worker_chunk_text.startup.config_extractor import ChunkTextConfigExtractor
+from worker_chunk_text.startup.contracts import RuntimeChunkJobConfig
 from worker_chunk_text.startup.service_factory import ChunkTextServiceFactory
 
 
 def run() -> None:
-    """Build the runtime graph and start the chunk-text worker service."""
     settings: SettingsBundle = SettingsProvider(
         SettingsRequest(datahub=True, storage=True, queue=True),
     ).bundle
-
     data_job_key: DataHubDataJobKey = DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job(
         GovernedRagJobId.WORKER_CHUNK_TEXT
     )
@@ -25,7 +21,6 @@ def run() -> None:
         data_job_key=data_job_key,
         settings_bundle=settings,
     ).build()
-
     runtime_job_config: RuntimeChunkJobConfig = ChunkTextConfigExtractor().extract(
         runtime_context.job_properties,
         env=runtime_context.env,
@@ -34,5 +29,6 @@ def run() -> None:
     service.serve()
 
 
-if __name__ == "__main__":
+def main() -> int:
     run()
+    return 0

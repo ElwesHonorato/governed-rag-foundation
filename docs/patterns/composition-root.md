@@ -4,15 +4,16 @@
 Centralize concrete wiring in one place so startup behavior is predictable and testable.
 
 ## When To Use
-- Any worker/domain entrypoint (`domains/worker_*/src/app.py`).
+- Any worker/domain entrypoint (`domains/worker_*/src/<worker_package>/app.py`).
 - Any place that reads env/config and constructs runtime dependencies.
 
 ## How To Apply
-1. Keep `app.py` limited to orchestration (`run()` plus `__main__` guard).
-2. Build settings/config in the entrypoint.
-3. Construct shared runtime factory/context.
-4. Inject extractor/factory/service collaborators.
-5. Extract config, build the service, and start it.
+1. Keep `app.py` limited to orchestration (`run()` plus `main()`).
+2. Keep package-level `__main__.py` limited to a guarded delegate to `app.main()`.
+3. Build settings/config in the entrypoint.
+4. Construct shared runtime factory/context.
+5. Inject extractor/factory/service collaborators.
+6. Extract config, build the service, and start it.
 
 ## Example
 Good shape:

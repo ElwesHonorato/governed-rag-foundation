@@ -36,6 +36,10 @@ class CapabilityExecutionService:
                 output = {"path": request.input_payload["path"], "content": content}
             elif request.capability_name == "command_run_safe":
                 output = self._command_gateway.run(list(request.input_payload["command"]))
+                if int(output.get("returncode", 0)) != 0:
+                    raise ValueError(
+                        f"Command exited with code {output['returncode']}: {output.get('stderr', '').strip()}"
+                    )
             elif request.capability_name == "vector_search":
                 query = str(request.input_payload["query"])
                 top_k = int(request.input_payload.get("top_k", 3))

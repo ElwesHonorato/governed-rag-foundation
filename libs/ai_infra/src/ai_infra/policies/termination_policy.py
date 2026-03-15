@@ -12,5 +12,5 @@ class TerminationPolicy:
         self._max_steps = max_steps
 
     def validate(self, run: AgentRun) -> None:
-        if len(run.step_results) > self._max_steps:
+        if len(run.step_results) >= self._max_steps:
             raise ValueError("Run exceeded configured step budget.")

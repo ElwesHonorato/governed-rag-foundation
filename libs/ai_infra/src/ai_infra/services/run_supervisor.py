@@ -9,7 +9,6 @@ from uuid import uuid4
 from ai_infra.contracts.agent_run import AgentRun
 from ai_infra.contracts.capability_request import CapabilityRequest
 from ai_infra.contracts.session_checkpoint import SessionCheckpoint
-from ai_infra.contracts.termination_decision import TerminationDecision
 from ai_infra.kernel.checkpoint_manager import CheckpointManager
 from ai_infra.policies.capability_policy import CapabilityPolicy
 from ai_infra.policies.sandbox_policy import SandboxPolicy
@@ -81,6 +80,8 @@ class RunSupervisor:
             self._capability_policy.validate(descriptor)
             if step.capability_name == "filesystem_read":
                 self._sandbox_policy.validate_path(str(step.input_payload["path"]))
+            if step.capability_name == "command_run_safe":
+                self._sandbox_policy.validate_command(list(step.input_payload["command"]))
             request = CapabilityRequest(
                 capability_name=step.capability_name,
                 session_id=run.session_id,

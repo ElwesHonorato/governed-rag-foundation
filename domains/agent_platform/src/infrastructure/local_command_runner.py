@@ -37,7 +37,31 @@ class LocalCommandRunner:
                 raise ValueError("Only `git status` is allowed in MVP.")
             return
         if head == "ls":
+            for argument in command[1:]:
+                if argument.startswith("-"):
+                    continue
+                self._validate_path_argument(argument)
             return
         if head == "rg":
+            self._validate_rg_arguments(command[1:])
             return
         raise ValueError(f"Command is not allowlisted: {head}")
+
+    def _validate_rg_arguments(self, arguments: list[str]) -> None:
+        pattern_seen = False
+        for argument in arguments:
+            if not pattern_seen:
+                if argument.startswith("-"):
+                    continue
+                pattern_seen = True
+                continue
+            if argument.startswith("-"):
+                raise ValueError("rg options after the search pattern are not supported.")
+            self._validate_path_argument(argument)
+
+    def _validate_path_argument(self, argument: str) -> None:
+        resolved = (self._workspace_root / argument).resolve()
+        try:
+            resolved.relative_to(self._workspace_root.resolve())
+        except ValueError as exc:
+            raise ValueError(f"Command path is outside the workspace: {argument}") from exc

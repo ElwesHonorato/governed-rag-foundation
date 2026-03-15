@@ -1,0 +1,54 @@
+[
+  {
+    "name": "filesystem_read",
+    "category": "inspection",
+    "backend_kind": "filesystem",
+    "version": "v1",
+    "risk_classification": "low",
+    "input_schema_ref": "schemas/filesystem_read.json",
+    "output_schema_ref": "schemas/filesystem_read_result.json",
+    "side_effect_flag": false,
+    "preconditions": ["path_must_be_within_workspace"],
+    "postconditions": ["file_contents_returned"],
+    "invariants": ["read_only"]
+  },
+  {
+    "name": "command_run_safe",
+    "category": "inspection",
+    "backend_kind": "command",
+    "version": "v1",
+    "risk_classification": "medium",
+    "input_schema_ref": "schemas/command_run_safe.json",
+    "output_schema_ref": "schemas/command_run_safe_result.json",
+    "side_effect_flag": false,
+    "preconditions": ["command_must_be_allowlisted"],
+    "postconditions": ["stdout_and_stderr_returned"],
+    "invariants": ["no_shell"]
+  },
+  {
+    "name": "vector_search",
+    "category": "retrieval",
+    "backend_kind": "vector",
+    "version": "v1",
+    "risk_classification": "low",
+    "input_schema_ref": "schemas/vector_search.json",
+    "output_schema_ref": "schemas/vector_search_result.json",
+    "side_effect_flag": false,
+    "preconditions": ["vector_fixture_must_exist"],
+    "postconditions": ["ranked_hits_returned"],
+    "invariants": ["local_fixture_only"]
+  },
+  {
+    "name": "llm_synthesize",
+    "category": "synthesis",
+    "backend_kind": "model",
+    "version": "v1",
+    "risk_classification": "low",
+    "input_schema_ref": "schemas/llm_synthesize.json",
+    "output_schema_ref": "schemas/llm_synthesize_result.json",
+    "side_effect_flag": false,
+    "preconditions": ["normalized_context_available"],
+    "postconditions": ["text_response_returned"],
+    "invariants": ["platform_assembled_prompt"]
+  }
+]

@@ -1,0 +1,6 @@
+{
+  "prompt_key": "analyze_repository",
+  "version": "v1",
+  "system_instructions": "You are producing a concise repository analysis from normalized tool outputs.",
+  "user_template": "Objective: {objective}\nSkill: {skill_name}\nTool outputs:\n{step_results}"
+}

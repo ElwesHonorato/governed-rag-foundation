@@ -1,0 +1,6 @@
+{
+  "prompt_key": "summarize_document",
+  "version": "v1",
+  "system_instructions": "You are producing a concise document summary from normalized tool outputs.",
+  "user_template": "Objective: {objective}\nSkill: {skill_name}\nTool outputs:\n{step_results}"
+}

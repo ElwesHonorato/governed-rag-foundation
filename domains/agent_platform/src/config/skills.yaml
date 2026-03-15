@@ -1,0 +1,61 @@
+{
+  "analyze_repository": {
+    "steps": [
+      {
+        "capability_name": "command_run_safe",
+        "description": "Inspect repo status",
+        "input_payload": {
+          "command": ["git", "status", "--short"]
+        }
+      },
+      {
+        "capability_name": "filesystem_read",
+        "description": "Read the current implementation plan",
+        "input_payload": {
+          "path": "plan_tasks.md"
+        }
+      },
+      {
+        "capability_name": "vector_search",
+        "description": "Retrieve repo context from the local vector fixture",
+        "input_payload": {
+          "query": "{objective}",
+          "top_k": 3
+        }
+      },
+      {
+        "capability_name": "llm_synthesize",
+        "description": "Synthesize final answer",
+        "input_payload": {
+          "prompt_key": "analyze_repository"
+        }
+      }
+    ]
+  },
+  "summarize_document": {
+    "steps": [
+      {
+        "capability_name": "filesystem_read",
+        "description": "Read the target document",
+        "input_payload": {
+          "path": "task.md"
+        }
+      },
+      {
+        "capability_name": "vector_search",
+        "description": "Retrieve related context",
+        "input_payload": {
+          "query": "{objective}",
+          "top_k": 2
+        }
+      },
+      {
+        "capability_name": "llm_synthesize",
+        "description": "Synthesize document summary",
+        "input_payload": {
+          "prompt_key": "summarize_document"
+        }
+      }
+    ]
+  }
+}

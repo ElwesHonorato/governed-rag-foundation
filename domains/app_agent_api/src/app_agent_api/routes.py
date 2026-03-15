@@ -5,10 +5,9 @@ from __future__ import annotations
 import json
 from http import HTTPStatus
 from typing import Callable
-from urllib.parse import parse_qs
 
-from agent_api.config import Settings
-from startup.service_factory import AgentPlatformApp
+from agent_platform.startup.service_factory import AgentPlatformApp
+from app_agent_api.config import Settings
 
 
 StartResponse = Callable[[str, list[tuple[str, str]]], None]

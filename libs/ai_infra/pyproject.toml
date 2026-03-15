@@ -3,7 +3,7 @@ name = "ai-infra"
 version = "0.1.0"
 description = "Capability-oriented agent platform runtime primitives"
 authors = ["Governed RAG Foundation"]
-package-mode = false
+packages = [{ include = "ai_infra", from = "src" }]
 
 [tool.poetry.dependencies]
 python = ">=3.11,<3.12"

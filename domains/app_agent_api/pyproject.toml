@@ -1,12 +1,16 @@
 [tool.poetry]
-name = "agent-api"
+name = "app-agent-api"
 version = "0.1.0"
 description = "HTTP API for the agent platform MVP"
 authors = ["Governed RAG Foundation"]
-package-mode = false
+packages = [{ include = "app_agent_api", from = "src" }]
 
 [tool.poetry.dependencies]
 python = ">=3.11,<3.12"
+agent-platform = { path = "../agent_platform", develop = true }
+
+[tool.poetry.scripts]
+agent-api = "app_agent_api.app:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

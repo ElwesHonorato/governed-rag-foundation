@@ -17,7 +17,7 @@ Best practices:
 
 from flask import Flask
 
-from ai_ui.ai_backend_client import AiBackendClient
+from ai_infra.ai_backend_client import AiBackendClient
 from ai_ui.config import Settings
 from ai_ui.routes import register_routes
 

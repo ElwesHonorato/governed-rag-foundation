@@ -3,18 +3,16 @@ name = "ai-backend"
 version = "0.1.0"
 description = "HTTP backend for the agent platform"
 authors = [{ name = "Governed RAG Foundation" }]
-requires-python = ">=3.11,<3.12"
-dynamic = ["dependencies"]
+requires-python = "==3.11.14"
+dependencies = [
+  "agent-platform @ ../../libs/agent_platform",
+]
 
 [project.scripts]
 ai-backend = "ai_backend.app:main"
 
 [tool.poetry]
 packages = [{ include = "ai_backend", from = "src" }]
-
-[tool.poetry.dependencies]
-python = ">=3.11,<3.12"
-agent-platform = { path = "../../libs/agent_platform", develop = true }
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

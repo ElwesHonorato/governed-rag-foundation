@@ -20,14 +20,14 @@ It does not:
 
 - app.py: app factory and composition root.
 - routes.py: endpoint registration.
-- ai_backend_client.py: backend HTTP adapter.
+- ai_infra.AiBackendClient: backend HTTP adapter from the shared library.
 
 # 4. Module Structure
 
 - src/ai_ui/app.py
 - src/ai_ui/routes.py
 - src/ai_ui/config.py
-- src/ai_ui/ai_backend_client.py
+- ../../libs/ai_infra/src/ai_infra/ai_backend_client.py
 
 ```mermaid
 graph TD
@@ -56,7 +56,7 @@ flowchart TD
 # 7. Extension Points
 
 - Add endpoints in routes.py.
-- Extend backend request handling in ai_backend_client.py.
+- Extend backend request handling in `libs/ai_infra/src/ai_infra/ai_backend_client.py`.
 
 # 8. Known Issues & Technical Debt
 

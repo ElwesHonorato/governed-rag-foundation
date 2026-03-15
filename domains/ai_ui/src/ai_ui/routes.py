@@ -1,7 +1,7 @@
 
 from flask import Flask, jsonify, render_template, request
 
-from ai_ui.ai_backend_client import AiBackendClient
+from ai_infra.ai_backend_client import AiBackendClient
 from ai_ui.config import Settings
 
 

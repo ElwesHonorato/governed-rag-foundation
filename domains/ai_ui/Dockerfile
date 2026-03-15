@@ -13,9 +13,8 @@ RUN pip install --no-cache-dir poetry
 
 COPY pyproject.toml /app/pyproject.toml
 COPY poetry.lock /app/poetry.lock
-RUN poetry install --only main
-
 COPY src /app/src
+RUN poetry install --only main
 
 EXPOSE 8000
 

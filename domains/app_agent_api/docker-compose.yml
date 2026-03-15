@@ -1,0 +1,21 @@
+services:
+  agent-api:
+    build:
+      context: .
+      dockerfile: ./domains/app_agent_api/Dockerfile
+    ports:
+      - "${AGENT_API_PORT:-8010}:8010"
+    environment:
+      AGENT_API_HOST: ${AGENT_API_HOST:-0.0.0.0}
+      AGENT_API_PORT: ${AGENT_API_PORT:-8010}
+      AGENT_PLATFORM_WORKSPACE_ROOT: /workspace
+      LLM_URL: ${LLM_URL:?LLM_URL is required}
+      LLM_MODEL: ${LLM_MODEL:?LLM_MODEL is required}
+      LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:?LLM_TIMEOUT_SECONDS is required}
+    volumes:
+      - .:/workspace
+
+networks:
+  default:
+    external: true
+    name: ${STACK_NETWORK:?STACK_NETWORK is required}

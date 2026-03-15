@@ -22,7 +22,7 @@ Usage:
   ./stack.sh ps [domain]
 
 Domains:
-  infra_storage | infra_vector | infra_queue | infra_lineage | infra_portainer | infra_llm | app_rag_api | app_vector_ui | worker_scan | worker_parse_document | worker_chunk_text | worker_embed_chunks | worker_index_weaviate
+  infra_storage | infra_vector | infra_queue | infra_lineage | infra_portainer | infra_llm | app_rag_api | app_vector_ui | app_agent_api | worker_scan | worker_parse_document | worker_chunk_text | worker_embed_chunks | worker_index_weaviate
 USAGE
 }
 

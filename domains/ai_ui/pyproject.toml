@@ -1,13 +1,18 @@
-[tool.poetry]
+[project]
 name = "ai-ui"
 version = "0.1.0"
 description = "AI UI service"
-authors = ["Governed RAG Foundation"]
-package-mode = false
+authors = [{ name = "Governed RAG Foundation" }]
+requires-python = ">=3.11,<3.12"
+dependencies = [
+  "flask>=3.1.0,<4.0.0",
+]
 
-[tool.poetry.dependencies]
-python = "3.11.14"
-flask = "^3.1.0"
+[project.scripts]
+ai-ui = "ai_ui.app:main"
+
+[tool.poetry]
+packages = [{ include = "ai_ui", from = "src" }]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

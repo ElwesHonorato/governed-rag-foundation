@@ -2,7 +2,7 @@
 from flask import Flask, jsonify, render_template, request
 
 from ai_infra.ai_backend_client import AiBackendClient
-from ai_ui.config import Settings
+from runtime.provider import Settings
 
 
 def register_routes(*, app: Flask, settings: Settings, ai_backend_client: AiBackendClient) -> None:

@@ -1,0 +1,13 @@
+[project]
+name = "runtime"
+version = "0.1.0"
+description = "Shared runtime configuration primitives"
+authors = [{ name = "Governed RAG Foundation" }]
+requires-python = "==3.11.14"
+
+[tool.poetry]
+packages = [{ include = "runtime", from = "src" }]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

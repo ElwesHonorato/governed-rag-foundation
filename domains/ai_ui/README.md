@@ -14,7 +14,7 @@ This domain is the UI/front-door of the AI system. It receives browser or client
 
 ### Runtime dependencies
 - `AI_BACKEND_URL` for the backend service.
-- `AI_BACKEND_TIMEOUT_SECONDS` (optional, defaults to `30`).
+- `AI_BACKEND_TIMEOUT_SECONDS`.
 - `AI_UI_PORT` for the published container port.
 - `STACK_NETWORK` for the shared Docker network.
 

@@ -6,6 +6,7 @@ authors = [{ name = "Governed RAG Foundation" }]
 requires-python = "==3.11.14"
 dependencies = [
   "agent-platform @ ../../libs/agent_platform",
+  "runtime @ ../../libs/runtime",
 ]
 
 [project.scripts]

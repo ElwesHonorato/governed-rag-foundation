@@ -11,8 +11,8 @@ Local stack path:
 
 Required environment:
 
-- `AI_BACKEND_HOST` (optional, defaults to `0.0.0.0`)
-- `AI_BACKEND_PORT` (optional, defaults to `8010`)
+- `AI_BACKEND_HOST`
+- `AI_BACKEND_PORT`
 - `AGENT_PLATFORM_WORKSPACE_ROOT` (container default `/workspace`)
 - `LLM_URL`
 - `LLM_MODEL`
@@ -30,7 +30,7 @@ Container runtime contract:
 
 - the repo is mounted at `/workspace`
 - `AGENT_PLATFORM_WORKSPACE_ROOT=/workspace`
-- the API listens on `0.0.0.0:${AI_BACKEND_PORT:-8010}`
+- the API listens on `${AI_BACKEND_HOST}:${AI_BACKEND_PORT}`
 
 Primary endpoints:
 

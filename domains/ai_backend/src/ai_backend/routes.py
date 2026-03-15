@@ -7,7 +7,7 @@ from http import HTTPStatus
 from typing import Callable
 
 from agent_platform.startup.service_factory import AgentPlatformApp
-from ai_backend.config import Settings
+from runtime.provider import BackendAIBackendSettings
 
 
 StartResponse = Callable[[str, list[tuple[str, str]]], None]
@@ -16,7 +16,7 @@ StartResponse = Callable[[str, list[tuple[str, str]]], None]
 class AiBackendApplication:
     """Small stdlib WSGI app for the AI backend."""
 
-    def __init__(self, *, settings: Settings, agent_app: AgentPlatformApp) -> None:
+    def __init__(self, *, settings: BackendAIBackendSettings, agent_app: AgentPlatformApp) -> None:
         self._settings = settings
         self._agent_app = agent_app
 
@@ -44,7 +44,7 @@ class AiBackendApplication:
 
     def _dispatch(self, *, method: str, path: str, body: dict[str, object]) -> tuple[dict[str, object] | list[object], HTTPStatus]:
         if method == "GET" and path == "/":
-            return {"service": "ai-backend", "status": "ok", "settings": self._settings.payload()}, HTTPStatus.OK
+            return {"service": "ai-backend", "status": "ok", "settings": self._settings.to_dict}, HTTPStatus.OK
         if method == "GET" and path == "/capabilities":
             return [item.to_dict() for item in self._agent_app.capability_registry.list_capabilities()], HTTPStatus.OK
         if method == "GET" and path == "/skills":

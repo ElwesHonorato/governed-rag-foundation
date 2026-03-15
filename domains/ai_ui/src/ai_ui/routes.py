@@ -2,10 +2,12 @@
 from flask import Flask, jsonify, render_template, request
 
 from ai_infra.ai_backend_client import AiBackendClient
-from runtime.provider import Settings
+from runtime.provider import FrontendAIBackendSettings
 
 
-def register_routes(*, app: Flask, settings: Settings, ai_backend_client: AiBackendClient) -> None:
+def register_routes(
+    *, app: Flask, settings: FrontendAIBackendSettings, ai_backend_client: AiBackendClient
+) -> None:
 
     @app.get("/")
     def root():

@@ -6,11 +6,11 @@ from __future__ import annotations
 from datahub.ingestion.graph.client import DataHubGraph, DatahubClientConfig
 from datahub.sdk import DataHubClient
 
-from infrastructure.datahub import DataHubGovernanceCatalogWriter
-from orchestration.governance_applier import GovernanceApplier
+from gov_governance.infrastructure.datahub import DataHubGovernanceCatalogWriter
+from gov_governance.orchestration.governance_applier import GovernanceApplier
 from pipeline_common.helpers.config import _required_env
 from pipeline_common.settings import SettingsProvider, SettingsRequest
-from state_loader import GovernanceStateLoader
+from gov_governance.state_loader import GovernanceStateLoader
 
 
 def main() -> int:

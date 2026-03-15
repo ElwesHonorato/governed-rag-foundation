@@ -6,10 +6,10 @@ from pipeline_common.startup import (
     RuntimeContextFactory,
 )
 from pipeline_common.startup.runtime_context import WorkerRuntimeContext
-from services.worker_embed_chunks_service import WorkerEmbedChunksService
-from startup.contracts import RuntimeEmbedChunksJobConfig
-from startup.config_extractor import EmbedChunksConfigExtractor
-from startup.service_factory import EmbedChunksServiceFactory
+from worker_embed_chunks.services.worker_embed_chunks_service import WorkerEmbedChunksService
+from worker_embed_chunks.startup.contracts import RuntimeEmbedChunksJobConfig
+from worker_embed_chunks.startup.config_extractor import EmbedChunksConfigExtractor
+from worker_embed_chunks.startup.service_factory import EmbedChunksServiceFactory
 
 
 def run() -> None:

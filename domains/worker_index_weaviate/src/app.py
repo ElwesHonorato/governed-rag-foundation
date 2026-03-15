@@ -6,10 +6,10 @@ from pipeline_common.startup import (
     RuntimeContextFactory,
 )
 from pipeline_common.startup.runtime_context import WorkerRuntimeContext
-from services.worker_index_weaviate_service import WorkerIndexWeaviateService
-from startup.contracts import RuntimeIndexWeaviateJobConfig
-from startup.config_extractor import IndexWeaviateConfigExtractor
-from startup.service_factory import IndexWeaviateServiceFactory
+from worker_index_weaviate.services.worker_index_weaviate_service import WorkerIndexWeaviateService
+from worker_index_weaviate.startup.contracts import RuntimeIndexWeaviateJobConfig
+from worker_index_weaviate.startup.config_extractor import IndexWeaviateConfigExtractor
+from worker_index_weaviate.startup.service_factory import IndexWeaviateServiceFactory
 
 
 def run() -> None:

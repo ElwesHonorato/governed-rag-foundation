@@ -6,10 +6,10 @@ from pipeline_common.startup import (
     RuntimeContextFactory,
 )
 from pipeline_common.startup.runtime_context import WorkerRuntimeContext
-from service.worker_chunking_service import WorkerChunkingService
-from startup.contracts import RuntimeChunkJobConfig
-from startup.config_extractor import ChunkTextConfigExtractor
-from startup.service_factory import ChunkTextServiceFactory
+from worker_chunk_text.service.worker_chunking_service import WorkerChunkingService
+from worker_chunk_text.startup.contracts import RuntimeChunkJobConfig
+from worker_chunk_text.startup.config_extractor import ChunkTextConfigExtractor
+from worker_chunk_text.startup.service_factory import ChunkTextServiceFactory
 
 
 def run() -> None:

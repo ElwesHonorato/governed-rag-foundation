@@ -3,14 +3,10 @@ name = "agent-platform"
 version = "0.1.0"
 description = "Capability-oriented AI agent platform MVP"
 authors = ["Governed RAG Foundation"]
-packages = [
-  { include = "cli", from = "src" },
-  { include = "startup", from = "src" },
-  { include = "infrastructure", from = "src" },
-]
+packages = [{ include = "agent_platform", from = "src" }]
 include = [
-  "src/config/**/*.yaml",
-  "src/config/**/*.json",
+  "src/agent_platform/config/**/*.yaml",
+  "src/agent_platform/config/**/*.json",
 ]
 
 [tool.poetry.dependencies]
@@ -18,7 +14,7 @@ python = ">=3.11,<3.12"
 ai-infra = { path = "../../libs/ai_infra", develop = true }
 
 [tool.poetry.scripts]
-agent-platform = "cli.agent_cli:main"
+agent-platform = "agent_platform.cli.agent_cli:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

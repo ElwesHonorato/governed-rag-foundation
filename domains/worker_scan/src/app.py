@@ -6,10 +6,10 @@ from pipeline_common.startup import (
     RuntimeContextFactory,
 )
 from pipeline_common.startup.runtime_context import WorkerRuntimeContext
-from services.worker_scan_service import WorkerScanService
-from startup.contracts import RuntimeScanJobConfig
-from startup.config_extractor import ScanConfigExtractor
-from startup.service_factory import ScanServiceFactory
+from worker_scan.services.worker_scan_service import WorkerScanService
+from worker_scan.startup.contracts import RuntimeScanJobConfig
+from worker_scan.startup.config_extractor import ScanConfigExtractor
+from worker_scan.startup.service_factory import ScanServiceFactory
 
 
 def run() -> None:

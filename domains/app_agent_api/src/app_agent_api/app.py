@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from wsgiref.simple_server import make_server
 
-from startup.service_factory import AgentPlatformServiceFactory
+from agent_platform.startup.service_factory import AgentPlatformServiceFactory
 from app_agent_api.config import Settings
 from app_agent_api.routes import AgentApiApplication
 

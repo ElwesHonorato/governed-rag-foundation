@@ -6,7 +6,7 @@ import json
 from http import HTTPStatus
 from typing import Callable
 
-from startup.service_factory import AgentPlatformApp
+from agent_platform.startup.service_factory import AgentPlatformApp
 from app_agent_api.config import Settings
 
 

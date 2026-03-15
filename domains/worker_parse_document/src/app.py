@@ -6,10 +6,10 @@ from pipeline_common.startup import (
     RuntimeContextFactory,
 )
 from pipeline_common.startup.runtime_context import WorkerRuntimeContext
-from services.worker_parse_document_service import WorkerParseDocumentService
-from startup.contracts import RuntimeParseJobConfig
-from startup.config_extractor import ParseConfigExtractor
-from startup.service_factory import ParseServiceFactory
+from worker_parse_document.services.worker_parse_document_service import WorkerParseDocumentService
+from worker_parse_document.startup.contracts import RuntimeParseJobConfig
+from worker_parse_document.startup.config_extractor import ParseConfigExtractor
+from worker_parse_document.startup.service_factory import ParseServiceFactory
 
 
 def run() -> None:

@@ -29,8 +29,8 @@ The repository now has two different states:
 1. Safe package-shaped projects
 - `libs/ai_infra`
 - `libs/pipeline-common` at the import level
-- `domains/app_agent_api`
-- `domains/app_rag_api`
+- `domains/ai_backend`
+- `domains/ai_ui`
 - `domains/app_vector_ui`
 - `domains/llm_orchestration`
 
@@ -128,7 +128,7 @@ Why this matters:
 
 Observed:
 - all worker domains
-- `domains/app_rag_api`
+- `domains/ai_ui`
 - `domains/app_vector_ui`
 - `libs/pipeline-common`
 
@@ -147,8 +147,8 @@ Today the repo mixes three patterns:
 
 Examples:
 - `libs/ai_infra/src/ai_infra`
-- `domains/app_agent_api/src/app_agent_api`
-- `domains/app_rag_api/src/rag_api`
+- `domains/ai_backend/src/ai_backend`
+- `domains/ai_ui/src/ai_ui`
 
 This is structurally safe.
 
@@ -188,7 +188,7 @@ src/<unique_package_name>/
 Examples:
 - `src/ai_infra/`
 - `src/agent_platform/`
-- `src/app_agent_api/`
+- `src/ai_backend/`
 
 Forbidden for reusable packages:
 - `src/startup/`
@@ -267,8 +267,8 @@ libs/agent_platform/src/agent_platform/
 ### Apps and worker domains
 
 ```text
-domains/app_agent_api/src/app_agent_api/
-domains/app_rag_api/src/rag_api/
+domains/ai_backend/src/ai_backend/
+domains/ai_ui/src/ai_ui/
 domains/app_vector_ui/src/vector_ui/
 domains/gov_governance/src/gov_governance/
 domains/worker_scan/src/worker_scan/
@@ -323,7 +323,7 @@ libs/agent_platform/src/agent_platform/
 Update:
 - `libs/agent_platform/pyproject.toml`
 - all imports to `agent_platform.*`
-- `domains/app_agent_api` imports to `agent_platform.*`
+- `domains/ai_backend` imports to `agent_platform.*`
 - docs and tests
 
 Why first:
@@ -456,12 +456,12 @@ Remove examples that normalize:
 
 ## Phase 1
 
-Fix `libs/agent_platform` and `domains/app_agent_api`.
+Fix `libs/agent_platform` and `domains/ai_backend`.
 
 Acceptance criteria:
 - `agent_platform` package root restored
 - no `from startup` or `from infrastructure` under `libs/agent_platform`
-- no `from startup` imports inside `domains/app_agent_api`
+- no `from startup` imports inside `domains/ai_backend`
 
 ## Phase 2
 

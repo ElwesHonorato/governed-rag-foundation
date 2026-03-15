@@ -7,7 +7,7 @@ Use predictable, searchable branch names so reviewers can quickly understand int
 `<type>/<scope>-<short-kebab-description>`
 
 Examples:
-- `feat/rag-api-grounded-citations`
+- `feat/ai-ui-grounded-citations`
 - `fix/worker-scan-queue-retry`
 - `refactor/pipeline-common-stagequeue-contracts`
 
@@ -23,7 +23,7 @@ Examples:
 
 ## Scope Rules
 - Use the main area being changed, e.g.:
-  - `rag-api`
+  - `ai-ui`
   - `vector-ui`
   - `pipeline-common`
   - `worker-scan`, `worker-parse-document`, etc.
@@ -44,7 +44,7 @@ Avoid:
 - `newbranch`
 - `fixStuff`
 - `feature/rag api changes`
-- `feat/rag-api/do-many-random-things`
+- `feat/ai-ui/do-many-random-things`
 
 ## Optional Ticket Suffix
 If your workflow requires tracking IDs, append them at the end:

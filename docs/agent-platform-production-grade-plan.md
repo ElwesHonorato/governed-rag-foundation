@@ -2,12 +2,12 @@
 
 ## Purpose
 
-This plan upgrades the current `agent_platform` implementation from a working internal package into a production-grade library with explicit contracts, stable imports, tested packaging, and a clean consumer boundary for `app_agent_api`.
+This plan upgrades the current `agent_platform` implementation from a working internal package into a production-grade library with explicit contracts, stable imports, tested packaging, and a clean consumer boundary for `ai_backend`.
 
 The current code already removed `sys.path` bootstrapping and moved the reusable runtime into:
 - `libs/agent_platform`
 - `libs/ai_infra`
-- `domains/app_agent_api`
+- `domains/ai_backend`
 
 This document now describes the current state and the remaining work. It does not preserve transitional layouts or backward-compatibility steps.
 
@@ -17,12 +17,12 @@ This document now describes the current state and the remaining work. It does no
 
 - `libs/ai_infra` is the shared runtime library.
 - `libs/agent_platform` is the reusable agent runtime package and CLI host.
-- `domains/app_agent_api` is the HTTP shell that consumes `agent_platform`.
+- `domains/ai_backend` is the HTTP shell that consumes `agent_platform`.
 
 ### What is already fixed
 
 - application code no longer mutates `sys.path`
-- `agent_platform`, `ai_infra`, and `app_agent_api` are installable Poetry packages
+- `agent_platform`, `ai_infra`, and `ai_backend` are installable Poetry packages
 - the CLI runs through the installed `agent-platform` entrypoint
 - the API imports the runtime through declared package dependencies
 
@@ -65,7 +65,7 @@ Why this needs hardening:
 #### 4. API serving is still MVP-grade
 
 Current shape:
-- `app_agent_api` exposes `create_app()`
+- `ai_backend` exposes `create_app()`
 - local serving works, but the production server contract is still light
 
 Why this needs hardening:
@@ -86,7 +86,7 @@ Why this matters:
 
 At the end of this plan:
 - `libs/agent_platform` remains the reusable runtime package
-- `domains/app_agent_api` remains the deployable HTTP shell
+- `domains/ai_backend` remains the deployable HTTP shell
 - `agent_platform` has a stable, unique package namespace
 - prompt/config assets load through package-safe resource access
 - runtime configuration is explicit and validated
@@ -113,10 +113,10 @@ Keep as the reusable runtime library, but restore a unique package namespace:
 
 This is the one structural reversal recommended here. The extra package namespace is not redundant at library scope; it is what prevents generic top-level module collisions once this code is consumed outside its own project root.
 
-### `domains/app_agent_api`
+### `domains/ai_backend`
 
 Keep as the deployable consumer:
-- package name: `app_agent_api`
+- package name: `ai_backend`
 - imports `agent_platform` through packaging metadata only
 - exposes `create_app()` and a supported production server target
 
@@ -144,7 +144,7 @@ Keep as the deployable consumer:
 
 ### Acceptance criteria
 
-- `rg -n "from (startup|cli|infrastructure)\\b" libs/agent_platform domains/app_agent_api` returns no package-import matches
+- `rg -n "from (startup|cli|infrastructure)\\b" libs/agent_platform domains/ai_backend` returns no package-import matches
 - the installed console script still works
 - the API still imports `create_app()` cleanly through installed dependencies
 
@@ -191,11 +191,11 @@ Keep as the deployable consumer:
 
 ### Goals
 
-- make `app_agent_api` production-servable with a clear contract
+- make `ai_backend` production-servable with a clear contract
 
 ### Changes
 
-- define the supported production entrypoint for `app_agent_api`
+- define the supported production entrypoint for `ai_backend`
 - document the expected application server
 - keep local dev serving separate from production serving guidance
 
@@ -220,14 +220,14 @@ Keep as the deployable consumer:
 #### Integration tests
 
 - installed `agent-platform` CLI works
-- `app_agent_api.create_app()` works after install
+- `ai_backend.create_app()` works after install
 - packaged assets load correctly
 - out-of-workspace command arguments are rejected
 - non-zero command results are surfaced as failures
 
 #### Packaging tests
 
-- importing `ai_infra`, `agent_platform`, and `app_agent_api` succeeds in a clean environment
+- importing `ai_infra`, `agent_platform`, and `ai_backend` succeeds in a clean environment
 - no test depends on `PYTHONPATH` hacks or source-path mutation
 
 ### Acceptance criteria
@@ -241,7 +241,7 @@ Keep as the deployable consumer:
 
 - install `libs/ai_infra`
 - install `libs/agent_platform`
-- install `domains/app_agent_api`
+- install `domains/ai_backend`
 - run affected test suites
 - run CLI smoke check
 - import the API factory
@@ -250,7 +250,7 @@ Recommended smoke checks:
 
 ```bash
 cd libs/agent_platform && poetry run agent-platform skill-list
-cd domains/app_agent_api && poetry run python -c "from app_agent_api.app import create_app; create_app()"
+cd domains/ai_backend && poetry run python -c "from ai_backend.app import create_app; create_app()"
 ```
 
 ### Acceptance criteria
@@ -272,7 +272,7 @@ cd domains/app_agent_api && poetry run python -c "from app_agent_api.app import 
 - tighten config extraction and validation
 - update README and architecture docs
 
-### `domains/app_agent_api`
+### `domains/ai_backend`
 
 - keep dependency on `libs/agent_platform` explicit
 - define the supported production server contract

@@ -10,7 +10,7 @@ Example setup:
 
 ```bash
 cd libs/agent_platform && POETRY_VIRTUALENVS_IN_PROJECT=true poetry install
-cd /home/sultan/repos/governed-rag-foundation/domains/app_agent_api && POETRY_VIRTUALENVS_IN_PROJECT=true poetry install
+cd /home/sultan/repos/governed-rag-foundation/domains/ai_backend && POETRY_VIRTUALENVS_IN_PROJECT=true poetry install
 ```
 
 ## Baseline Sanity Check
@@ -98,8 +98,8 @@ cd libs/agent_platform
 Start the API server:
 
 ```bash
-cd domains/app_agent_api
-AGENT_PLATFORM_WORKSPACE_ROOT=/home/sultan/repos/governed-rag-foundation ./.venv/bin/agent-api
+cd domains/ai_backend
+AGENT_PLATFORM_WORKSPACE_ROOT=/home/sultan/repos/governed-rag-foundation ./.venv/bin/ai-backend
 ```
 
 Then, in another terminal, exercise the endpoints:

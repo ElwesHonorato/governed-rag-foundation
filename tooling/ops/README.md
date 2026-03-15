@@ -13,7 +13,7 @@ These scripts centralize local infrastructure lifecycle for development and test
 ./stack.sh up infra_llm
 ./stack.sh logs infra_lineage
 ./stack.sh ps
-./stack.sh ps app_rag_api
+./stack.sh ps ai_ui
 ```
 
 ## Domain-by-domain start
@@ -25,7 +25,7 @@ These scripts centralize local infrastructure lifecycle for development and test
 ./stack.sh up infra_portainer
 ./stack.sh up infra_queue
 ./stack.sh up infra_llm
-./stack.sh up app_rag_api
+./stack.sh up ai_ui
 ./stack.sh up worker_scan
 ./stack.sh up worker_parse_document
 ./stack.sh up worker_chunk_text
@@ -43,4 +43,4 @@ The `infra_llm` domain builds a custom Ollama image and bakes `LLM_MODEL` (defau
 - DataHub GMS: http://localhost:${DATAHUB_MAPPED_GMS_PORT}
 - Portainer: https://localhost:9443
 - Ollama API: http://localhost:11434
-- rag-api: http://localhost:8000
+- ai-ui: http://localhost:8000

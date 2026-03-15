@@ -11,8 +11,8 @@ Current responsibilities:
 
 Key runtime wiring:
 - `src/ai_backend/app.py` is the process startup entrypoint and assembles runtime inputs.
-- `src/ai_backend/app_factory.py` contains the class-based composition root that builds the WSGI application.
-- `src/ai_backend/application.py` handles the WSGI application boundary.
+- `src/ai_backend/app_factory.py` contains the class-based composition root and assembles handlers, router, and request normalization.
+- `src/ai_backend/application.py` handles the WSGI application boundary and takes prebuilt collaborators.
 - `src/ai_backend/request_normalization.py` handles WSGI request normalization.
 - `../../libs/runtime/src/runtime/provider.py` loads backend runtime settings via a shared settings provider pattern.
 

@@ -30,9 +30,7 @@ class SettingsBundle:
 
 def load_agent_platform_config() -> AgentPlatformConfig:
     """Load agent-platform startup configuration."""
-    workspace_root = Path.cwd().resolve()
-    state_dir = (workspace_root / ".agent_platform" / "localdata").resolve()
-    state_dir.mkdir(parents=True, exist_ok=True)
+    workspace_root, state_dir = _resolve_local_paths()
     return AgentPlatformConfig(
         paths=RepositoryPaths(
             repo_root=str(workspace_root),
@@ -67,6 +65,13 @@ class SettingsProvider:
     @property
     def bundle(self) -> SettingsBundle:
         return SettingsBundle(agent_platform=self.agent_platform)
+
+
+def _resolve_local_paths() -> tuple[Path, Path]:
+    workspace_root = Path.cwd().resolve()
+    state_dir = (workspace_root / ".agent_platform" / "localdata").resolve()
+    state_dir.mkdir(parents=True, exist_ok=True)
+    return workspace_root, state_dir
 
 
 def _required_env(name: str) -> str:

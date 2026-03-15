@@ -15,7 +15,7 @@ ai-infra = {path = "../../libs/ai_infra", develop = true}
 
 [package.source]
 type = "directory"
-url = "../agent_platform"
+url = "../../libs/agent_platform"
 
 [[package]]
 name = "ai-infra"
@@ -34,4 +34,4 @@ url = "../../libs/ai_infra"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.12"
-content-hash = "04291b8d6e84e193e48b11eea153131724a8a8602acba7627e0a7042a3a29e75"
+content-hash = "24aa783fffb02ef9607fac3337e5d158f0cf222d40c4ec5125c9e3b9212b0781"

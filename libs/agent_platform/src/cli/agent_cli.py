@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 
-from agent_platform.startup.service_factory import AgentPlatformServiceFactory
+from startup.service_factory import AgentPlatformServiceFactory
 
 
 def _build_parser() -> argparse.ArgumentParser:

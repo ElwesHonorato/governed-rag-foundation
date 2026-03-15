@@ -40,7 +40,7 @@ Separation of concerns:
 - Worker runtime path: `domains/worker_*` + `libs/pipeline-common`.
 - Governance path: `domains/gov_governance`.
 - App path: `domains/app_*`.
-- Agent platform path: `domains/agent_platform` + `domains/app_agent_api` + `libs/ai_infra`.
+- Agent platform path: `libs/agent_platform` + `domains/app_agent_api` + `libs/ai_infra`.
 - Local infra path: `domains/infra_*` + `stack.sh`.
 
 # 3. Architectural Overview
@@ -73,10 +73,10 @@ Why chosen:
 
 Repository structure (architecture-relevant):
 - `domains/`: deployable worker/app/governance/infra units.
-- `domains/agent_platform/`: CLI composition root and local adapters for the supervised agent runtime.
 - `domains/app_agent_api/`: HTTP wrapper around the `agent_platform` service graph.
 - `libs/pipeline-common/`: shared worker/runtime abstractions and adapters.
 - `libs/ai_infra/`: shared contracts, policies, registries, and orchestration services for the agent platform.
+- `libs/agent_platform/`: reusable agent runtime package with CLI, local adapters, and packaged config assets.
 - `registry/`: DataHub job-key registry used by worker entrypoints.
 - `docs/`: architecture and standards documentation.
 - `stack.sh` + domain compose files: local stack orchestration.
@@ -93,10 +93,10 @@ Architecture document index (central references):
 - `domains/worker_embed_chunks/docs/ARCHITECTURE.md`
 - `domains/worker_index_weaviate/docs/ARCHITECTURE.md`
 - `domains/app_rag_api/docs/ARCHITECTURE.md`
-- `domains/agent_platform/docs/ARCHITECTURE.md`
 - `domains/app_agent_api/docs/ARCHITECTURE.md`
 - `domains/app_vector_ui/docs/ARCHITECTURE.md`
 - `libs/ai_infra/`
+- `libs/agent_platform/docs/ARCHITECTURE.md`
 - `libs/pipeline-common/src/pipeline_common/startup/docs/ARCHITECTURE.md`
 - `libs/pipeline-common/src/pipeline_common/settings/docs/ARCHITECTURE.md`
 - `libs/pipeline-common/src/pipeline_common/gateways/docs/ARCHITECTURE.md`
@@ -117,8 +117,8 @@ Editor note:
 - This is needed because multiple worker `src/` roots expose the same top-level package names such as `startup` and `services`.
 
 Dependency flow:
-- `domains/*` may depend on `libs/pipeline-common` and `registry`.
-- `domains/agent_platform` and `domains/app_agent_api` may depend on `libs/ai_infra`.
+- `domains/*` may depend on `libs/pipeline-common`, `registry`, and reusable `libs/*` packages.
+- `domains/app_agent_api` may depend on `libs/agent_platform` and `libs/ai_infra`.
 - `libs/*` must not depend on `domains/*`.
 - Driver SDKs are concentrated in gateway/infrastructure adapters.
 

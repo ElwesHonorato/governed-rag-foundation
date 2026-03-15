@@ -13,3 +13,6 @@ class AgentPlatformConfig:
     workspace_root: str
     config_dir: str
     state_dir: str
+    llm_url: str
+    llm_model: str
+    llm_timeout_seconds: int

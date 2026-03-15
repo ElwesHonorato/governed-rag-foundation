@@ -7,7 +7,7 @@ packages = [{ include = "app_agent_api", from = "src" }]
 
 [tool.poetry.dependencies]
 python = ">=3.11,<3.12"
-agent-platform = { path = "../agent_platform", develop = true }
+agent-platform = { path = "../../libs/agent_platform", develop = true }
 
 [tool.poetry.scripts]
 agent-api = "app_agent_api.app:main"

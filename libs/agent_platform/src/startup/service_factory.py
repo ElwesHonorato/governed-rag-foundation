@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -23,18 +22,18 @@ from ai_infra.services.prompt_assembly_service import PromptAssemblyService
 from ai_infra.services.response_validation_service import ResponseValidationService
 from ai_infra.services.run_supervisor import RunSupervisor
 from ai_infra.services.step_result_evaluation_service import StepResultEvaluationService
-from agent_platform.infrastructure.bootstrap_vector_index import bootstrap_vector_index
-from agent_platform.infrastructure.local_capability_catalog import load_skill_registry
-from agent_platform.infrastructure.local_checkpoint_store import LocalCheckpointStore
-from agent_platform.infrastructure.local_command_runner import LocalCommandRunner
-from agent_platform.infrastructure.local_embedding_fixture import DeterministicEmbeddingFixture
-from agent_platform.infrastructure.local_filesystem_adapter import LocalFilesystemAdapter
-from agent_platform.infrastructure.local_model_gateway import LocalModelGateway
-from agent_platform.infrastructure.local_prompt_repository import LocalPromptRepository
-from agent_platform.infrastructure.local_run_store import LocalRunStore
-from agent_platform.infrastructure.local_session_store import LocalSessionStore
-from agent_platform.infrastructure.local_vector_search import LocalVectorSearch
-from agent_platform.startup.config_extractor import AgentPlatformConfigExtractor
+from infrastructure.bootstrap_vector_index import bootstrap_vector_index
+from infrastructure.local_capability_catalog import load_skill_registry
+from infrastructure.local_checkpoint_store import LocalCheckpointStore
+from infrastructure.local_command_runner import LocalCommandRunner
+from infrastructure.local_embedding_fixture import DeterministicEmbeddingFixture
+from infrastructure.local_filesystem_adapter import LocalFilesystemAdapter
+from infrastructure.local_model_gateway import LocalModelGateway
+from infrastructure.local_prompt_repository import LocalPromptRepository
+from infrastructure.local_run_store import LocalRunStore
+from infrastructure.local_session_store import LocalSessionStore
+from infrastructure.local_vector_search import LocalVectorSearch
+from startup.config_extractor import AgentPlatformConfigExtractor
 
 
 @dataclass
@@ -97,7 +96,11 @@ class AgentPlatformServiceFactory:
             filesystem_gateway=LocalFilesystemAdapter(config.workspace_root),
             command_gateway=LocalCommandRunner(config.workspace_root),
             vector_gateway=LocalVectorSearch(str(index_path), DeterministicEmbeddingFixture()),
-            model_gateway=LocalModelGateway(),
+            model_gateway=LocalModelGateway(
+                llm_url=config.llm_url,
+                llm_model=config.llm_model,
+                timeout_seconds=config.llm_timeout_seconds,
+            ),
             prompt_assembly_service=prompt_assembly_service,
         )
         supervisor = RunSupervisor(

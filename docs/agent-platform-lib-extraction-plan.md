@@ -10,10 +10,10 @@
 - `domains/app_agent_api` consumes it as a package dependency
 - `domains/agent_platform` has been removed
 - the current source layout is:
-  - `libs/agent_platform/src/cli`
-  - `libs/agent_platform/src/startup`
-  - `libs/agent_platform/src/infrastructure`
-  - `libs/agent_platform/src/config`
+  - `libs/agent_platform/src/agent_platform/cli`
+  - `libs/agent_platform/src/agent_platform/startup`
+  - `libs/agent_platform/src/agent_platform/infrastructure`
+  - `libs/agent_platform/src/agent_platform/config`
 
 ## Extraction Goal
 
@@ -31,26 +31,19 @@ agent-platform/
   README.md
 ```
 
-That means the main remaining extraction step inside this monorepo is to restore a unique `agent_platform` package namespace before the eventual repo split.
+That means the main extraction-critical namespace work is already done inside this monorepo.
 
 ## Required Work Before Extraction
 
-### 1. Restore a unique package namespace
+### 1. Keep the package namespace stable
 
-Current risk:
-- imports use generic top-level module names such as `startup`, `cli`, and `infrastructure`
-
-Required change:
-- move the library to:
-  - `libs/agent_platform/src/agent_platform/cli`
-  - `libs/agent_platform/src/agent_platform/startup`
-  - `libs/agent_platform/src/agent_platform/infrastructure`
-  - `libs/agent_platform/src/agent_platform/config`
-- update imports to `agent_platform.*`
+Current requirement:
+- keep imports under `agent_platform.*`
+- do not reintroduce generic top-level modules such as `startup`, `cli`, or `infrastructure`
 
 Why this matters:
 - extracted libraries should not expose generic top-level module names
-- a stable package namespace makes the repo split mostly a packaging move
+- the repo split stays mostly a packaging move only if this namespace remains stable
 
 ### 2. Remove repo-layout assumptions
 
@@ -110,4 +103,4 @@ This keeps the future extracted repo flexible:
 
 ## Short Version
 
-The move to `libs/` is complete. The remaining work for future extraction is to restore the `agent_platform` namespace, harden package/resource boundaries, and prove clean-environment installability. 
+The move to `libs/` and the `agent_platform` namespace restoration are complete. The remaining work for future extraction is to harden package/resource boundaries and prove clean-environment installability.

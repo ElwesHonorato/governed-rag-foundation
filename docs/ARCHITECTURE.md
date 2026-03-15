@@ -114,7 +114,7 @@ What belongs where:
 
 Editor note:
 - [`/.vscode/settings.json`](/home/sultan/repos/governed-rag-foundation/.vscode/settings.json) uses per-domain Pylance execution environments only to keep click-through and "Go to Definition" working.
-- This is needed because multiple worker `src/` roots expose the same top-level package names such as `startup` and `services`.
+- This is still useful because the repo has many separate Python source roots, even though the worker and agent projects now use namespaced package roots instead of generic top-level modules.
 
 Dependency flow:
 - `domains/*` may depend on `libs/pipeline-common`, `registry`, and reusable `libs/*` packages.

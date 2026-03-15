@@ -28,22 +28,21 @@ This document now describes the current state and the remaining work. It does no
 
 ### What is still not production-grade
 
-#### 1. Import names are still too generic
+#### 1. Package namespace is restored, but it now needs to stay stable
 
 Current examples:
-- `from startup.service_factory import AgentPlatformServiceFactory`
-- `from infrastructure.local_command_runner import LocalCommandRunner`
-- `from cli.agent_cli import main`
+- `from agent_platform.startup.service_factory import AgentPlatformServiceFactory`
+- `from agent_platform.infrastructure.local_command_runner import LocalCommandRunner`
+- `from agent_platform.cli.agent_cli import main`
 
-Why this is still weak:
-- `startup`, `cli`, and `infrastructure` are generic top-level module names
-- those names are easy to collide with in a monorepo or extracted repo
-- the current shape works because the package environment is controlled, not because the import surface is strong
+What remains important:
+- the `agent_platform.*` namespace should be treated as the stable public import surface
+- no code should regress back to exposing `startup`, `cli`, or `infrastructure` as top-level modules
 
 #### 2. Static assets are still path-addressed from source layout
 
 Current examples:
-- prompt/config assets live under `libs/agent_platform/src/config`
+- prompt/config assets live under `libs/agent_platform/src/agent_platform/config`
 - some tooling and docs still reference those asset paths directly
 
 Why this is still weak:
@@ -123,27 +122,25 @@ Keep as the deployable consumer:
 
 ## Phases
 
-## Phase 1: Restore a unique library namespace
+## Phase 1: Keep the library namespace stable
 
 ### Goals
 
-- eliminate generic top-level imports from `libs/agent_platform`
-- make the library safe to consume from other projects and a future extracted repo
+- preserve the `agent_platform.*` namespace as the only supported library import surface
+- keep the library safe to consume from other projects and a future extracted repo
 
 ### Changes
 
-- move:
-  - `libs/agent_platform/src/cli`
-  - `libs/agent_platform/src/startup`
-  - `libs/agent_platform/src/infrastructure`
-  - `libs/agent_platform/src/config`
-  under:
-  - `libs/agent_platform/src/agent_platform/`
-- update imports to:
+- keep:
+  - `libs/agent_platform/src/agent_platform/cli`
+  - `libs/agent_platform/src/agent_platform/startup`
+  - `libs/agent_platform/src/agent_platform/infrastructure`
+  - `libs/agent_platform/src/agent_platform/config`
+- enforce imports such as:
   - `from agent_platform.startup.service_factory import AgentPlatformServiceFactory`
   - `from agent_platform.infrastructure.local_command_runner import LocalCommandRunner`
   - `from agent_platform.cli.agent_cli import main`
-- update Poetry package inclusion and script targets accordingly
+- keep Poetry package inclusion and script targets aligned with that namespace
 
 ### Acceptance criteria
 
@@ -161,7 +158,7 @@ Keep as the deployable consumer:
 
 - load packaged YAML/JSON assets through `importlib.resources`
 - keep runtime-generated state separate from packaged static resources
-- remove direct references to `src/config/...` from application behavior
+- remove direct references to `src/agent_platform/config/...` from application behavior
 
 ### Acceptance criteria
 

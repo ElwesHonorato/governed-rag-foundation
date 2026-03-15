@@ -1,8 +1,12 @@
-[tool.poetry]
+[project]
 name = "ai-infra"
 version = "0.1.0"
 description = "Capability-oriented agent platform runtime primitives"
-authors = ["Governed RAG Foundation"]
+authors = [{ name = "Governed RAG Foundation" }]
+requires-python = ">=3.11,<3.12"
+dynamic = ["dependencies"]
+
+[tool.poetry]
 packages = [{ include = "ai_infra", from = "src" }]
 
 [tool.poetry.dependencies]

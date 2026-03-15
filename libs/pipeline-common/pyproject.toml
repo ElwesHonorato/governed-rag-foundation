@@ -1,8 +1,12 @@
-[tool.poetry]
+[project]
 name = "pipeline-common"
 version = "0.1.0"
 description = "Shared helpers for pipeline workers"
-authors = ["Governed RAG Foundation"]
+authors = [{ name = "Governed RAG Foundation" }]
+requires-python = ">=3.11,<3.12"
+dynamic = ["dependencies"]
+
+[tool.poetry]
 package-mode = false
 
 [tool.poetry.dependencies]

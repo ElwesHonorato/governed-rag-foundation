@@ -12,9 +12,9 @@ develop = true
 
 [package.source]
 type = "directory"
-url = "../../libs/ai_infra"
+url = "../ai_infra"
 
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.12"
-content-hash = "36268fc061302e000107fd20d1b0dc1d5e251bc2fc3cd94553deb737b50d4731"
+content-hash = "d965a4c9f2ad083d5a1afd02e03aaedb9de29b08e28e501a85c9a94f9c7ac051"

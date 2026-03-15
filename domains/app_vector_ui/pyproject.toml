@@ -1,8 +1,12 @@
-[tool.poetry]
+[project]
 name = "vector-ui"
 version = "0.1.0"
 description = "Standalone UI for querying Weaviate vectors"
-authors = ["Governed RAG Foundation"]
+authors = [{ name = "Governed RAG Foundation" }]
+requires-python = "==3.11.14"
+dynamic = ["dependencies"]
+
+[tool.poetry]
 package-mode = false
 
 [tool.poetry.dependencies]

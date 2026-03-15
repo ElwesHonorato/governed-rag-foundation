@@ -31,10 +31,7 @@ class SettingsBundle:
 def load_agent_platform_config() -> AgentPlatformConfig:
     """Load agent-platform startup configuration."""
     workspace_root = Path.cwd().resolve()
-    default_state_dir = workspace_root / ".agent_platform" / "localdata"
-    state_dir = Path(
-        os.environ.get("AGENT_PLATFORM_STATE_DIR", default_state_dir)
-    ).resolve()
+    state_dir = (workspace_root / ".agent_platform" / "localdata").resolve()
     state_dir.mkdir(parents=True, exist_ok=True)
     return AgentPlatformConfig(
         paths=RepositoryPaths(

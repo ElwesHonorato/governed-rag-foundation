@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from ai_backend.handlers import AiBackendHandlers
-from ai_backend.request_context import RequestContext
+from ai_backend.request_normalization import NormalizedRequest
 from ai_backend.responses import JsonResponse
 
 
@@ -13,7 +13,7 @@ class AiBackendRouter:
     def __init__(self, *, handlers: AiBackendHandlers) -> None:
         self._handlers = handlers
 
-    def dispatch(self, request: RequestContext) -> JsonResponse:
+    def dispatch(self, request: NormalizedRequest) -> JsonResponse:
         match (request.method, request.path):
             case ("GET", "/"):
                 return self._handlers.get_health()

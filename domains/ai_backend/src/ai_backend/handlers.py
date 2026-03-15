@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from http import HTTPStatus
 
-from agent_platform.startup.service_factory import AgentPlatformApp
 from ai_backend.responses import JsonResponse
+from ai_backend.service_factory import AgentPlatformApp
 from runtime.provider import BackendAIBackendSettings
 
 

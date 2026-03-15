@@ -3,19 +3,18 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
+from importlib.resources import files
 
 from ai_infra.contracts.prompt_template import PromptTemplate
 
 
 class LocalPromptRepository:
-    """Loads prompt assets from local JSON files."""
-
-    def __init__(self, prompts_dir: str) -> None:
-        self._prompts_dir = Path(prompts_dir)
+    """Loads prompt assets from packaged JSON resources."""
 
     def get_prompt(self, prompt_key: str) -> PromptTemplate:
-        payload = json.loads((self._prompts_dir / f"{prompt_key}.json").read_text())
+        payload = json.loads(
+            files("agent_platform.config").joinpath("prompts", f"{prompt_key}.json").read_text()
+        )
         return PromptTemplate(
             prompt_key=payload["prompt_key"],
             version=payload["version"],

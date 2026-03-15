@@ -23,7 +23,10 @@ from ai_infra.services.response_validation_service import ResponseValidationServ
 from ai_infra.services.run_supervisor import RunSupervisor
 from ai_infra.services.step_result_evaluation_service import StepResultEvaluationService
 from agent_platform.infrastructure.bootstrap_vector_index import bootstrap_vector_index
-from agent_platform.infrastructure.local_capability_catalog import load_skill_registry
+from agent_platform.infrastructure.local_capability_catalog import (
+    load_capability_catalog,
+    load_skill_registry,
+)
 from agent_platform.infrastructure.local_checkpoint_store import LocalCheckpointStore
 from agent_platform.infrastructure.local_command_runner import LocalCommandRunner
 from agent_platform.infrastructure.local_embedding_fixture import DeterministicEmbeddingFixture
@@ -36,7 +39,7 @@ from agent_platform.infrastructure.local_vector_search import LocalVectorSearch
 from agent_platform.llm.ollama_client import OllamaClient
 from agent_platform.rag.service import RagService
 from agent_platform.retrieval.weaviate_client import WeaviateRetrievalClient
-from agent_platform.startup.config_extractor import AgentPlatformConfigExtractor
+from agent_platform.startup.provider import SettingsProvider, SettingsRequest
 
 
 @dataclass
@@ -73,44 +76,45 @@ class AgentPlatformServiceFactory:
     """Builds the MVP service graph."""
 
     def build(self) -> AgentPlatformApp:
-        config = AgentPlatformConfigExtractor().extract()
-        config_dir = Path(config.config_dir)
-        state_dir = Path(config.state_dir)
+        config = SettingsProvider(
+            SettingsRequest(agent_platform=True)
+        ).bundle.agent_platform
+        if config is None:
+            raise ValueError("Agent platform settings were not requested")
+        state_dir = Path(config.paths.state_dir)
         vector_fixture_dir = state_dir / "vector_fixture"
         vector_fixture_dir.mkdir(parents=True, exist_ok=True)
         index_path = vector_fixture_dir / "index.json"
         if not index_path.exists():
             bootstrap_vector_index(
-                repo_root=config.repo_root,
+                repo_root=config.paths.repo_root,
                 output_path=str(index_path),
                 embedder=DeterministicEmbeddingFixture(),
             )
 
-        capability_registry = CapabilityRegistry(
-            CapabilityCatalog(str(config_dir / "capabilities.yaml"))
-        )
-        skill_registry = load_skill_registry(str(config_dir / "skills.yaml"))
+        capability_registry = CapabilityRegistry(load_capability_catalog())
+        skill_registry = load_skill_registry()
         session_store = LocalSessionStore(str(state_dir / "sessions"))
         run_store = LocalRunStore(str(state_dir / "runs"))
         checkpoint_store = LocalCheckpointStore(str(state_dir / "checkpoints"))
-        prompt_repository = LocalPromptRepository(str(config_dir / "prompts"))
+        prompt_repository = LocalPromptRepository()
         planning_service = CapabilityPlanningService()
         prompt_assembly_service = PromptAssemblyService(prompt_repository=prompt_repository)
         execution_service = CapabilityExecutionService(
-            filesystem_gateway=LocalFilesystemAdapter(config.workspace_root),
-            command_gateway=LocalCommandRunner(config.workspace_root),
+            filesystem_gateway=LocalFilesystemAdapter(config.paths.workspace_root),
+            command_gateway=LocalCommandRunner(config.paths.workspace_root),
             vector_gateway=LocalVectorSearch(str(index_path), DeterministicEmbeddingFixture()),
             model_gateway=LocalModelGateway(
-                llm_url=config.llm_url,
-                llm_model=config.llm_model,
-                timeout_seconds=config.llm_timeout_seconds,
+                llm_url=config.llm.llm_url,
+                llm_model=config.llm.llm_model,
+                timeout_seconds=config.llm.llm_timeout_seconds,
             ),
             prompt_assembly_service=prompt_assembly_service,
         )
         supervisor = RunSupervisor(
             registry=capability_registry,
             capability_policy=CapabilityPolicy(),
-            sandbox_policy=SandboxPolicy(config.workspace_root),
+            sandbox_policy=SandboxPolicy(config.paths.workspace_root),
             termination_policy=TerminationPolicy(),
             execution_service=execution_service,
             next_step_decider=NextStepDecider(),
@@ -122,15 +126,15 @@ class AgentPlatformServiceFactory:
         )
         rag_service = RagService(
             llm_client=OllamaClient(
-                llm_url=config.llm_url,
-                timeout_seconds=config.llm_timeout_seconds,
+                llm_url=config.llm.llm_url,
+                timeout_seconds=config.llm.llm_timeout_seconds,
             ),
             retrieval_client=WeaviateRetrievalClient(
-                weaviate_url=config.weaviate_url,
-                embedding_dim=config.embedding_dim,
+                weaviate_url=config.retrieval.weaviate_url,
+                embedding_dim=config.retrieval.embedding_dim,
             ),
-            model=config.llm_model,
-            retrieval_limit=config.retrieval_limit,
+            model=config.llm.llm_model,
+            retrieval_limit=config.retrieval.retrieval_limit,
         )
         return AgentPlatformApp(
             capability_registry=capability_registry,

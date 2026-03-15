@@ -1,4 +1,4 @@
-"""WSGI route handling for the agent-platform HTTP API."""
+"""WSGI route handling for the AI backend."""
 
 from __future__ import annotations
 
@@ -7,14 +7,14 @@ from http import HTTPStatus
 from typing import Callable
 
 from agent_platform.startup.service_factory import AgentPlatformApp
-from app_agent_api.config import Settings
+from ai_backend.config import Settings
 
 
 StartResponse = Callable[[str, list[tuple[str, str]]], None]
 
 
-class AgentApiApplication:
-    """Small stdlib WSGI app for the agent-platform MVP."""
+class AiBackendApplication:
+    """Small stdlib WSGI app for the AI backend."""
 
     def __init__(self, *, settings: Settings, agent_app: AgentPlatformApp) -> None:
         self._settings = settings
@@ -30,6 +30,8 @@ class AgentApiApplication:
             payload, status = {"error": "not found"}, HTTPStatus.NOT_FOUND
         except ValueError as exc:
             payload, status = {"error": str(exc)}, HTTPStatus.BAD_REQUEST
+        except RuntimeError as exc:
+            payload, status = {"error": str(exc)}, HTTPStatus.BAD_GATEWAY
         response_bytes = json.dumps(payload, indent=2).encode("utf-8")
         start_response(
             f"{status.value} {status.phrase}",
@@ -42,7 +44,7 @@ class AgentApiApplication:
 
     def _dispatch(self, *, method: str, path: str, body: dict[str, object]) -> tuple[dict[str, object] | list[object], HTTPStatus]:
         if method == "GET" and path == "/":
-            return {"service": "agent-api", "status": "ok", "settings": self._settings.payload()}, HTTPStatus.OK
+            return {"service": "ai-backend", "status": "ok", "settings": self._settings.payload()}, HTTPStatus.OK
         if method == "GET" and path == "/capabilities":
             return [item.to_dict() for item in self._agent_app.capability_registry.list_capabilities()], HTTPStatus.OK
         if method == "GET" and path == "/skills":
@@ -69,6 +71,8 @@ class AgentApiApplication:
             run = self._agent_app.run_store.load_run(run_id)
             evaluation = self._agent_app.evaluation_runner.evaluate(run)
             return evaluation.to_dict(), HTTPStatus.CREATED
+        if method == "POST" and path == "/rag/query":
+            return self._agent_app.rag_service.respond(body).to_dict(), HTTPStatus.OK
         raise FileNotFoundError(path)
 
     @staticmethod

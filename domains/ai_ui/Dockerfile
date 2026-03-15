@@ -20,4 +20,4 @@ COPY src /app/src
 
 EXPOSE 8000
 
-CMD ["python", "-m", "rag_api.app"]
+CMD ["python", "-m", "ai_ui.app"]

@@ -11,14 +11,14 @@ WORKDIR /app
 
 RUN python3 -m pip install --no-cache-dir poetry
 
-COPY domains/app_agent_api /app/domains/app_agent_api
+COPY domains/ai_backend /app/domains/ai_backend
 COPY libs/agent_platform /app/libs/agent_platform
 COPY libs/ai_infra /app/libs/ai_infra
 
-WORKDIR /app/domains/app_agent_api
+WORKDIR /app/domains/ai_backend
 
 RUN poetry install --only main
 
 EXPOSE 8010
 
-CMD ["poetry", "run", "agent-api"]
+CMD ["poetry", "run", "ai-backend"]

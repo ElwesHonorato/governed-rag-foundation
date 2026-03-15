@@ -16,3 +16,6 @@ class AgentPlatformConfig:
     llm_url: str
     llm_model: str
     llm_timeout_seconds: int
+    weaviate_url: str
+    embedding_dim: int
+    retrieval_limit: int

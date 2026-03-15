@@ -20,6 +20,9 @@ class AgentPlatformConfigExtractor:
         llm_url = self._required_env("LLM_URL")
         llm_model = self._required_env("LLM_MODEL")
         llm_timeout_seconds = self._required_int_env("LLM_TIMEOUT_SECONDS")
+        weaviate_url = self._required_env("WEAVIATE_URL")
+        embedding_dim = self._required_int_env("EMBEDDING_DIM")
+        retrieval_limit = int(os.environ.get("WEAVIATE_QUERY_DEFAULTS_LIMIT", "5"))
         state_dir.mkdir(parents=True, exist_ok=True)
         return AgentPlatformConfig(
             repo_root=str(workspace_root),
@@ -29,6 +32,9 @@ class AgentPlatformConfigExtractor:
             llm_url=llm_url,
             llm_model=llm_model,
             llm_timeout_seconds=llm_timeout_seconds,
+            weaviate_url=weaviate_url,
+            embedding_dim=embedding_dim,
+            retrieval_limit=retrieval_limit,
         )
 
     @staticmethod

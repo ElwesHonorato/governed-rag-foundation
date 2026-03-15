@@ -1,3 +1,7 @@
+"""Weaviate retrieval adapter."""
+
+from __future__ import annotations
+
 import hashlib
 import json
 from dataclasses import dataclass
@@ -7,6 +11,8 @@ from urllib import error, request
 
 @dataclass(frozen=True)
 class RetrievedChunk:
+    """One retrieved document chunk."""
+
     chunk_id: str
     doc_id: str
     chunk_text: str
@@ -15,7 +21,9 @@ class RetrievedChunk:
     distance: float | None
 
 
-class RetrievalClient:
+class WeaviateRetrievalClient:
+    """Queries a Weaviate GraphQL endpoint for document chunks."""
+
     def __init__(
         self,
         *,
@@ -23,23 +31,21 @@ class RetrievalClient:
         embedding_dim: int,
         timeout_seconds: float = 10.0,
     ) -> None:
-        self.weaviate_url = weaviate_url.rstrip("/")
-        self.embedding_dim = embedding_dim
-        self.timeout_seconds = timeout_seconds
+        self._weaviate_url = weaviate_url.rstrip("/")
+        self._embedding_dim = embedding_dim
+        self._timeout_seconds = timeout_seconds
 
     def retrieve(self, *, query_text: str, limit: int) -> list[RetrievedChunk]:
         query = query_text.strip()
         if not query:
             return []
         safe_limit = max(1, min(limit, 20))
-
         try:
             like_results = self._like_search(query=query, limit=safe_limit)
             if like_results:
                 return like_results
         except Exception:
             pass
-
         return self._near_vector_search(query=query, limit=safe_limit)
 
     def _near_vector_search(self, *, query: str, limit: int) -> list[RetrievedChunk]:
@@ -51,8 +57,7 @@ class RetrievalClient:
             + f",limit:{limit})"
             + "{chunk_id doc_id chunk_text source_uri security_clearance _additional{distance}}}}"
         )
-        payload = self._graphql(gql)
-        return self._parse_chunks(payload)
+        return self._parse_chunks(self._graphql(gql))
 
     def _like_search(self, *, query: str, limit: int) -> list[RetrievedChunk]:
         terms = _query_terms(query)
@@ -64,22 +69,17 @@ class RetrievalClient:
             escaped = _escape_graphql_text(term)
             operands.append(f'{{path:["chunk_text"],operator:Like,valueText:"*{escaped}*"}}')
 
-        if len(operands) == 1:
-            where_clause = operands[0]
-        else:
-            where_clause = "{operator:Or,operands:[" + ",".join(operands) + "]}"
-
+        where_clause = operands[0] if len(operands) == 1 else "{operator:Or,operands:[" + ",".join(operands) + "]}"
         gql = (
             "{Get{DocumentChunk("
             + f"where:{where_clause}"
             + f",limit:{limit})"
             + "{chunk_id doc_id chunk_text source_uri security_clearance}}}"
         )
-        payload = self._graphql(gql)
-        return self._parse_chunks(payload)
+        return self._parse_chunks(self._graphql(gql))
 
     def _graphql(self, gql: str) -> dict[str, Any]:
-        url = f"{self.weaviate_url}/v1/graphql"
+        url = f"{self._weaviate_url}/v1/graphql"
         req = request.Request(
             url=url,
             method="POST",
@@ -87,7 +87,7 @@ class RetrievalClient:
             headers={"Content-Type": "application/json"},
         )
         try:
-            with request.urlopen(req, timeout=self.timeout_seconds) as response:
+            with request.urlopen(req, timeout=self._timeout_seconds) as response:
                 text = response.read().decode("utf-8")
         except error.HTTPError as exc:
             body = exc.read().decode("utf-8", errors="replace")
@@ -118,7 +118,6 @@ class RetrievalClient:
                 raw_distance = additional.get("distance")
                 if isinstance(raw_distance, (float, int)):
                     distance = float(raw_distance)
-
             chunks.append(
                 RetrievedChunk(
                     chunk_id=str(item.get("chunk_id", "")),
@@ -134,7 +133,7 @@ class RetrievalClient:
     def _deterministic_embedding(self, text: str) -> list[float]:
         digest = hashlib.sha256(text.encode("utf-8")).digest()
         values: list[float] = []
-        for index in range(self.embedding_dim):
+        for index in range(self._embedding_dim):
             byte = digest[index % len(digest)]
             values.append((byte / 255.0) * 2.0 - 1.0)
         return values

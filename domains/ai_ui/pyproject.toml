@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "rag-api"
+name = "ai-ui"
 version = "0.1.0"
-description = "RAG API service"
+description = "AI UI service"
 authors = ["Governed RAG Foundation"]
 package-mode = false
 

@@ -1,18 +1,18 @@
-"""WSGI entrypoint for the agent-platform HTTP API."""
+"""WSGI entrypoint for the AI backend service."""
 
 from __future__ import annotations
 
 from wsgiref.simple_server import make_server
 
 from agent_platform.startup.service_factory import AgentPlatformServiceFactory
-from app_agent_api.config import Settings
-from app_agent_api.routes import AgentApiApplication
+from ai_backend.config import Settings
+from ai_backend.routes import AiBackendApplication
 
 
-def create_app() -> AgentApiApplication:
+def create_app() -> AiBackendApplication:
     settings = Settings()
     agent_app = AgentPlatformServiceFactory().build()
-    return AgentApiApplication(settings=settings, agent_app=agent_app)
+    return AiBackendApplication(settings=settings, agent_app=agent_app)
 
 
 app = create_app()

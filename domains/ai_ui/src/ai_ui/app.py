@@ -1,5 +1,5 @@
 
-"""rag-api Flask application entrypoint.
+"""ai-ui Flask application entrypoint.
 
 Purpose:
 - Build and expose the HTTP API process used by the RAG application layer.
@@ -17,20 +17,20 @@ Best practices:
 
 from flask import Flask
 
-from rag_api.config import Settings
-from rag_api.llm_client import OllamaClient
-from rag_api.routes import register_routes
+from ai_ui.ai_backend_client import AiBackendClient
+from ai_ui.config import Settings
+from ai_ui.routes import register_routes
 
 
 def create_app() -> Flask:
     settings = Settings()
-    llm_client = OllamaClient(
-        llm_url=settings.llm_url,
-        timeout_seconds=settings.llm_timeout_seconds,
+    ai_backend_client = AiBackendClient(
+        base_url=settings.ai_backend_url,
+        timeout_seconds=settings.ai_backend_timeout_seconds,
     )
 
     app = Flask(__name__)
-    register_routes(app=app, settings=settings, llm_client=llm_client)
+    register_routes(app=app, settings=settings, ai_backend_client=ai_backend_client)
     return app
 
 

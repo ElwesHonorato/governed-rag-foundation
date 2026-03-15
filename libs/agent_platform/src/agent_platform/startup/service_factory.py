@@ -33,6 +33,9 @@ from agent_platform.infrastructure.local_prompt_repository import LocalPromptRep
 from agent_platform.infrastructure.local_run_store import LocalRunStore
 from agent_platform.infrastructure.local_session_store import LocalSessionStore
 from agent_platform.infrastructure.local_vector_search import LocalVectorSearch
+from agent_platform.llm.ollama_client import OllamaClient
+from agent_platform.rag.service import RagService
+from agent_platform.retrieval.weaviate_client import WeaviateRetrievalClient
 from agent_platform.startup.config_extractor import AgentPlatformConfigExtractor
 
 
@@ -48,6 +51,7 @@ class AgentPlatformApp:
     planning_service: CapabilityPlanningService
     session_manager: AgentSessionManager
     supervisor: RunSupervisor
+    rag_service: RagService
 
     def run_objective(self, objective: str, skill_name: str) -> AgentRun:
         session = self.session_manager.create_session(objective=objective, skill_name=skill_name)
@@ -116,6 +120,18 @@ class AgentPlatformServiceFactory:
             run_manager=run_store,
             checkpoint_manager=checkpoint_store,
         )
+        rag_service = RagService(
+            llm_client=OllamaClient(
+                llm_url=config.llm_url,
+                timeout_seconds=config.llm_timeout_seconds,
+            ),
+            retrieval_client=WeaviateRetrievalClient(
+                weaviate_url=config.weaviate_url,
+                embedding_dim=config.embedding_dim,
+            ),
+            model=config.llm_model,
+            retrieval_limit=config.retrieval_limit,
+        )
         return AgentPlatformApp(
             capability_registry=capability_registry,
             skill_registry=skill_registry,
@@ -125,4 +141,5 @@ class AgentPlatformServiceFactory:
             planning_service=planning_service,
             session_manager=AgentSessionManager(session_store),
             supervisor=supervisor,
+            rag_service=rag_service,
         )

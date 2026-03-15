@@ -1,16 +1,16 @@
 [tool.poetry]
-name = "app-agent-api"
+name = "ai-backend"
 version = "0.1.0"
-description = "HTTP API for the agent platform MVP"
+description = "HTTP backend for the agent platform"
 authors = ["Governed RAG Foundation"]
-packages = [{ include = "app_agent_api", from = "src" }]
+packages = [{ include = "ai_backend", from = "src" }]
 
 [tool.poetry.dependencies]
 python = ">=3.11,<3.12"
 agent-platform = { path = "../../libs/agent_platform", develop = true }
 
 [tool.poetry.scripts]
-agent-api = "app_agent_api.app:main"
+ai-backend = "ai_backend.app:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

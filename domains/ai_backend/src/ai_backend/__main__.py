@@ -1,10 +1,9 @@
-"""Module entrypoint for the agent-platform HTTP API."""
+"""Module entrypoint for the AI backend service."""
 
 from __future__ import annotations
 
-from app_agent_api.app import main
+from ai_backend.app import main
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

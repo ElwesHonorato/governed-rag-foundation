@@ -18,9 +18,9 @@ readonly DOMAINS=(
   infra_lineage
   infra_portainer
   infra_llm
-  app_rag_api
+  ai_ui
   app_vector_ui
-  app_agent_api
+  ai_backend
   worker_scan
   worker_parse_document
   worker_chunk_text

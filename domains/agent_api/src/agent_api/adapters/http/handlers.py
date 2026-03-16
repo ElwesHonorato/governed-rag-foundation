@@ -5,8 +5,8 @@ from __future__ import annotations
 from http import HTTPStatus
 
 from agent_api.adapters.http.responses import JsonResponse
-from agent_api.engine_factory import Engine
 from agent_api.settings import AgentApiSettings
+from agent_platform.startup.engine_factory import Engine
 
 
 class AgentApiHandlers:

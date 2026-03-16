@@ -6,7 +6,6 @@ from wsgiref.simple_server import make_server
 
 from agent_api.adapters.http.application import AgentApiApplication
 from agent_api.adapters.http.web_application_factory import WebApplicationFactory
-from agent_api.engine_factory import EngineFactory
 from agent_api.settings import (
     AgentApiSettings,
     AgentApiSettingsProvider,
@@ -19,6 +18,7 @@ from agent_platform.grounded_response.grounded_response_factory import (
 )
 from agent_platform.startup.bootstrap import RuntimeBootstrapper
 from agent_platform.startup.local_state_stores_factory import LocalStateStoresFactory
+from agent_platform.startup.engine_factory import EngineFactory
 from agent_platform.startup.retrieval_composition import RetrievalCompositionFactory
 from agent_platform.startup.runtime_settings import (
     AgentPlatformConfigFactory,

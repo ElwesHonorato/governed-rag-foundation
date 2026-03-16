@@ -129,8 +129,8 @@ class EngineFactory:
             embedder=retrieval_embedder,
         )
         return EngineGateways(
-            filesystem_gateway=LocalFilesystemGateway(settings.paths.workspace_root),
-            command_gateway=LocalCommandGateway(settings.paths.workspace_root),
+            filesystem_gateway=LocalFilesystemGateway(str(settings.paths.workspace_root)),
+            command_gateway=LocalCommandGateway(str(settings.paths.workspace_root)),
             vector_gateway=LocalVectorSearchGateway(
                 str(assets.prepared_artifacts.vector_index_path),
                 retrieval_embedder,

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
 
 from agent_platform.gateways.state.local_checkpoint_store import LocalCheckpointStore
 from agent_platform.gateways.state.local_run_store import LocalRunStore
@@ -24,9 +23,8 @@ class LocalStateStoresFactory:
     """Build file-backed state stores for the local runtime."""
 
     def build(self, settings: AgentPlatformConfig) -> LocalStateStores:
-        state_dir = Path(settings.paths.state_dir)
         return LocalStateStores(
-            session_store=LocalSessionStore(str(state_dir / "sessions")),
-            run_store=LocalRunStore(str(state_dir / "runs")),
-            checkpoint_store=LocalCheckpointStore(str(state_dir / "checkpoints")),
+            session_store=LocalSessionStore(str(settings.paths.sessions_dir)),
+            run_store=LocalRunStore(str(settings.paths.runs_dir)),
+            checkpoint_store=LocalCheckpointStore(str(settings.paths.checkpoints_dir)),
         )

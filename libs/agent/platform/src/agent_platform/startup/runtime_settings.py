@@ -17,18 +17,28 @@ class AgentPlatformConfigFactory:
     """Build agent-platform config from a centralized settings bundle."""
 
     def build(self, settings: SettingsBundle) -> AgentPlatformConfig:
-        workspace_root, state_dir = self._resolve_local_paths()
+        runtime_paths = self._resolve_local_paths()
         return AgentPlatformConfig(
-            paths=RuntimePaths(
-                workspace_root=str(workspace_root),
-                state_dir=str(state_dir),
-            ),
+            paths=runtime_paths,
             llm=settings.llm,
             retrieval=settings.retrieval,
         )
 
-    def _resolve_local_paths(self) -> tuple[Path, Path]:
+    def _resolve_local_paths(self) -> RuntimePaths:
         workspace_root = Path.cwd().resolve()
         state_dir = (workspace_root / ".agent_platform" / "localdata").resolve()
+        vector_fixture_dir = (state_dir / "vector_fixture").resolve()
+        vector_index_path = (vector_fixture_dir / "index.json").resolve()
+        sessions_dir = (state_dir / "sessions").resolve()
+        runs_dir = (state_dir / "runs").resolve()
+        checkpoints_dir = (state_dir / "checkpoints").resolve()
         state_dir.mkdir(parents=True, exist_ok=True)
-        return workspace_root, state_dir
+        return RuntimePaths(
+            workspace_root=workspace_root,
+            state_dir=state_dir,
+            vector_fixture_dir=vector_fixture_dir,
+            vector_index_path=vector_index_path,
+            sessions_dir=sessions_dir,
+            runs_dir=runs_dir,
+            checkpoints_dir=checkpoints_dir,
+        )

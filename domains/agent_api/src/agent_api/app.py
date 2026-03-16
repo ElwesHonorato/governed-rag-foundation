@@ -16,7 +16,7 @@ from agent_platform.startup.bootstrap import RuntimeBootstrapper
 from agent_platform.startup.local_state_stores_factory import LocalStateStoresFactory
 from agent_platform.startup.retrieval_composition import RetrievalCompositionFactory
 from agent_platform.startup.startup_assets_factory import StartupAssetsFactory
-from runtime.provider import SettingsProvider, SettingsRequest
+from runtime.settings_provider import SettingsProvider, SettingsRequest
 
 
 def main() -> int:

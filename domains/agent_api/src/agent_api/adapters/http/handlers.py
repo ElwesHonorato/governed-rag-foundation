@@ -6,7 +6,7 @@ from http import HTTPStatus
 
 from agent_api.adapters.http.responses import JsonResponse
 from agent_api.engine_factory import Engine
-from runtime.provider import AgentApiSettings
+from runtime.settings_provider import AgentApiSettings
 
 
 class AgentApiHandlers:

@@ -1,14 +1,14 @@
-from runtime.provider import (
-    BackendAIBackendSettings,
-    FrontendAIBackendSettings,
+from runtime.settings_provider import (
+    AgentApiSettings,
+    FrontendAgentApiSettings,
     SettingsBundle,
     SettingsProvider,
     SettingsRequest,
 )
 
 __all__ = [
-    "BackendAIBackendSettings",
-    "FrontendAIBackendSettings",
+    "AgentApiSettings",
+    "FrontendAgentApiSettings",
     "SettingsBundle",
     "SettingsProvider",
     "SettingsRequest",

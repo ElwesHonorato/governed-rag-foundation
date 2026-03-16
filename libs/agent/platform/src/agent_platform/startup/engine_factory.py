@@ -12,12 +12,14 @@ from ai_infra.evaluation.offline_evaluation_runner import OfflineEvaluationRunne
 from ai_infra.registry.capability_registry import CapabilityRegistry
 from agent_platform.application.objective_runner import ObjectiveRunner
 from agent_platform.application.execution_runtime_factory import ExecutionRuntimeFactory
+from agent_platform.grounded_response.contracts import GroundedResponse
+from agent_platform.grounded_response.grounded_response_factory import (
+    GroundedResponseFactory,
+)
+from agent_platform.grounded_response.service import GroundedResponseService
 from agent_platform.application.skill_registry import SkillRegistry
 from agent_platform.gateways.state.local_run_store import LocalRunStore
 from agent_platform.gateways.state.local_session_store import LocalSessionStore
-from agent_platform.rag.rag_runtime_factory import RagRuntimeFactory
-from agent_platform.rag.service import RagService
-from agent_platform.rag.contracts import RagResponse
 from agent_platform.startup.startup_assets_factory import StartupAssetsFactory
 
 
@@ -31,7 +33,7 @@ class Engine:
     _run_store: LocalRunStore
     _evaluation_runner: OfflineEvaluationRunner
     _objective_runner: ObjectiveRunner
-    _rag_service: RagService
+    _grounded_response_service: GroundedResponseService
 
     def list_capabilities(self) -> list[CapabilityDescriptor]:
         return self._capability_registry.list_capabilities()
@@ -48,8 +50,8 @@ class Engine:
     def evaluate_run(self, run_id: str) -> EvaluationRun:
         return self._evaluation_runner.evaluate(self.load_run(run_id))
 
-    def query_rag(self, body: dict[str, object]) -> RagResponse:
-        return self._rag_service.respond(body)
+    def query_grounded_response(self, body: dict[str, object]) -> GroundedResponse:
+        return self._grounded_response_service.respond(body)
 
     def run_objective(self, objective: str, skill_name: str) -> AgentRun:
         return self._objective_runner.run(objective=objective, skill_name=skill_name)
@@ -63,16 +65,16 @@ class EngineFactory:
         *,
         startup_assets_factory: StartupAssetsFactory,
         execution_runtime_factory: ExecutionRuntimeFactory,
-        rag_runtime_factory: RagRuntimeFactory,
+        grounded_response_factory: GroundedResponseFactory,
     ) -> None:
         self._startup_assets_factory = startup_assets_factory
         self._execution_runtime_factory = execution_runtime_factory
-        self._rag_runtime_factory = rag_runtime_factory
+        self._grounded_response_factory = grounded_response_factory
 
     def build(self) -> Engine:
         assets = self._startup_assets_factory.build()
         execution_runtime = self._execution_runtime_factory.build(assets)
-        rag_service = self._rag_runtime_factory.build(assets)
+        grounded_response_service = self._grounded_response_factory.build(assets)
         return Engine(
             _capability_registry=assets.capability_registry,
             _skill_registry=assets.skill_registry,
@@ -80,5 +82,5 @@ class EngineFactory:
             _run_store=assets.stores.run_store,
             _evaluation_runner=execution_runtime.evaluation_runner,
             _objective_runner=execution_runtime.objective_runner,
-            _rag_service=rag_service,
+            _grounded_response_service=grounded_response_service,
         )

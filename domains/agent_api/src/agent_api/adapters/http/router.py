@@ -25,7 +25,7 @@ class AgentApiRouter:
                 return self._handlers.create_run(request.body)
             case ("POST", "/evaluations"):
                 return self._handlers.create_evaluation(request.body)
-            case ("POST", "/rag/query"):
-                return self._handlers.query_rag(request.body)
+            case ("POST", "/grounded-response/query"):
+                return self._handlers.query_grounded_response(request.body)
             case _:
                 raise FileNotFoundError(request.path)

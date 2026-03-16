@@ -6,7 +6,9 @@ import argparse
 import json
 
 from agent_platform.application.execution_runtime_factory import ExecutionRuntimeFactory
-from agent_platform.rag.rag_runtime_factory import RagRuntimeFactory
+from agent_platform.grounded_response.grounded_response_factory import (
+    GroundedResponseFactory,
+)
 from agent_platform.startup.bootstrap import RuntimeBootstrapper
 from agent_platform.startup.engine_factory import EngineFactory
 from agent_platform.startup.retrieval_composition import RetrievalCompositionFactory
@@ -41,7 +43,7 @@ def main(argv: list[str] | None = None) -> int:
             retrieval_composition_factory=RetrievalCompositionFactory(),
         ),
         execution_runtime_factory=ExecutionRuntimeFactory(),
-        rag_runtime_factory=RagRuntimeFactory(),
+        grounded_response_factory=GroundedResponseFactory(),
     )
     app = factory.build()
 

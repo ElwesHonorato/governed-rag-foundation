@@ -7,7 +7,7 @@ from urllib import error, request
 
 
 class AgentApiClient:
-    """Calls the agent_api service for retrieval-grounded answers."""
+    """Calls the agent_api service for grounded responses."""
 
     def __init__(self, *, base_url: str, timeout_seconds: int = 30) -> None:
         if not isinstance(base_url, str) or not base_url.strip():
@@ -15,8 +15,10 @@ class AgentApiClient:
         self._base_url = base_url.strip().rstrip("/")
         self._timeout_seconds = timeout_seconds
 
-    def query(self, payload: dict[str, object]) -> tuple[dict[str, object], int]:
-        endpoint = f"{self._base_url}/rag/query"
+    def query_grounded_response(
+        self, payload: dict[str, object]
+    ) -> tuple[dict[str, object], int]:
+        endpoint = f"{self._base_url}/grounded-response/query"
         req = request.Request(
             endpoint,
             data=json.dumps(payload).encode("utf-8"),

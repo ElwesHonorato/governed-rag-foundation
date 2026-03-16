@@ -45,6 +45,6 @@ class AgentApiHandlers:
         evaluation = self._agent_app.evaluate_run(run_id)
         return JsonResponse(payload=evaluation.to_dict(), status=HTTPStatus.CREATED)
 
-    def query_rag(self, body: dict[str, object]) -> JsonResponse:
-        response = self._agent_app.query_rag(body)
+    def query_grounded_response(self, body: dict[str, object]) -> JsonResponse:
+        response = self._agent_app.query_grounded_response(body)
         return JsonResponse(payload=response.to_dict(), status=HTTPStatus.OK)

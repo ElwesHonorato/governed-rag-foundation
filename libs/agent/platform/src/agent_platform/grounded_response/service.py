@@ -7,10 +7,10 @@ from agent_platform.clients.retrieval.weaviate_client import (
     RetrievedChunk,
     WeaviateClient,
 )
-from agent_platform.rag.contracts import Citation, RagResponse
+from agent_platform.grounded_response.contracts import Citation, GroundedResponse
 
 
-class RagService:
+class GroundedResponseService:
     """Runs retrieval-grounded chat against the configured vector store and LLM."""
 
     max_quote_chars = 400
@@ -28,7 +28,7 @@ class RagService:
         self._model = model
         self._retrieval_limit = retrieval_limit
 
-    def respond(self, payload: dict[str, object]) -> RagResponse:
+    def respond(self, payload: dict[str, object]) -> GroundedResponse:
         messages = self.normalize_messages(payload)
         return self.run(messages=messages)
 
@@ -55,7 +55,7 @@ class RagService:
             messages.append({"role": role.strip(), "content": text})
         return messages
 
-    def run(self, *, messages: list[dict[str, str]]) -> RagResponse:
+    def run(self, *, messages: list[dict[str, str]]) -> GroundedResponse:
         user_query = self._latest_user_query(messages)
         retrieval_cap = max(1, min(self._retrieval_limit, 8))
         retrieved = self._retrieval_client.retrieve(query_text=user_query, limit=retrieval_cap)
@@ -72,7 +72,7 @@ class RagService:
             )
             for chunk in retrieved
         ]
-        return RagResponse(
+        return GroundedResponse(
             model=self._model,
             response=response,
             assistant_message=assistant_message,

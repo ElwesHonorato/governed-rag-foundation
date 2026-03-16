@@ -1,4 +1,4 @@
-"""RAG request and response contracts."""
+"""Grounded response contracts."""
 
 from __future__ import annotations
 
@@ -20,8 +20,8 @@ class Citation:
 
 
 @dataclass(frozen=True)
-class RagResponse:
-    """Grounded LLM response."""
+class GroundedResponse:
+    """Grounded response returned from the agent runtime."""
 
     model: str
     response: str

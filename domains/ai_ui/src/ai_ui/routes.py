@@ -27,7 +27,7 @@ def register_routes(
     def prompt():
         payload = request.get_json(silent=True) or {}
         try:
-            response, status_code = agent_api_client.query(payload)
+            response, status_code = agent_api_client.query_grounded_response(payload)
         except RuntimeError as exc:
             return jsonify({"error": str(exc)}), 502
         return jsonify(response), status_code

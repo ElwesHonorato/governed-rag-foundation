@@ -39,9 +39,9 @@ Primary endpoints:
 - `GET /skills`
 - `POST /runs`
 - `POST /evaluations`
-- `POST /rag/query`
+- `POST /grounded-response/query`
 
-`POST /rag/query` request body:
+`POST /grounded-response/query` request body:
 
 ```json
 {

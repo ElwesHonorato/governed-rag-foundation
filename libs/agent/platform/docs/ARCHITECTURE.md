@@ -8,8 +8,8 @@ responses:
 
 - `agent_platform.clients.llm`: Ollama-compatible HTTP client code
 - `agent_platform.gateways.retrieval`: Weaviate-backed retrieval adapters
-- `agent_platform.rag`: message validation, grounding, citation shaping, and
-  response orchestration
+- `agent_platform.grounded_response`: message validation, grounding, citation
+  shaping, and response orchestration
 - `agent_platform.startup`: config extraction and service wiring
 
 Runtime path handling is centralized in startup and shared workspace-bound path

@@ -6,7 +6,7 @@ orchestration logic. Routes translate HTTP requests into calls on the
 
 Current responsibilities:
 - expose generic agent-runtime endpoints such as runs and evaluations
-- expose the retrieval-grounded backend endpoint used by the RAG UI flow
+- expose the grounded-response endpoint used by the UI flow
 - remain a thin transport layer over `agent_platform`
 
 Key runtime wiring:

@@ -6,7 +6,7 @@ Adopt this target architecture:
 
 - `domains/ai_ui` becomes the UI-only application shell.
 - `domains/ai_backend` becomes the long-running backend service for RAG and agent operations.
-- `libs/agent_platform` owns reusable backend logic:
+- `libs/agent/platform` owns reusable backend logic:
   - LLM gateway/client code
   - vector retrieval code
   - RAG orchestration services
@@ -60,7 +60,7 @@ That conflicts with the repo rule in `AGENTS.md`: no backward compatibility unle
 
 ## Target Architecture
 
-### `libs/agent_platform`
+### `libs/agent/platform`
 
 This package becomes the reusable backend implementation. Add or formalize these areas:
 
@@ -158,7 +158,7 @@ Do not preserve the old `prompt` fallback request shape. Cut over the UI and fai
 
 ### Phase 1: Extract backend logic into `agent_platform`
 
-Move or rewrite these responsibilities inside `libs/agent_platform`:
+Move or rewrite these responsibilities inside `libs/agent/platform`:
 
 - from `[llm_client.py](/home/sultan/repos/governed-rag-foundation/domains/ai_ui/src/ai_ui/llm_client.py)` into `agent_platform.llm`
 - from `[retrieval_client.py](/home/sultan/repos/governed-rag-foundation/domains/ai_ui/src/ai_ui/retrieval_client.py)` into `agent_platform.retrieval`

@@ -20,7 +20,7 @@ It does not:
 
 - app.py: app factory and composition root.
 - routes.py: endpoint registration.
-- ../../libs/runtime/src/runtime/provider.py: runtime settings loader.
+- ../../libs/agent/runtime_config/src/runtime/provider.py: runtime settings loader.
 - ai_infra.AiBackendClient: backend HTTP adapter from the shared library.
 
 # 4. Module Structure
@@ -28,8 +28,8 @@ It does not:
 - src/ai_ui/app.py
 - src/ai_ui/routes.py
 - .env.example
-- ../../libs/runtime/src/runtime/provider.py
-- ../../libs/ai_infra/src/ai_infra/ai_backend_client.py
+- ../../libs/agent/runtime_config/src/runtime/provider.py
+- ../../libs/agent/core/src/ai_infra/ai_backend_client.py
 
 ```mermaid
 graph TD
@@ -58,7 +58,7 @@ flowchart TD
 # 7. Extension Points
 
 - Add endpoints in routes.py.
-- Extend backend request handling in `libs/ai_infra/src/ai_infra/ai_backend_client.py`.
+- Extend backend request handling in `libs/agent/core/src/ai_infra/ai_backend_client.py`.
 
 # 8. Known Issues & Technical Debt
 

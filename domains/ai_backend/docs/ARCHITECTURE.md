@@ -15,11 +15,11 @@ Key runtime wiring:
 - `src/ai_backend/adapters/http/web_application_factory.py` contains the class-based composition root for HTTP adapter wiring.
 - `src/ai_backend/adapters/http/application.py` handles the WSGI application boundary and takes prebuilt collaborators.
 - `src/ai_backend/adapters/http/request_normalization.py` handles WSGI request normalization.
-- `../../libs/runtime/src/runtime/provider.py` loads backend runtime settings via a shared settings provider pattern.
+- `../../libs/agent/runtime_config/src/runtime/provider.py` loads backend runtime settings via a shared settings provider pattern.
 
 Deployment shape:
 - long-running containerized HTTP service
 - managed through `./stack.sh up ai_backend`
-- depends on `libs/agent_platform` and `libs/ai_infra`
+- depends on `libs/agent/platform` and `libs/agent/core`
 - consumes the repo workspace through a bind mount at `/workspace`
 - configured through `.env` values documented in `.env.example`

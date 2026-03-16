@@ -5,7 +5,7 @@ description = "Capability-oriented AI agent platform MVP"
 authors = [{ name = "Governed RAG Foundation" }]
 requires-python = "==3.11.14"
 dependencies = [
-  "ai-infra @ ../../libs/ai_infra",
+  "ai-infra @ ../../libs/agent/core",
 ]
 
 [project.scripts]

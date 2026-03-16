@@ -27,7 +27,7 @@ This plan is intentionally adversarial:
 The repository now has two different states:
 
 1. Safe package-shaped projects
-- `libs/ai_infra`
+- `libs/agent/core`
 - `libs/pipeline-common` at the import level
 - `domains/ai_backend`
 - `domains/ai_ui`
@@ -42,16 +42,16 @@ The repository now has two different states:
 - `domains/worker_chunk_text`
 - `domains/gov_governance`
 
-The highest-risk packaged boundary, `libs/agent_platform`, has already been fixed by restoring the `agent_platform.*` namespace. The remaining work is mostly operational consistency: package metadata, CI, Docker execution paths, and removal of `PYTHONPATH` as a supported contract.
+The highest-risk packaged boundary, `libs/agent/platform`, has already been fixed by restoring the `agent_platform.*` namespace. The remaining work is mostly operational consistency: package metadata, CI, Docker execution paths, and removal of `PYTHONPATH` as a supported contract.
 
 ## Findings
 
-### 1. Fixed: `libs/agent_platform` no longer exports generic top-level packages
+### 1. Fixed: `libs/agent/platform` no longer exports generic top-level packages
 
 Current layout:
 
 ```text
-libs/agent_platform/src/agent_platform/
+libs/agent/platform/src/agent_platform/
   cli/
   startup/
   infrastructure/
@@ -146,7 +146,7 @@ Today the repo mixes three patterns:
 ### Pattern A: true package namespace
 
 Examples:
-- `libs/ai_infra/src/ai_infra`
+- `libs/agent/core/src/ai_infra`
 - `domains/ai_backend/src/ai_backend`
 - `domains/ai_ui/src/ai_ui`
 
@@ -165,7 +165,7 @@ This is only conditionally safe if:
 ### Pattern C: reusable package with generic top-level submodules
 
 Historical example:
-- `libs/agent_platform/src/startup`
+- `libs/agent/platform/src/startup`
 
 This is structurally unsafe.
 
@@ -259,9 +259,9 @@ Rename the package structure and update all call sites in the same change.
 ### Libraries
 
 ```text
-libs/ai_infra/src/ai_infra/
+libs/agent/core/src/ai_infra/
 libs/pipeline-common/src/pipeline_common/
-libs/agent_platform/src/agent_platform/
+libs/agent/platform/src/agent_platform/
 ```
 
 ### Apps and worker domains
@@ -298,12 +298,12 @@ from worker_parse_document.services.worker_parse_document_service import WorkerP
 
 ## Priority 0: Immediate blocker
 
-### `libs/agent_platform`
+### `libs/agent/platform`
 
 Move from:
 
 ```text
-libs/agent_platform/src/
+libs/agent/platform/src/
   cli/
   startup/
   infrastructure/
@@ -313,7 +313,7 @@ libs/agent_platform/src/
 To:
 
 ```text
-libs/agent_platform/src/agent_platform/
+libs/agent/platform/src/agent_platform/
   cli/
   startup/
   infrastructure/
@@ -321,7 +321,7 @@ libs/agent_platform/src/agent_platform/
 ```
 
 Update:
-- `libs/agent_platform/pyproject.toml`
+- `libs/agent/platform/pyproject.toml`
 - all imports to `agent_platform.*`
 - `domains/ai_backend` imports to `agent_platform.*`
 - docs and tests
@@ -456,11 +456,11 @@ Remove examples that normalize:
 
 ## Phase 1
 
-Fix `libs/agent_platform` and `domains/ai_backend`.
+Fix `libs/agent/platform` and `domains/ai_backend`.
 
 Acceptance criteria:
 - `agent_platform` package root restored
-- no `from startup` or `from infrastructure` under `libs/agent_platform`
+- no `from startup` or `from infrastructure` under `libs/agent/platform`
 - no `from startup` imports inside `domains/ai_backend`
 
 ## Phase 2

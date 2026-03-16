@@ -15,9 +15,9 @@ Objective:
 
 ### 1.1 Repo-aligned placement
 - Create a new deployable domain at `domains/agent_platform/` as the composition root and CLI surface.
-- Create a new shared library at `libs/ai_infra/` for reusable contracts, orchestration logic, policies, and gateway interfaces.
+- Create a new shared library at `libs/agent/core/` for reusable contracts, orchestration logic, policies, and gateway interfaces.
 - Keep deployable wiring and concrete adapters in `domains/agent_platform`.
-- Keep `libs/ai_infra` independent of `domains/`.
+- Keep `libs/agent/core` independent of `domains/`.
 
 ### 1.2 Delivery discipline
 - Favor immutable dataclasses and enums for contracts.
@@ -103,14 +103,14 @@ Reason:
 ## 3. Target architecture for MVP
 
 ### 3.1 Library layout
-- `libs/ai_infra/src/ai_infra/contracts/`
-- `libs/ai_infra/src/ai_infra/registry/`
-- `libs/ai_infra/src/ai_infra/policies/`
-- `libs/ai_infra/src/ai_infra/runtime/`
-- `libs/ai_infra/src/ai_infra/kernel/`
-- `libs/ai_infra/src/ai_infra/services/`
-- `libs/ai_infra/src/ai_infra/gateways/`
-- `libs/ai_infra/src/ai_infra/evaluation/`
+- `libs/agent/core/src/ai_infra/contracts/`
+- `libs/agent/core/src/ai_infra/registry/`
+- `libs/agent/core/src/ai_infra/policies/`
+- `libs/agent/core/src/ai_infra/runtime/`
+- `libs/agent/core/src/ai_infra/kernel/`
+- `libs/agent/core/src/ai_infra/services/`
+- `libs/agent/core/src/ai_infra/gateways/`
+- `libs/agent/core/src/ai_infra/evaluation/`
 
 ### 3.2 Domain layout
 - `domains/agent_platform/src/app.py`
@@ -122,7 +122,7 @@ Reason:
 - `domains/agent_platform/README.md`
 
 ### 3.3 Boundary split
-- `libs/ai_infra`: stable contracts, supervisor/runtime logic, policies, registry, kernel abstractions.
+- `libs/agent/core`: stable contracts, supervisor/runtime logic, policies, registry, kernel abstractions.
 - `domains/agent_platform`: startup composition root, local adapters, CLI, config assets, concrete stores.
 
 ## 4. MVP phases
@@ -336,7 +336,7 @@ Acceptance:
 
 ## 5. Build order
 
-1. Scaffold `libs/ai_infra`.
+1. Scaffold `libs/agent/core`.
 2. Scaffold `domains/agent_platform`.
 3. Implement core contracts and serialization helpers.
 4. Implement local capability catalog and skill registry.
@@ -352,50 +352,50 @@ Acceptance:
 ## 6. Concrete file plan for MVP
 
 ### 6.1 Core library
-- `libs/ai_infra/src/ai_infra/contracts/agent_run.py`
-- `libs/ai_infra/src/ai_infra/contracts/execution_plan.py`
-- `libs/ai_infra/src/ai_infra/contracts/action_step.py`
-- `libs/ai_infra/src/ai_infra/contracts/step_dependency.py`
-- `libs/ai_infra/src/ai_infra/contracts/capability_descriptor.py`
-- `libs/ai_infra/src/ai_infra/contracts/capability_request.py`
-- `libs/ai_infra/src/ai_infra/contracts/capability_result.py`
-- `libs/ai_infra/src/ai_infra/contracts/next_step_decision.py`
-- `libs/ai_infra/src/ai_infra/contracts/replan_decision.py`
-- `libs/ai_infra/src/ai_infra/contracts/termination_decision.py`
-- `libs/ai_infra/src/ai_infra/contracts/prompt_template.py`
-- `libs/ai_infra/src/ai_infra/contracts/prompt_version.py`
-- `libs/ai_infra/src/ai_infra/contracts/inference_configuration.py`
-- `libs/ai_infra/src/ai_infra/contracts/evaluation_run.py`
+- `libs/agent/core/src/ai_infra/contracts/agent_run.py`
+- `libs/agent/core/src/ai_infra/contracts/execution_plan.py`
+- `libs/agent/core/src/ai_infra/contracts/action_step.py`
+- `libs/agent/core/src/ai_infra/contracts/step_dependency.py`
+- `libs/agent/core/src/ai_infra/contracts/capability_descriptor.py`
+- `libs/agent/core/src/ai_infra/contracts/capability_request.py`
+- `libs/agent/core/src/ai_infra/contracts/capability_result.py`
+- `libs/agent/core/src/ai_infra/contracts/next_step_decision.py`
+- `libs/agent/core/src/ai_infra/contracts/replan_decision.py`
+- `libs/agent/core/src/ai_infra/contracts/termination_decision.py`
+- `libs/agent/core/src/ai_infra/contracts/prompt_template.py`
+- `libs/agent/core/src/ai_infra/contracts/prompt_version.py`
+- `libs/agent/core/src/ai_infra/contracts/inference_configuration.py`
+- `libs/agent/core/src/ai_infra/contracts/evaluation_run.py`
 
 ### 6.2 Runtime and services
-- `libs/ai_infra/src/ai_infra/services/run_supervisor.py`
-- `libs/ai_infra/src/ai_infra/services/capability_planning_service.py`
-- `libs/ai_infra/src/ai_infra/services/next_step_decider.py`
-- `libs/ai_infra/src/ai_infra/services/capability_execution_service.py`
-- `libs/ai_infra/src/ai_infra/services/step_result_evaluation_service.py`
-- `libs/ai_infra/src/ai_infra/services/plan_revision_service.py`
-- `libs/ai_infra/src/ai_infra/services/prompt_assembly_service.py`
-- `libs/ai_infra/src/ai_infra/services/response_validation_service.py`
-- `libs/ai_infra/src/ai_infra/runtime/agent_run_manager.py`
-- `libs/ai_infra/src/ai_infra/runtime/execution_state_manager.py`
-- `libs/ai_infra/src/ai_infra/runtime/execution_journal.py`
+- `libs/agent/core/src/ai_infra/services/run_supervisor.py`
+- `libs/agent/core/src/ai_infra/services/capability_planning_service.py`
+- `libs/agent/core/src/ai_infra/services/next_step_decider.py`
+- `libs/agent/core/src/ai_infra/services/capability_execution_service.py`
+- `libs/agent/core/src/ai_infra/services/step_result_evaluation_service.py`
+- `libs/agent/core/src/ai_infra/services/plan_revision_service.py`
+- `libs/agent/core/src/ai_infra/services/prompt_assembly_service.py`
+- `libs/agent/core/src/ai_infra/services/response_validation_service.py`
+- `libs/agent/core/src/ai_infra/runtime/agent_run_manager.py`
+- `libs/agent/core/src/ai_infra/runtime/execution_state_manager.py`
+- `libs/agent/core/src/ai_infra/runtime/execution_journal.py`
 
 ### 6.3 Kernel, policies, registry, evaluation
-- `libs/ai_infra/src/ai_infra/kernel/agent_session_manager.py`
-- `libs/ai_infra/src/ai_infra/kernel/session_state_store.py`
-- `libs/ai_infra/src/ai_infra/kernel/checkpoint_manager.py`
-- `libs/ai_infra/src/ai_infra/policies/capability_policy.py`
-- `libs/ai_infra/src/ai_infra/policies/termination_policy.py`
-- `libs/ai_infra/src/ai_infra/policies/sandbox_policy.py`
-- `libs/ai_infra/src/ai_infra/gateways/model_gateway.py`
-- `libs/ai_infra/src/ai_infra/gateways/vector_search_gateway.py`
-- `libs/ai_infra/src/ai_infra/gateways/command_execution_gateway.py`
-- `libs/ai_infra/src/ai_infra/gateways/filesystem_gateway.py`
-- `libs/ai_infra/src/ai_infra/gateways/prompt_template_repository.py`
-- `libs/ai_infra/src/ai_infra/registry/capability_registry.py`
-- `libs/ai_infra/src/ai_infra/registry/capability_catalog.py`
-- `libs/ai_infra/src/ai_infra/registry/capability_resolver.py`
-- `libs/ai_infra/src/ai_infra/evaluation/offline_evaluation_runner.py`
+- `libs/agent/core/src/ai_infra/kernel/agent_session_manager.py`
+- `libs/agent/core/src/ai_infra/kernel/session_state_store.py`
+- `libs/agent/core/src/ai_infra/kernel/checkpoint_manager.py`
+- `libs/agent/core/src/ai_infra/policies/capability_policy.py`
+- `libs/agent/core/src/ai_infra/policies/termination_policy.py`
+- `libs/agent/core/src/ai_infra/policies/sandbox_policy.py`
+- `libs/agent/core/src/ai_infra/gateways/model_gateway.py`
+- `libs/agent/core/src/ai_infra/gateways/vector_search_gateway.py`
+- `libs/agent/core/src/ai_infra/gateways/command_execution_gateway.py`
+- `libs/agent/core/src/ai_infra/gateways/filesystem_gateway.py`
+- `libs/agent/core/src/ai_infra/gateways/prompt_template_repository.py`
+- `libs/agent/core/src/ai_infra/registry/capability_registry.py`
+- `libs/agent/core/src/ai_infra/registry/capability_catalog.py`
+- `libs/agent/core/src/ai_infra/registry/capability_resolver.py`
+- `libs/agent/core/src/ai_infra/evaluation/offline_evaluation_runner.py`
 
 ### 6.4 Domain startup, config, infrastructure, CLI
 - `domains/agent_platform/src/app.py`
@@ -439,7 +439,7 @@ Acceptance:
 
 ## 8. Documentation deliverables
 
-- update `docs/ARCHITECTURE.md` with `domains/agent_platform` and `libs/ai_infra`
+- update `docs/ARCHITECTURE.md` with `domains/agent_platform` and `libs/agent/core`
 - add `domains/agent_platform/docs/ARCHITECTURE.md`
 - add `domains/agent_platform/README.md`
 - document:
@@ -478,7 +478,7 @@ Only after the MVP works end-to-end:
 ## 11. Definition of done for MVP
 
 - `domains/agent_platform` exists with a functioning CLI
-- `libs/ai_infra` provides the runtime contracts and supervisor services required for the vertical slice
+- `libs/agent/core` provides the runtime contracts and supervisor services required for the vertical slice
 - capability registry, skills, supervisor loop, vector retrieval, and session persistence work end-to-end
 - prompt version used for each run is recorded
 - offline evaluation can score a captured run

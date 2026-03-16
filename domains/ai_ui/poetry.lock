@@ -12,7 +12,7 @@ develop = false
 
 [package.source]
 type = "directory"
-url = "../../libs/ai_infra"
+url = "../../libs/agent/core"
 
 [[package]]
 name = "blinker"

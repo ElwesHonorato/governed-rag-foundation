@@ -2,18 +2,18 @@
 
 ## Purpose
 
-`agent_platform` already lives under `libs/agent_platform`. This plan covers the remaining work needed to make that library easy to extract into its own repository later without another structural rewrite.
+`agent_platform` already lives under `libs/agent/platform`. This plan covers the remaining work needed to make that library easy to extract into its own repository later without another structural rewrite.
 
 ## Current State
 
-- reusable agent runtime code lives in `libs/agent_platform`
+- reusable agent runtime code lives in `libs/agent/platform`
 - `domains/ai_backend` consumes it as a package dependency
 - `domains/agent_platform` has been removed
 - the current source layout is:
-  - `libs/agent_platform/src/agent_platform/cli`
-  - `libs/agent_platform/src/agent_platform/startup`
-  - `libs/agent_platform/src/agent_platform/infrastructure`
-  - `libs/agent_platform/src/agent_platform/config`
+  - `libs/agent/platform/src/agent_platform/cli`
+  - `libs/agent/platform/src/agent_platform/startup`
+  - `libs/agent/platform/src/agent_platform/infrastructure`
+  - `libs/agent/platform/src/agent_platform/config`
 
 ## Extraction Goal
 
@@ -73,7 +73,7 @@ Keep out of the extracted package:
 ### 4. Add extraction-readiness tests
 
 Required checks:
-- install `libs/agent_platform` from its own directory
+- install `libs/agent/platform` from its own directory
 - run the CLI after install
 - instantiate the service factory with explicit environment
 - run `domains/ai_backend` against the installed package
@@ -85,8 +85,8 @@ Stronger optional check:
 ## Dependency Shape
 
 Keep this split:
-- `libs/ai_infra` as the lower-level shared runtime library
-- `libs/agent_platform` as the higher-level reusable product library
+- `libs/agent/core` as the lower-level shared runtime library
+- `libs/agent/platform` as the higher-level reusable product library
 - `domains/ai_backend` as the deployable HTTP shell
 
 This keeps the future extracted repo flexible:
@@ -95,7 +95,7 @@ This keeps the future extracted repo flexible:
 
 ## Definition Of Done For Extraction Readiness
 
-- `libs/agent_platform` exposes a unique `agent_platform` package namespace
+- `libs/agent/platform` exposes a unique `agent_platform` package namespace
 - `domains/ai_backend` depends only on the packaged library
 - no code depends on removed `domains/agent_platform` paths
 - assets load without repo-relative path assumptions

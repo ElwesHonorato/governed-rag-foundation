@@ -12,8 +12,9 @@ WORKDIR /app
 RUN python3 -m pip install --no-cache-dir poetry
 
 COPY domains/ai_backend /app/domains/ai_backend
-COPY libs/agent_platform /app/libs/agent_platform
-COPY libs/ai_infra /app/libs/ai_infra
+COPY libs/agent/platform /app/libs/agent/platform
+COPY libs/agent/core /app/libs/agent/core
+COPY libs/agent/runtime_config /app/libs/agent/runtime_config
 
 WORKDIR /app/domains/ai_backend
 

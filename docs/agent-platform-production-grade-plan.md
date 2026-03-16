@@ -5,8 +5,8 @@
 This plan upgrades the current `agent_platform` implementation from a working internal package into a production-grade library with explicit contracts, stable imports, tested packaging, and a clean consumer boundary for `ai_backend`.
 
 The current code already removed `sys.path` bootstrapping and moved the reusable runtime into:
-- `libs/agent_platform`
-- `libs/ai_infra`
+- `libs/agent/platform`
+- `libs/agent/core`
 - `domains/ai_backend`
 
 This document now describes the current state and the remaining work. It does not preserve transitional layouts or backward-compatibility steps.
@@ -15,8 +15,8 @@ This document now describes the current state and the remaining work. It does no
 
 ### Libraries and consumers
 
-- `libs/ai_infra` is the shared runtime library.
-- `libs/agent_platform` is the reusable agent runtime package and CLI host.
+- `libs/agent/core` is the shared runtime library.
+- `libs/agent/platform` is the reusable agent runtime package and CLI host.
 - `domains/ai_backend` is the HTTP shell that consumes `agent_platform`.
 
 ### What is already fixed
@@ -42,7 +42,7 @@ What remains important:
 #### 2. Static assets are still path-addressed from source layout
 
 Current examples:
-- prompt/config assets live under `libs/agent_platform/src/agent_platform/config`
+- prompt/config assets live under `libs/agent/platform/src/agent_platform/config`
 - some tooling and docs still reference those asset paths directly
 
 Why this is still weak:
@@ -85,7 +85,7 @@ Why this matters:
 ## Target State
 
 At the end of this plan:
-- `libs/agent_platform` remains the reusable runtime package
+- `libs/agent/platform` remains the reusable runtime package
 - `domains/ai_backend` remains the deployable HTTP shell
 - `agent_platform` has a stable, unique package namespace
 - prompt/config assets load through package-safe resource access
@@ -94,17 +94,17 @@ At the end of this plan:
 
 ## Recommended Package Shape
 
-### `libs/ai_infra`
+### `libs/agent/core`
 
 Keep as the shared low-level library:
 - package name: `ai_infra`
-- source root: `libs/ai_infra/src/ai_infra`
+- source root: `libs/agent/core/src/ai_infra`
 
-### `libs/agent_platform`
+### `libs/agent/platform`
 
 Keep as the reusable runtime library, but restore a unique package namespace:
 - package name: `agent_platform`
-- preferred source root: `libs/agent_platform/src/agent_platform`
+- preferred source root: `libs/agent/platform/src/agent_platform`
 - subpackages:
   - `agent_platform.cli`
   - `agent_platform.startup`
@@ -132,10 +132,10 @@ Keep as the deployable consumer:
 ### Changes
 
 - keep:
-  - `libs/agent_platform/src/agent_platform/cli`
-  - `libs/agent_platform/src/agent_platform/startup`
-  - `libs/agent_platform/src/agent_platform/infrastructure`
-  - `libs/agent_platform/src/agent_platform/config`
+  - `libs/agent/platform/src/agent_platform/cli`
+  - `libs/agent/platform/src/agent_platform/startup`
+  - `libs/agent/platform/src/agent_platform/infrastructure`
+  - `libs/agent/platform/src/agent_platform/config`
 - enforce imports such as:
   - `from agent_platform.startup.engine_factory import EngineFactory`
   - `from agent_platform.infrastructure.local_command_runner import LocalCommandRunner`
@@ -144,7 +144,7 @@ Keep as the deployable consumer:
 
 ### Acceptance criteria
 
-- `rg -n "from (startup|cli|infrastructure)\\b" libs/agent_platform domains/ai_backend` returns no package-import matches
+- `rg -n "from (startup|cli|infrastructure)\\b" libs/agent/platform domains/ai_backend` returns no package-import matches
 - the installed console script still works
 - the API still imports `create_app()` cleanly through installed dependencies
 
@@ -239,8 +239,8 @@ Keep as the deployable consumer:
 
 ### Required CI checks
 
-- install `libs/ai_infra`
-- install `libs/agent_platform`
+- install `libs/agent/core`
+- install `libs/agent/platform`
 - install `domains/ai_backend`
 - run affected test suites
 - run CLI smoke check
@@ -249,7 +249,7 @@ Keep as the deployable consumer:
 Recommended smoke checks:
 
 ```bash
-cd libs/agent_platform && poetry run agent-platform skill-list
+cd libs/agent/platform && poetry run agent-platform skill-list
 cd domains/ai_backend && poetry run python -c "from ai_backend.app import create_app; create_app()"
 ```
 
@@ -259,12 +259,12 @@ cd domains/ai_backend && poetry run python -c "from ai_backend.app import create
 
 ## Concrete Worklist
 
-### `libs/ai_infra`
+### `libs/agent/core`
 
 - keep package metadata current
 - verify dependency contracts stay domain-agnostic
 
-### `libs/agent_platform`
+### `libs/agent/platform`
 
 - restore the `agent_platform` package namespace
 - update imports and script targets
@@ -274,13 +274,13 @@ cd domains/ai_backend && poetry run python -c "from ai_backend.app import create
 
 ### `domains/ai_backend`
 
-- keep dependency on `libs/agent_platform` explicit
+- keep dependency on `libs/agent/platform` explicit
 - define the supported production server contract
 - update README and runtime docs
 
 ### `docs/`
 
-- keep `docs/ARCHITECTURE.md` aligned with the current `libs/agent_platform` placement
+- keep `docs/ARCHITECTURE.md` aligned with the current `libs/agent/platform` placement
 - document only the supported package and entrypoint layout
 - avoid migration-only references to removed paths
 
@@ -295,7 +295,7 @@ This plan does not expand platform scope:
 
 ## Definition Of Done
 
-- `libs/agent_platform` exposes a unique `agent_platform` package namespace again
+- `libs/agent/platform` exposes a unique `agent_platform` package namespace again
 - no generic top-level imports like `startup`, `cli`, or `infrastructure` remain in production code
 - packaged assets load safely after install
 - config contracts are explicit and validated

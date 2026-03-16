@@ -11,11 +11,11 @@ files = []
 develop = false
 
 [package.dependencies]
-ai-infra = {path = "../../libs/ai_infra"}
+ai-infra = {path = "../../libs/agent/core"}
 
 [package.source]
 type = "directory"
-url = "../../libs/agent_platform"
+url = "../../libs/agent/platform"
 
 [[package]]
 name = "ai-infra"
@@ -29,7 +29,7 @@ develop = false
 
 [package.source]
 type = "directory"
-url = "../../libs/ai_infra"
+url = "../../libs/agent/core"
 
 [metadata]
 lock-version = "2.1"

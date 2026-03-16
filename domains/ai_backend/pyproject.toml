@@ -5,8 +5,8 @@ description = "HTTP backend for the agent platform"
 authors = [{ name = "Governed RAG Foundation" }]
 requires-python = "==3.11.14"
 dependencies = [
-  "agent-platform @ ../../libs/agent_platform",
-  "runtime @ ../../libs/runtime",
+  "agent-platform @ ../../libs/agent/platform",
+  "runtime @ ../../libs/agent/runtime_config",
 ]
 
 [project.scripts]

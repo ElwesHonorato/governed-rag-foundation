@@ -14,14 +14,14 @@ Legend: `Covered` = implemented and traceable in code, `Partial` = scaffolded/in
 | Requirement ID | Requirement Summary | Current Coverage | Evidence in Repository | Gap Notes |
 |---|---|---|---|---|
 | FR-01 | Unified ingestion across unstructured/structured/streaming/APIs/DB | Partial | `domains/worker_scan/src/app.py`, `domains/worker_parse_document/src/app.py` | Current implementation covers S3-driven document flow only; SharePoint/SAP/Oracle/Kafka/Flink/API/DB connectors are still missing. |
-| FR-02 | Retrieval for delays/contracts/IoT | Partial | `domains/ai_backend/src/ai_backend/routes.py`, `libs/agent_platform/src/agent_platform/rag/service.py` | Retrieval exists behind `ai_backend`, but domain-specific retrieval behavior is still limited. |
+| FR-02 | Retrieval for delays/contracts/IoT | Partial | `domains/ai_backend/src/ai_backend/routes.py`, `libs/agent/platform/src/agent_platform/rag/service.py` | Retrieval exists behind `ai_backend`, but domain-specific retrieval behavior is still limited. |
 | FR-03 | Multimodal query support (text/tables/images) | Missing | `domains/ai_ui/src/ai_ui/routes.py`, `domains/ai_backend/src/ai_backend/routes.py` | No multimodal request contract or processing pipeline. |
-| FR-04 | Metadata-filtered retrieval (`source_type`, `timestamp`, domain) | Missing | `libs/agent_platform/src/agent_platform/retrieval/weaviate_client.py` | No metadata filter handling in backend retrieval queries. |
+| FR-04 | Metadata-filtered retrieval (`source_type`, `timestamp`, domain) | Missing | `libs/agent/platform/src/agent_platform/retrieval/weaviate_client.py` | No metadata filter handling in backend retrieval queries. |
 | NFR-01 | 1,000+ concurrent users | Missing | `domains/ai_ui/src/ai_ui/app.py`, `domains/ai_backend/src/ai_backend/app.py` | Both services still use simple built-in servers without load/perf controls. |
 | NFR-02 | Hybrid retrieval (BM25 + semantic) | Missing | `domains/infra_vector/docker-compose.yml` | Weaviate deployed but no hybrid retrieval logic implemented. |
 | NFR-03 | Caching for latency/cost optimization | Missing | `domains/infra_queue/docker-compose.yml` | Redis deployed but unused in app logic. |
-| NFR-04 | Reliability under peak/degraded upstream | Partial | `libs/agent_platform/src/agent_platform/llm/ollama_client.py` | Basic retry exists for LLM failures, but there is no broader resilience policy. |
-| A-01 | Full governed RAG flow (ingest->chunk->mask->embed->hybrid retrieve->grounded response) | Partial | `domains/worker_*/src`, `libs/agent_platform/src/agent_platform/rag/service.py` | Retrieval-grounded response now exists, but masking and richer governed retrieval behavior remain incomplete. |
+| NFR-04 | Reliability under peak/degraded upstream | Partial | `libs/agent/platform/src/agent_platform/llm/ollama_client.py` | Basic retry exists for LLM failures, but there is no broader resilience policy. |
+| A-01 | Full governed RAG flow (ingest->chunk->mask->embed->hybrid retrieve->grounded response) | Partial | `domains/worker_*/src`, `libs/agent/platform/src/agent_platform/rag/service.py` | Retrieval-grounded response now exists, but masking and richer governed retrieval behavior remain incomplete. |
 | A-02 | Context-aware chunking, parent-child indexing, versioned indexing | Partial | `domains/worker_chunk_text/src/app.py`, `domains/worker_index_weaviate/src/app.py` | Chunking and indexing stages exist, but advanced context-aware and versioning features are incomplete. |
 | INT-01 | S3 + SharePoint document sources | Partial | S3 config in `.env.example`; S3 usage in `domains/worker_*/src` | S3 pipeline is present; SharePoint integration remains missing. |
 | INT-02 | SAP + Oracle shipment logs | Missing | N/A in app code | No connectors/contracts/ingestion jobs. |
@@ -38,11 +38,11 @@ Legend: `Covered` = implemented and traceable in code, `Partial` = scaffolded/in
 | SEC-03 | Query-time authorization filters | Missing | N/A in app code | No security metadata filter layer in retrieval. |
 | AC-01 | Ingestion coverage for all source classes | Missing | `domains/worker_scan/src/app.py` | Current ingestion remains limited to S3-driven processing. |
 | AC-02 | Canonical data normalization | Missing | N/A in app code | No canonical mapping validation. |
-| AC-03 | Relevant hybrid retrieval with citations | Partial | `libs/agent_platform/src/agent_platform/rag/service.py` | Citations exist, but retrieval quality and hybrid behavior are still limited. |
+| AC-03 | Relevant hybrid retrieval with citations | Partial | `libs/agent/platform/src/agent_platform/rag/service.py` | Citations exist, but retrieval quality and hybrid behavior are still limited. |
 | AC-04 | Source/version/process traceability | Missing | Marquez infra defined in `domains/infra_lineage/docker-compose.yml` | Lineage infra exists; no lineage events emitted from app/pipeline. |
 | AC-05 | Security masking + RBAC enforcement | Missing | N/A in app code | Security requirements not implemented. |
 | AC-06 | Stable 1,000+ user behavior with acceptable latency | Missing | N/A in app code | No performance profile/tests/SLO evidence. |
-| AI-01 | Grounded responses with source references | Partial | `libs/agent_platform/src/agent_platform/rag/service.py` | Backend now returns grounded responses with citations, but citation quality is still rough. |
+| AI-01 | Grounded responses with source references | Partial | `libs/agent/platform/src/agent_platform/rag/service.py` | Backend now returns grounded responses with citations, but citation quality is still rough. |
 | AI-02 | Hybrid retrieval + metadata guardrails + low-confidence defer | Missing | N/A in app code | No guardrail pipeline/confidence model. |
 | AI-03 | Evals for retrieval/citations/latency/cost/safety | Missing | N/A in app code | No evaluation datasets, runners, or dashboards. |
 

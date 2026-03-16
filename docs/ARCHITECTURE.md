@@ -40,7 +40,7 @@ Separation of concerns:
 - Worker runtime path: `domains/worker_*` + `libs/pipeline-common`.
 - Governance path: `domains/gov_governance`.
 - App path: `domains/app_*`.
-- Agent platform path: `libs/agent_platform` + `domains/ai_backend` + `libs/ai_infra`.
+- Agent platform path: `libs/agent/platform` + `domains/ai_backend` + `libs/agent/core`.
 - Local infra path: `domains/infra_*` + `stack.sh`.
 - RAG app split: `domains/ai_ui` is the UI/front door and `domains/ai_backend` is the retrieval/LLM backend.
 
@@ -49,7 +49,7 @@ Separation of concerns:
 Overall design:
 - Multi-domain monorepo with shared runtime core (`pipeline_common`) and multiple executable domains.
 - The agent-platform MVP adds a second shared runtime core (`ai_infra`) for supervised capability execution and a thin API domain that reuses the same service graph.
-- `libs/agent_platform` now also owns reusable RAG backend logic: LLM access, Weaviate retrieval, and retrieval-grounded response orchestration.
+- `libs/agent/platform` now also owns reusable RAG backend logic: LLM access, Weaviate retrieval, and retrieval-grounded response orchestration.
 
 Layering (observed in code):
 - Composition roots: package entrypoints (`<package>.app`, `apply.py`).
@@ -78,8 +78,8 @@ Repository structure (architecture-relevant):
 - `domains/ai_backend/`: HTTP wrapper around the `agent_platform` service graph and the active RAG backend surface.
 - `domains/ai_ui/`: Flask UI/front-door that forwards prompt execution to `ai_backend`.
 - `libs/pipeline-common/`: shared worker/runtime abstractions and adapters.
-- `libs/ai_infra/`: shared contracts, policies, registries, and orchestration services for the agent platform.
-- `libs/agent_platform/`: reusable agent runtime package with CLI, local adapters, packaged config assets, and shared RAG backend services.
+- `libs/agent/core/`: shared contracts, policies, registries, and orchestration services for the agent platform.
+- `libs/agent/platform/`: reusable agent runtime package with CLI, local adapters, packaged config assets, and shared RAG backend services.
 - `docs/`: architecture and standards documentation.
 - `stack.sh` + domain compose files: local stack orchestration.
 
@@ -97,8 +97,8 @@ Architecture document index (central references):
 - `domains/ai_ui/docs/ARCHITECTURE.md`
 - `domains/ai_backend/docs/ARCHITECTURE.md`
 - `domains/app_vector_ui/docs/ARCHITECTURE.md`
-- `libs/ai_infra/`
-- `libs/agent_platform/docs/ARCHITECTURE.md`
+- `libs/agent/core/`
+- `libs/agent/platform/docs/ARCHITECTURE.md`
 - `libs/pipeline-common/src/pipeline_common/startup/docs/ARCHITECTURE.md`
 - `libs/pipeline-common/src/pipeline_common/settings/docs/ARCHITECTURE.md`
 - `libs/pipeline-common/src/pipeline_common/gateways/docs/ARCHITECTURE.md`
@@ -120,7 +120,7 @@ Editor note:
 
 Dependency flow:
 - `domains/*` may depend on reusable `libs/*` packages.
-- `domains/ai_backend` may depend on `libs/agent_platform` and `libs/ai_infra`.
+- `domains/ai_backend` may depend on `libs/agent/platform` and `libs/agent/core`.
 - `libs/*` must not depend on `domains/*`.
 - Driver SDKs are concentrated in gateway/infrastructure adapters.
 

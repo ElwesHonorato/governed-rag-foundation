@@ -19,7 +19,10 @@ from flask import Flask
 
 from ai_infra.agent_api_client import AgentApiClient
 from ai_ui.routes import register_routes
-from ai_ui.settings import EnvironmentSettingsProvider, FrontendAgentApiSettings
+from ai_ui.settings import (
+    AiUiSettingsProvider,
+    FrontendAgentApiSettings,
+)
 
 
 def create_app(
@@ -37,7 +40,7 @@ def create_app(
 
 
 def _load_settings() -> FrontendAgentApiSettings:
-    return EnvironmentSettingsProvider().load()
+    return AiUiSettingsProvider().load()
 
 
 app = create_app(settings=_load_settings())

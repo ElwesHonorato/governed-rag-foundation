@@ -5,8 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from agent_settings.settings import (
-    EnvironmentSettingsProvider,
     SettingsRequest,
+    SharedSettingsProvider,
 )
 from agent_platform.startup.contracts import (
     AgentPlatformConfig,
@@ -18,7 +18,7 @@ class AgentPlatformConfigFactory:
     """Build agent-platform config from a centralized settings bundle."""
 
     def build(self) -> AgentPlatformConfig:
-        bundle = EnvironmentSettingsProvider(
+        bundle = SharedSettingsProvider(
             SettingsRequest(llm=True, retrieval=True)
         ).bundle
         workspace_root, state_dir = self._resolve_local_paths()

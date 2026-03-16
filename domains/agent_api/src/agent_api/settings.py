@@ -19,7 +19,7 @@ class AgentApiSettings:
         return asdict(self)
 
 
-class EnvironmentSettingsProvider(SettingsProvider[AgentApiSettings]):
+class AgentApiSettingsProvider(SettingsProvider[AgentApiSettings]):
     """Load agent API settings from environment variables."""
 
     def load(self) -> AgentApiSettings:

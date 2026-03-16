@@ -18,7 +18,7 @@ class FrontendAgentApiSettings:
         return {"agent_api": self.agent_api_url}
 
 
-class EnvironmentSettingsProvider(SettingsProvider[FrontendAgentApiSettings]):
+class AiUiSettingsProvider(SettingsProvider[FrontendAgentApiSettings]):
     """Load ai_ui settings from environment variables."""
 
     def load(self) -> FrontendAgentApiSettings:

@@ -73,7 +73,7 @@ def load_retrieval_settings_from_env() -> RetrievalSettings:
         embedding_dim=required_int_env("EMBEDDING_DIM"),
         retrieval_limit=optional_int_env("WEAVIATE_QUERY_DEFAULTS_LIMIT", 5),
     )
-class EnvironmentSettingsProvider:
+class SharedSettingsProvider:
     """Load requested shared settings from environment variables."""
 
     def __init__(self, request: SettingsRequest) -> None:

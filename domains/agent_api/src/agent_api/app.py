@@ -6,7 +6,10 @@ from wsgiref.simple_server import make_server
 
 from agent_api.adapters.http.web_application_factory import WebApplicationFactory
 from agent_api.engine_factory import Engine, EngineFactory
-from agent_api.settings import AgentApiSettings, EnvironmentSettingsProvider
+from agent_api.settings import (
+    AgentApiSettingsProvider,
+    AgentApiSettings,
+)
 from agent_platform.agent_runtime.execution_runtime_factory import (
     ExecutionRuntimeFactory,
 )
@@ -41,7 +44,7 @@ def main() -> int:
         grounded_response_factory=GroundedResponseFactory(),
     )
     return _serve(
-        settings=EnvironmentSettingsProvider().load(),
+        settings=AgentApiSettingsProvider().load(),
         agent_app=engine_factory.build(),
     )
 

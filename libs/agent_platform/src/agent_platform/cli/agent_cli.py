@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 
-from agent_platform.startup.service_factory import AgentPlatformServiceFactory
+from agent_platform.startup.engine_factory import EngineFactory
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -30,7 +30,7 @@ def _build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
-    factory = AgentPlatformServiceFactory()
+    factory = EngineFactory()
     app = factory.build()
 
     if args.command == "capability-list":

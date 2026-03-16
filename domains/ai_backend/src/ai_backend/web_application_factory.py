@@ -3,21 +3,21 @@
 from __future__ import annotations
 
 from ai_backend.application import AiBackendApplication
+from ai_backend.engine_factory import Engine
 from ai_backend.handlers import AiBackendHandlers
 from ai_backend.request_normalization import WsgiRequestNormalizer
 from ai_backend.router import AiBackendRouter
-from ai_backend.service_factory import AgentPlatformRuntime
 from runtime.provider import BackendAIBackendSettings
 
 
-class AiBackendApplicationFactory:
+class WebApplicationFactory:
     """Build the AI backend WSGI application from runtime dependencies."""
 
     def __init__(
         self,
         *,
         settings: BackendAIBackendSettings,
-        agent_app: AgentPlatformRuntime,
+        agent_app: Engine,
     ) -> None:
         self._settings = settings
         self._agent_app = agent_app

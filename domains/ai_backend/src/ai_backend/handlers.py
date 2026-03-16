@@ -5,14 +5,14 @@ from __future__ import annotations
 from http import HTTPStatus
 
 from ai_backend.responses import JsonResponse
-from ai_backend.service_factory import AgentPlatformRuntime
+from ai_backend.engine_factory import Engine
 from runtime.provider import BackendAIBackendSettings
 
 
 class AiBackendHandlers:
     """Endpoint orchestration for AI backend routes."""
 
-    def __init__(self, *, settings: BackendAIBackendSettings, agent_app: AgentPlatformRuntime) -> None:
+    def __init__(self, *, settings: BackendAIBackendSettings, agent_app: Engine) -> None:
         self._settings = settings
         self._agent_app = agent_app
 

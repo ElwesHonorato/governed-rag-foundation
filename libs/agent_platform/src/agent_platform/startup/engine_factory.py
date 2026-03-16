@@ -48,7 +48,7 @@ from agent_platform.startup.provider import SettingsProvider, SettingsRequest
 
 
 @dataclass(frozen=True)
-class AgentPlatformRuntime:
+class Engine:
     """Narrow application-facing runtime boundary."""
 
     _capability_registry: CapabilityRegistry
@@ -90,13 +90,13 @@ class LocalStateStores:
     checkpoint_store: LocalCheckpointStore
 
 
-class AgentPlatformServiceFactory:
+class EngineFactory:
     """Build the local runtime graph for agent-platform."""
 
     def __init__(self, bootstrapper: RuntimeBootstrapper | None = None) -> None:
         self._bootstrapper = bootstrapper or RuntimeBootstrapper()
 
-    def build(self) -> AgentPlatformRuntime:
+    def build(self) -> Engine:
         settings = self._load_settings()
         artifacts = self._bootstrapper.prepare(settings)
         capability_registry = self._build_capability_registry()
@@ -122,7 +122,7 @@ class AgentPlatformServiceFactory:
             skill_registry=skill_registry,
         )
         rag_service = self._build_rag_service(settings)
-        return AgentPlatformRuntime(
+        return Engine(
             _capability_registry=capability_registry,
             _skill_registry=skill_registry,
             _session_store=stores.session_store,

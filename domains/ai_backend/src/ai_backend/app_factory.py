@@ -6,7 +6,7 @@ from ai_backend.application import AiBackendApplication
 from ai_backend.handlers import AiBackendHandlers
 from ai_backend.request_normalization import WsgiRequestNormalizer
 from ai_backend.router import AiBackendRouter
-from ai_backend.service_factory import AgentPlatformApp
+from ai_backend.service_factory import AgentPlatformRuntime
 from runtime.provider import BackendAIBackendSettings
 
 
@@ -17,7 +17,7 @@ class AiBackendApplicationFactory:
         self,
         *,
         settings: BackendAIBackendSettings,
-        agent_app: AgentPlatformApp,
+        agent_app: AgentPlatformRuntime,
     ) -> None:
         self._settings = settings
         self._agent_app = agent_app

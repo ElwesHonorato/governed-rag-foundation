@@ -1,4 +1,4 @@
-"""Service factory for the agent-platform MVP."""
+"""Composition root for the local agent-platform runtime."""
 
 from __future__ import annotations
 
@@ -7,12 +7,13 @@ from pathlib import Path
 
 from ai_infra.contracts.agent_run import AgentRun
 from ai_infra.contracts.agent_session import AgentSession
+from ai_infra.contracts.capability_descriptor import CapabilityDescriptor
+from ai_infra.contracts.evaluation_run import EvaluationRun
 from ai_infra.evaluation.offline_evaluation_runner import OfflineEvaluationRunner
 from ai_infra.kernel.agent_session_manager import AgentSessionManager
 from ai_infra.policies.capability_policy import CapabilityPolicy
 from ai_infra.policies.sandbox_policy import SandboxPolicy
 from ai_infra.policies.termination_policy import TerminationPolicy
-from ai_infra.registry.capability_catalog import CapabilityCatalog
 from ai_infra.registry.capability_registry import CapabilityRegistry
 from ai_infra.runtime.execution_state_manager import ExecutionStateManager
 from ai_infra.services.capability_execution_service import CapabilityExecutionService
@@ -22,7 +23,8 @@ from ai_infra.services.prompt_assembly_service import PromptAssemblyService
 from ai_infra.services.response_validation_service import ResponseValidationService
 from ai_infra.services.run_supervisor import RunSupervisor
 from ai_infra.services.step_result_evaluation_service import StepResultEvaluationService
-from agent_platform.infrastructure.bootstrap_vector_index import bootstrap_vector_index
+from agent_platform.application.objective_runner import ObjectiveRunner
+from agent_platform.application.skill_registry import SkillRegistry
 from agent_platform.infrastructure.local_capability_catalog import (
     load_capability_catalog,
     load_skill_registry,
@@ -38,39 +40,45 @@ from agent_platform.infrastructure.local_session_store import LocalSessionStore
 from agent_platform.infrastructure.local_vector_search import LocalVectorSearch
 from agent_platform.llm.ollama_client import OllamaClient
 from agent_platform.rag.service import RagService
+from agent_platform.rag.contracts import RagResponse
 from agent_platform.retrieval.weaviate_client import WeaviateRetrievalClient
+from agent_platform.startup.bootstrap import PreparedRuntimeArtifacts, RuntimeBootstrapper
 from agent_platform.startup.contracts import AgentPlatformConfig
 from agent_platform.startup.provider import SettingsProvider, SettingsRequest
 
 
-@dataclass
-class AgentPlatformApp:
-    """Composition root for the MVP runtime."""
+@dataclass(frozen=True)
+class AgentPlatformRuntime:
+    """Narrow application-facing runtime boundary."""
 
-    capability_registry: CapabilityRegistry
-    skill_registry: dict[str, dict[str, object]]
-    session_store: LocalSessionStore
-    run_store: LocalRunStore
-    evaluation_runner: OfflineEvaluationRunner
-    planning_service: CapabilityPlanningService
-    session_manager: AgentSessionManager
-    supervisor: RunSupervisor
-    rag_service: RagService
+    _capability_registry: CapabilityRegistry
+    _skill_registry: SkillRegistry
+    _session_store: LocalSessionStore
+    _run_store: LocalRunStore
+    _evaluation_runner: OfflineEvaluationRunner
+    _objective_runner: ObjectiveRunner
+    _rag_service: RagService
+
+    def list_capabilities(self) -> list[CapabilityDescriptor]:
+        return self._capability_registry.list_capabilities()
+
+    def list_skills(self) -> list[str]:
+        return self._skill_registry.names()
+
+    def load_session(self, session_id: str) -> AgentSession:
+        return self._session_store.load_session(session_id)
+
+    def load_run(self, run_id: str) -> AgentRun:
+        return self._run_store.load_run(run_id)
+
+    def evaluate_run(self, run_id: str) -> EvaluationRun:
+        return self._evaluation_runner.evaluate(self.load_run(run_id))
+
+    def query_rag(self, body: dict[str, object]) -> RagResponse:
+        return self._rag_service.respond(body)
 
     def run_objective(self, objective: str, skill_name: str) -> AgentRun:
-        session = self.session_manager.create_session(objective=objective, skill_name=skill_name)
-        plan = self.planning_service.build_plan(skill_name, objective, self.skill_registry[skill_name])
-        run = self.supervisor.create_run(
-            session_id=session.session_id,
-            skill_name=skill_name,
-            objective=objective,
-            prompt_version="v1",
-            execution_plan=plan,
-        )
-        session = self.session_manager.attach_run(session, run.run_id)
-        completed_run = self.supervisor.run(run)
-        self.session_manager.update_run_status(session, completed_run.run_id, completed_run.status)
-        return completed_run
+        return self._objective_runner.run(objective=objective, skill_name=skill_name)
 
 
 @dataclass(frozen=True)
@@ -83,20 +91,22 @@ class LocalStateStores:
 
 
 class AgentPlatformServiceFactory:
-    """Builds the MVP service graph."""
+    """Build the local runtime graph for agent-platform."""
 
-    def build(self) -> AgentPlatformApp:
+    def __init__(self, bootstrapper: RuntimeBootstrapper | None = None) -> None:
+        self._bootstrapper = bootstrapper or RuntimeBootstrapper()
+
+    def build(self) -> AgentPlatformRuntime:
         settings = self._load_settings()
-        index_path = self._ensure_vector_index(settings)
+        artifacts = self._bootstrapper.prepare(settings)
         capability_registry = self._build_capability_registry()
         skill_registry = load_skill_registry()
         stores = self._build_local_state_stores(settings)
-        prompt_repository = LocalPromptRepository()
         planning_service = CapabilityPlanningService()
+        session_manager = AgentSessionManager(stores.session_store)
         execution_service = self._build_execution_service(
             settings=settings,
-            index_path=index_path,
-            prompt_repository=prompt_repository,
+            artifacts=artifacts,
         )
         supervisor = self._build_supervisor(
             settings=settings,
@@ -105,17 +115,21 @@ class AgentPlatformServiceFactory:
             run_store=stores.run_store,
             checkpoint_store=stores.checkpoint_store,
         )
-        rag_service = self._build_rag_service(settings)
-        return AgentPlatformApp(
-            capability_registry=capability_registry,
-            skill_registry=skill_registry,
-            session_store=stores.session_store,
-            run_store=stores.run_store,
-            evaluation_runner=OfflineEvaluationRunner(),
+        objective_runner = ObjectiveRunner(
+            session_manager=session_manager,
             planning_service=planning_service,
-            session_manager=AgentSessionManager(stores.session_store),
             supervisor=supervisor,
-            rag_service=rag_service,
+            skill_registry=skill_registry,
+        )
+        rag_service = self._build_rag_service(settings)
+        return AgentPlatformRuntime(
+            _capability_registry=capability_registry,
+            _skill_registry=skill_registry,
+            _session_store=stores.session_store,
+            _run_store=stores.run_store,
+            _evaluation_runner=OfflineEvaluationRunner(),
+            _objective_runner=objective_runner,
+            _rag_service=rag_service,
         )
 
     def _load_settings(self) -> AgentPlatformConfig:
@@ -125,19 +139,6 @@ class AgentPlatformServiceFactory:
         if settings is None:
             raise ValueError("Agent platform settings were not requested")
         return settings
-
-    def _ensure_vector_index(self, settings: AgentPlatformConfig) -> Path:
-        state_dir = Path(settings.paths.state_dir)
-        vector_fixture_dir = state_dir / "vector_fixture"
-        vector_fixture_dir.mkdir(parents=True, exist_ok=True)
-        index_path = vector_fixture_dir / "index.json"
-        if not index_path.exists():
-            bootstrap_vector_index(
-                repo_root=settings.paths.repo_root,
-                output_path=str(index_path),
-                embedder=DeterministicEmbeddingFixture(),
-            )
-        return index_path
 
     def _build_capability_registry(self) -> CapabilityRegistry:
         return CapabilityRegistry(load_capability_catalog())
@@ -156,9 +157,9 @@ class AgentPlatformServiceFactory:
         self,
         *,
         settings: AgentPlatformConfig,
-        index_path: Path,
-        prompt_repository: LocalPromptRepository,
+        artifacts: PreparedRuntimeArtifacts,
     ) -> CapabilityExecutionService:
+        prompt_repository = LocalPromptRepository()
         prompt_assembly_service = PromptAssemblyService(
             prompt_repository=prompt_repository
         )
@@ -166,7 +167,7 @@ class AgentPlatformServiceFactory:
             filesystem_gateway=LocalFilesystemAdapter(settings.paths.workspace_root),
             command_gateway=LocalCommandRunner(settings.paths.workspace_root),
             vector_gateway=LocalVectorSearch(
-                str(index_path), DeterministicEmbeddingFixture()
+                str(artifacts.vector_index_path), DeterministicEmbeddingFixture()
             ),
             model_gateway=LocalModelGateway(
                 llm_url=settings.llm.llm_url,

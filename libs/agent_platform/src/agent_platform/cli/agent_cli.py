@@ -34,18 +34,17 @@ def main(argv: list[str] | None = None) -> int:
     app = factory.build()
 
     if args.command == "capability-list":
-        print(json.dumps([item.to_dict() for item in app.capability_registry.list_capabilities()], indent=2))
+        print(json.dumps([item.to_dict() for item in app.list_capabilities()], indent=2))
         return 0
     if args.command == "skill-list":
-        print(json.dumps(sorted(app.skill_registry.keys()), indent=2))
+        print(json.dumps(app.list_skills(), indent=2))
         return 0
     if args.command == "session-show":
-        session = app.session_store.load_session(args.session_id)
+        session = app.load_session(args.session_id)
         print(json.dumps(session.to_dict(), indent=2))
         return 0
     if args.command == "eval-run":
-        run = app.run_store.load_run(args.run_id)
-        evaluation = app.evaluation_runner.evaluate(run)
+        evaluation = app.evaluate_run(args.run_id)
         print(json.dumps(evaluation.to_dict(), indent=2))
         return 0
     if args.command == "run":

@@ -5,14 +5,14 @@ from __future__ import annotations
 from http import HTTPStatus
 
 from ai_backend.responses import JsonResponse
-from ai_backend.service_factory import AgentPlatformApp
+from ai_backend.service_factory import AgentPlatformRuntime
 from runtime.provider import BackendAIBackendSettings
 
 
 class AiBackendHandlers:
     """Endpoint orchestration for AI backend routes."""
 
-    def __init__(self, *, settings: BackendAIBackendSettings, agent_app: AgentPlatformApp) -> None:
+    def __init__(self, *, settings: BackendAIBackendSettings, agent_app: AgentPlatformRuntime) -> None:
         self._settings = settings
         self._agent_app = agent_app
 
@@ -24,13 +24,13 @@ class AiBackendHandlers:
 
     def list_capabilities(self) -> JsonResponse:
         return JsonResponse(
-            payload=[item.to_dict() for item in self._agent_app.capability_registry.list_capabilities()],
+            payload=[item.to_dict() for item in self._agent_app.list_capabilities()],
             status=HTTPStatus.OK,
         )
 
     def list_skills(self) -> JsonResponse:
         return JsonResponse(
-            payload=sorted(self._agent_app.skill_registry.keys()),
+            payload=self._agent_app.list_skills(),
             status=HTTPStatus.OK,
         )
 
@@ -42,10 +42,9 @@ class AiBackendHandlers:
 
     def create_evaluation(self, body: dict[str, object]) -> JsonResponse:
         run_id = str(body.get("run_id", "")).strip()
-        run = self._agent_app.run_store.load_run(run_id)
-        evaluation = self._agent_app.evaluation_runner.evaluate(run)
+        evaluation = self._agent_app.evaluate_run(run_id)
         return JsonResponse(payload=evaluation.to_dict(), status=HTTPStatus.CREATED)
 
     def query_rag(self, body: dict[str, object]) -> JsonResponse:
-        response = self._agent_app.rag_service.respond(body)
+        response = self._agent_app.query_rag(body)
         return JsonResponse(payload=response.to_dict(), status=HTTPStatus.OK)

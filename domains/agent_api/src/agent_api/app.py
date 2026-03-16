@@ -13,11 +13,23 @@ from agent_platform.grounded_response.grounded_response_factory import (
     GroundedResponseFactory,
 )
 from agent_platform.startup.bootstrap import RuntimeBootstrapper
-from agent_platform.startup.engine_factory import EngineFactory
+from agent_platform.startup.command_gateway_factory import CommandGatewayFactory
+from agent_platform.startup.engine_factory import (
+    EngineFactory,
+    EngineGatewayFactories,
+    EngineRuntimeFactories,
+    EngineStartupServices,
+)
+from agent_platform.startup.filesystem_gateway_factory import (
+    FilesystemGatewayFactory,
+)
 from agent_platform.startup.local_state_stores_factory import LocalStateStoresFactory
+from agent_platform.startup.llm_gateway_factory import LLMGatewayFactory
+from agent_platform.startup.retrieval_gateway_factory import RetrievalGatewayFactory
 from agent_platform.startup.retrieval_embedder_factory import (
     RetrievalEmbedderFactory,
 )
+from agent_platform.startup.vector_gateway_factory import VectorGatewayFactory
 from agent_settings.settings import (
     AgentApiSettings,
     EnvironmentSettingsProvider,
@@ -31,12 +43,23 @@ def main() -> int:
         SettingsRequest(agent_api=True, llm=True, retrieval=True)
     ).bundle
     engine_factory = EngineFactory(
-        bootstrapper=RuntimeBootstrapper(),
-        retrieval_embedder_factory=RetrievalEmbedderFactory(),
-        local_state_stores_factory=LocalStateStoresFactory(),
+        startup_services=EngineStartupServices(
+            bootstrapper=RuntimeBootstrapper(),
+            retrieval_embedder_factory=RetrievalEmbedderFactory(),
+            local_state_stores_factory=LocalStateStoresFactory(),
+        ),
+        gateway_factories=EngineGatewayFactories(
+            filesystem=FilesystemGatewayFactory(),
+            command=CommandGatewayFactory(),
+            vector=VectorGatewayFactory(),
+            llm=LLMGatewayFactory(),
+            retrieval=RetrievalGatewayFactory(),
+        ),
+        runtime_factories=EngineRuntimeFactories(
+            execution=ExecutionRuntimeFactory(),
+            grounded_response=GroundedResponseFactory(),
+        ),
         settings=agent_settings,
-        execution_runtime_factory=ExecutionRuntimeFactory(),
-        grounded_response_factory=GroundedResponseFactory(),
     )
     agent_api_settings: AgentApiSettings = agent_settings.agent_api
     agent_api_app: AgentApiApplication = WebApplicationFactory(

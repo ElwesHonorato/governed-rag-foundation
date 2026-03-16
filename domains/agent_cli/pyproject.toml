@@ -1,0 +1,19 @@
+[project]
+name = "agent-cli"
+version = "0.1.0"
+description = "CLI entrypoint for the agent platform"
+authors = [{ name = "Governed RAG Foundation" }]
+requires-python = "==3.11.14"
+dependencies = [
+  "agent-platform @ ../../libs/agent/platform",
+]
+
+[project.scripts]
+agent-platform = "agent_cli.app:main"
+
+[tool.poetry]
+packages = [{ include = "agent_cli", from = "src" }]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

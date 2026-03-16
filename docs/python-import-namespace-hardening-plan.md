@@ -63,7 +63,7 @@ Current imports:
 ```python
 from agent_platform.startup.engine_factory import EngineFactory
 from agent_platform.gateways.command.local_command_gateway import LocalCommandGateway
-from agent_platform.cli.agent_cli import main
+from agent_cli.app import main
 ```
 
 Why this matters:

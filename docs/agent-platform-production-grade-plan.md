@@ -33,7 +33,7 @@ This document now describes the current state and the remaining work. It does no
 Current examples:
 - `from agent_platform.startup.engine_factory import EngineFactory`
 - `from agent_platform.gateways.command.local_command_gateway import LocalCommandGateway`
-- `from agent_platform.cli.agent_cli import main`
+- `from agent_cli.app import main`
 
 What remains important:
 - the `agent_platform.*` namespace should be treated as the stable public import surface
@@ -106,7 +106,7 @@ Keep as the reusable runtime library, but restore a unique package namespace:
 - package name: `agent_platform`
 - preferred source root: `libs/agent/platform/src/agent_platform`
 - subpackages:
-  - `agent_platform.cli`
+  - `domains/agent_cli`
   - `agent_platform.startup`
   - `agent_platform.gateways`
   - `agent_platform.registry`
@@ -140,7 +140,7 @@ Keep as the deployable consumer:
 - enforce imports such as:
   - `from agent_platform.startup.engine_factory import EngineFactory`
   - `from agent_platform.gateways.command.local_command_gateway import LocalCommandGateway`
-  - `from agent_platform.cli.agent_cli import main`
+  - `from agent_cli.app import main`
 - keep Poetry package inclusion and script targets aligned with that namespace
 
 ### Acceptance criteria
@@ -250,7 +250,7 @@ Keep as the deployable consumer:
 Recommended smoke checks:
 
 ```bash
-cd libs/agent/platform && poetry run agent-platform skill-list
+cd domains/agent_cli && poetry run agent-platform skill-list
 cd domains/ai_backend && poetry run python -c "from ai_backend.app import create_app; create_app()"
 ```
 

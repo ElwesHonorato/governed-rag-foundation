@@ -18,4 +18,5 @@ package resources rather than repo-relative file paths.
 
 This package is library code, not a deployable service. The long-running HTTP
 backend remains `domains/ai_backend`, which should import and expose these
-services rather than reimplement them.
+services rather than reimplement them. The CLI entrypoint now lives in
+`domains/agent_cli`, keeping executable adapters out of the library package.

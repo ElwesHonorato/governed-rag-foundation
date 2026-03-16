@@ -8,9 +8,6 @@ dependencies = [
   "ai-infra @ ../../libs/agent/core",
 ]
 
-[project.scripts]
-agent-platform = "agent_platform.cli.agent_cli:main"
-
 [tool.poetry]
 packages = [{ include = "agent_platform", from = "src" }]
 include = [

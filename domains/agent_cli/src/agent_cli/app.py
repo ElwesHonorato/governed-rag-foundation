@@ -1,4 +1,4 @@
-"""Agent-platform CLI."""
+"""Process entrypoint for the agent-platform CLI."""
 
 from __future__ import annotations
 

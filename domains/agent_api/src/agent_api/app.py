@@ -8,7 +8,6 @@ from agent_api.adapters.http.application import AgentApiApplication
 from agent_api.adapters.http.web_application_factory import WebApplicationFactory
 from agent_api.settings import (
     AgentApiSettings,
-    AgentApiSettingsProvider,
 )
 from agent_platform.agent_runtime.execution_runtime_factory import (
     ExecutionRuntimeFactory,
@@ -37,7 +36,7 @@ def main() -> int:
         execution_runtime_factory=ExecutionRuntimeFactory(),
         grounded_response_factory=GroundedResponseFactory(),
     )
-    agent_api_settings: AgentApiSettings = AgentApiSettingsProvider().load()
+    agent_api_settings: AgentApiSettings = AgentApiSettings.from_env()
     agent_api_app: AgentApiApplication = WebApplicationFactory(
         settings=agent_api_settings,
         agent_app=engine_factory.build(),

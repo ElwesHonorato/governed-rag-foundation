@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
+from importlib.resources import files
 from pathlib import Path
 
-from ai_infra.registry.capability_registry import CapabilityRegistry
 from agent_platform.agent_runtime.skill_registry import SkillRegistry
-from agent_platform.registry.local_capability_catalog import (
-    load_capability_catalog,
-    load_skill_registry,
-)
+from agent_platform.agent_runtime.skill_registry import SkillDefinition
 from agent_platform.gateways.state.local_checkpoint_store import LocalCheckpointStore
 from agent_platform.gateways.state.local_run_store import LocalRunStore
 from agent_platform.gateways.state.local_session_store import LocalSessionStore
@@ -21,6 +19,11 @@ from agent_platform.startup.retrieval_composition import (
     RetrievalComposition,
     RetrievalCompositionFactory,
 )
+from ai_infra.contracts.capability_descriptor import CapabilityDescriptor
+from ai_infra.registry.capability_catalog import CapabilityCatalog
+from ai_infra.registry.capability_registry import CapabilityRegistry
+
+CONFIG_PACKAGE = "agent_platform.config"
 
 
 @dataclass(frozen=True)
@@ -85,3 +88,25 @@ class StartupAssetsFactory:
             run_store=LocalRunStore(str(state_dir / "runs")),
             checkpoint_store=LocalCheckpointStore(str(state_dir / "checkpoints")),
         )
+
+
+def load_capability_catalog() -> CapabilityCatalog:
+    """Load capability metadata from packaged config resources."""
+
+    raw_items = json.loads(files(CONFIG_PACKAGE).joinpath("capabilities.yaml").read_text())
+    return CapabilityCatalog([CapabilityDescriptor(**item) for item in raw_items])
+
+
+def load_skill_registry() -> SkillRegistry:
+    """Load skill definitions from packaged config resources."""
+
+    raw_skills = json.loads(files(CONFIG_PACKAGE).joinpath("skills.yaml").read_text())
+    return SkillRegistry(
+        {
+            skill_name: SkillDefinition(
+                name=skill_name,
+                planning_config=skill_config,
+            )
+            for skill_name, skill_config in raw_skills.items()
+        }
+    )

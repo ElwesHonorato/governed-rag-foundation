@@ -21,3 +21,9 @@ This package is library code, not a deployable service. The long-running HTTP
 backend remains `domains/agent_api`, which should import and expose these
 services rather than reimplement them. The CLI entrypoint now lives in
 `domains/agent_cli`, keeping executable adapters out of the library package.
+
+Dependency direction within `libs/agent` is strict:
+
+- `runtime_config` is independent
+- `core` is independent
+- `platform` may depend on `core` and `runtime_config`

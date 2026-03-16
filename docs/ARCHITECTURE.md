@@ -77,9 +77,10 @@ Repository structure (architecture-relevant):
 - `domains/`: deployable worker/app/governance/infra units.
 - `domains/agent_api/`: HTTP wrapper around the `agent_platform` service graph and the active RAG backend surface.
 - `domains/ai_ui/`: Flask UI/front-door that forwards prompt execution to `agent_api`.
+- `libs/agent/runtime_config/`: shared agent runtime settings package with no dependency on `core` or `platform`.
 - `libs/pipeline-common/`: shared worker/runtime abstractions and adapters.
 - `libs/agent/core/`: shared contracts, protocols, policies, registries, and orchestration services for the agent platform.
-- `libs/agent/platform/`: reusable agent runtime package with CLI, local adapters, packaged config assets, and shared RAG backend services.
+- `libs/agent/platform/`: reusable agent runtime package with local adapters, packaged config assets, and grounded-response services.
 - `docs/`: architecture and standards documentation.
 - `stack.sh` + domain compose files: local stack orchestration.
 
@@ -121,6 +122,7 @@ Editor note:
 Dependency flow:
 - `domains/*` may depend on reusable `libs/*` packages.
 - `domains/agent_api` may depend on `libs/agent/platform` and `libs/agent/core`.
+- Within `libs/agent`, `runtime_config` and `core` remain independent; `platform` may depend on both.
 - `libs/*` must not depend on `domains/*`.
 - Driver SDKs are concentrated in gateway/infrastructure adapters.
 

@@ -91,19 +91,23 @@ class EngineFactory:
         execution_runtime_factory: ExecutionRuntimeFactory,
         grounded_response_factory: GroundedResponseFactory,
     ) -> None:
-        self._startup_assets_factory = StartupAssetsFactory(
-            bootstrapper=bootstrapper,
-            retrieval_embedder=retrieval_embedder_factory.build(
-                settings.retrieval.embedding_dim
-            ),
-            local_state_stores_factory=local_state_stores_factory,
-            settings=AgentPlatformConfigFactory().build(settings),
-        )
+        self._bootstrapper = bootstrapper
+        self._retrieval_embedder_factory = retrieval_embedder_factory
+        self._local_state_stores_factory = local_state_stores_factory
+        self._settings = settings
         self._execution_runtime_factory = execution_runtime_factory
         self._grounded_response_factory = grounded_response_factory
 
     def build(self) -> Engine:
-        assets = self._startup_assets_factory.build()
+        startup_assets_factory = StartupAssetsFactory(
+            bootstrapper=self._bootstrapper,
+            retrieval_embedder=self._retrieval_embedder_factory.build(
+                self._settings.retrieval.embedding_dim
+            ),
+            local_state_stores_factory=self._local_state_stores_factory,
+            settings=AgentPlatformConfigFactory().build(self._settings),
+        )
+        assets = startup_assets_factory.build()
         gateways = self._build_gateways(assets)
         execution_runtime = self._execution_runtime_factory.build(assets, gateways)
         grounded_response_service = self._grounded_response_factory.build(assets, gateways)

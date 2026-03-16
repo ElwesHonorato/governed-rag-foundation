@@ -22,7 +22,12 @@ from agent_platform.grounded_response.grounded_response_factory import (
 from agent_platform.grounded_response.service import GroundedResponseService
 from agent_platform.gateways.state.local_run_store import LocalRunStore
 from agent_platform.gateways.state.local_session_store import LocalSessionStore
+from agent_platform.startup.bootstrap import RuntimeBootstrapper
+from agent_platform.startup.local_state_stores_factory import LocalStateStoresFactory
+from agent_platform.startup.retrieval_composition import RetrievalCompositionFactory
+from agent_platform.startup.runtime_settings import AgentPlatformConfigFactory
 from agent_platform.startup.startup_assets_factory import StartupAssetsFactory
+from agent_settings.settings import SettingsBundle
 
 
 @dataclass(frozen=True)
@@ -65,11 +70,19 @@ class EngineFactory:
     def __init__(
         self,
         *,
-        startup_assets_factory: StartupAssetsFactory,
+        bootstrapper: RuntimeBootstrapper,
+        retrieval_composition_factory: RetrievalCompositionFactory,
+        local_state_stores_factory: LocalStateStoresFactory,
+        settings: SettingsBundle,
         execution_runtime_factory: ExecutionRuntimeFactory,
         grounded_response_factory: GroundedResponseFactory,
     ) -> None:
-        self._startup_assets_factory = startup_assets_factory
+        self._startup_assets_factory = StartupAssetsFactory(
+            bootstrapper=bootstrapper,
+            retrieval_composition_factory=retrieval_composition_factory,
+            local_state_stores_factory=local_state_stores_factory,
+            settings=AgentPlatformConfigFactory().build(settings),
+        )
         self._execution_runtime_factory = execution_runtime_factory
         self._grounded_response_factory = grounded_response_factory
 

@@ -7,7 +7,7 @@ from pathlib import Path
 
 from ai_infra.registry.capability_registry import CapabilityRegistry
 from agent_platform.application.skill_registry import SkillRegistry
-from agent_platform.infrastructure.local_capability_catalog import (
+from agent_platform.registry.local_capability_catalog import (
     load_capability_catalog,
     load_skill_registry,
 )

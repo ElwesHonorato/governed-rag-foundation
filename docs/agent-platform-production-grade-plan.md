@@ -108,7 +108,8 @@ Keep as the reusable runtime library, but restore a unique package namespace:
 - subpackages:
   - `agent_platform.cli`
   - `agent_platform.startup`
-  - `agent_platform.infrastructure`
+  - `agent_platform.gateways`
+  - `agent_platform.registry`
   - `agent_platform.config` or packaged resources
 
 This is the one structural reversal recommended here. The extra package namespace is not redundant at library scope; it is what prevents generic top-level module collisions once this code is consumed outside its own project root.

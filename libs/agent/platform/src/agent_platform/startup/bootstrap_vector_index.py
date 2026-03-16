@@ -5,7 +5,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from agent_platform.infrastructure.local_embedding_fixture import DeterministicEmbeddingFixture
+from agent_platform.gateways.retrieval.deterministic_embedding_fixture import (
+    DeterministicEmbeddingFixture,
+)
 
 ALLOWED_SUFFIXES = {".md", ".py", ".toml"}
 IGNORED_PARTS = {".git", ".venv", "localdata", "__pycache__"}

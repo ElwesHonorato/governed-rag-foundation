@@ -5,10 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from agent_platform.infrastructure.bootstrap_vector_index import bootstrap_vector_index
-from agent_platform.infrastructure.local_embedding_fixture import (
+from agent_platform.gateways.retrieval.deterministic_embedding_fixture import (
     DeterministicEmbeddingFixture,
 )
+from agent_platform.startup.bootstrap_vector_index import bootstrap_vector_index
 from agent_platform.startup.contracts import AgentPlatformConfig
 
 

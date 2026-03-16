@@ -18,7 +18,6 @@ from ai_infra.services.response_validation_service import ResponseValidationServ
 from ai_infra.services.run_supervisor import RunSupervisor
 from ai_infra.services.step_result_evaluation_service import StepResultEvaluationService
 from agent_platform.application.objective_runner import ObjectiveRunner
-from agent_platform.infrastructure.local_embedding_fixture import DeterministicEmbeddingFixture
 from agent_platform.gateways.command.local_command_gateway import LocalCommandGateway
 from agent_platform.gateways.filesystem.local_filesystem_gateway import (
     LocalFilesystemGateway,
@@ -26,6 +25,9 @@ from agent_platform.gateways.filesystem.local_filesystem_gateway import (
 from agent_platform.gateways.llm.local_model_gateway import LocalModelGateway
 from agent_platform.gateways.prompts.local_prompt_repository import (
     LocalPromptRepository,
+)
+from agent_platform.gateways.retrieval.deterministic_embedding_fixture import (
+    DeterministicEmbeddingFixture,
 )
 from agent_platform.gateways.retrieval.local_vector_search import LocalVectorSearch
 from agent_platform.startup.startup_assets_factory import StartupAssets

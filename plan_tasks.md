@@ -407,7 +407,7 @@ Acceptance:
 - `domains/agent_platform/src/infrastructure/local_filesystem_adapter.py`
 - `domains/agent_platform/src/infrastructure/local_vector_search.py`
 - `domains/agent_platform/src/infrastructure/bootstrap_vector_index.py`
-- `domains/agent_platform/src/infrastructure/local_embedding_fixture.py`
+- `libs/agent/platform/src/agent_platform/gateways/retrieval/deterministic_embedding_fixture.py`
 - `domains/agent_platform/src/infrastructure/local_prompt_repository.py`
 - `domains/agent_platform/src/infrastructure/local_session_store.py`
 - `domains/agent_platform/src/infrastructure/local_checkpoint_store.py`

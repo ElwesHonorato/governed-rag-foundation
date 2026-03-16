@@ -17,20 +17,20 @@ Best practices:
 
 from flask import Flask
 
-from ai_infra.ai_backend_client import AiBackendClient
+from ai_infra.agent_api_client import AgentApiClient
 from runtime.provider import SettingsProvider, SettingsRequest
 from ai_ui.routes import register_routes
 
 
 def create_app() -> Flask:
-    settings = SettingsProvider(SettingsRequest(frontend_ai_backend=True)).bundle.frontend_ai_backend
-    ai_backend_client = AiBackendClient(
-        base_url=settings.ai_backend_url,
-        timeout_seconds=settings.ai_backend_timeout_seconds,
+    settings = SettingsProvider(SettingsRequest(frontend_agent_api=True)).bundle.frontend_agent_api
+    agent_api_client = AgentApiClient(
+        base_url=settings.agent_api_url,
+        timeout_seconds=settings.agent_api_timeout_seconds,
     )
 
     app = Flask(__name__)
-    register_routes(app=app, settings=settings, ai_backend_client=ai_backend_client)
+    register_routes(app=app, settings=settings, agent_api_client=agent_api_client)
     return app
 
 

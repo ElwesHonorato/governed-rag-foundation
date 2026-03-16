@@ -2,7 +2,7 @@
 
 ## Current Repository State Summary
 - Repository provides local-stack scaffolding and two runtime services:
-- `domains/ai_ui`: Flask UI exposing `/`, `/ui`, and `/prompt`; prompt execution is forwarded to `domains/ai_backend` (`domains/ai_ui/src/ai_ui/routes.py`, `domains/ai_backend/src/ai_backend/routes.py`).
+- `domains/ai_ui`: Flask UI exposing `/`, `/ui`, and `/prompt`; prompt execution is forwarded to `domains/agent_api` (`domains/ai_ui/src/ai_ui/routes.py`, `domains/agent_api/src/agent_api/adapters/http`).
 - `domains/worker_*`: isolated pipeline worker stages for scan, parse, chunk, embed, index, manifest, and metrics (`domains/worker_*/docker-compose.yml`).
 - Infrastructure domains are defined for MinIO, Weaviate, Redis, Marquez, Ollama, and app services (`domains/*/docker-compose.yml`), but most domain capabilities are not yet integrated into business logic.
 - No automated test suite is present in application code; acceptance criteria are documented but not executable (`docs/requirements/80-testing-acceptance/acceptance-criteria-global-logistics-hub.md`).
@@ -14,10 +14,10 @@ Legend: `Covered` = implemented and traceable in code, `Partial` = scaffolded/in
 | Requirement ID | Requirement Summary | Current Coverage | Evidence in Repository | Gap Notes |
 |---|---|---|---|---|
 | FR-01 | Unified ingestion across unstructured/structured/streaming/APIs/DB | Partial | `domains/worker_scan/src/app.py`, `domains/worker_parse_document/src/app.py` | Current implementation covers S3-driven document flow only; SharePoint/SAP/Oracle/Kafka/Flink/API/DB connectors are still missing. |
-| FR-02 | Retrieval for delays/contracts/IoT | Partial | `domains/ai_backend/src/ai_backend/routes.py`, `libs/agent/platform/src/agent_platform/rag/service.py` | Retrieval exists behind `ai_backend`, but domain-specific retrieval behavior is still limited. |
-| FR-03 | Multimodal query support (text/tables/images) | Missing | `domains/ai_ui/src/ai_ui/routes.py`, `domains/ai_backend/src/ai_backend/routes.py` | No multimodal request contract or processing pipeline. |
+| FR-02 | Retrieval for delays/contracts/IoT | Partial | `domains/agent_api/src/agent_api/adapters/http`, `libs/agent/platform/src/agent_platform/rag/service.py` | Retrieval exists behind `agent_api`, but domain-specific retrieval behavior is still limited. |
+| FR-03 | Multimodal query support (text/tables/images) | Missing | `domains/ai_ui/src/ai_ui/routes.py`, `domains/agent_api/src/agent_api/adapters/http` | No multimodal request contract or processing pipeline. |
 | FR-04 | Metadata-filtered retrieval (`source_type`, `timestamp`, domain) | Missing | `libs/agent/platform/src/agent_platform/gateways/retrieval/weaviate_retrieval_client.py` | No metadata filter handling in backend retrieval queries. |
-| NFR-01 | 1,000+ concurrent users | Missing | `domains/ai_ui/src/ai_ui/app.py`, `domains/ai_backend/src/ai_backend/app.py` | Both services still use simple built-in servers without load/perf controls. |
+| NFR-01 | 1,000+ concurrent users | Missing | `domains/ai_ui/src/ai_ui/app.py`, `domains/agent_api/src/agent_api/app.py` | Both services still use simple built-in servers without load/perf controls. |
 | NFR-02 | Hybrid retrieval (BM25 + semantic) | Missing | `domains/infra_vector/docker-compose.yml` | Weaviate deployed but no hybrid retrieval logic implemented. |
 | NFR-03 | Caching for latency/cost optimization | Missing | `domains/infra_queue/docker-compose.yml` | Redis deployed but unused in app logic. |
 | NFR-04 | Reliability under peak/degraded upstream | Partial | `libs/agent/platform/src/agent_platform/llm/ollama_client.py` | Basic retry exists for LLM failures, but there is no broader resilience policy. |
@@ -34,7 +34,7 @@ Legend: `Covered` = implemented and traceable in code, `Partial` = scaffolded/in
 | D-04 | Cross-modal embeddings + late-interaction evaluation | Missing | N/A in app code | No embedding service or evaluation harness. |
 | D-05 | Metadata enrichment (`source_type`, `timestamp`, `security_clearance`) | Missing | N/A in app code | Metadata schema not enforced in pipeline/indexing. |
 | SEC-01 | PII/PHI masking before vectorization | Missing | N/A in app code | No detection/masking stage before persistence. |
-| SEC-02 | RBAC authorization by user/document | Missing | `domains/ai_ui/src/ai_ui/routes.py`, `domains/ai_backend/src/ai_backend/routes.py` | No authn/authz stack. |
+| SEC-02 | RBAC authorization by user/document | Missing | `domains/ai_ui/src/ai_ui/routes.py`, `domains/agent_api/src/agent_api/adapters/http` | No authn/authz stack. |
 | SEC-03 | Query-time authorization filters | Missing | N/A in app code | No security metadata filter layer in retrieval. |
 | AC-01 | Ingestion coverage for all source classes | Missing | `domains/worker_scan/src/app.py` | Current ingestion remains limited to S3-driven processing. |
 | AC-02 | Canonical data normalization | Missing | N/A in app code | No canonical mapping validation. |
@@ -106,7 +106,7 @@ Status legend: `P0` immediate, `P1` near-term, `P2` follow-on.
 - Outputs: role model, policy engine integration, enforcement middleware.
 12. Replace direct `/prompt` proxy with grounded answer pipeline (retrieve, cite, generate, confidence-score, defer on low confidence).
 - Dependencies: Steps 10 and 11.
-- Outputs: revised `ai_ui` to `ai_backend` endpoint and citation payload contract.
+- Outputs: revised `ai_ui` to `agent_api` endpoint and citation payload contract.
 13. Add caching strategy (Redis) for frequent query patterns and retrieval artifacts.
 - Dependencies: Steps 10 and 12.
 - Outputs: cache keys/TTL policy, hit-rate and latency telemetry.

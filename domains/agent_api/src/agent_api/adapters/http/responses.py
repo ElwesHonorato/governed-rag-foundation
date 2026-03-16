@@ -1,11 +1,11 @@
-"""JSON response construction for the AI backend."""
+"""JSON response construction for the agent API."""
 
 from __future__ import annotations
 
 import json
 from http import HTTPStatus
 
-from ai_backend.adapters.http.http_types import JsonValue, StartResponse
+from agent_api.adapters.http.http_types import JsonValue, StartResponse
 
 
 class JsonResponse:

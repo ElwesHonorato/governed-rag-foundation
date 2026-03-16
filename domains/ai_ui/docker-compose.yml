@@ -6,8 +6,8 @@ services:
     ports:
       - "${AI_UI_PORT:?AI_UI_PORT is required}:8000"
     environment:
-      AI_BACKEND_URL: ${AI_BACKEND_URL:-http://ai-backend:8010}
-      AI_BACKEND_TIMEOUT_SECONDS: ${AI_BACKEND_TIMEOUT_SECONDS:-30}
+      AGENT_API_URL: ${AGENT_API_URL:-http://agent-api:8010}
+      AGENT_API_TIMEOUT_SECONDS: ${AGENT_API_TIMEOUT_SECONDS:-30}
 
 networks:
   default:

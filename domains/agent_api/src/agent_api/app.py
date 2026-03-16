@@ -1,11 +1,11 @@
-"""Process startup for the AI backend service."""
+"""Process startup for the agent API service."""
 
 from __future__ import annotations
 
 from wsgiref.simple_server import make_server
 
-from ai_backend.adapters.http.web_application_factory import WebApplicationFactory
-from ai_backend.engine_factory import Engine, EngineFactory
+from agent_api.adapters.http.web_application_factory import WebApplicationFactory
+from agent_api.engine_factory import Engine, EngineFactory
 from agent_platform.application.execution_runtime_factory import ExecutionRuntimeFactory
 from agent_platform.rag.rag_runtime_factory import RagRuntimeFactory
 from agent_platform.startup.bootstrap import RuntimeBootstrapper
@@ -15,7 +15,7 @@ from runtime.provider import SettingsProvider, SettingsRequest
 
 
 def main() -> int:
-    settings = SettingsProvider(SettingsRequest(backend_ai_backend=True)).bundle.backend_ai_backend
+    settings = SettingsProvider(SettingsRequest(agent_api=True)).bundle.agent_api
     engine_factory = EngineFactory(
         startup_assets_factory=StartupAssetsFactory(
             bootstrapper=RuntimeBootstrapper(),

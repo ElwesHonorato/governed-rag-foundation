@@ -1,4 +1,4 @@
-"""Shared HTTP types for the AI backend WSGI app."""
+"""Shared HTTP types for the agent API WSGI app."""
 
 from __future__ import annotations
 

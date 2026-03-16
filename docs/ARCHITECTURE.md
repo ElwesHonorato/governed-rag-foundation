@@ -40,9 +40,9 @@ Separation of concerns:
 - Worker runtime path: `domains/worker_*` + `libs/pipeline-common`.
 - Governance path: `domains/gov_governance`.
 - App path: `domains/app_*`.
-- Agent platform path: `libs/agent/platform` + `domains/ai_backend` + `libs/agent/core`.
+- Agent platform path: `libs/agent/platform` + `domains/agent_api` + `libs/agent/core`.
 - Local infra path: `domains/infra_*` + `stack.sh`.
-- RAG app split: `domains/ai_ui` is the UI/front door and `domains/ai_backend` is the retrieval/LLM backend.
+- RAG app split: `domains/ai_ui` is the UI/front door and `domains/agent_api` is the retrieval/LLM backend.
 
 # 3. Architectural Overview
 
@@ -75,8 +75,8 @@ Why chosen:
 
 Repository structure (architecture-relevant):
 - `domains/`: deployable worker/app/governance/infra units.
-- `domains/ai_backend/`: HTTP wrapper around the `agent_platform` service graph and the active RAG backend surface.
-- `domains/ai_ui/`: Flask UI/front-door that forwards prompt execution to `ai_backend`.
+- `domains/agent_api/`: HTTP wrapper around the `agent_platform` service graph and the active RAG backend surface.
+- `domains/ai_ui/`: Flask UI/front-door that forwards prompt execution to `agent_api`.
 - `libs/pipeline-common/`: shared worker/runtime abstractions and adapters.
 - `libs/agent/core/`: shared contracts, protocols, policies, registries, and orchestration services for the agent platform.
 - `libs/agent/platform/`: reusable agent runtime package with CLI, local adapters, packaged config assets, and shared RAG backend services.
@@ -95,7 +95,7 @@ Architecture document index (central references):
 - `domains/worker_embed_chunks/docs/ARCHITECTURE.md`
 - `domains/worker_index_weaviate/docs/ARCHITECTURE.md`
 - `domains/ai_ui/docs/ARCHITECTURE.md`
-- `domains/ai_backend/docs/ARCHITECTURE.md`
+- `domains/agent_api/docs/ARCHITECTURE.md`
 - `domains/app_vector_ui/docs/ARCHITECTURE.md`
 - `libs/agent/core/`
 - `libs/agent/platform/docs/ARCHITECTURE.md`
@@ -120,7 +120,7 @@ Editor note:
 
 Dependency flow:
 - `domains/*` may depend on reusable `libs/*` packages.
-- `domains/ai_backend` may depend on `libs/agent/platform` and `libs/agent/core`.
+- `domains/agent_api` may depend on `libs/agent/platform` and `libs/agent/core`.
 - `libs/*` must not depend on `domains/*`.
 - Driver SDKs are concentrated in gateway/infrastructure adapters.
 

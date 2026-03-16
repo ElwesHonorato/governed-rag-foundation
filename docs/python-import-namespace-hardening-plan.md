@@ -29,7 +29,7 @@ The repository now has two different states:
 1. Safe package-shaped projects
 - `libs/agent/core`
 - `libs/pipeline-common` at the import level
-- `domains/ai_backend`
+- `domains/agent_api`
 - `domains/ai_ui`
 - `domains/app_vector_ui`
 - `domains/llm_orchestration`
@@ -147,7 +147,7 @@ Today the repo mixes three patterns:
 
 Examples:
 - `libs/agent/core/src/ai_infra`
-- `domains/ai_backend/src/ai_backend`
+- `domains/agent_api/src/agent_api`
 - `domains/ai_ui/src/ai_ui`
 
 This is structurally safe.
@@ -188,7 +188,7 @@ src/<unique_package_name>/
 Examples:
 - `src/ai_infra/`
 - `src/agent_platform/`
-- `src/ai_backend/`
+- `src/agent_api/`
 
 Forbidden for reusable packages:
 - `src/startup/`
@@ -267,7 +267,7 @@ libs/agent/platform/src/agent_platform/
 ### Apps and worker domains
 
 ```text
-domains/ai_backend/src/ai_backend/
+domains/agent_api/src/agent_api/
 domains/ai_ui/src/ai_ui/
 domains/app_vector_ui/src/vector_ui/
 domains/gov_governance/src/gov_governance/
@@ -323,7 +323,7 @@ libs/agent/platform/src/agent_platform/
 Update:
 - `libs/agent/platform/pyproject.toml`
 - all imports to `agent_platform.*`
-- `domains/ai_backend` imports to `agent_platform.*`
+- `domains/agent_api` imports to `agent_platform.*`
 - docs and tests
 
 Why first:
@@ -456,12 +456,12 @@ Remove examples that normalize:
 
 ## Phase 1
 
-Fix `libs/agent/platform` and `domains/ai_backend`.
+Fix `libs/agent/platform` and `domains/agent_api`.
 
 Acceptance criteria:
 - `agent_platform` package root restored
 - no `from startup` or `from infrastructure` under `libs/agent/platform`
-- no `from startup` imports inside `domains/ai_backend`
+- no `from startup` imports inside `domains/agent_api`
 
 ## Phase 2
 

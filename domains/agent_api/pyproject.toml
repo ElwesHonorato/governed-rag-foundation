@@ -1,7 +1,7 @@
 [project]
-name = "ai-backend"
+name = "agent-api"
 version = "0.1.0"
-description = "HTTP backend for the agent platform"
+description = "HTTP API for the agent platform"
 authors = [{ name = "Governed RAG Foundation" }]
 requires-python = "==3.11.14"
 dependencies = [
@@ -10,10 +10,10 @@ dependencies = [
 ]
 
 [project.scripts]
-ai-backend = "ai_backend.app:main"
+agent-api = "agent_api.app:main"
 
 [tool.poetry]
-packages = [{ include = "ai_backend", from = "src" }]
+packages = [{ include = "agent_api", from = "src" }]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

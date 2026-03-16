@@ -20,7 +20,7 @@ readonly DOMAINS=(
   infra_llm
   ai_ui
   app_vector_ui
-  ai_backend
+  agent_api
   worker_scan
   worker_parse_document
   worker_chunk_text

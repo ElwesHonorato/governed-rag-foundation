@@ -1,25 +1,25 @@
-# AI UI To AI Backend Migration Plan
+# AI UI To Agent API Migration Plan
 
 ## Decision
 
 Adopt this target architecture:
 
 - `domains/ai_ui` becomes the UI-only application shell.
-- `domains/ai_backend` becomes the long-running backend service for RAG and agent operations.
+- `domains/agent_api` becomes the long-running backend service for RAG and agent operations.
 - `libs/agent/platform` owns reusable backend logic:
   - LLM gateway/client code
   - vector retrieval code
   - RAG orchestration services
   - agent runtime orchestration
 
-Do not create a second long-running service for `agent_platform`. Keep it as a library package and let `ai_backend` remain the only backend container in this area.
+Do not create a second long-running service for `agent_platform`. Keep it as a library package and let `agent_api` remain the only backend container in this area.
 
 ## Why
 
 Current state is split incorrectly for the intended future:
 
 - `ai_ui` currently owns UI, request normalization, retrieval, and LLM orchestration.
-- `ai_backend` currently owns only generic agent-run transport.
+- `agent_api` currently owns only generic agent-run transport.
 - `agent_platform` does not yet own the RAG backend behavior that should be reusable.
 
 That shape causes three problems:
@@ -44,13 +44,13 @@ That shape causes three problems:
 
 This means `ai_ui` is not a UI shell. It is currently the real backend.
 
-### `ai_backend` is not yet the product backend
+### `agent_api` is not yet the product backend
 
-- `[routes.py](/home/sultan/repos/governed-rag-foundation/domains/ai_backend/src/ai_backend/routes.py)` exposes generic endpoints such as `/capabilities`, `/skills`, `/runs`, and `/evaluations`.
+- the agent API exposes generic endpoints such as `/capabilities`, `/skills`, `/runs`, and `/evaluations` through its HTTP adapter package.
 - It does not expose a RAG query endpoint for the existing UI flow.
 - It does not currently own Weaviate-backed retrieval behavior.
 
-So `ai_backend` is deployable, but not yet the backend that `ai_ui` can depend on for its main product flow.
+So `agent_api` is deployable, but not yet the backend that `ai_ui` can depend on for its main product flow.
 
 ### `ai_ui` contains policy drift
 
@@ -82,7 +82,7 @@ This package becomes the reusable backend implementation. Add or formalize these
 
 This code must be backend-only and transport-agnostic. No Flask route logic, template logic, or UI behavior belongs here.
 
-### `domains/ai_backend`
+### `domains/agent_api`
 
 This remains the single long-running backend service and exposes two backend families:
 
@@ -96,7 +96,7 @@ Add a dedicated RAG API surface, for example:
   - `POST /rag/chat`
   - `GET /rag/health`
 
-`ai_backend` should translate HTTP into library calls and nothing more. It should not absorb retrieval or prompt logic directly into its route layer.
+`agent_api` should translate HTTP into library calls and nothing more. It should not absorb retrieval or prompt logic directly into its route layer.
 
 ### `domains/ai_ui`
 
@@ -104,7 +104,7 @@ This becomes the UI shell:
 
 - render the UI
 - accept browser/user input
-- call `ai_backend` over HTTP
+- call `agent_api` over HTTP
 - present backend responses
 
 After migration it should no longer:
@@ -175,14 +175,14 @@ Expected result:
 
 - `agent_platform` can execute the current UI-originated retrieval flow without importing `ai_ui`
 
-### Phase 2: Extend `ai_backend` with RAG endpoints
+### Phase 2: Extend `agent_api` with RAG endpoints
 
 Add a backend route that delegates into the new `agent_platform.rag` service.
 
 Required work:
 
-- extend `[routes.py](/home/sultan/repos/governed-rag-foundation/domains/ai_backend/src/ai_backend/routes.py)`
-- extend `[config.py](/home/sultan/repos/governed-rag-foundation/domains/ai_backend/src/ai_backend/config.py)` if needed
+- extend the HTTP adapter in `domains/agent_api/src/agent_api/adapters/http`
+- extend runtime config wiring if needed
 - extend service startup/wiring to include the new RAG service
 
 Required config adoption:
@@ -194,11 +194,11 @@ Required config adoption:
 - `EMBEDDING_DIM`
 - `WEAVIATE_QUERY_DEFAULTS_LIMIT`
 
-Those should move into `agent_platform` config extraction, then be consumed by `ai_backend`.
+Those should move into `agent_platform` config extraction, then be consumed by `agent_api`.
 
 Expected result:
 
-- `ai_backend` can serve the same prompt/chat behavior currently implemented by `ai_ui`
+- `agent_api` can serve the same prompt/chat behavior currently implemented by `ai_ui`
 
 ### Phase 3: Convert `ai_ui` into a UI client
 
@@ -212,7 +212,7 @@ Delete from `ai_ui`:
 
 Add instead:
 
-- a small HTTP client to `ai_backend`
+- a small HTTP client to `agent_api`
 - request/response mapping for the UI
 
 Keep in `ai_ui`:
@@ -224,7 +224,7 @@ Keep in `ai_ui`:
 
 Expected result:
 
-- `ai_ui` is now a frontend shell over `ai_backend`
+- `ai_ui` is now a frontend shell over `agent_api`
 
 ### Phase 4: Delete obsolete backend code from `ai_ui`
 
@@ -234,7 +234,7 @@ Once the UI is cut over, remove:
 - `[retrieval_client.py](/home/sultan/repos/governed-rag-foundation/domains/ai_ui/src/ai_ui/retrieval_client.py)`
 - `[services/prompt_service.py](/home/sultan/repos/governed-rag-foundation/domains/ai_ui/src/ai_ui/services/prompt_service.py)`
 
-Also simplify `[config.py](/home/sultan/repos/governed-rag-foundation/domains/ai_ui/src/ai_ui/config.py)` so it only contains frontend/UI-service settings plus the backend URL for `ai_backend`.
+Also simplify the UI config so it only contains frontend/UI-service settings plus the backend URL for `agent_api`.
 
 Expected result:
 
@@ -244,7 +244,7 @@ Expected result:
 
 Keep the runtime model simple:
 
-- `ai_backend` runs as the backend container under `stack.sh`
+- `agent_api` runs as the backend container under `stack.sh`
 - `ai_ui` runs as the UI container under `stack.sh`
 - `agent_platform` remains a library package with no separate container
 
@@ -254,7 +254,7 @@ That gives one frontend service and one backend service, not two backends with o
 
 ### Backend-owned config
 
-These belong to the backend side and should be consumed by `agent_platform` via `ai_backend`:
+These belong to the backend side and should be consumed by `agent_platform` via `agent_api`:
 
 - `LLM_URL`
 - `LLM_MODEL`
@@ -267,16 +267,16 @@ These belong to the backend side and should be consumed by `agent_platform` via 
 
 `ai_ui` should eventually need only:
 
-- `AI_BACKEND_URL` or equivalent backend base URL
+- `AGENT_API_URL` or equivalent backend base URL
 - UI-specific settings if any
 
 It should no longer need direct vector DB or LLM credentials/settings.
 
 ## Risks
 
-1. `ai_backend` may become a dumping ground.
+1. `agent_api` may become a dumping ground.
 
-Do not solve this by moving prompt logic into HTTP routes. Keep `ai_backend` thin and move logic into `agent_platform`.
+Do not solve this by moving prompt logic into HTTP routes. Keep `agent_api` thin and move logic into `agent_platform`.
 
 2. `agent_platform` may become too generic too early.
 
@@ -296,9 +296,9 @@ The migration is complete only when all of the following are true:
 
 - `ai_ui` no longer imports or constructs LLM or retrieval clients for the main chat flow
 - `ai_ui` no longer contains prompt orchestration logic
-- `ai_backend` exposes a stable RAG endpoint used by `ai_ui`
+- `agent_api` exposes a stable RAG endpoint used by `ai_ui`
 - `agent_platform` owns reusable LLM, retrieval, and RAG orchestration code
-- backend infra config is owned by `ai_backend` and `agent_platform`, not by the UI shell
+- backend infra config is owned by `agent_api` and `agent_platform`, not by the UI shell
 - old `prompt` compatibility fallback is removed
 - docs and stack instructions reflect the new boundary
 
@@ -306,8 +306,8 @@ The migration is complete only when all of the following are true:
 
 1. Extract LLM and retrieval adapters into `agent_platform`
 2. Extract prompt orchestration into `agent_platform.rag`
-3. Add `POST /rag/query` to `ai_backend`
-4. Cut `ai_ui` over to HTTP calls into `ai_backend`
+3. Add `POST /rag/query` to `agent_api`
+4. Cut `ai_ui` over to HTTP calls into `agent_api`
 5. Delete old backend code from `ai_ui`
 6. Update docs and stack env contracts
 
@@ -316,6 +316,6 @@ The migration is complete only when all of the following are true:
 Do not do these in the same change unless they are independently required:
 
 - replacing Flask in `ai_ui`
-- replacing the WSGI stack in `ai_backend`
+- replacing the WSGI stack in `agent_api`
 - inventing a second backend service for `agent_platform`
 - preserving old request payload formats

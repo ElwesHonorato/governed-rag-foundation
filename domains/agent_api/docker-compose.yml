@@ -1,13 +1,13 @@
 services:
-  ai-backend:
+  agent-api:
     build:
       context: .
-      dockerfile: ./domains/ai_backend/Dockerfile
+      dockerfile: ./domains/agent_api/Dockerfile
     ports:
-      - "${AI_BACKEND_PORT:-8010}:8010"
+      - "${AGENT_API_PORT:-8010}:8010"
     environment:
-      AI_BACKEND_HOST: ${AI_BACKEND_HOST:-0.0.0.0}
-      AI_BACKEND_PORT: ${AI_BACKEND_PORT:-8010}
+      AGENT_API_HOST: ${AGENT_API_HOST:-0.0.0.0}
+      AGENT_API_PORT: ${AGENT_API_PORT:-8010}
       AGENT_PLATFORM_WORKSPACE_ROOT: /workspace
       LLM_URL: ${LLM_URL:?LLM_URL is required}
       LLM_MODEL: ${LLM_MODEL:?LLM_MODEL is required}

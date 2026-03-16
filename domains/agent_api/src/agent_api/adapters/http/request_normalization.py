@@ -1,4 +1,4 @@
-"""WSGI request normalization for the AI backend."""
+"""WSGI request normalization for the agent API."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass
 from typing import Any, cast
 
-from ai_backend.adapters.http.http_types import WsgiEnv
+from agent_api.adapters.http.http_types import WsgiEnv
 
 
 @dataclass(slots=True)

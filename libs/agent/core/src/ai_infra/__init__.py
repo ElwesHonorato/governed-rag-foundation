@@ -1,5 +1,5 @@
 """Core primitives for the agent-platform MVP."""
 
-from ai_infra.ai_backend_client import AiBackendClient
+from ai_infra.agent_api_client import AgentApiClient
 
-__all__ = ["AiBackendClient"]
+__all__ = ["AgentApiClient"]

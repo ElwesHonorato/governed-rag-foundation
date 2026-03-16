@@ -1,12 +1,12 @@
 
 from flask import Flask, jsonify, render_template, request
 
-from ai_infra.ai_backend_client import AiBackendClient
-from runtime.provider import FrontendAIBackendSettings
+from ai_infra.agent_api_client import AgentApiClient
+from runtime.provider import FrontendAgentApiSettings
 
 
 def register_routes(
-    *, app: Flask, settings: FrontendAIBackendSettings, ai_backend_client: AiBackendClient
+    *, app: Flask, settings: FrontendAgentApiSettings, agent_api_client: AgentApiClient
 ) -> None:
 
     @app.get("/")
@@ -27,7 +27,7 @@ def register_routes(
     def prompt():
         payload = request.get_json(silent=True) or {}
         try:
-            response, status_code = ai_backend_client.query(payload)
+            response, status_code = agent_api_client.query(payload)
         except RuntimeError as exc:
             return jsonify({"error": str(exc)}), 502
         return jsonify(response), status_code

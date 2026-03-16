@@ -19,19 +19,19 @@ from dataclasses import asdict, dataclass
 
 
 @dataclass(frozen=True)
-class FrontendAIBackendSettings:
-    """Frontend-facing settings for calling the AI backend service."""
+class FrontendAgentApiSettings:
+    """Frontend-facing settings for calling the agent API service."""
 
-    ai_backend_url: str
-    ai_backend_timeout_seconds: int
+    agent_api_url: str
+    agent_api_timeout_seconds: int
 
     def dependencies_payload(self) -> dict[str, str]:
-        return {"ai_backend": self.ai_backend_url}
+        return {"agent_api": self.agent_api_url}
 
 
 @dataclass(frozen=True)
-class BackendAIBackendSettings:
-    """Backend-facing settings for exposing the AI backend service."""
+class AgentApiSettings:
+    """Settings for exposing the agent API service."""
 
     host: str
     port: int
@@ -45,31 +45,31 @@ class BackendAIBackendSettings:
 class SettingsRequest:
     """Requested runtime settings to load from environment."""
 
-    frontend_ai_backend: bool = False
-    backend_ai_backend: bool = False
+    frontend_agent_api: bool = False
+    agent_api: bool = False
 
 
 @dataclass(frozen=True)
 class SettingsBundle:
     """Bundle of loaded settings based on a requested scope."""
 
-    frontend_ai_backend: FrontendAIBackendSettings | None = None
-    backend_ai_backend: BackendAIBackendSettings | None = None
+    frontend_agent_api: FrontendAgentApiSettings | None = None
+    agent_api: AgentApiSettings | None = None
 
 
-def load_frontend_ai_backend_settings_from_env() -> FrontendAIBackendSettings:
-    """Load frontend settings for calling the AI backend service."""
-    return FrontendAIBackendSettings(
-        ai_backend_url=_required_env("AI_BACKEND_URL"),
-        ai_backend_timeout_seconds=_required_int_env("AI_BACKEND_TIMEOUT_SECONDS"),
+def load_frontend_agent_api_settings_from_env() -> FrontendAgentApiSettings:
+    """Load frontend settings for calling the agent API service."""
+    return FrontendAgentApiSettings(
+        agent_api_url=_required_env("AGENT_API_URL"),
+        agent_api_timeout_seconds=_required_int_env("AGENT_API_TIMEOUT_SECONDS"),
     )
 
 
-def load_backend_ai_backend_settings_from_env() -> BackendAIBackendSettings:
-    """Load backend settings for exposing the AI backend service."""
-    return BackendAIBackendSettings(
-        host=_required_env("AI_BACKEND_HOST"),
-        port=_required_int_env("AI_BACKEND_PORT"),
+def load_agent_api_settings_from_env() -> AgentApiSettings:
+    """Load settings for exposing the agent API service."""
+    return AgentApiSettings(
+        host=_required_env("AGENT_API_HOST"),
+        port=_required_int_env("AGENT_API_PORT"),
     )
 
 
@@ -80,22 +80,22 @@ class SettingsProvider:
         self._request = request
 
     @property
-    def frontend_ai_backend(self) -> FrontendAIBackendSettings | None:
-        if not self._request.frontend_ai_backend:
+    def frontend_agent_api(self) -> FrontendAgentApiSettings | None:
+        if not self._request.frontend_agent_api:
             return None
-        return load_frontend_ai_backend_settings_from_env()
+        return load_frontend_agent_api_settings_from_env()
 
     @property
-    def backend_ai_backend(self) -> BackendAIBackendSettings | None:
-        if not self._request.backend_ai_backend:
+    def agent_api(self) -> AgentApiSettings | None:
+        if not self._request.agent_api:
             return None
-        return load_backend_ai_backend_settings_from_env()
+        return load_agent_api_settings_from_env()
 
     @property
     def bundle(self) -> SettingsBundle:
         return SettingsBundle(
-            frontend_ai_backend=self.frontend_ai_backend,
-            backend_ai_backend=self.backend_ai_backend,
+            frontend_agent_api=self.frontend_agent_api,
+            agent_api=self.agent_api,
         )
 
 

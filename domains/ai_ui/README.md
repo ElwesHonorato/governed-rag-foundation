@@ -1,6 +1,6 @@
 # ai_ui domain
 
-This domain is the UI/front-door of the AI system. It receives browser or client requests and forwards prompt execution to `ai_backend`.
+This domain is the UI/front-door of the AI system. It receives browser or client requests and forwards prompt execution to `agent_api`.
 
 ## Deep Dive
 
@@ -9,12 +9,12 @@ This domain is the UI/front-door of the AI system. It receives browser or client
 
 ### How it contributes to RAG
 - Accepts prompt requests from clients.
-- Forwards prompt execution to `ai_backend`.
+- Forwards prompt execution to `agent_api`.
 - Returns the backend response to the caller.
 
 ### Runtime dependencies
-- `AI_BACKEND_URL` for the backend service.
-- `AI_BACKEND_TIMEOUT_SECONDS`.
+- `AGENT_API_URL` for the backend service.
+- `AGENT_API_TIMEOUT_SECONDS`.
 - `AI_UI_PORT` for the published container port.
 - `STACK_NETWORK` for the shared Docker network.
 

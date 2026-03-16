@@ -1,18 +1,18 @@
-# AI Backend
+# Agent API
 
-Thin HTTP backend domain for the `agent_platform` runtime.
+Thin HTTP API domain for the `agent_platform` runtime.
 
 Local stack path:
 
 ```bash
-./stack.sh up ai_backend --build
-./stack.sh logs ai_backend
+./stack.sh up agent_api --build
+./stack.sh logs agent_api
 ```
 
 Required environment:
 
-- `AI_BACKEND_HOST`
-- `AI_BACKEND_PORT`
+- `AGENT_API_HOST`
+- `AGENT_API_PORT`
 - `AGENT_PLATFORM_WORKSPACE_ROOT` (container default `/workspace`)
 - `LLM_URL`
 - `LLM_MODEL`
@@ -30,7 +30,7 @@ Container runtime contract:
 
 - the repo is mounted at `/workspace`
 - `AGENT_PLATFORM_WORKSPACE_ROOT=/workspace`
-- the API listens on `${AI_BACKEND_HOST}:${AI_BACKEND_PORT}`
+- the API listens on `${AGENT_API_HOST}:${AGENT_API_PORT}`
 
 Primary endpoints:
 

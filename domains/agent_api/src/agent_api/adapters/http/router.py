@@ -1,16 +1,16 @@
-"""Explicit route dispatch for the AI backend."""
+"""Explicit route dispatch for the agent API."""
 
 from __future__ import annotations
 
-from ai_backend.adapters.http.handlers import AiBackendHandlers
-from ai_backend.adapters.http.request_normalization import NormalizedRequest
-from ai_backend.adapters.http.responses import JsonResponse
+from agent_api.adapters.http.handlers import AgentApiHandlers
+from agent_api.adapters.http.request_normalization import NormalizedRequest
+from agent_api.adapters.http.responses import JsonResponse
 
 
-class AiBackendRouter:
-    """Explicit route dispatch for the AI backend."""
+class AgentApiRouter:
+    """Explicit route dispatch for the agent API."""
 
-    def __init__(self, *, handlers: AiBackendHandlers) -> None:
+    def __init__(self, *, handlers: AgentApiHandlers) -> None:
         self._handlers = handlers
 
     def dispatch(self, request: NormalizedRequest) -> JsonResponse:

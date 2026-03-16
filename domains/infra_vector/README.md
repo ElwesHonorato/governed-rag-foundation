@@ -9,7 +9,7 @@ This domain is the retrieval engine. It stores chunk vectors and metadata so the
 
 ### How it contributes to RAG
 - Stores `DocumentChunk` vectors and metadata.
-- Supports retrieval for grounded prompting in `ai_backend`.
+- Supports retrieval for grounded prompting in `agent_api`.
 - Receives upserts from `worker_index_weaviate`.
 
 ### Runtime dependencies

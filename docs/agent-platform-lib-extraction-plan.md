@@ -7,7 +7,7 @@
 ## Current State
 
 - reusable agent runtime code lives in `libs/agent/platform`
-- `domains/ai_backend` consumes it as a package dependency
+- `domains/agent_api` consumes it as a package dependency
 - `domains/agent_platform` has been removed
 - the current source layout is:
   - `libs/agent/platform/src/agent_platform/cli`
@@ -76,7 +76,7 @@ Required checks:
 - install `libs/agent/platform` from its own directory
 - run the CLI after install
 - instantiate the service factory with explicit environment
-- run `domains/ai_backend` against the installed package
+- run `domains/agent_api` against the installed package
 
 Stronger optional check:
 - install the package from a temporary directory outside the repo
@@ -87,7 +87,7 @@ Stronger optional check:
 Keep this split:
 - `libs/agent/core` as the lower-level shared runtime library
 - `libs/agent/platform` as the higher-level reusable product library
-- `domains/ai_backend` as the deployable HTTP shell
+- `domains/agent_api` as the deployable HTTP shell
 
 This keeps the future extracted repo flexible:
 - it can carry both packages
@@ -96,7 +96,7 @@ This keeps the future extracted repo flexible:
 ## Definition Of Done For Extraction Readiness
 
 - `libs/agent/platform` exposes a unique `agent_platform` package namespace
-- `domains/ai_backend` depends only on the packaged library
+- `domains/agent_api` depends only on the packaged library
 - no code depends on removed `domains/agent_platform` paths
 - assets load without repo-relative path assumptions
 - install/import/runtime checks pass from a clean environment

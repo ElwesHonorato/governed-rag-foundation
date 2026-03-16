@@ -1,8 +1,8 @@
-"""Module entrypoint for the AI backend service."""
+"""Module entrypoint for the agent API service."""
 
 from __future__ import annotations
 
-from ai_backend.app import main
+from agent_api.app import main
 
 
 if __name__ == "__main__":

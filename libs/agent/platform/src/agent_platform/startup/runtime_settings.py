@@ -1,4 +1,4 @@
-"""Startup settings provider for agent-platform."""
+"""Startup settings loading for the local agent-platform runtime."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ from pathlib import Path
 from agent_platform.startup.contracts import (
     AgentPlatformConfig,
     LLMSettings,
-    RuntimePaths,
     RetrievalSettings,
+    RuntimePaths,
 )
 
 

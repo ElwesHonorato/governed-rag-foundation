@@ -6,8 +6,8 @@ capability-oriented agent platform defined in `plan_tasks.md`.
 It now also owns the reusable backend implementation for retrieval-grounded
 responses:
 
-- `agent_platform.llm`: Ollama-compatible HTTP client code
-- `agent_platform.retrieval`: Weaviate-backed retrieval adapters
+- `agent_platform.clients.llm`: Ollama-compatible HTTP client code
+- `agent_platform.gateways.retrieval`: Weaviate-backed retrieval adapters
 - `agent_platform.rag`: message validation, grounding, citation shaping, and
   response orchestration
 - `agent_platform.startup`: config extraction and service wiring

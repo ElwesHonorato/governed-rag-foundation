@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from agent_platform.llm.ollama_client import OllamaClient
+from agent_platform.clients.llm.ollama_client import OllamaClient
 from agent_platform.gateways.retrieval.weaviate_retrieval_client import (
     RetrievedChunk,
     WeaviateRetrievalClient,

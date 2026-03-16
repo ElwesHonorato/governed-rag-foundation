@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from ai_backend.http_types import StartResponse, WsgiEnv
-from ai_backend.request_normalization import WsgiRequestNormalizer
-from ai_backend.router import AiBackendRouter
+from ai_backend.adapters.http.http_types import StartResponse, WsgiEnv
+from ai_backend.adapters.http.request_normalization import WsgiRequestNormalizer
+from ai_backend.adapters.http.router import AiBackendRouter
 
 
 class AiBackendApplication:

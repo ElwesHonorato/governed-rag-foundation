@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from http import HTTPStatus
 
-from ai_backend.http_types import JsonValue, StartResponse
+from ai_backend.adapters.http.http_types import JsonValue, StartResponse
 
 
 class JsonResponse:

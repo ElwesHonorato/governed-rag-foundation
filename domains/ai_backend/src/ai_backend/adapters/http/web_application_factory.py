@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from ai_backend.application import AiBackendApplication
+from ai_backend.adapters.http.application import AiBackendApplication
+from ai_backend.adapters.http.handlers import AiBackendHandlers
+from ai_backend.adapters.http.request_normalization import WsgiRequestNormalizer
+from ai_backend.adapters.http.router import AiBackendRouter
 from ai_backend.engine_factory import Engine
-from ai_backend.handlers import AiBackendHandlers
-from ai_backend.request_normalization import WsgiRequestNormalizer
-from ai_backend.router import AiBackendRouter
 from runtime.provider import BackendAIBackendSettings
 
 

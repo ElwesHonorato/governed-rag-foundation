@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass
 from typing import Any, cast
 
-from ai_backend.http_types import WsgiEnv
+from ai_backend.adapters.http.http_types import WsgiEnv
 
 
 @dataclass(slots=True)

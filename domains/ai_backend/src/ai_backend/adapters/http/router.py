@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from ai_backend.handlers import AiBackendHandlers
-from ai_backend.request_normalization import NormalizedRequest
-from ai_backend.responses import JsonResponse
+from ai_backend.adapters.http.handlers import AiBackendHandlers
+from ai_backend.adapters.http.request_normalization import NormalizedRequest
+from ai_backend.adapters.http.responses import JsonResponse
 
 
 class AiBackendRouter:

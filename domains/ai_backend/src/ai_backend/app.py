@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from wsgiref.simple_server import make_server
 
+from ai_backend.adapters.http.web_application_factory import WebApplicationFactory
 from ai_backend.engine_factory import Engine, EngineFactory
-from ai_backend.web_application_factory import WebApplicationFactory
 from runtime.provider import SettingsProvider, SettingsRequest
 
 

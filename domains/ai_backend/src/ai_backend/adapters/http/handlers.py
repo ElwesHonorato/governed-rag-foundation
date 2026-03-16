@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from http import HTTPStatus
 
-from ai_backend.responses import JsonResponse
+from ai_backend.adapters.http.responses import JsonResponse
 from ai_backend.engine_factory import Engine
 from runtime.provider import BackendAIBackendSettings
 

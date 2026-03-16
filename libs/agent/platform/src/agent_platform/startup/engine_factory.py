@@ -106,6 +106,9 @@ class EngineFactory:
         self._settings = settings
         self._execution_runtime_factory = execution_runtime_factory
         self._grounded_response_factory = grounded_response_factory
+        self._runtime_settings: AgentPlatformConfig | None = None
+        self._retrieval_embedder: DeterministicRetrievalEmbedder | None = None
+        self._vector_index_path: Path | None = None
 
     def build(self) -> Engine:
         settings: AgentPlatformConfig = AgentPlatformConfigFactory().build(self._settings)
@@ -119,11 +122,10 @@ class EngineFactory:
         capability_registry = CapabilityRegistry(load_capability_catalog())
         skill_registry = load_skill_registry()
         stores = self._local_state_stores_factory.build(settings)
-        gateways = self._build_gateways(
-            settings=settings,
-            retrieval_embedder=retrieval_embedder,
-            vector_index_path=prepared_artifacts.vector_index_path,
-        )
+        self._runtime_settings = settings
+        self._retrieval_embedder = retrieval_embedder
+        self._vector_index_path = prepared_artifacts.vector_index_path
+        gateways = self._build_gateways()
         execution_runtime = self._execution_runtime_factory.build(
             settings,
             capability_registry,
@@ -145,28 +147,37 @@ class EngineFactory:
             _grounded_response_service=grounded_response_service,
         )
 
-    def _build_gateways(
-        self,
-        *,
-        settings: AgentPlatformConfig,
-        retrieval_embedder: DeterministicRetrievalEmbedder,
-        vector_index_path: Path,
-    ) -> EngineGateways:
-        llm_client = OllamaClient(
-            llm_url=settings.llm.llm_url,
-            timeout_seconds=settings.llm.llm_timeout_seconds,
-        )
-        retrieval_client = WeaviateClient(
-            weaviate_url=settings.retrieval.weaviate_url,
-            embedder=retrieval_embedder,
-        )
+    def _build_gateways(self) -> EngineGateways:
         return EngineGateways(
-            filesystem_gateway=LocalFilesystemGateway(str(settings.paths.workspace_root)),
-            command_gateway=LocalCommandGateway(str(settings.paths.workspace_root)),
-            vector_gateway=LocalVectorSearchGateway(
-                str(vector_index_path),
-                retrieval_embedder,
-            ),
-            llm_gateway=LLMGateway(client=llm_client),
-            retrieval_gateway=RetrievalGateway(client=retrieval_client),
+            filesystem_gateway=self._build_filesystem_gateway(),
+            command_gateway=self._build_command_gateway(),
+            vector_gateway=self._build_vector_gateway(),
+            llm_gateway=self._build_llm_gateway(),
+            retrieval_gateway=self._build_retrieval_gateway(),
         )
+
+    def _build_filesystem_gateway(self) -> LocalFilesystemGateway:
+        return LocalFilesystemGateway(str(self._runtime_settings.paths.workspace_root))
+
+    def _build_command_gateway(self) -> LocalCommandGateway:
+        return LocalCommandGateway(str(self._runtime_settings.paths.workspace_root))
+
+    def _build_vector_gateway(self) -> LocalVectorSearchGateway:
+        return LocalVectorSearchGateway(
+            str(self._vector_index_path),
+            self._retrieval_embedder,
+        )
+
+    def _build_llm_gateway(self) -> LLMGateway:
+        llm_client = OllamaClient(
+            llm_url=self._runtime_settings.llm.llm_url,
+            timeout_seconds=self._runtime_settings.llm.llm_timeout_seconds,
+        )
+        return LLMGateway(client=llm_client)
+
+    def _build_retrieval_gateway(self) -> RetrievalGateway:
+        retrieval_client = WeaviateClient(
+            weaviate_url=self._runtime_settings.retrieval.weaviate_url,
+            embedder=self._retrieval_embedder,
+        )
+        return RetrievalGateway(client=retrieval_client)

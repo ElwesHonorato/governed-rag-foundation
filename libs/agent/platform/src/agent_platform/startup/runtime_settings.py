@@ -5,8 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from agent_settings.settings import (
-    SettingsRequest,
-    SharedSettingsProvider,
+    SettingsBundle,
 )
 from agent_platform.startup.contracts import (
     AgentPlatformConfig,
@@ -17,18 +16,15 @@ from agent_platform.startup.contracts import (
 class AgentPlatformConfigFactory:
     """Build agent-platform config from a centralized settings bundle."""
 
-    def build(self) -> AgentPlatformConfig:
-        bundle = SharedSettingsProvider(
-            SettingsRequest(llm=True, retrieval=True)
-        ).bundle
+    def build(self, settings: SettingsBundle) -> AgentPlatformConfig:
         workspace_root, state_dir = self._resolve_local_paths()
         return AgentPlatformConfig(
             paths=RuntimePaths(
                 workspace_root=str(workspace_root),
                 state_dir=str(state_dir),
             ),
-            llm=bundle.llm,
-            retrieval=bundle.retrieval,
+            llm=settings.llm,
+            retrieval=settings.retrieval,
         )
 
     def _resolve_local_paths(self) -> tuple[Path, Path]:

@@ -6,9 +6,6 @@ from wsgiref.simple_server import make_server
 
 from agent_api.adapters.http.application import AgentApiApplication
 from agent_api.adapters.http.web_application_factory import WebApplicationFactory
-from agent_api.settings import (
-    AgentApiSettings,
-)
 from agent_platform.agent_runtime.execution_runtime_factory import (
     ExecutionRuntimeFactory,
 )
@@ -19,6 +16,12 @@ from agent_platform.startup.bootstrap import RuntimeBootstrapper
 from agent_platform.startup.local_state_stores_factory import LocalStateStoresFactory
 from agent_platform.startup.engine_factory import EngineFactory
 from agent_platform.startup.retrieval_composition import RetrievalCompositionFactory
+from agent_settings.settings import (
+    AgentApiSettings,
+    EnvironmentSettingsProvider,
+    SettingsBundle,
+    SettingsRequest,
+)
 from agent_platform.startup.runtime_settings import (
     AgentPlatformConfigFactory,
 )
@@ -26,17 +29,22 @@ from agent_platform.startup.startup_assets_factory import StartupAssetsFactory
 
 
 def main() -> int:
+    agent_settings: SettingsBundle = EnvironmentSettingsProvider(
+        SettingsRequest(agent_api=True, llm=True, retrieval=True)
+    ).bundle
     engine_factory = EngineFactory(
         startup_assets_factory=StartupAssetsFactory(
             bootstrapper=RuntimeBootstrapper(),
             retrieval_composition_factory=RetrievalCompositionFactory(),
             local_state_stores_factory=LocalStateStoresFactory(),
-            settings=AgentPlatformConfigFactory().build(),
+            settings=AgentPlatformConfigFactory().build(agent_settings),
         ),
         execution_runtime_factory=ExecutionRuntimeFactory(),
         grounded_response_factory=GroundedResponseFactory(),
     )
-    agent_api_settings: AgentApiSettings = AgentApiSettings.from_env()
+    if agent_settings.agent_api is None:
+        raise ValueError("Agent API settings are required for agent API startup")
+    agent_api_settings: AgentApiSettings = agent_settings.agent_api
     agent_api_app: AgentApiApplication = WebApplicationFactory(
         settings=agent_api_settings,
         agent_app=engine_factory.build(),

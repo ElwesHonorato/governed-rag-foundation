@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict
 from http import HTTPStatus
 
 from agent_api.adapters.http.responses import JsonResponse
-from agent_api.settings import AgentApiSettings
+from agent_settings.settings import AgentApiSettings
 from agent_platform.startup.engine_factory import Engine
 
 
@@ -18,7 +19,7 @@ class AgentApiHandlers:
 
     def get_health(self) -> JsonResponse:
         return JsonResponse(
-            payload={"service": "agent-api", "status": "ok", "settings": self._settings.to_dict},
+            payload={"service": "agent-api", "status": "ok", "settings": asdict(self._settings)},
             status=HTTPStatus.OK,
         )
 

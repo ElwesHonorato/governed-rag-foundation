@@ -6,7 +6,11 @@ import os
 from dataclasses import dataclass
 from typing import Protocol, TypeVar
 
-from agent_settings.settings.models import LLMSettings, RetrievalSettings
+from agent_settings.settings.models import (
+    AgentApiSettings,
+    LLMSettings,
+    RetrievalSettings,
+)
 
 SettingsT = TypeVar("SettingsT")
 
@@ -22,6 +26,7 @@ class SettingsProvider(Protocol[SettingsT]):
 class SettingsRequest:
     """Requested shared settings to load from environment."""
 
+    agent_api: bool = False
     llm: bool = False
     retrieval: bool = False
 
@@ -30,6 +35,7 @@ class SettingsRequest:
 class SettingsBundle:
     """Bundle of loaded shared settings based on a requested set."""
 
+    agent_api: AgentApiSettings | None = None
     llm: LLMSettings | None = None
     retrieval: RetrievalSettings | None = None
 
@@ -67,17 +73,32 @@ def load_llm_settings_from_env() -> LLMSettings:
     )
 
 
+def load_agent_api_settings_from_env() -> AgentApiSettings:
+    return AgentApiSettings(
+        host=required_env("AGENT_API_HOST"),
+        port=required_int_env("AGENT_API_PORT"),
+    )
+
+
 def load_retrieval_settings_from_env() -> RetrievalSettings:
     return RetrievalSettings(
         weaviate_url=required_env("WEAVIATE_URL"),
         embedding_dim=required_int_env("EMBEDDING_DIM"),
         retrieval_limit=optional_int_env("WEAVIATE_QUERY_DEFAULTS_LIMIT", 5),
     )
-class SharedSettingsProvider:
+
+
+class EnvironmentSettingsProvider:
     """Load requested shared settings from environment variables."""
 
     def __init__(self, request: SettingsRequest) -> None:
         self._request = request
+
+    @property
+    def agent_api(self) -> AgentApiSettings | None:
+        if not self._request.agent_api:
+            return None
+        return load_agent_api_settings_from_env()
 
     @property
     def llm(self) -> LLMSettings | None:
@@ -94,6 +115,7 @@ class SharedSettingsProvider:
     @property
     def bundle(self) -> SettingsBundle:
         return SettingsBundle(
+            agent_api=self.agent_api,
             llm=self.llm,
             retrieval=self.retrieval,
         )

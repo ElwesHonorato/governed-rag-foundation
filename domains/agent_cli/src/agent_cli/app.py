@@ -5,6 +5,11 @@ from __future__ import annotations
 import argparse
 import json
 
+from agent_settings.settings import (
+    EnvironmentSettingsProvider,
+    SettingsBundle,
+    SettingsRequest,
+)
 from agent_platform.agent_runtime.execution_runtime_factory import (
     ExecutionRuntimeFactory,
 )
@@ -43,12 +48,15 @@ def _build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     argument_parser: argparse.ArgumentParser = _build_parser()
     parsed_args: argparse.Namespace = argument_parser.parse_args(argv)
+    agent_settings: SettingsBundle = EnvironmentSettingsProvider(
+        SettingsRequest(llm=True, retrieval=True)
+    ).bundle
     engine_factory: EngineFactory = EngineFactory(
         startup_assets_factory=StartupAssetsFactory(
             bootstrapper=RuntimeBootstrapper(),
             retrieval_composition_factory=RetrievalCompositionFactory(),
             local_state_stores_factory=LocalStateStoresFactory(),
-            settings=AgentPlatformConfigFactory().build(),
+            settings=AgentPlatformConfigFactory().build(agent_settings),
         ),
         execution_runtime_factory=ExecutionRuntimeFactory(),
         grounded_response_factory=GroundedResponseFactory(),

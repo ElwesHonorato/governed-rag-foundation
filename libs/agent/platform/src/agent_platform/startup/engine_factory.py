@@ -10,8 +10,11 @@ from ai_infra.contracts.capability_descriptor import CapabilityDescriptor
 from ai_infra.contracts.evaluation_run import EvaluationRun
 from ai_infra.evaluation.offline_evaluation_runner import OfflineEvaluationRunner
 from ai_infra.registry.capability_registry import CapabilityRegistry
+from agent_platform.clients.llm.ollama_client import OllamaClient
+from agent_platform.clients.retrieval.weaviate_client import WeaviateClient
 from agent_platform.agent_runtime.objective_runner import ObjectiveRunner
 from agent_platform.agent_runtime.execution_runtime_factory import (
+    EngineGateways,
     ExecutionRuntimeFactory,
 )
 from agent_platform.agent_runtime.skill_registry import SkillRegistry
@@ -20,13 +23,22 @@ from agent_platform.grounded_response.grounded_response_factory import (
     GroundedResponseFactory,
 )
 from agent_platform.grounded_response.service import GroundedResponseService
+from agent_platform.gateways.command.local_command_gateway import LocalCommandGateway
+from agent_platform.gateways.filesystem.local_filesystem_gateway import (
+    LocalFilesystemGateway,
+)
+from agent_platform.gateways.llm.llm_gateway import LLMGateway
+from agent_platform.gateways.retrieval.local_vector_search import (
+    LocalVectorSearchGateway,
+)
+from agent_platform.gateways.retrieval.retrieval_gateway import RetrievalGateway
 from agent_platform.gateways.state.local_run_store import LocalRunStore
 from agent_platform.gateways.state.local_session_store import LocalSessionStore
 from agent_platform.startup.bootstrap import RuntimeBootstrapper
 from agent_platform.startup.local_state_stores_factory import LocalStateStoresFactory
 from agent_platform.startup.retrieval_composition import RetrievalCompositionFactory
 from agent_platform.startup.runtime_settings import AgentPlatformConfigFactory
-from agent_platform.startup.startup_assets_factory import StartupAssetsFactory
+from agent_platform.startup.startup_assets_factory import StartupAssets, StartupAssetsFactory
 from agent_settings.settings import SettingsBundle
 
 
@@ -88,8 +100,9 @@ class EngineFactory:
 
     def build(self) -> Engine:
         assets = self._startup_assets_factory.build()
-        execution_runtime = self._execution_runtime_factory.build(assets)
-        grounded_response_service = self._grounded_response_factory.build(assets)
+        gateways = self._build_gateways(assets)
+        execution_runtime = self._execution_runtime_factory.build(assets, gateways)
+        grounded_response_service = self._grounded_response_factory.build(assets, gateways)
         return Engine(
             _capability_registry=assets.capability_registry,
             _skill_registry=assets.skill_registry,
@@ -98,4 +111,26 @@ class EngineFactory:
             _evaluation_runner=execution_runtime.evaluation_runner,
             _objective_runner=execution_runtime.objective_runner,
             _grounded_response_service=grounded_response_service,
+        )
+
+    def _build_gateways(self, assets: StartupAssets) -> EngineGateways:
+        settings = assets.settings
+        retrieval_embedder = assets.retrieval.embedder
+        llm_client = OllamaClient(
+            llm_url=settings.llm.llm_url,
+            timeout_seconds=settings.llm.llm_timeout_seconds,
+        )
+        retrieval_client = WeaviateClient(
+            weaviate_url=settings.retrieval.weaviate_url,
+            embedder=retrieval_embedder,
+        )
+        return EngineGateways(
+            filesystem_gateway=LocalFilesystemGateway(settings.paths.workspace_root),
+            command_gateway=LocalCommandGateway(settings.paths.workspace_root),
+            vector_gateway=LocalVectorSearchGateway(
+                str(assets.prepared_artifacts.vector_index_path),
+                retrieval_embedder,
+            ),
+            llm_gateway=LLMGateway(client=llm_client),
+            retrieval_gateway=RetrievalGateway(client=retrieval_client),
         )

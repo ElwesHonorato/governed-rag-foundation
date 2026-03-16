@@ -9,7 +9,7 @@ from ai_infra.protocols.gateways.command_execution_gateway import (
     CommandExecutionGateway,
 )
 from ai_infra.protocols.gateways.filesystem_gateway import FilesystemGateway
-from ai_infra.protocols.gateways.model_gateway import ModelGateway
+from ai_infra.protocols.gateways.llm_gateway import LLMGateway
 from ai_infra.protocols.gateways.vector_search_gateway import VectorSearchGateway
 from ai_infra.services.prompt_assembly_service import PromptAssemblyService
 
@@ -22,13 +22,15 @@ class CapabilityExecutionService:
         filesystem_gateway: FilesystemGateway,
         command_gateway: CommandExecutionGateway,
         vector_gateway: VectorSearchGateway,
-        model_gateway: ModelGateway,
+        llm_gateway: LLMGateway,
+        llm_model: str,
         prompt_assembly_service: PromptAssemblyService,
     ) -> None:
         self._filesystem_gateway = filesystem_gateway
         self._command_gateway = command_gateway
         self._vector_gateway = vector_gateway
-        self._model_gateway = model_gateway
+        self._llm_gateway = llm_gateway
+        self._llm_model = llm_model
         self._prompt_assembly_service = prompt_assembly_service
 
     def execute(self, request: CapabilityRequest, run: AgentRun) -> CapabilityResult:
@@ -48,8 +50,14 @@ class CapabilityExecutionService:
                 output = {"hits": self._vector_gateway.search(query=query, top_k=top_k)}
             elif request.capability_name == "llm_synthesize":
                 prompt_key = str(request.input_payload["prompt_key"])
-                prompt, context = self._prompt_assembly_service.assemble(prompt_key=prompt_key, run=run)
-                text = self._model_gateway.synthesize(prompt=prompt, context=context)
+                prompt, _context = self._prompt_assembly_service.assemble(
+                    prompt_key=prompt_key,
+                    run=run,
+                )
+                text = self._llm_gateway.generate(
+                    prompt=prompt,
+                    model=self._llm_model,
+                )
                 output = {"text": text, "prompt_key": prompt_key}
             else:
                 raise ValueError(f"Unsupported capability: {request.capability_name}")

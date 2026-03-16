@@ -10,7 +10,7 @@ from ai_infra.retrieval.deterministic_retrieval_embedder import (
 )
 
 
-class LocalVectorSearch:
+class LocalVectorSearchGateway:
     """Queries the deterministic local vector fixture."""
 
     def __init__(

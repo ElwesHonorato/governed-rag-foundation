@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from ai_infra.protocols.gateways.llm_gateway import LLMGateway
 from ai_infra.evaluation.offline_evaluation_runner import OfflineEvaluationRunner
 from ai_infra.kernel.agent_session_manager import AgentSessionManager
 from ai_infra.policies.capability_policy import CapabilityPolicy
@@ -18,15 +19,17 @@ from ai_infra.services.response_validation_service import ResponseValidationServ
 from ai_infra.services.run_supervisor import RunSupervisor
 from ai_infra.services.step_result_evaluation_service import StepResultEvaluationService
 from agent_platform.agent_runtime.objective_runner import ObjectiveRunner
+from agent_platform.gateways.prompts.local_prompt_repository import (
+    LocalPromptRepository,
+)
 from agent_platform.gateways.command.local_command_gateway import LocalCommandGateway
 from agent_platform.gateways.filesystem.local_filesystem_gateway import (
     LocalFilesystemGateway,
 )
-from agent_platform.gateways.llm.local_model_gateway import LocalModelGateway
-from agent_platform.gateways.prompts.local_prompt_repository import (
-    LocalPromptRepository,
+from agent_platform.gateways.retrieval.local_vector_search import (
+    LocalVectorSearchGateway,
 )
-from agent_platform.gateways.retrieval.local_vector_search import LocalVectorSearch
+from agent_platform.gateways.retrieval.retrieval_gateway import RetrievalGateway
 from agent_platform.startup.startup_assets_factory import StartupAssets
 
 
@@ -38,13 +41,27 @@ class ExecutionRuntime:
     evaluation_runner: OfflineEvaluationRunner
 
 
+@dataclass(frozen=True)
+class EngineGateways:
+    """Concrete gateway instances shared across engine assembly."""
+
+    filesystem_gateway: LocalFilesystemGateway
+    command_gateway: LocalCommandGateway
+    vector_gateway: LocalVectorSearchGateway
+    llm_gateway: LLMGateway
+    retrieval_gateway: RetrievalGateway
+
+
 class ExecutionRuntimeFactory:
     """Build execution and supervision collaborators for the engine."""
 
-    def build(self, assets: StartupAssets) -> ExecutionRuntime:
+    def build(self, assets: StartupAssets, gateways: EngineGateways) -> ExecutionRuntime:
         planning_service = CapabilityPlanningService()
         session_manager = AgentSessionManager(assets.stores.session_store)
-        execution_service = self._build_execution_service(assets)
+        execution_service = self._build_execution_service(
+            gateways,
+            llm_model=assets.settings.llm.llm_model,
+        )
         supervisor = self._build_supervisor(assets, execution_service)
         return ExecutionRuntime(
             objective_runner=ObjectiveRunner(
@@ -57,25 +74,21 @@ class ExecutionRuntimeFactory:
         )
 
     def _build_execution_service(
-        self, assets: StartupAssets
+        self,
+        gateways: EngineGateways,
+        *,
+        llm_model: str,
     ) -> CapabilityExecutionService:
         prompt_repository = LocalPromptRepository()
         prompt_assembly_service = PromptAssemblyService(
             prompt_repository=prompt_repository
         )
-        settings = assets.settings
         return CapabilityExecutionService(
-            filesystem_gateway=LocalFilesystemGateway(settings.paths.workspace_root),
-            command_gateway=LocalCommandGateway(settings.paths.workspace_root),
-            vector_gateway=LocalVectorSearch(
-                str(assets.prepared_artifacts.vector_index_path),
-                assets.retrieval.embedder,
-            ),
-            model_gateway=LocalModelGateway(
-                llm_url=settings.llm.llm_url,
-                llm_model=settings.llm.llm_model,
-                timeout_seconds=settings.llm.llm_timeout_seconds,
-            ),
+            filesystem_gateway=gateways.filesystem_gateway,
+            command_gateway=gateways.command_gateway,
+            vector_gateway=gateways.vector_gateway,
+            llm_gateway=gateways.llm_gateway,
+            llm_model=llm_model,
             prompt_assembly_service=prompt_assembly_service,
         )
 

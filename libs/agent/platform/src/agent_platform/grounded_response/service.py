@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from agent_platform.clients.llm.ollama_client import OllamaClient
+from ai_infra.protocols.gateways.llm_gateway import LLMGateway
 from agent_platform.clients.retrieval.weaviate_client import (
     RetrievedChunk,
-    WeaviateClient,
 )
+from agent_platform.gateways.retrieval.retrieval_gateway import RetrievalGateway
 from agent_platform.grounded_response.contracts import Citation, GroundedResponse
 
 
@@ -18,13 +18,13 @@ class GroundedResponseService:
     def __init__(
         self,
         *,
-        llm_client: OllamaClient,
-        retrieval_client: WeaviateClient,
+        llm_gateway: LLMGateway,
+        retrieval_gateway: RetrievalGateway,
         model: str,
         retrieval_limit: int,
     ) -> None:
-        self._llm_client = llm_client
-        self._retrieval_client = retrieval_client
+        self._llm_gateway = llm_gateway
+        self._retrieval_gateway = retrieval_gateway
         self._model = model
         self._retrieval_limit = retrieval_limit
 
@@ -58,9 +58,12 @@ class GroundedResponseService:
     def run(self, *, messages: list[dict[str, str]]) -> GroundedResponse:
         user_query = self._latest_user_query(messages)
         retrieval_cap = max(1, min(self._retrieval_limit, 8))
-        retrieved = self._retrieval_client.retrieve(query_text=user_query, limit=retrieval_cap)
+        retrieved = self._retrieval_gateway.retrieve(
+            query_text=user_query,
+            limit=retrieval_cap,
+        )
         grounded_messages = self._build_grounded_messages(messages=messages, retrieved=retrieved)
-        response = self._llm_client.chat(messages=grounded_messages, model=self._model)
+        response = self._llm_gateway.chat(messages=grounded_messages, model=self._model)
         assistant_message = {"role": "assistant", "content": response}
         citations = [
             Citation(

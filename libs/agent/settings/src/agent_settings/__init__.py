@@ -1,4 +1,4 @@
-from runtime.settings_provider import (
+from agent_settings.settings import (
     AgentApiSettings,
     FrontendAgentApiSettings,
     SettingsBundle,

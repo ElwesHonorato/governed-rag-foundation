@@ -24,6 +24,6 @@ services rather than reimplement them. The CLI entrypoint now lives in
 
 Dependency direction within `libs/agent` is strict:
 
-- `runtime_config` is independent
+- `settings` is independent
 - `core` is independent
-- `platform` may depend on `core` and `runtime_config`
+- `platform` may depend on `core` and `settings`

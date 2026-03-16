@@ -18,7 +18,7 @@ Best practices:
 from flask import Flask
 
 from ai_infra.agent_api_client import AgentApiClient
-from runtime.settings_provider import SettingsProvider, SettingsRequest
+from agent_settings.settings import SettingsProvider, SettingsRequest
 from ai_ui.routes import register_routes
 
 

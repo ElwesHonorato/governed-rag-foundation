@@ -4,7 +4,7 @@
     "${workspaceFolder}/libs/agent/core/src",
     "${workspaceFolder}/libs/agent/platform/src",
     "${workspaceFolder}/libs/pipeline-common/src",
-    "${workspaceFolder}/libs/agent/runtime_config/src",
+    "${workspaceFolder}/libs/agent/settings/src",
     "${workspaceFolder}/registry"
   ],
   "python.analysis.executionEnvironments": [
@@ -13,7 +13,7 @@
       "extraPaths": [
         "${workspaceFolder}/libs/agent/core/src",
         "${workspaceFolder}/libs/agent/platform/src",
-        "${workspaceFolder}/libs/agent/runtime_config/src",
+        "${workspaceFolder}/libs/agent/settings/src",
         "${workspaceFolder}/registry"
       ]
     },
@@ -21,7 +21,7 @@
       "root": "${workspaceFolder}/domains/ai_ui/src",
       "extraPaths": [
         "${workspaceFolder}/libs/agent/core/src",
-        "${workspaceFolder}/libs/agent/runtime_config/src",
+        "${workspaceFolder}/libs/agent/settings/src",
         "${workspaceFolder}/registry"
       ]
     },

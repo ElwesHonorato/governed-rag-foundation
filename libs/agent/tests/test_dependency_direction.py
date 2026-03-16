@@ -7,14 +7,14 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 PACKAGE_ROOTS = {
-    "runtime": REPO_ROOT / "libs/agent/runtime_config/src/runtime",
+    "agent_settings": REPO_ROOT / "libs/agent/settings/src/agent_settings",
     "ai_infra": REPO_ROOT / "libs/agent/core/src/ai_infra",
     "agent_platform": REPO_ROOT / "libs/agent/platform/src/agent_platform",
 }
 ALLOWED_IMPORTS = {
-    "runtime": {"runtime"},
+    "agent_settings": {"agent_settings"},
     "ai_infra": {"ai_infra"},
-    "agent_platform": {"agent_platform", "ai_infra", "runtime"},
+    "agent_platform": {"agent_platform", "ai_infra", "agent_settings"},
 }
 
 
@@ -35,13 +35,13 @@ def _import_roots(path: Path) -> set[str]:
 
 
 class DependencyDirectionTest(unittest.TestCase):
-    def test_runtime_config_is_independent(self) -> None:
-        self._assert_allowed_imports("runtime")
+    def test_settings_library_is_independent(self) -> None:
+        self._assert_allowed_imports("agent_settings")
 
     def test_core_is_independent(self) -> None:
         self._assert_allowed_imports("ai_infra")
 
-    def test_platform_depends_only_on_core_and_runtime(self) -> None:
+    def test_platform_depends_only_on_core_and_settings(self) -> None:
         self._assert_allowed_imports("agent_platform")
 
     def _assert_allowed_imports(self, package_name: str) -> None:

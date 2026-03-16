@@ -14,7 +14,7 @@ RUN python3 -m pip install --no-cache-dir poetry
 COPY domains/agent_api /app/domains/agent_api
 COPY libs/agent/platform /app/libs/agent/platform
 COPY libs/agent/core /app/libs/agent/core
-COPY libs/agent/runtime_config /app/libs/agent/runtime_config
+COPY libs/agent/settings /app/libs/agent/settings
 
 WORKDIR /app/domains/agent_api
 

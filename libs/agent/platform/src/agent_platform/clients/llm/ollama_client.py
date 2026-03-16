@@ -82,6 +82,33 @@ class OllamaClient:
             raise LLMResponseError("Ollama chat response is missing message content")
         return content
 
+    def generate(
+        self,
+        *,
+        prompt: str,
+        model: str,
+        stream: bool = False,
+    ) -> str:
+        if not isinstance(model, str) or not model.strip():
+            raise ValueError("model must be a non-empty string")
+        if not isinstance(prompt, str):
+            raise ValueError("prompt must be a string")
+        if not isinstance(stream, bool):
+            raise ValueError("stream must be a bool")
+
+        data = self._post_with_retries(
+            "/api/generate",
+            {"model": model.strip(), "prompt": prompt, "stream": stream},
+            model=model.strip(),
+        )
+        if data.get("error"):
+            raise LLMResponseError(f"Ollama error for model '{model.strip()}': {data['error']}")
+
+        response_text = data.get("response")
+        if not isinstance(response_text, str) or not response_text.strip():
+            raise LLMResponseError("Ollama generate response is missing response text")
+        return response_text
+
     def _post_with_retries(self, path: str, payload: dict[str, Any], *, model: str) -> dict[str, Any]:
         endpoint = f"{self._llm_url}{path}"
         total_attempts = self._retries + 1

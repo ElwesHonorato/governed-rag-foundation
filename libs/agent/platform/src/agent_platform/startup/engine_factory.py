@@ -44,7 +44,6 @@ from agent_platform.startup.retrieval_gateway_factory import RetrievalGatewayFac
 from agent_platform.startup.retrieval_embedder_factory import (
     RetrievalEmbedderFactory,
 )
-from agent_platform.startup.retrieval_composition import RetrievalComposition
 from agent_platform.startup.runtime_settings import AgentPlatformConfigFactory
 from agent_platform.startup.vector_gateway_factory import VectorGatewayFactory
 from agent_settings.settings import SettingsBundle
@@ -139,9 +138,9 @@ class EngineFactory:
             )
         )
         prepared_artifacts: PreparedRuntimeArtifacts = (
-            self._startup_services.bootstrapper.prepare(
-            settings,
-            retrieval=RetrievalComposition(embedder=retrieval_embedder),
+            self._startup_services.bootstrapper.bootstrap(
+                settings,
+                retrieval_embedder=retrieval_embedder,
             )
         )
         capability_registry: CapabilityRegistry = CapabilityRegistry(

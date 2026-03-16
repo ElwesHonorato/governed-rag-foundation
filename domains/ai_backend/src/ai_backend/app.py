@@ -9,6 +9,7 @@ from ai_backend.engine_factory import Engine, EngineFactory
 from agent_platform.application.execution_runtime_factory import ExecutionRuntimeFactory
 from agent_platform.rag.rag_runtime_factory import RagRuntimeFactory
 from agent_platform.startup.bootstrap import RuntimeBootstrapper
+from agent_platform.startup.retrieval_composition import RetrievalCompositionFactory
 from agent_platform.startup.startup_assets_factory import StartupAssetsFactory
 from runtime.provider import SettingsProvider, SettingsRequest
 
@@ -17,7 +18,8 @@ def main() -> int:
     settings = SettingsProvider(SettingsRequest(backend_ai_backend=True)).bundle.backend_ai_backend
     engine_factory = EngineFactory(
         startup_assets_factory=StartupAssetsFactory(
-            bootstrapper=RuntimeBootstrapper()
+            bootstrapper=RuntimeBootstrapper(),
+            retrieval_composition_factory=RetrievalCompositionFactory(),
         ),
         execution_runtime_factory=ExecutionRuntimeFactory(),
         rag_runtime_factory=RagRuntimeFactory(),

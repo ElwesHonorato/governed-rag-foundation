@@ -22,7 +22,7 @@ class RagRuntimeFactory:
             ),
             retrieval_client=WeaviateRetrievalClient(
                 weaviate_url=settings.retrieval.weaviate_url,
-                embedding_dim=settings.retrieval.embedding_dim,
+                embedder=assets.retrieval.embedder,
             ),
             model=settings.llm.llm_model,
             retrieval_limit=settings.retrieval.retrieval_limit,

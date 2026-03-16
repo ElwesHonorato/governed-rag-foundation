@@ -5,15 +5,17 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from agent_platform.gateways.retrieval.deterministic_embedding_fixture import (
-    DeterministicEmbeddingFixture,
+from ai_infra.retrieval.deterministic_retrieval_embedder import (
+    DeterministicRetrievalEmbedder,
 )
 
 
 class LocalVectorSearch:
     """Queries the deterministic local vector fixture."""
 
-    def __init__(self, index_path: str, embedder: DeterministicEmbeddingFixture) -> None:
+    def __init__(
+        self, index_path: str, embedder: DeterministicRetrievalEmbedder
+    ) -> None:
         self._index_path = Path(index_path)
         self._embedder = embedder
 

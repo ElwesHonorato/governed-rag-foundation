@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import uuid
 from dataclasses import dataclass
 
+from ai_infra.retrieval.deterministic_retrieval_embedder import (
+    DeterministicRetrievalEmbedder,
+)
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.helpers.run_ids import build_source_run_id
 from pipeline_common.provenance import embedding_params_hash
@@ -72,25 +74,16 @@ class EmbedChunksProcessor:
     def __init__(
         self,
         *,
-        dimension: int,
+        embedder: DeterministicRetrievalEmbedder,
         object_storage: ObjectStorageGateway,
         storage_bucket: str,
         output_prefix: str,
     ) -> None:
         """Initialize embedding processor dependencies."""
-        self._dimension = dimension
+        self._embedder = embedder
         self._storage_gateway = object_storage
         self._storage_bucket = storage_bucket
         self._output_prefix = output_prefix
-
-    @staticmethod
-    def _deterministic_embedding_for(text: str, dimension: int) -> list[float]:
-        digest = hashlib.sha256(text.encode("utf-8")).digest()
-        values: list[float] = []
-        for index in range(dimension):
-            byte = digest[index % len(digest)]
-            values.append((byte / 255.0) * 2.0 - 1.0)
-        return values
 
     @staticmethod
     def read_chunk_payload(raw_payload: bytes, *, source_uri: str) -> ChunkArtifactPayload:
@@ -181,12 +174,12 @@ class EmbedChunksProcessor:
         text = payload.chunk_text
         doc_id = payload.root_doc_metadata.doc_id
         chunk_id = payload.chunk_record.chunk_id
-        embedder_params = {"dimension": int(self._dimension)}
+        embedder_params = {"dimension": int(self._embedder.dimensions)}
         return EmbeddingArtifact(
             doc_id=doc_id,
             chunk_id=chunk_id,
             chunk_text=text,
-            vector=self._deterministic_embedding_for(text, self._dimension),
+            vector=self._embedder.embed(text),
             metadata=EmbeddingArtifactMetadata(
                 run_id=run_id,
                 embedder_name=EMBEDDER_NAME,

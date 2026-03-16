@@ -5,6 +5,12 @@ from pipeline_common.settings import SettingsBundle, SettingsProvider, SettingsR
 from pipeline_common.startup import RuntimeContextFactory
 from pipeline_common.startup.runtime_context import WorkerRuntimeContext
 from worker_embed_chunks.services.worker_embed_chunks_service import WorkerEmbedChunksService
+from worker_embed_chunks.startup.embedding_composition import (
+    EmbeddingCompositionFactory,
+)
+from worker_embed_chunks.startup.processor_factory import (
+    EmbedChunksProcessorFactory,
+)
 from worker_embed_chunks.startup.config_extractor import EmbedChunksConfigExtractor
 from worker_embed_chunks.startup.contracts import RuntimeEmbedChunksJobConfig
 from worker_embed_chunks.startup.service_factory import EmbedChunksServiceFactory
@@ -25,7 +31,10 @@ def run() -> None:
         runtime_context.job_properties,
         env=runtime_context.env,
     )
-    service: WorkerEmbedChunksService = EmbedChunksServiceFactory().build(runtime_context, runtime_job_config)
+    service: WorkerEmbedChunksService = EmbedChunksServiceFactory(
+        embedding_composition_factory=EmbeddingCompositionFactory(),
+        processor_factory=EmbedChunksProcessorFactory(),
+    ).build(runtime_context, runtime_job_config)
     service.serve()
 
 

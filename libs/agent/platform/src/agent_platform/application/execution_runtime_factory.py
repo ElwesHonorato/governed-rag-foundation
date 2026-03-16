@@ -26,9 +26,6 @@ from agent_platform.gateways.llm.local_model_gateway import LocalModelGateway
 from agent_platform.gateways.prompts.local_prompt_repository import (
     LocalPromptRepository,
 )
-from agent_platform.gateways.retrieval.deterministic_embedding_fixture import (
-    DeterministicEmbeddingFixture,
-)
 from agent_platform.gateways.retrieval.local_vector_search import LocalVectorSearch
 from agent_platform.startup.startup_assets_factory import StartupAssets
 
@@ -72,7 +69,7 @@ class ExecutionRuntimeFactory:
             command_gateway=LocalCommandGateway(settings.paths.workspace_root),
             vector_gateway=LocalVectorSearch(
                 str(assets.prepared_artifacts.vector_index_path),
-                DeterministicEmbeddingFixture(),
+                assets.retrieval.embedder,
             ),
             model_gateway=LocalModelGateway(
                 llm_url=settings.llm.llm_url,

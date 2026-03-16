@@ -9,6 +9,7 @@ from agent_platform.application.execution_runtime_factory import ExecutionRuntim
 from agent_platform.rag.rag_runtime_factory import RagRuntimeFactory
 from agent_platform.startup.bootstrap import RuntimeBootstrapper
 from agent_platform.startup.engine_factory import EngineFactory
+from agent_platform.startup.retrieval_composition import RetrievalCompositionFactory
 from agent_platform.startup.startup_assets_factory import StartupAssetsFactory
 
 
@@ -36,7 +37,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     factory = EngineFactory(
         startup_assets_factory=StartupAssetsFactory(
-            bootstrapper=RuntimeBootstrapper()
+            bootstrapper=RuntimeBootstrapper(),
+            retrieval_composition_factory=RetrievalCompositionFactory(),
         ),
         execution_runtime_factory=ExecutionRuntimeFactory(),
         rag_runtime_factory=RagRuntimeFactory(),

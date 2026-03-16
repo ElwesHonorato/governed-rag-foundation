@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from agent_platform.gateways.retrieval.deterministic_embedding_fixture import (
-    DeterministicEmbeddingFixture,
+from ai_infra.retrieval.deterministic_retrieval_embedder import (
+    DeterministicRetrievalEmbedder,
 )
 
 ALLOWED_SUFFIXES = {".md", ".py", ".toml"}
@@ -14,7 +14,11 @@ IGNORED_PARTS = {".git", ".venv", "localdata", "__pycache__"}
 MAX_FILE_BYTES = 24_000
 
 
-def bootstrap_vector_index(repo_root: str, output_path: str, embedder: DeterministicEmbeddingFixture) -> None:
+def bootstrap_vector_index(
+    repo_root: str,
+    output_path: str,
+    embedder: DeterministicRetrievalEmbedder,
+) -> None:
     """Index an allowlisted subset of the current repo snapshot."""
 
     repo = Path(repo_root)

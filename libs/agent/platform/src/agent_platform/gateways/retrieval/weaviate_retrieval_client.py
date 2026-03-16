@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 from dataclasses import dataclass
 from typing import Any
 from urllib import error, request
+
+from ai_infra.retrieval.deterministic_retrieval_embedder import (
+    DeterministicRetrievalEmbedder,
+)
 
 
 @dataclass(frozen=True)
@@ -28,12 +31,12 @@ class WeaviateRetrievalClient:
         self,
         *,
         weaviate_url: str,
-        embedding_dim: int,
+        embedder: DeterministicRetrievalEmbedder,
         timeout_seconds: float = 10.0,
     ) -> None:
         self._weaviate_url = weaviate_url.rstrip("/")
-        self._embedding_dim = embedding_dim
         self._timeout_seconds = timeout_seconds
+        self._embedder = embedder
 
     def retrieve(self, *, query_text: str, limit: int) -> list[RetrievedChunk]:
         query = query_text.strip()
@@ -49,7 +52,7 @@ class WeaviateRetrievalClient:
         return self._near_vector_search(query=query, limit=safe_limit)
 
     def _near_vector_search(self, *, query: str, limit: int) -> list[RetrievedChunk]:
-        vector = self._deterministic_embedding(query)
+        vector = self._embedder.embed(query)
         vector_values = ",".join(f"{value:.8f}" for value in vector)
         gql = (
             "{Get{DocumentChunk("
@@ -129,15 +132,6 @@ class WeaviateRetrievalClient:
                 )
             )
         return chunks
-
-    def _deterministic_embedding(self, text: str) -> list[float]:
-        digest = hashlib.sha256(text.encode("utf-8")).digest()
-        values: list[float] = []
-        for index in range(self._embedding_dim):
-            byte = digest[index % len(digest)]
-            values.append((byte / 255.0) * 2.0 - 1.0)
-        return values
-
 
 def _escape_graphql_text(value: str) -> str:
     return value.replace("\\", "\\\\").replace('"', '\\"')

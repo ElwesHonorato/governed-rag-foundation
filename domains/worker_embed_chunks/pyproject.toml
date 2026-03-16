@@ -5,6 +5,7 @@ description = "Pipeline worker worker_embed_chunks"
 authors = [{ name = "Governed RAG Foundation" }]
 requires-python = "==3.11.14"
 dependencies = [
+  "ai-infra @ ../../libs/agent/core",
   "pipeline-common @ ../../libs/pipeline-common",
 ]
 

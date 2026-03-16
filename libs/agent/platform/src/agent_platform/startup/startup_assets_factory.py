@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from ai_infra.retrieval.deterministic_retrieval_embedder import (
+    DeterministicRetrievalEmbedder,
+)
 from agent_platform.agent_runtime.skill_registry import SkillRegistry
 from agent_platform.startup.bootstrap import PreparedRuntimeArtifacts, RuntimeBootstrapper
 from agent_platform.startup.local_state_stores_factory import (
@@ -17,7 +20,6 @@ from agent_platform.startup.packaged_configuration import (
 from agent_platform.startup.contracts import AgentPlatformConfig
 from agent_platform.startup.retrieval_composition import (
     RetrievalComposition,
-    RetrievalCompositionFactory,
 )
 from ai_infra.registry.capability_registry import CapabilityRegistry
 
@@ -41,18 +43,18 @@ class StartupAssetsFactory:
         self,
         *,
         bootstrapper: RuntimeBootstrapper,
-        retrieval_composition_factory: RetrievalCompositionFactory,
+        retrieval_embedder: DeterministicRetrievalEmbedder,
         local_state_stores_factory: LocalStateStoresFactory,
         settings: AgentPlatformConfig,
     ) -> None:
         self._bootstrapper = bootstrapper
-        self._retrieval_composition_factory = retrieval_composition_factory
+        self._retrieval_embedder = retrieval_embedder
         self._local_state_stores_factory = local_state_stores_factory
         self._settings = settings
 
     def build(self) -> StartupAssets:
         settings = self._settings
-        retrieval = self._retrieval_composition_factory.build(settings.retrieval)
+        retrieval = RetrievalComposition(embedder=self._retrieval_embedder)
         return StartupAssets(
             settings=settings,
             retrieval=retrieval,

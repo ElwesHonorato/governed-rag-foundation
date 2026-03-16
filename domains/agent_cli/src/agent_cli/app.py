@@ -19,7 +19,9 @@ from agent_platform.grounded_response.grounded_response_factory import (
 from agent_platform.startup.bootstrap import RuntimeBootstrapper
 from agent_platform.startup.engine_factory import Engine, EngineFactory
 from agent_platform.startup.local_state_stores_factory import LocalStateStoresFactory
-from agent_platform.startup.retrieval_composition import RetrievalCompositionFactory
+from agent_platform.startup.retrieval_embedder_factory import (
+    RetrievalEmbedderFactory,
+)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -49,7 +51,7 @@ def main(argv: list[str] | None = None) -> int:
     ).bundle
     engine_factory: EngineFactory = EngineFactory(
         bootstrapper=RuntimeBootstrapper(),
-        retrieval_composition_factory=RetrievalCompositionFactory(),
+        retrieval_embedder_factory=RetrievalEmbedderFactory(),
         local_state_stores_factory=LocalStateStoresFactory(),
         settings=agent_settings,
         execution_runtime_factory=ExecutionRuntimeFactory(),

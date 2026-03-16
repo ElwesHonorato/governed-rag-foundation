@@ -36,7 +36,9 @@ from agent_platform.gateways.state.local_run_store import LocalRunStore
 from agent_platform.gateways.state.local_session_store import LocalSessionStore
 from agent_platform.startup.bootstrap import RuntimeBootstrapper
 from agent_platform.startup.local_state_stores_factory import LocalStateStoresFactory
-from agent_platform.startup.retrieval_composition import RetrievalCompositionFactory
+from agent_platform.startup.retrieval_embedder_factory import (
+    RetrievalEmbedderFactory,
+)
 from agent_platform.startup.runtime_settings import AgentPlatformConfigFactory
 from agent_platform.startup.startup_assets_factory import StartupAssets, StartupAssetsFactory
 from agent_settings.settings import SettingsBundle
@@ -83,7 +85,7 @@ class EngineFactory:
         self,
         *,
         bootstrapper: RuntimeBootstrapper,
-        retrieval_composition_factory: RetrievalCompositionFactory,
+        retrieval_embedder_factory: RetrievalEmbedderFactory,
         local_state_stores_factory: LocalStateStoresFactory,
         settings: SettingsBundle,
         execution_runtime_factory: ExecutionRuntimeFactory,
@@ -91,7 +93,9 @@ class EngineFactory:
     ) -> None:
         self._startup_assets_factory = StartupAssetsFactory(
             bootstrapper=bootstrapper,
-            retrieval_composition_factory=retrieval_composition_factory,
+            retrieval_embedder=retrieval_embedder_factory.build(
+                settings.retrieval.embedding_dim
+            ),
             local_state_stores_factory=local_state_stores_factory,
             settings=AgentPlatformConfigFactory().build(settings),
         )

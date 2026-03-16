@@ -10,25 +10,28 @@ from worker_parse_document.startup.contracts import RuntimeParseJobConfig
 from worker_parse_document.startup.service_factory import ParseServiceFactory
 
 
-def run() -> None:
-    settings: SettingsBundle = SettingsProvider(
+def main() -> int:
+    worker_parse_document_settings: SettingsBundle = SettingsProvider(
         SettingsRequest(datahub=True, storage=True, queue=True),
     ).bundle
-    data_job_key: DataHubDataJobKey = DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job(
+    worker_parse_document_data_job_key: DataHubDataJobKey = DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job(
         GovernedRagJobId.WORKER_PARSE_DOCUMENT
     )
-    runtime_context: WorkerRuntimeContext = RuntimeContextFactory(
-        data_job_key=data_job_key,
-        settings_bundle=settings,
+    worker_parse_document_runtime_context: WorkerRuntimeContext = RuntimeContextFactory(
+        data_job_key=worker_parse_document_data_job_key,
+        settings_bundle=worker_parse_document_settings,
     ).build()
-    runtime_job_config: RuntimeParseJobConfig = ParseConfigExtractor().extract(
-        runtime_context.job_properties,
-        env=runtime_context.env,
+    worker_parse_document_runtime_job_config: RuntimeParseJobConfig = ParseConfigExtractor().extract(
+        worker_parse_document_runtime_context.job_properties,
+        env=worker_parse_document_runtime_context.env,
     )
-    service: WorkerParseDocumentService = ParseServiceFactory().build(runtime_context, runtime_job_config)
-    service.serve()
-
-
-def main() -> int:
-    run()
+    worker_parse_document_service: WorkerParseDocumentService = ParseServiceFactory().build(
+        worker_parse_document_runtime_context,
+        worker_parse_document_runtime_job_config,
+    )
+    worker_parse_document_service.serve()
     return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

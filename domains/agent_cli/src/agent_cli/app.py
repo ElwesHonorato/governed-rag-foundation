@@ -12,11 +12,11 @@ from agent_platform.grounded_response.grounded_response_factory import (
     GroundedResponseFactory,
 )
 from agent_platform.startup.bootstrap import RuntimeBootstrapper
+from agent_platform.startup.engine_factory import Engine, EngineFactory
 from agent_platform.startup.local_state_stores_factory import LocalStateStoresFactory
 from agent_platform.startup.runtime_settings import (
     AgentPlatformConfigFactory,
 )
-from agent_platform.startup.engine_factory import EngineFactory
 from agent_platform.startup.retrieval_composition import RetrievalCompositionFactory
 from agent_platform.startup.startup_assets_factory import StartupAssetsFactory
 
@@ -41,9 +41,9 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = _build_parser()
-    args = parser.parse_args(argv)
-    factory = EngineFactory(
+    argument_parser: argparse.ArgumentParser = _build_parser()
+    parsed_args: argparse.Namespace = argument_parser.parse_args(argv)
+    engine_factory: EngineFactory = EngineFactory(
         startup_assets_factory=StartupAssetsFactory(
             bootstrapper=RuntimeBootstrapper(),
             retrieval_composition_factory=RetrievalCompositionFactory(),
@@ -53,24 +53,31 @@ def main(argv: list[str] | None = None) -> int:
         execution_runtime_factory=ExecutionRuntimeFactory(),
         grounded_response_factory=GroundedResponseFactory(),
     )
-    app = factory.build()
+    agent_cli_engine: Engine = engine_factory.build()
 
-    if args.command == "capability-list":
-        print(json.dumps([item.to_dict() for item in app.list_capabilities()], indent=2))
+    if parsed_args.command == "capability-list":
+        print(json.dumps([item.to_dict() for item in agent_cli_engine.list_capabilities()], indent=2))
         return 0
-    if args.command == "skill-list":
-        print(json.dumps(app.list_skills(), indent=2))
+    if parsed_args.command == "skill-list":
+        print(json.dumps(agent_cli_engine.list_skills(), indent=2))
         return 0
-    if args.command == "session-show":
-        session = app.load_session(args.session_id)
+    if parsed_args.command == "session-show":
+        session = agent_cli_engine.load_session(parsed_args.session_id)
         print(json.dumps(session.to_dict(), indent=2))
         return 0
-    if args.command == "eval-run":
-        evaluation = app.evaluate_run(args.run_id)
+    if parsed_args.command == "eval-run":
+        evaluation = agent_cli_engine.evaluate_run(parsed_args.run_id)
         print(json.dumps(evaluation.to_dict(), indent=2))
         return 0
-    if args.command == "run":
-        result = app.run_objective(objective=args.objective, skill_name=args.skill)
+    if parsed_args.command == "run":
+        result = agent_cli_engine.run_objective(
+            objective=parsed_args.objective,
+            skill_name=parsed_args.skill,
+        )
         print(json.dumps(result.to_dict(), indent=2))
         return 0
-    raise ValueError(f"Unsupported command: {args.command}")
+    raise ValueError(f"Unsupported command: {parsed_args.command}")
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

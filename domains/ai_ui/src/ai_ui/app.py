@@ -29,25 +29,27 @@ def create_app(
     *,
     settings: FrontendAgentApiSettings,
 ) -> Flask:
-    agent_api_client = AgentApiClient(
+    agent_api_client: AgentApiClient = AgentApiClient(
         base_url=settings.agent_api_url,
         timeout_seconds=settings.agent_api_timeout_seconds,
     )
 
-    app = Flask(__name__)
-    register_routes(app=app, settings=settings, agent_api_client=agent_api_client)
-    return app
+    ai_ui_app: Flask = Flask(__name__)
+    register_routes(
+        app=ai_ui_app,
+        settings=settings,
+        agent_api_client=agent_api_client,
+    )
+    return ai_ui_app
 
 
-def _load_settings() -> FrontendAgentApiSettings:
-    return AiUiSettingsProvider().load()
-
-
-app = create_app(settings=_load_settings())
+app: Flask = create_app(settings=AiUiSettingsProvider().load())
 
 
 def main() -> int:
-    create_app(settings=_load_settings()).run(host="0.0.0.0", port=8000)
+    ai_ui_settings: FrontendAgentApiSettings = AiUiSettingsProvider().load()
+    ai_ui_app: Flask = create_app(settings=ai_ui_settings)
+    ai_ui_app.run(host="0.0.0.0", port=8000)
     return 0
 
 

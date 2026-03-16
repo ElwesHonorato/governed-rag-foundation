@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from agent_platform.agent_runtime.execution_runtime_factory import EngineGateways
 from agent_platform.grounded_response.service import GroundedResponseService
-from agent_platform.startup.startup_assets_factory import StartupAssets
+from agent_platform.startup.contracts import AgentPlatformConfig
 
 
 class GroundedResponseFactory:
@@ -12,10 +12,9 @@ class GroundedResponseFactory:
 
     def build(
         self,
-        assets: StartupAssets,
+        settings: AgentPlatformConfig,
         gateways: EngineGateways,
     ) -> GroundedResponseService:
-        settings = assets.settings
         return GroundedResponseService(
             llm_gateway=gateways.llm_gateway,
             retrieval_gateway=gateways.retrieval_gateway,

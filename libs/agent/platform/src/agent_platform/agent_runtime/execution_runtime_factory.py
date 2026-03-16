@@ -30,7 +30,10 @@ from agent_platform.gateways.retrieval.local_vector_search import (
     LocalVectorSearchGateway,
 )
 from agent_platform.gateways.retrieval.retrieval_gateway import RetrievalGateway
-from agent_platform.startup.startup_assets_factory import StartupAssets
+from agent_platform.agent_runtime.skill_registry import SkillRegistry
+from agent_platform.startup.contracts import AgentPlatformConfig
+from agent_platform.startup.local_state_stores_factory import LocalStateStores
+from ai_infra.registry.capability_registry import CapabilityRegistry
 
 
 @dataclass(frozen=True)
@@ -55,20 +58,32 @@ class EngineGateways:
 class ExecutionRuntimeFactory:
     """Build execution and supervision collaborators for the engine."""
 
-    def build(self, assets: StartupAssets, gateways: EngineGateways) -> ExecutionRuntime:
+    def build(
+        self,
+        settings: AgentPlatformConfig,
+        capability_registry: CapabilityRegistry,
+        skill_registry: SkillRegistry,
+        stores: LocalStateStores,
+        gateways: EngineGateways,
+    ) -> ExecutionRuntime:
         planning_service = CapabilityPlanningService()
-        session_manager = AgentSessionManager(assets.stores.session_store)
+        session_manager = AgentSessionManager(stores.session_store)
         execution_service = self._build_execution_service(
             gateways,
-            llm_model=assets.settings.llm.llm_model,
+            llm_model=settings.llm.llm_model,
         )
-        supervisor = self._build_supervisor(assets, execution_service)
+        supervisor = self._build_supervisor(
+            settings,
+            capability_registry,
+            stores,
+            execution_service,
+        )
         return ExecutionRuntime(
             objective_runner=ObjectiveRunner(
                 session_manager=session_manager,
                 planning_service=planning_service,
                 supervisor=supervisor,
-                skill_registry=assets.skill_registry,
+                skill_registry=skill_registry,
             ),
             evaluation_runner=OfflineEvaluationRunner(),
         )
@@ -94,12 +109,13 @@ class ExecutionRuntimeFactory:
 
     def _build_supervisor(
         self,
-        assets: StartupAssets,
+        settings: AgentPlatformConfig,
+        capability_registry: CapabilityRegistry,
+        stores: LocalStateStores,
         execution_service: CapabilityExecutionService,
     ) -> RunSupervisor:
-        settings = assets.settings
         return RunSupervisor(
-            registry=assets.capability_registry,
+            registry=capability_registry,
             capability_policy=CapabilityPolicy(),
             sandbox_policy=SandboxPolicy(settings.paths.workspace_root),
             termination_policy=TerminationPolicy(),
@@ -108,6 +124,6 @@ class ExecutionRuntimeFactory:
             state_manager=ExecutionStateManager(),
             response_validator=ResponseValidationService(),
             step_evaluator=StepResultEvaluationService(),
-            run_manager=assets.stores.run_store,
-            checkpoint_manager=assets.stores.checkpoint_store,
+            run_manager=stores.run_store,
+            checkpoint_manager=stores.checkpoint_store,
         )

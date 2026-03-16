@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 from ai_infra.contracts.agent_run import AgentRun
 from ai_infra.contracts.agent_session import AgentSession
@@ -10,9 +11,13 @@ from ai_infra.contracts.capability_descriptor import CapabilityDescriptor
 from ai_infra.contracts.evaluation_run import EvaluationRun
 from ai_infra.evaluation.offline_evaluation_runner import OfflineEvaluationRunner
 from ai_infra.registry.capability_registry import CapabilityRegistry
+from ai_infra.retrieval.deterministic_retrieval_embedder import (
+    DeterministicRetrievalEmbedder,
+)
 from agent_platform.clients.llm.ollama_client import OllamaClient
 from agent_platform.clients.retrieval.weaviate_client import WeaviateClient
 from agent_platform.agent_runtime.objective_runner import ObjectiveRunner
+from agent_platform.startup.contracts import AgentPlatformConfig
 from agent_platform.agent_runtime.execution_runtime_factory import (
     EngineGateways,
     ExecutionRuntimeFactory,
@@ -36,11 +41,15 @@ from agent_platform.gateways.state.local_run_store import LocalRunStore
 from agent_platform.gateways.state.local_session_store import LocalSessionStore
 from agent_platform.startup.bootstrap import RuntimeBootstrapper
 from agent_platform.startup.local_state_stores_factory import LocalStateStoresFactory
+from agent_platform.startup.packaged_configuration import (
+    load_capability_catalog,
+    load_skill_registry,
+)
 from agent_platform.startup.retrieval_embedder_factory import (
     RetrievalEmbedderFactory,
 )
+from agent_platform.startup.retrieval_composition import RetrievalComposition
 from agent_platform.startup.runtime_settings import AgentPlatformConfigFactory
-from agent_platform.startup.startup_assets_factory import StartupAssets, StartupAssetsFactory
 from agent_settings.settings import SettingsBundle
 
 
@@ -99,31 +108,50 @@ class EngineFactory:
         self._grounded_response_factory = grounded_response_factory
 
     def build(self) -> Engine:
-        startup_assets_factory = StartupAssetsFactory(
-            bootstrapper=self._bootstrapper,
-            retrieval_embedder=self._retrieval_embedder_factory.build(
-                self._settings.retrieval.embedding_dim
-            ),
-            local_state_stores_factory=self._local_state_stores_factory,
-            settings=AgentPlatformConfigFactory().build(self._settings),
+        settings: AgentPlatformConfig = AgentPlatformConfigFactory().build(self._settings)
+        retrieval_embedder = self._retrieval_embedder_factory.build(
+            self._settings.retrieval.embedding_dim
         )
-        assets = startup_assets_factory.build()
-        gateways = self._build_gateways(assets)
-        execution_runtime = self._execution_runtime_factory.build(assets, gateways)
-        grounded_response_service = self._grounded_response_factory.build(assets, gateways)
+        prepared_artifacts = self._bootstrapper.prepare(
+            settings,
+            retrieval=RetrievalComposition(embedder=retrieval_embedder),
+        )
+        capability_registry = CapabilityRegistry(load_capability_catalog())
+        skill_registry = load_skill_registry()
+        stores = self._local_state_stores_factory.build(settings)
+        gateways = self._build_gateways(
+            settings=settings,
+            retrieval_embedder=retrieval_embedder,
+            vector_index_path=prepared_artifacts.vector_index_path,
+        )
+        execution_runtime = self._execution_runtime_factory.build(
+            settings,
+            capability_registry,
+            skill_registry,
+            stores,
+            gateways,
+        )
+        grounded_response_service = self._grounded_response_factory.build(
+            settings,
+            gateways,
+        )
         return Engine(
-            _capability_registry=assets.capability_registry,
-            _skill_registry=assets.skill_registry,
-            _session_store=assets.stores.session_store,
-            _run_store=assets.stores.run_store,
+            _capability_registry=capability_registry,
+            _skill_registry=skill_registry,
+            _session_store=stores.session_store,
+            _run_store=stores.run_store,
             _evaluation_runner=execution_runtime.evaluation_runner,
             _objective_runner=execution_runtime.objective_runner,
             _grounded_response_service=grounded_response_service,
         )
 
-    def _build_gateways(self, assets: StartupAssets) -> EngineGateways:
-        settings = assets.settings
-        retrieval_embedder = assets.retrieval.embedder
+    def _build_gateways(
+        self,
+        *,
+        settings: AgentPlatformConfig,
+        retrieval_embedder: DeterministicRetrievalEmbedder,
+        vector_index_path: Path,
+    ) -> EngineGateways:
         llm_client = OllamaClient(
             llm_url=settings.llm.llm_url,
             timeout_seconds=settings.llm.llm_timeout_seconds,
@@ -136,7 +164,7 @@ class EngineFactory:
             filesystem_gateway=LocalFilesystemGateway(str(settings.paths.workspace_root)),
             command_gateway=LocalCommandGateway(str(settings.paths.workspace_root)),
             vector_gateway=LocalVectorSearchGateway(
-                str(assets.prepared_artifacts.vector_index_path),
+                str(vector_index_path),
                 retrieval_embedder,
             ),
             llm_gateway=LLMGateway(client=llm_client),

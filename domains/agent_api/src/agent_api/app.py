@@ -36,8 +36,6 @@ def main() -> int:
         execution_runtime_factory=ExecutionRuntimeFactory(),
         grounded_response_factory=GroundedResponseFactory(),
     )
-    if agent_settings.agent_api is None:
-        raise ValueError("Agent API settings are required for agent API startup")
     agent_api_settings: AgentApiSettings = agent_settings.agent_api
     agent_api_app: AgentApiApplication = WebApplicationFactory(
         settings=agent_api_settings,

@@ -14,7 +14,7 @@ from agent_platform.grounded_response.grounded_response_factory import (
 from agent_platform.startup.bootstrap import RuntimeBootstrapper
 from agent_platform.startup.local_state_stores_factory import LocalStateStoresFactory
 from agent_platform.startup.runtime_settings import (
-    AgentPlatformSettingsProvider,
+    AgentPlatformConfigFactory,
 )
 from agent_platform.startup.engine_factory import EngineFactory
 from agent_platform.startup.retrieval_composition import RetrievalCompositionFactory
@@ -48,7 +48,7 @@ def main(argv: list[str] | None = None) -> int:
             bootstrapper=RuntimeBootstrapper(),
             retrieval_composition_factory=RetrievalCompositionFactory(),
             local_state_stores_factory=LocalStateStoresFactory(),
-            settings_provider=AgentPlatformSettingsProvider(),
+            settings=AgentPlatformConfigFactory().build(),
         ),
         execution_runtime_factory=ExecutionRuntimeFactory(),
         grounded_response_factory=GroundedResponseFactory(),

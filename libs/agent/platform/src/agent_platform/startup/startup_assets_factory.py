@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from agent_settings.settings import SettingsProvider
 from agent_platform.agent_runtime.skill_registry import SkillRegistry
 from agent_platform.startup.bootstrap import PreparedRuntimeArtifacts, RuntimeBootstrapper
 from agent_platform.startup.local_state_stores_factory import (
@@ -44,15 +43,15 @@ class StartupAssetsFactory:
         bootstrapper: RuntimeBootstrapper,
         retrieval_composition_factory: RetrievalCompositionFactory,
         local_state_stores_factory: LocalStateStoresFactory,
-        settings_provider: SettingsProvider[AgentPlatformConfig],
+        settings: AgentPlatformConfig,
     ) -> None:
         self._bootstrapper = bootstrapper
         self._retrieval_composition_factory = retrieval_composition_factory
         self._local_state_stores_factory = local_state_stores_factory
-        self._settings_provider = settings_provider
+        self._settings = settings
 
     def build(self) -> StartupAssets:
-        settings = self._load_settings()
+        settings = self._settings
         retrieval = self._retrieval_composition_factory.build(settings.retrieval)
         return StartupAssets(
             settings=settings,
@@ -62,6 +61,3 @@ class StartupAssetsFactory:
             skill_registry=load_skill_registry(),
             stores=self._local_state_stores_factory.build(settings),
         )
-
-    def _load_settings(self) -> AgentPlatformConfig:
-        return self._settings_provider.load()

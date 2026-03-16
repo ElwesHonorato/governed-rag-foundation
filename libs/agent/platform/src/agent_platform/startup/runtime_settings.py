@@ -1,4 +1,4 @@
-"""Startup settings loading for the local agent-platform runtime."""
+"""Platform config assembly from a centralized settings bundle."""
 
 from __future__ import annotations
 
@@ -7,28 +7,28 @@ from pathlib import Path
 from agent_settings.settings import (
     EnvironmentSettingsProvider,
     SettingsRequest,
-    SettingsProvider,
 )
 from agent_platform.startup.contracts import (
     AgentPlatformConfig,
     RuntimePaths,
 )
 
-class AgentPlatformSettingsProvider(SettingsProvider[AgentPlatformConfig]):
-    """Load requested startup settings from process environment."""
 
-    def load(self) -> AgentPlatformConfig:
-        provider = EnvironmentSettingsProvider(
+class AgentPlatformConfigFactory:
+    """Build agent-platform config from a centralized settings bundle."""
+
+    def build(self) -> AgentPlatformConfig:
+        bundle = EnvironmentSettingsProvider(
             SettingsRequest(llm=True, retrieval=True)
-        )
+        ).bundle
         workspace_root, state_dir = self._resolve_local_paths()
         return AgentPlatformConfig(
             paths=RuntimePaths(
                 workspace_root=str(workspace_root),
                 state_dir=str(state_dir),
             ),
-            llm=provider.require_llm(),
-            retrieval=provider.require_retrieval(),
+            llm=bundle.llm,
+            retrieval=bundle.retrieval,
         )
 
     def _resolve_local_paths(self) -> tuple[Path, Path]:

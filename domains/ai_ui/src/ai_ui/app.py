@@ -36,11 +36,15 @@ def create_app(
     return app
 
 
-app = create_app(settings=EnvironmentSettingsProvider().load())
+def _load_settings() -> FrontendAgentApiSettings:
+    return EnvironmentSettingsProvider().load()
+
+
+app = create_app(settings=_load_settings())
 
 
 def main() -> int:
-    create_app(settings=EnvironmentSettingsProvider().load()).run(host="0.0.0.0", port=8000)
+    create_app(settings=_load_settings()).run(host="0.0.0.0", port=8000)
     return 0
 
 

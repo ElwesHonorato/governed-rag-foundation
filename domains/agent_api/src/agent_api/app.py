@@ -17,7 +17,7 @@ from agent_platform.startup.bootstrap import RuntimeBootstrapper
 from agent_platform.startup.local_state_stores_factory import LocalStateStoresFactory
 from agent_platform.startup.retrieval_composition import RetrievalCompositionFactory
 from agent_platform.startup.runtime_settings import (
-    AgentPlatformSettingsProvider,
+    AgentPlatformConfigFactory,
 )
 from agent_platform.startup.startup_assets_factory import StartupAssetsFactory
 
@@ -35,12 +35,15 @@ def main() -> int:
             bootstrapper=RuntimeBootstrapper(),
             retrieval_composition_factory=RetrievalCompositionFactory(),
             local_state_stores_factory=LocalStateStoresFactory(),
-            settings_provider=AgentPlatformSettingsProvider(),
+            settings=AgentPlatformConfigFactory().build(),
         ),
         execution_runtime_factory=ExecutionRuntimeFactory(),
         grounded_response_factory=GroundedResponseFactory(),
     )
-    return _serve(settings=EnvironmentSettingsProvider().load(), agent_app=engine_factory.build())
+    return _serve(
+        settings=EnvironmentSettingsProvider().load(),
+        agent_app=engine_factory.build(),
+    )
 
 
 if __name__ == "__main__":

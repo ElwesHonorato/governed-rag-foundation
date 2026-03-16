@@ -5,7 +5,11 @@ from __future__ import annotations
 import argparse
 import json
 
+from agent_platform.application.execution_runtime_factory import ExecutionRuntimeFactory
+from agent_platform.rag.rag_runtime_factory import RagRuntimeFactory
+from agent_platform.startup.bootstrap import RuntimeBootstrapper
 from agent_platform.startup.engine_factory import EngineFactory
+from agent_platform.startup.startup_assets_factory import StartupAssetsFactory
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -30,7 +34,13 @@ def _build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
-    factory = EngineFactory()
+    factory = EngineFactory(
+        startup_assets_factory=StartupAssetsFactory(
+            bootstrapper=RuntimeBootstrapper()
+        ),
+        execution_runtime_factory=ExecutionRuntimeFactory(),
+        rag_runtime_factory=RagRuntimeFactory(),
+    )
     app = factory.build()
 
     if args.command == "capability-list":

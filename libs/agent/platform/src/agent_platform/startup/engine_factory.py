@@ -18,10 +18,7 @@ from agent_platform.infrastructure.local_session_store import LocalSessionStore
 from agent_platform.rag.rag_runtime_factory import RagRuntimeFactory
 from agent_platform.rag.service import RagService
 from agent_platform.rag.contracts import RagResponse
-from agent_platform.startup.bootstrap import RuntimeBootstrapper
-from agent_platform.startup.startup_assets_factory import (
-    StartupAssetsFactory,
-)
+from agent_platform.startup.startup_assets_factory import StartupAssetsFactory
 
 
 @dataclass(frozen=True)
@@ -63,18 +60,14 @@ class EngineFactory:
 
     def __init__(
         self,
-        bootstrapper: RuntimeBootstrapper | None = None,
-        startup_assets_factory: StartupAssetsFactory | None = None,
-        execution_runtime_factory: ExecutionRuntimeFactory | None = None,
-        rag_runtime_factory: RagRuntimeFactory | None = None,
+        *,
+        startup_assets_factory: StartupAssetsFactory,
+        execution_runtime_factory: ExecutionRuntimeFactory,
+        rag_runtime_factory: RagRuntimeFactory,
     ) -> None:
-        self._startup_assets_factory = startup_assets_factory or StartupAssetsFactory(
-            bootstrapper=bootstrapper
-        )
-        self._execution_runtime_factory = (
-            execution_runtime_factory or ExecutionRuntimeFactory()
-        )
-        self._rag_runtime_factory = rag_runtime_factory or RagRuntimeFactory()
+        self._startup_assets_factory = startup_assets_factory
+        self._execution_runtime_factory = execution_runtime_factory
+        self._rag_runtime_factory = rag_runtime_factory
 
     def build(self) -> Engine:
         assets = self._startup_assets_factory.build()

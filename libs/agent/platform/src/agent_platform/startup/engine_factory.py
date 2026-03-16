@@ -13,8 +13,8 @@ from ai_infra.registry.capability_registry import CapabilityRegistry
 from agent_platform.application.objective_runner import ObjectiveRunner
 from agent_platform.application.execution_runtime_factory import ExecutionRuntimeFactory
 from agent_platform.application.skill_registry import SkillRegistry
-from agent_platform.infrastructure.local_run_store import LocalRunStore
-from agent_platform.infrastructure.local_session_store import LocalSessionStore
+from agent_platform.gateways.state.local_run_store import LocalRunStore
+from agent_platform.gateways.state.local_session_store import LocalSessionStore
 from agent_platform.rag.rag_runtime_factory import RagRuntimeFactory
 from agent_platform.rag.service import RagService
 from agent_platform.rag.contracts import RagResponse

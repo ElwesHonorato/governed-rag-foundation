@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from agent_platform.gateways.retrieval.weaviate_retrieval_client import (
+    WeaviateRetrievalClient,
+)
 from agent_platform.llm.ollama_client import OllamaClient
 from agent_platform.rag.service import RagService
-from agent_platform.retrieval.weaviate_client import WeaviateRetrievalClient
 from agent_platform.startup.startup_assets_factory import StartupAssets
 
 

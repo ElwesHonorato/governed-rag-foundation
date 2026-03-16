@@ -32,7 +32,7 @@ This document now describes the current state and the remaining work. It does no
 
 Current examples:
 - `from agent_platform.startup.engine_factory import EngineFactory`
-- `from agent_platform.infrastructure.local_command_runner import LocalCommandRunner`
+- `from agent_platform.gateways.command.local_command_gateway import LocalCommandGateway`
 - `from agent_platform.cli.agent_cli import main`
 
 What remains important:
@@ -138,7 +138,7 @@ Keep as the deployable consumer:
   - `libs/agent/platform/src/agent_platform/config`
 - enforce imports such as:
   - `from agent_platform.startup.engine_factory import EngineFactory`
-  - `from agent_platform.infrastructure.local_command_runner import LocalCommandRunner`
+  - `from agent_platform.gateways.command.local_command_gateway import LocalCommandGateway`
   - `from agent_platform.cli.agent_cli import main`
 - keep Poetry package inclusion and script targets aligned with that namespace
 

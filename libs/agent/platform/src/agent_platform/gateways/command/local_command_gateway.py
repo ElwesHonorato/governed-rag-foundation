@@ -1,4 +1,4 @@
-"""Allowlisted command runner."""
+"""Allowlisted command gateway."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import subprocess
 from pathlib import Path
 
 
-class LocalCommandRunner:
+class LocalCommandGateway:
     """Runs a minimal allowlisted command set without a shell."""
 
     def __init__(self, workspace_root: str) -> None:

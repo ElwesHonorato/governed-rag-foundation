@@ -5,7 +5,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from agent_platform.infrastructure.local_embedding_fixture import DeterministicEmbeddingFixture
+from agent_platform.infrastructure.local_embedding_fixture import (
+    DeterministicEmbeddingFixture,
+)
 
 
 class LocalVectorSearch:

@@ -1,11 +1,11 @@
-"""Local filesystem adapter."""
+"""Local filesystem gateway."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
 
-class LocalFilesystemAdapter:
+class LocalFilesystemGateway:
     """Read-only workspace adapter."""
 
     def __init__(self, workspace_root: str) -> None:

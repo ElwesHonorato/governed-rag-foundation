@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 from agent_platform.llm.ollama_client import OllamaClient
+from agent_platform.gateways.retrieval.weaviate_retrieval_client import (
+    RetrievedChunk,
+    WeaviateRetrievalClient,
+)
 from agent_platform.rag.contracts import Citation, RagResponse
-from agent_platform.retrieval.weaviate_client import RetrievedChunk, WeaviateRetrievalClient
 
 
 class RagService:

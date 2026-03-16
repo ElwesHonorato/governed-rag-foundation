@@ -18,12 +18,16 @@ from ai_infra.services.response_validation_service import ResponseValidationServ
 from ai_infra.services.run_supervisor import RunSupervisor
 from ai_infra.services.step_result_evaluation_service import StepResultEvaluationService
 from agent_platform.application.objective_runner import ObjectiveRunner
-from agent_platform.infrastructure.local_command_runner import LocalCommandRunner
 from agent_platform.infrastructure.local_embedding_fixture import DeterministicEmbeddingFixture
-from agent_platform.infrastructure.local_filesystem_adapter import LocalFilesystemAdapter
-from agent_platform.infrastructure.local_model_gateway import LocalModelGateway
-from agent_platform.infrastructure.local_prompt_repository import LocalPromptRepository
-from agent_platform.infrastructure.local_vector_search import LocalVectorSearch
+from agent_platform.gateways.command.local_command_gateway import LocalCommandGateway
+from agent_platform.gateways.filesystem.local_filesystem_gateway import (
+    LocalFilesystemGateway,
+)
+from agent_platform.gateways.llm.local_model_gateway import LocalModelGateway
+from agent_platform.gateways.prompts.local_prompt_repository import (
+    LocalPromptRepository,
+)
+from agent_platform.gateways.retrieval.local_vector_search import LocalVectorSearch
 from agent_platform.startup.startup_assets_factory import StartupAssets
 
 
@@ -62,8 +66,8 @@ class ExecutionRuntimeFactory:
         )
         settings = assets.settings
         return CapabilityExecutionService(
-            filesystem_gateway=LocalFilesystemAdapter(settings.paths.workspace_root),
-            command_gateway=LocalCommandRunner(settings.paths.workspace_root),
+            filesystem_gateway=LocalFilesystemGateway(settings.paths.workspace_root),
+            command_gateway=LocalCommandGateway(settings.paths.workspace_root),
             vector_gateway=LocalVectorSearch(
                 str(assets.prepared_artifacts.vector_index_path),
                 DeterministicEmbeddingFixture(),

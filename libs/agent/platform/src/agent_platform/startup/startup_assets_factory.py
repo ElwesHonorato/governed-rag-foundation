@@ -11,9 +11,9 @@ from agent_platform.infrastructure.local_capability_catalog import (
     load_capability_catalog,
     load_skill_registry,
 )
-from agent_platform.infrastructure.local_checkpoint_store import LocalCheckpointStore
-from agent_platform.infrastructure.local_run_store import LocalRunStore
-from agent_platform.infrastructure.local_session_store import LocalSessionStore
+from agent_platform.gateways.state.local_checkpoint_store import LocalCheckpointStore
+from agent_platform.gateways.state.local_run_store import LocalRunStore
+from agent_platform.gateways.state.local_session_store import LocalSessionStore
 from agent_platform.startup.bootstrap import PreparedRuntimeArtifacts, RuntimeBootstrapper
 from agent_platform.startup.contracts import AgentPlatformConfig
 from agent_platform.startup.provider import SettingsProvider, SettingsRequest

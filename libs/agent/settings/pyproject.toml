@@ -1,7 +1,7 @@
 [project]
 name = "agent-settings"
 version = "0.1.0"
-description = "Shared runtime configuration primitives"
+description = "Shared settings-provider abstractions for the agent stack"
 authors = [{ name = "Governed RAG Foundation" }]
 requires-python = "==3.11.14"
 

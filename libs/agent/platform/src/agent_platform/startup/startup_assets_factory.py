@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from agent_settings.settings import SettingsProvider
 from agent_platform.agent_runtime.skill_registry import SkillRegistry
 from agent_platform.startup.bootstrap import PreparedRuntimeArtifacts, RuntimeBootstrapper
 from agent_platform.startup.local_state_stores_factory import (
@@ -15,7 +16,6 @@ from agent_platform.startup.packaged_configuration import (
     load_skill_registry,
 )
 from agent_platform.startup.contracts import AgentPlatformConfig
-from agent_platform.startup.runtime_settings import SettingsProvider, SettingsRequest
 from agent_platform.startup.retrieval_composition import (
     RetrievalComposition,
     RetrievalCompositionFactory,
@@ -44,10 +44,12 @@ class StartupAssetsFactory:
         bootstrapper: RuntimeBootstrapper,
         retrieval_composition_factory: RetrievalCompositionFactory,
         local_state_stores_factory: LocalStateStoresFactory,
+        settings_provider: SettingsProvider[AgentPlatformConfig],
     ) -> None:
         self._bootstrapper = bootstrapper
         self._retrieval_composition_factory = retrieval_composition_factory
         self._local_state_stores_factory = local_state_stores_factory
+        self._settings_provider = settings_provider
 
     def build(self) -> StartupAssets:
         settings = self._load_settings()
@@ -62,9 +64,4 @@ class StartupAssetsFactory:
         )
 
     def _load_settings(self) -> AgentPlatformConfig:
-        settings = SettingsProvider(
-            SettingsRequest(agent_platform=True)
-        ).bundle.agent_platform
-        if settings is None:
-            raise ValueError("Agent platform settings were not requested")
-        return settings
+        return self._settings_provider.load()

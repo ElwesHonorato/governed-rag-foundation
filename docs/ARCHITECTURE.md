@@ -77,7 +77,7 @@ Repository structure (architecture-relevant):
 - `domains/`: deployable worker/app/governance/infra units.
 - `domains/agent_api/`: HTTP wrapper around the `agent_platform` service graph and the active RAG backend surface.
 - `domains/ai_ui/`: Flask UI/front-door that forwards prompt execution to `agent_api`.
-- `libs/agent/settings/`: shared agent runtime settings package with no dependency on `core` or `platform`.
+- `libs/agent/settings/`: shared settings-provider abstractions used by agent libraries and domains.
 - `libs/pipeline-common/`: shared worker/runtime abstractions and adapters.
 - `libs/agent/core/`: shared contracts, protocols, policies, registries, and orchestration services for the agent platform.
 - `libs/agent/platform/`: reusable agent runtime package with local adapters, packaged config assets, and grounded-response services.

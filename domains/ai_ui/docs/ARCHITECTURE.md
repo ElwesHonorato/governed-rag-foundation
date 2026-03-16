@@ -20,7 +20,8 @@ It does not:
 
 - app.py: app factory and composition root.
 - routes.py: endpoint registration.
-- ../../libs/agent/settings/src/agent_settings/settings: runtime settings loader.
+- src/ai_ui/settings.py: domain-owned UI settings model and environment-backed provider.
+- ../../libs/agent/settings/src/agent_settings/settings/settings_provider.py: shared `SettingsProvider` abstraction.
 - ai_infra.AgentApiClient: backend HTTP adapter from the shared library.
 
 # 4. Module Structure
@@ -28,7 +29,8 @@ It does not:
 - src/ai_ui/app.py
 - src/ai_ui/routes.py
 - .env.example
-- ../../libs/agent/settings/src/agent_settings/settings
+- src/ai_ui/settings.py
+- ../../libs/agent/settings/src/agent_settings/settings/settings_provider.py
 - ../../libs/agent/core/src/ai_infra/agent_api_client.py
 
 ```mermaid

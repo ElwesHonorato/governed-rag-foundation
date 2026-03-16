@@ -15,7 +15,8 @@ Key runtime wiring:
 - `src/agent_api/adapters/http/web_application_factory.py` contains the class-based composition root for HTTP adapter wiring.
 - `src/agent_api/adapters/http/application.py` handles the WSGI application boundary and takes prebuilt collaborators.
 - `src/agent_api/adapters/http/request_normalization.py` handles WSGI request normalization.
-- `../../libs/agent/settings/src/agent_settings/settings` loads backend runtime settings via a shared settings provider pattern.
+- `src/agent_api/settings.py` owns the domain's concrete HTTP settings model and environment-backed provider.
+- `../../libs/agent/settings/src/agent_settings/settings/settings_provider.py` provides the shared `SettingsProvider` abstraction used by the domain composition root.
 
 Deployment shape:
 - long-running containerized HTTP service

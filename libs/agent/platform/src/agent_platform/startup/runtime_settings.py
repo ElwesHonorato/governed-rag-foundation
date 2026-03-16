@@ -3,29 +3,15 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
 from pathlib import Path
 
+from agent_settings.settings import SettingsProvider
 from agent_platform.startup.contracts import (
     AgentPlatformConfig,
     LLMSettings,
     RetrievalSettings,
     RuntimePaths,
 )
-
-
-@dataclass(frozen=True)
-class SettingsRequest:
-    """Requested startup settings to load."""
-
-    agent_platform: bool = False
-
-
-@dataclass(frozen=True)
-class SettingsBundle:
-    """Bundle of loaded startup settings."""
-
-    agent_platform: AgentPlatformConfig | None = None
 
 
 def load_agent_platform_config() -> AgentPlatformConfig:
@@ -49,21 +35,11 @@ def load_agent_platform_config() -> AgentPlatformConfig:
     )
 
 
-class SettingsProvider:
+class AgentPlatformEnvironmentSettingsProvider(SettingsProvider[AgentPlatformConfig]):
     """Load requested startup settings from process environment."""
 
-    def __init__(self, request: SettingsRequest) -> None:
-        self._request = request
-
-    @property
-    def agent_platform(self) -> AgentPlatformConfig | None:
-        if not self._request.agent_platform:
-            return None
+    def load(self) -> AgentPlatformConfig:
         return load_agent_platform_config()
-
-    @property
-    def bundle(self) -> SettingsBundle:
-        return SettingsBundle(agent_platform=self.agent_platform)
 
 
 def _resolve_local_paths() -> tuple[Path, Path]:

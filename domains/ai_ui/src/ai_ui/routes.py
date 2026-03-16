@@ -2,7 +2,7 @@
 from flask import Flask, jsonify, render_template, request
 
 from ai_infra.agent_api_client import AgentApiClient
-from agent_settings.settings import FrontendAgentApiSettings
+from ai_ui.settings import FrontendAgentApiSettings
 
 
 def register_routes(

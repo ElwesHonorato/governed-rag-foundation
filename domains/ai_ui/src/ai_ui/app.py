@@ -18,12 +18,14 @@ Best practices:
 from flask import Flask
 
 from ai_infra.agent_api_client import AgentApiClient
-from agent_settings.settings import SettingsProvider, SettingsRequest
 from ai_ui.routes import register_routes
+from ai_ui.settings import EnvironmentSettingsProvider, FrontendAgentApiSettings
 
 
-def create_app() -> Flask:
-    settings = SettingsProvider(SettingsRequest(frontend_agent_api=True)).bundle.frontend_agent_api
+def create_app(
+    *,
+    settings: FrontendAgentApiSettings,
+) -> Flask:
     agent_api_client = AgentApiClient(
         base_url=settings.agent_api_url,
         timeout_seconds=settings.agent_api_timeout_seconds,
@@ -34,11 +36,11 @@ def create_app() -> Flask:
     return app
 
 
-app = create_app()
+app = create_app(settings=EnvironmentSettingsProvider().load())
 
 
 def main() -> int:
-    app.run(host="0.0.0.0", port=8000)
+    create_app(settings=EnvironmentSettingsProvider().load()).run(host="0.0.0.0", port=8000)
     return 0
 
 

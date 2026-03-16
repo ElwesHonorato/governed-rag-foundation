@@ -27,3 +27,7 @@ Dependency direction within `libs/agent` is strict:
 - `settings` is independent
 - `core` is independent
 - `platform` may depend on `core` and `settings`
+
+`agent_platform` now depends only on the shared `SettingsProvider` abstraction
+from `agent_settings`. Concrete settings models and environment-backed
+providers live in the consuming domain or local startup package.

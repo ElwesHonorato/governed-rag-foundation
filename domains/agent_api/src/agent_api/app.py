@@ -6,7 +6,9 @@ from wsgiref.simple_server import make_server
 
 from agent_api.adapters.http.web_application_factory import WebApplicationFactory
 from agent_api.engine_factory import Engine, EngineFactory
-from agent_platform.application.execution_runtime_factory import ExecutionRuntimeFactory
+from agent_platform.agent_runtime.execution_runtime_factory import (
+    ExecutionRuntimeFactory,
+)
 from agent_platform.grounded_response.grounded_response_factory import (
     GroundedResponseFactory,
 )

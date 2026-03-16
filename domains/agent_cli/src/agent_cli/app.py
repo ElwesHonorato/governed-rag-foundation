@@ -5,7 +5,9 @@ from __future__ import annotations
 import argparse
 import json
 
-from agent_platform.application.execution_runtime_factory import ExecutionRuntimeFactory
+from agent_platform.agent_runtime.execution_runtime_factory import (
+    ExecutionRuntimeFactory,
+)
 from agent_platform.grounded_response.grounded_response_factory import (
     GroundedResponseFactory,
 )

@@ -10,14 +10,16 @@ from ai_infra.contracts.capability_descriptor import CapabilityDescriptor
 from ai_infra.contracts.evaluation_run import EvaluationRun
 from ai_infra.evaluation.offline_evaluation_runner import OfflineEvaluationRunner
 from ai_infra.registry.capability_registry import CapabilityRegistry
-from agent_platform.application.objective_runner import ObjectiveRunner
-from agent_platform.application.execution_runtime_factory import ExecutionRuntimeFactory
+from agent_platform.agent_runtime.objective_runner import ObjectiveRunner
+from agent_platform.agent_runtime.execution_runtime_factory import (
+    ExecutionRuntimeFactory,
+)
+from agent_platform.agent_runtime.skill_registry import SkillRegistry
 from agent_platform.grounded_response.contracts import GroundedResponse
 from agent_platform.grounded_response.grounded_response_factory import (
     GroundedResponseFactory,
 )
 from agent_platform.grounded_response.service import GroundedResponseService
-from agent_platform.application.skill_registry import SkillRegistry
 from agent_platform.gateways.state.local_run_store import LocalRunStore
 from agent_platform.gateways.state.local_session_store import LocalSessionStore
 from agent_platform.startup.startup_assets_factory import StartupAssetsFactory

@@ -17,7 +17,7 @@ from ai_infra.services.prompt_assembly_service import PromptAssemblyService
 from ai_infra.services.response_validation_service import ResponseValidationService
 from ai_infra.services.run_supervisor import RunSupervisor
 from ai_infra.services.step_result_evaluation_service import StepResultEvaluationService
-from agent_platform.application.objective_runner import ObjectiveRunner
+from agent_platform.agent_runtime.objective_runner import ObjectiveRunner
 from agent_platform.gateways.command.local_command_gateway import LocalCommandGateway
 from agent_platform.gateways.filesystem.local_filesystem_gateway import (
     LocalFilesystemGateway,

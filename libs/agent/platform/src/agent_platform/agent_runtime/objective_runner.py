@@ -8,7 +8,7 @@ from ai_infra.contracts.agent_run import AgentRun
 from ai_infra.kernel.agent_session_manager import AgentSessionManager
 from ai_infra.services.capability_planning_service import CapabilityPlanningService
 from ai_infra.services.run_supervisor import RunSupervisor
-from agent_platform.application.skill_registry import SkillRegistry
+from agent_platform.agent_runtime.skill_registry import SkillRegistry
 
 
 @dataclass(frozen=True)

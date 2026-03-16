@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from importlib.resources import files
 
-from agent_platform.application.skill_registry import SkillDefinition, SkillRegistry
+from agent_platform.agent_runtime.skill_registry import SkillDefinition, SkillRegistry
 from ai_infra.contracts.capability_descriptor import CapabilityDescriptor
 from ai_infra.registry.capability_catalog import CapabilityCatalog
 

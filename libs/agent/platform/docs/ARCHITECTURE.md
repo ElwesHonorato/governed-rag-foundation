@@ -12,6 +12,10 @@ responses:
   response orchestration
 - `agent_platform.startup`: config extraction and service wiring
 
+Runtime path handling is centralized in startup and shared workspace-bound path
+validation, while packaged prompts/capability metadata continue to load through
+package resources rather than repo-relative file paths.
+
 This package is library code, not a deployable service. The long-running HTTP
 backend remains `domains/ai_backend`, which should import and expose these
 services rather than reimplement them.

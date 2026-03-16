@@ -31,7 +31,7 @@ class RuntimeBootstrapper:
         index_path = vector_fixture_dir / "index.json"
         if not index_path.exists():
             bootstrap_vector_index(
-                repo_root=settings.paths.repo_root,
+                workspace_root=settings.paths.workspace_root,
                 output_path=str(index_path),
                 embedder=retrieval.embedder,
             )

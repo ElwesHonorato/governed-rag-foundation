@@ -9,7 +9,7 @@ from pathlib import Path
 from agent_platform.startup.contracts import (
     AgentPlatformConfig,
     LLMSettings,
-    RepositoryPaths,
+    RuntimePaths,
     RetrievalSettings,
 )
 
@@ -32,8 +32,7 @@ def load_agent_platform_config() -> AgentPlatformConfig:
     """Load agent-platform startup configuration."""
     workspace_root, state_dir = _resolve_local_paths()
     return AgentPlatformConfig(
-        paths=RepositoryPaths(
-            repo_root=str(workspace_root),
+        paths=RuntimePaths(
             workspace_root=str(workspace_root),
             state_dir=str(state_dir),
         ),

@@ -15,13 +15,13 @@ MAX_FILE_BYTES = 24_000
 
 
 def bootstrap_vector_index(
-    repo_root: str,
+    workspace_root: str,
     output_path: str,
     embedder: DeterministicRetrievalEmbedder,
 ) -> None:
     """Index an allowlisted subset of the current repo snapshot."""
 
-    repo = Path(repo_root)
+    repo = Path(workspace_root)
     documents = []
     for path in sorted(repo.rglob("*")):
         if not path.is_file():

@@ -2,21 +2,17 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from ai_infra.runtime.workspace_boundary import WorkspaceBoundary
 
 
 class SandboxPolicy:
     """Workspace-bound path validation."""
 
     def __init__(self, workspace_root: str) -> None:
-        self._workspace_root = Path(workspace_root).resolve()
+        self._workspace = WorkspaceBoundary(workspace_root)
 
     def validate_path(self, path: str) -> None:
-        resolved = Path(path).resolve()
-        try:
-            resolved.relative_to(self._workspace_root)
-        except ValueError as exc:
-            raise ValueError(f"Path is outside the workspace: {path}") from exc
+        self._workspace.ensure_within(path)
 
     def validate_command(self, command: list[str]) -> None:
         if not command:
@@ -48,4 +44,4 @@ class SandboxPolicy:
             self._validate_relative_argument(argument)
 
     def _validate_relative_argument(self, argument: str) -> None:
-        self.validate_path(str((self._workspace_root / argument).resolve()))
+        self._workspace.resolve_path(argument)

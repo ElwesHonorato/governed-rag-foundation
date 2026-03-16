@@ -3,20 +3,21 @@
 from __future__ import annotations
 
 import subprocess
-from pathlib import Path
+
+from ai_infra.runtime.workspace_boundary import WorkspaceBoundary
 
 
 class LocalCommandGateway:
     """Runs a minimal allowlisted command set without a shell."""
 
     def __init__(self, workspace_root: str) -> None:
-        self._workspace_root = Path(workspace_root)
+        self._workspace = WorkspaceBoundary(workspace_root)
 
     def run(self, command: list[str]) -> dict[str, object]:
         self._validate(command)
         completed = subprocess.run(
             command,
-            cwd=self._workspace_root,
+            cwd=self._workspace.root,
             capture_output=True,
             text=True,
             check=False,
@@ -60,8 +61,7 @@ class LocalCommandGateway:
             self._validate_path_argument(argument)
 
     def _validate_path_argument(self, argument: str) -> None:
-        resolved = (self._workspace_root / argument).resolve()
         try:
-            resolved.relative_to(self._workspace_root.resolve())
+            self._workspace.resolve_path(argument)
         except ValueError as exc:
             raise ValueError(f"Command path is outside the workspace: {argument}") from exc

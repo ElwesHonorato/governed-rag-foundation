@@ -6,10 +6,9 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class RepositoryPaths:
-    """Repository-derived paths used by the local runtime."""
+class RuntimePaths:
+    """Resolved runtime paths used by the local agent runtime."""
 
-    repo_root: str
     workspace_root: str
     state_dir: str
 
@@ -36,6 +35,6 @@ class RetrievalSettings:
 class AgentPlatformConfig:
     """Resolved startup configuration grouped by component."""
 
-    paths: RepositoryPaths
+    paths: RuntimePaths
     llm: LLMSettings
     retrieval: RetrievalSettings

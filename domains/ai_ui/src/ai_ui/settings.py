@@ -14,9 +14,6 @@ class FrontendAgentApiSettings:
     agent_api_url: str
     agent_api_timeout_seconds: int
 
-    def dependencies_payload(self) -> dict[str, str]:
-        return {"agent_api": self.agent_api_url}
-
 
 class AiUiSettingsProvider(SettingsProvider[FrontendAgentApiSettings]):
     """Load ai_ui settings from environment variables."""

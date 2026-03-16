@@ -15,7 +15,7 @@ def register_routes(
             {
                 "service": "ai-ui",
                 "status": "ok",
-                "dependencies": settings.dependencies_payload(),
+                "dependencies": {"agent_api": settings.agent_api_url},
             }
         )
 

@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from agent_platform.clients.llm.ollama_client import OllamaClient
-from agent_platform.gateways.retrieval.weaviate_retrieval_client import (
+from agent_platform.clients.retrieval.weaviate_client import (
     RetrievedChunk,
-    WeaviateRetrievalClient,
+    WeaviateClient,
 )
 from agent_platform.rag.contracts import Citation, RagResponse
 
@@ -19,7 +19,7 @@ class RagService:
         self,
         *,
         llm_client: OllamaClient,
-        retrieval_client: WeaviateRetrievalClient,
+        retrieval_client: WeaviateClient,
         model: str,
         retrieval_limit: int,
     ) -> None:

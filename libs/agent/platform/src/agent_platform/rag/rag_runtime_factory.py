@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from agent_platform.clients.llm.ollama_client import OllamaClient
-from agent_platform.gateways.retrieval.weaviate_retrieval_client import (
-    WeaviateRetrievalClient,
+from agent_platform.clients.retrieval.weaviate_client import (
+    WeaviateClient,
 )
 from agent_platform.rag.service import RagService
 from agent_platform.startup.startup_assets_factory import StartupAssets
@@ -20,7 +20,7 @@ class RagRuntimeFactory:
                 llm_url=settings.llm.llm_url,
                 timeout_seconds=settings.llm.llm_timeout_seconds,
             ),
-            retrieval_client=WeaviateRetrievalClient(
+            retrieval_client=WeaviateClient(
                 weaviate_url=settings.retrieval.weaviate_url,
                 embedder=assets.retrieval.embedder,
             ),

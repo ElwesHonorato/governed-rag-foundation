@@ -1,1 +1,1 @@
-"""Retrieval gateway implementations."""
+"""Local retrieval gateway implementations."""

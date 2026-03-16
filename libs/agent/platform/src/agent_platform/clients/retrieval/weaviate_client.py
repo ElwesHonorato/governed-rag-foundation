@@ -1,4 +1,4 @@
-"""Weaviate retrieval adapter."""
+"""Weaviate retrieval client."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ class RetrievedChunk:
     distance: float | None
 
 
-class WeaviateRetrievalClient:
+class WeaviateClient:
     """Queries a Weaviate GraphQL endpoint for document chunks."""
 
     def __init__(
@@ -132,6 +132,7 @@ class WeaviateRetrievalClient:
                 )
             )
         return chunks
+
 
 def _escape_graphql_text(value: str) -> str:
     return value.replace("\\", "\\\\").replace('"', '\\"')

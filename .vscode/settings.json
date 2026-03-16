@@ -1,27 +1,27 @@
 {
   "editor.multiCursorModifier": "alt",
   "python.analysis.extraPaths": [
-    "${workspaceFolder}/libs/ai_infra/src",
-    "${workspaceFolder}/libs/agent_platform/src",
+    "${workspaceFolder}/libs/agent/core/src",
+    "${workspaceFolder}/libs/agent/platform/src",
     "${workspaceFolder}/libs/pipeline-common/src",
-    "${workspaceFolder}/libs/runtime/src",
+    "${workspaceFolder}/libs/agent/runtime_config/src",
     "${workspaceFolder}/registry"
   ],
   "python.analysis.executionEnvironments": [
     {
       "root": "${workspaceFolder}/domains/ai_backend/src",
       "extraPaths": [
-        "${workspaceFolder}/libs/ai_infra/src",
-        "${workspaceFolder}/libs/agent_platform/src",
-        "${workspaceFolder}/libs/runtime/src",
+        "${workspaceFolder}/libs/agent/core/src",
+        "${workspaceFolder}/libs/agent/platform/src",
+        "${workspaceFolder}/libs/agent/runtime_config/src",
         "${workspaceFolder}/registry"
       ]
     },
     {
       "root": "${workspaceFolder}/domains/ai_ui/src",
       "extraPaths": [
-        "${workspaceFolder}/libs/ai_infra/src",
-        "${workspaceFolder}/libs/runtime/src",
+        "${workspaceFolder}/libs/agent/core/src",
+        "${workspaceFolder}/libs/agent/runtime_config/src",
         "${workspaceFolder}/registry"
       ]
     },

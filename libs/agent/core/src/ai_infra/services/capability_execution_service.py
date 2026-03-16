@@ -5,10 +5,12 @@ from __future__ import annotations
 from ai_infra.contracts.agent_run import AgentRun
 from ai_infra.contracts.capability_request import CapabilityRequest
 from ai_infra.contracts.capability_result import CapabilityResult
-from ai_infra.gateways.command_execution_gateway import CommandExecutionGateway
-from ai_infra.gateways.filesystem_gateway import FilesystemGateway
-from ai_infra.gateways.model_gateway import ModelGateway
-from ai_infra.gateways.vector_search_gateway import VectorSearchGateway
+from ai_infra.protocols.gateways.command_execution_gateway import (
+    CommandExecutionGateway,
+)
+from ai_infra.protocols.gateways.filesystem_gateway import FilesystemGateway
+from ai_infra.protocols.gateways.model_gateway import ModelGateway
+from ai_infra.protocols.gateways.vector_search_gateway import VectorSearchGateway
 from ai_infra.services.prompt_assembly_service import PromptAssemblyService
 
 

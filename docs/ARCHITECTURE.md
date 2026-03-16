@@ -78,7 +78,7 @@ Repository structure (architecture-relevant):
 - `domains/ai_backend/`: HTTP wrapper around the `agent_platform` service graph and the active RAG backend surface.
 - `domains/ai_ui/`: Flask UI/front-door that forwards prompt execution to `ai_backend`.
 - `libs/pipeline-common/`: shared worker/runtime abstractions and adapters.
-- `libs/agent/core/`: shared contracts, policies, registries, and orchestration services for the agent platform.
+- `libs/agent/core/`: shared contracts, protocols, policies, registries, and orchestration services for the agent platform.
 - `libs/agent/platform/`: reusable agent runtime package with CLI, local adapters, packaged config assets, and shared RAG backend services.
 - `docs/`: architecture and standards documentation.
 - `stack.sh` + domain compose files: local stack orchestration.

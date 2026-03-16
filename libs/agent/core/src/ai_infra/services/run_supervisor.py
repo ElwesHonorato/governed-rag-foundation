@@ -9,12 +9,12 @@ from uuid import uuid4
 from ai_infra.contracts.agent_run import AgentRun
 from ai_infra.contracts.capability_request import CapabilityRequest
 from ai_infra.contracts.session_checkpoint import SessionCheckpoint
-from ai_infra.kernel.checkpoint_manager import CheckpointManager
+from ai_infra.protocols.kernel.checkpoint_manager import CheckpointManager
 from ai_infra.policies.capability_policy import CapabilityPolicy
 from ai_infra.policies.sandbox_policy import SandboxPolicy
 from ai_infra.policies.termination_policy import TerminationPolicy
 from ai_infra.registry.capability_registry import CapabilityRegistry
-from ai_infra.runtime.agent_run_manager import AgentRunManager
+from ai_infra.protocols.runtime.agent_run_manager import AgentRunManager
 from ai_infra.runtime.execution_state_manager import ExecutionStateManager
 from ai_infra.services.capability_execution_service import CapabilityExecutionService
 from ai_infra.services.next_step_decider import NextStepDecider

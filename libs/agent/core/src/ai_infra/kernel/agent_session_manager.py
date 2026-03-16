@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from ai_infra.contracts.agent_session import AgentSession
 from ai_infra.contracts.session_state import SessionState
-from ai_infra.kernel.session_state_store import SessionStateStore
+from ai_infra.protocols.kernel.session_state_store import SessionStateStore
 
 
 class AgentSessionManager:

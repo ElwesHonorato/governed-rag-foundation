@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from ai_infra.contracts.agent_run import AgentRun
-from ai_infra.gateways.prompt_template_repository import PromptTemplateRepository
+from ai_infra.protocols.gateways.prompt_template_repository import (
+    PromptTemplateRepository,
+)
 
 
 class PromptAssemblyService:

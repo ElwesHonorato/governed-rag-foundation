@@ -1,1 +1,1 @@
-"""Kernel-level persistence boundaries."""
+"""Kernel-level state management."""

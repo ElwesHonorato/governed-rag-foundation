@@ -2,10 +2,10 @@
 
 from agent_platform.startup.contracts import AgentPlatformConfig
 from agent_platform.startup.runtime_settings import (
-    AgentPlatformEnvironmentSettingsProvider,
+    AgentPlatformSettingsProvider,
 )
 
 __all__ = [
     "AgentPlatformConfig",
-    "AgentPlatformEnvironmentSettingsProvider",
+    "AgentPlatformSettingsProvider",
 ]

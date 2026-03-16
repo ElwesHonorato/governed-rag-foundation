@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import os
 from dataclasses import asdict, dataclass
 
-from agent_settings.settings import SettingsProvider
+from agent_settings.settings import SettingsProvider, required_env, required_int_env
 
 
 @dataclass(frozen=True)
@@ -25,21 +24,6 @@ class EnvironmentSettingsProvider(SettingsProvider[AgentApiSettings]):
 
     def load(self) -> AgentApiSettings:
         return AgentApiSettings(
-            host=_required_env("AGENT_API_HOST"),
-            port=_required_int_env("AGENT_API_PORT"),
+            host=required_env("AGENT_API_HOST"),
+            port=required_int_env("AGENT_API_PORT"),
         )
-
-
-def _required_env(name: str) -> str:
-    value = os.environ.get(name)
-    if not value:
-        raise ValueError(f"{name} is not configured")
-    return value.strip()
-
-
-def _required_int_env(name: str) -> int:
-    raw_value = _required_env(name)
-    try:
-        return int(raw_value)
-    except ValueError as exc:
-        raise ValueError(f"{name} must be an integer") from exc

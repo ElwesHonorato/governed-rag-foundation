@@ -47,6 +47,7 @@ class RuntimeBootstrapper:
             bootstrap_vector_index(
                 workspace_root=str(settings.paths.workspace_root),
                 output_path=str(vector_index_path),
+                ignore_file_path=str(settings.paths.vector_index_ignore_path),
                 embedder=retrieval_embedder,
             )
         return vector_index_path

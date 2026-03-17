@@ -5,6 +5,9 @@ from __future__ import annotations
 from wsgiref.simple_server import make_server
 
 from agent_api.adapters.http.application import AgentApiApplication
+from agent_api.adapters.http.handlers import AgentApiHandlers
+from agent_api.adapters.http.request_normalization import WsgiRequestNormalizer
+from agent_api.adapters.http.router import AgentApiRouter
 from agent_api.adapters.http.web_application_factory import WebApplicationFactory
 from agent_api.startup.engine_factory import (
     AgentApiGatewayFactories,
@@ -42,9 +45,12 @@ def main() -> int:
         settings=runtime_settings,
     )
     agent_api_settings: AgentApiSettings = agent_settings.agent_api
+    handlers = AgentApiHandlers(settings=agent_api_settings, agent_app=engine_factory.build())
+    request_normalizer = WsgiRequestNormalizer()
+    router = AgentApiRouter(handlers=handlers)
     agent_api_app: AgentApiApplication = WebApplicationFactory(
-        settings=agent_api_settings,
-        agent_app=engine_factory.build(),
+        request_normalizer=request_normalizer,
+        router=router,
     ).create()
     with make_server(
         agent_api_settings.host,

@@ -1,6 +1,4 @@
 """Installable entrypoint for the ``worker_embed_chunks`` domain."""
-
-from agent_platform.startup.embedder_factory import EmbedderFactory
 from pipeline_common.registry import DataHubDataJobKey, DataHubPipelineJobs, GovernedRagJobId
 from pipeline_common.settings import SettingsBundle, SettingsProvider, SettingsRequest
 from pipeline_common.startup import RuntimeContextFactory
@@ -32,7 +30,6 @@ def main() -> int:
         )
     )
     worker_embed_chunks_service: WorkerEmbedChunksService = EmbedChunksServiceFactory(
-        embedder_factory=EmbedderFactory(),
         processor_factory=EmbedChunksProcessorFactory(),
     ).build(
         worker_embed_chunks_runtime_context,

@@ -1,5 +1,8 @@
 """Service graph assembly for worker_embed_chunks startup."""
 
+from ai_infra.retrieval.deterministic_hash_embedder import (
+    DeterministicHashEmbedder,
+)
 from agent_platform.startup.embedder_factory import EmbedderFactory
 from pipeline_common.startup import WorkerRuntimeContext, WorkerServiceFactory
 from worker_embed_chunks.services.worker_embed_chunks_service import WorkerEmbedChunksService
@@ -15,10 +18,8 @@ class EmbedChunksServiceFactory(WorkerServiceFactory[RuntimeEmbedChunksJobConfig
     def __init__(
         self,
         *,
-        embedder_factory: EmbedderFactory,
         processor_factory: EmbedChunksProcessorFactory,
     ) -> None:
-        self._embedder_factory = embedder_factory
         self._processor_factory = processor_factory
 
     def build(
@@ -27,7 +28,9 @@ class EmbedChunksServiceFactory(WorkerServiceFactory[RuntimeEmbedChunksJobConfig
         worker_config: RuntimeEmbedChunksJobConfig,
     ) -> WorkerEmbedChunksService:
         """Construct worker embed_chunks service object graph."""
-        embedder = self._embedder_factory.build(worker_config.dimension)
+        embedder = EmbedderFactory(
+            embedder=DeterministicHashEmbedder(worker_config.dimension)
+        ).build()
         processor = self._processor_factory.build(
             embedder=embedder,
             object_storage=runtime.object_storage_gateway,

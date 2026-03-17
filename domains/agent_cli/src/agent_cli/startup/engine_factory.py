@@ -127,9 +127,7 @@ class EngineFactory:
 
     def build(self) -> Engine:
         retrieval_embedder: DeterministicHashEmbedder = (
-            self._startup_services.retrieval_embedder_factory.build(
-                self._settings.retrieval.embedding_dim
-            )
+            self._startup_services.retrieval_embedder_factory.build()
         )
         prepared_artifacts: PreparedRuntimeArtifacts = (
             self._startup_services.bootstrapper.bootstrap(

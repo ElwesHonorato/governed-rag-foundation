@@ -17,6 +17,10 @@ from __future__ import annotations
 
 from wsgiref.simple_server import make_server
 
+from ai_infra.retrieval.deterministic_hash_embedder import (
+    DeterministicHashEmbedder,
+)
+
 # --- HTTP layer components (pure adapters) ---
 from agent_api.adapters.http.application import AgentApiApplication
 from agent_api.adapters.http.handlers import AgentApiHandlers
@@ -65,7 +69,9 @@ def main() -> int:
         llm_url=agent_settings.llm.llm_url,
         timeout_seconds=agent_settings.llm.llm_timeout_seconds,
     )
-    retrieval_embedder = EmbedderFactory().build(agent_settings.retrieval.embedding_dim)
+    retrieval_embedder = EmbedderFactory(
+        embedder=DeterministicHashEmbedder(agent_settings.retrieval.embedding_dim)
+    ).build()
 
     # Gateway factories adapt infrastructure clients into domain-facing interfaces.
     gateway_factories = AgentApiGatewayFactories(

@@ -10,5 +10,8 @@ from ai_infra.retrieval.deterministic_hash_embedder import (
 class EmbedderFactory:
     """Build embedders for local agent-platform startup."""
 
-    def build(self, embedding_dim: int) -> DeterministicHashEmbedder:
-        return DeterministicHashEmbedder(embedding_dim)
+    def __init__(self, *, embedder: DeterministicHashEmbedder) -> None:
+        self._embedder = embedder
+
+    def build(self) -> DeterministicHashEmbedder:
+        return self._embedder

@@ -5,6 +5,10 @@ from __future__ import annotations
 import argparse
 import json
 
+from ai_infra.retrieval.deterministic_hash_embedder import (
+    DeterministicHashEmbedder,
+)
+
 from agent_cli.startup.engine_factory import (
     Engine,
     EngineFactory,
@@ -66,7 +70,11 @@ def main(argv: list[str] | None = None) -> int:
     engine_factory: EngineFactory = EngineFactory(
         startup_services=EngineStartupServices(
             bootstrapper=RuntimeBootstrapper(),
-            retrieval_embedder_factory=EmbedderFactory(),
+            retrieval_embedder_factory=EmbedderFactory(
+                embedder=DeterministicHashEmbedder(
+                    runtime_settings.retrieval.embedding_dim
+                )
+            ),
             local_state_stores_factory=LocalStateStoresFactory(),
         ),
         gateway_factories=EngineGatewayFactories(

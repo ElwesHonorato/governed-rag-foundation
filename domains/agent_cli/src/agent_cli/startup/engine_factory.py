@@ -181,10 +181,16 @@ class EngineFactory:
                 vector_index_path=self._vector_index_path,
                 retrieval_embedder=self._retrieval_embedder,
             ),
-            llm_gateway=self._gateway_factories.llm.build(self._runtime_settings),
-            retrieval_gateway=RetrievalGatewayFactory(
-                retrieval_embedder=self._retrieval_embedder
-            ).build(
-                settings=self._runtime_settings,
-            ),
+            llm_gateway=self._build_llm_gateway(),
+            retrieval_gateway=self._build_retrieval_gateway(),
+        )
+
+    def _build_llm_gateway(self):
+        return self._gateway_factories.llm.build(self._runtime_settings)
+
+    def _build_retrieval_gateway(self):
+        return RetrievalGatewayFactory(
+            retrieval_embedder=self._retrieval_embedder
+        ).build(
+            settings=self._runtime_settings,
         )

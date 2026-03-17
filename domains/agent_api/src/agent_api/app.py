@@ -9,6 +9,7 @@ from agent_api.adapters.http.web_application_factory import WebApplicationFactor
 from agent_platform.agent_runtime.execution_runtime_factory import (
     ExecutionRuntimeFactory,
 )
+from agent_platform.clients.llm.ollama_client import OllamaClient
 from agent_platform.grounded_response.grounded_response_factory import (
     GroundedResponseFactory,
 )
@@ -52,7 +53,12 @@ def main() -> int:
             filesystem=FilesystemGatewayFactory(),
             command=CommandGatewayFactory(),
             vector=VectorGatewayFactory(),
-            llm=LLMGatewayFactory(),
+            llm=LLMGatewayFactory(
+                client=OllamaClient(
+                    llm_url=agent_settings.llm.llm_url,
+                    timeout_seconds=agent_settings.llm.llm_timeout_seconds,
+                )
+            ),
             retrieval=RetrievalGatewayFactory(),
         ),
         runtime_factories=EngineRuntimeFactories(

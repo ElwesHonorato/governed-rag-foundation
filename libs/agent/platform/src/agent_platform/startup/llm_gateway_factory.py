@@ -10,9 +10,8 @@ from agent_platform.startup.contracts import AgentPlatformConfig
 class LLMGatewayFactory:
     """Build LLM gateways for local agent-platform runtime."""
 
+    def __init__(self, *, client: OllamaClient) -> None:
+        self._client = client
+
     def build(self, settings: AgentPlatformConfig) -> LLMGateway:
-        client = OllamaClient(
-            llm_url=settings.llm.llm_url,
-            timeout_seconds=settings.llm.llm_timeout_seconds,
-        )
-        return LLMGateway(client=client)
+        return LLMGateway(client=self._client)

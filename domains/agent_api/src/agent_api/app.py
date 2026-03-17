@@ -29,7 +29,6 @@ from agent_api.startup.engine_factory import (
     AgentApiGatewayFactories,
     AgentAPIEngineFactory,
 )
-from agent_api.startup.runtime_settings import AgentAPIConfigEngineFactory
 
 # --- Infrastructure clients ---
 from agent_platform.clients.llm.ollama_client import OllamaClient
@@ -59,45 +58,38 @@ def main() -> int:
     ).bundle
 
     # ---------------------------------------------------------------------
-    # 2. Build runtime configuration for the agent engine
-    # ---------------------------------------------------------------------
-    # Transforms raw settings into execution-ready configuration
-    # (timeouts, policies, limits, feature flags, etc).
-    runtime_settings = AgentAPIConfigEngineFactory().build(agent_settings)
-
-    # ---------------------------------------------------------------------
-    # 3. Build infrastructure gateways (LLM + retrieval)
+    # 2. Build infrastructure gateways (LLM + retrieval)
     # ---------------------------------------------------------------------
     # LLM client is the concrete external dependency (Ollama in this case).
     llm_client = OllamaClient(
         llm_url=agent_settings.llm.llm_url,
         timeout_seconds=agent_settings.llm.llm_timeout_seconds,
     )
+    retrieval_embedder = EmbedderFactory().build(agent_settings.retrieval.embedding_dim)
 
     # Gateway factories adapt infrastructure clients into domain-facing interfaces.
     gateway_factories = AgentApiGatewayFactories(
         llm=LLMGatewayFactory(client=llm_client),
-        retrieval=RetrievalGatewayFactory(),
+        retrieval=RetrievalGatewayFactory(retrieval_embedder=retrieval_embedder),
     )
 
     # ---------------------------------------------------------------------
-    # 4. Construct the agent execution engine
+    # 3. Construct the agent execution engine
     # ---------------------------------------------------------------------
     # This wires:
     # - retrieval embedder (vectorization strategy)
     # - gateways (LLM + retrieval access)
     # - runtime settings (policies/config)
     engine_factory = AgentAPIEngineFactory(
-        retrieval_embedder_factory=EmbedderFactory(),
         gateway_factories=gateway_factories,
-        settings=runtime_settings,
+        settings=agent_settings,
     )
 
     # Build the actual runtime agent application (core execution unit)
     agent_app = engine_factory.build()
 
     # ---------------------------------------------------------------------
-    # 5. Assemble HTTP layer (adapter → domain boundary)
+    # 4. Assemble HTTP layer (adapter → domain boundary)
     # ---------------------------------------------------------------------
     agent_api_settings: AgentApiSettings = agent_settings.agent_api
 
@@ -121,7 +113,7 @@ def main() -> int:
     ).create()
 
     # ---------------------------------------------------------------------
-    # 6. Start HTTP server (WSGI - development server)
+    # 5. Start HTTP server (WSGI - development server)
     # ---------------------------------------------------------------------
     # NOTE: wsgiref is suitable for local/dev usage.
     # Replace with a production server (gunicorn/uvicorn) in real deployments.

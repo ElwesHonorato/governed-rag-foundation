@@ -4,15 +4,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ai_infra.retrieval.deterministic_hash_embedder import (
-    DeterministicHashEmbedder,
-)
 from agent_platform.grounded_response.contracts import GroundedResponse
 from agent_platform.grounded_response.service import GroundedResponseService
+from agent_platform.startup.contracts import LLMRetrievalConfig
 from agent_platform.startup.llm_gateway_factory import LLMGatewayFactory
-from agent_platform.startup.embedder_factory import EmbedderFactory
 from agent_platform.startup.retrieval_gateway_factory import RetrievalGatewayFactory
-from agent_api.startup.runtime_settings import AgentAPIEngineConfig
 
 
 @dataclass(frozen=True)
@@ -39,24 +35,16 @@ class AgentAPIEngineFactory:
     def __init__(
         self,
         *,
-        retrieval_embedder_factory: EmbedderFactory,
         gateway_factories: AgentApiGatewayFactories,
-        settings: AgentAPIEngineConfig,
+        settings: LLMRetrievalConfig,
     ) -> None:
-        self._retrieval_embedder_factory = retrieval_embedder_factory
         self._gateway_factories = gateway_factories
         self._settings = settings
 
     def build(self) -> AgentAPIFactory:
-        retrieval_embedder: DeterministicHashEmbedder = (
-            self._retrieval_embedder_factory.build(
-                self._settings.retrieval.embedding_dim
-            )
-        )
         llm_gateway = self._gateway_factories.llm.build(self._settings)
         retrieval_gateway = self._gateway_factories.retrieval.build(
             settings=self._settings,
-            retrieval_embedder=retrieval_embedder,
         )
         grounded_response_service = GroundedResponseService(
             llm_gateway=llm_gateway,

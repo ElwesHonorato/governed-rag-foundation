@@ -79,7 +79,6 @@ def main(argv: list[str] | None = None) -> int:
                     timeout_seconds=agent_settings.llm.llm_timeout_seconds,
                 )
             ),
-            retrieval=RetrievalGatewayFactory(),
         ),
         runtime_factories=EngineRuntimeFactories(
             execution=ExecutionRuntimeFactory(),

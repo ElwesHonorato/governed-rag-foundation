@@ -96,7 +96,6 @@ class EngineGatewayFactories:
     command: CommandGatewayFactory
     vector: VectorGatewayFactory
     llm: LLMGatewayFactory
-    retrieval: RetrievalGatewayFactory
 
 
 @dataclass(frozen=True)
@@ -185,8 +184,9 @@ class EngineFactory:
                 retrieval_embedder=self._retrieval_embedder,
             ),
             llm_gateway=self._gateway_factories.llm.build(self._runtime_settings),
-            retrieval_gateway=self._gateway_factories.retrieval.build(
+            retrieval_gateway=RetrievalGatewayFactory(
+                retrieval_embedder=self._retrieval_embedder
+            ).build(
                 settings=self._runtime_settings,
-                retrieval_embedder=self._retrieval_embedder,
             ),
         )

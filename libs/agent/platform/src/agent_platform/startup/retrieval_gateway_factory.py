@@ -13,14 +13,16 @@ from agent_platform.startup.contracts import LLMRetrievalConfig
 class RetrievalGatewayFactory:
     """Build retrieval gateways for local agent-platform runtime."""
 
+    def __init__(self, *, retrieval_embedder: DeterministicHashEmbedder) -> None:
+        self._retrieval_embedder = retrieval_embedder
+
     def build(
         self,
         *,
         settings: LLMRetrievalConfig,
-        retrieval_embedder: DeterministicHashEmbedder,
     ) -> RetrievalGateway:
         client = WeaviateClient(
             weaviate_url=settings.retrieval.weaviate_url,
-            embedder=retrieval_embedder,
+            embedder=self._retrieval_embedder,
         )
         return RetrievalGateway(client=client)

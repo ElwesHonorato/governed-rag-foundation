@@ -28,13 +28,6 @@ class AgentApiRuntime:
 
 
 @dataclass(frozen=True)
-class AgentApiStartupServices:
-    """Startup-time collaborators for API runtime assembly."""
-
-    retrieval_embedder_factory: RetrievalEmbedderFactory
-
-
-@dataclass(frozen=True)
 class AgentApiGatewayFactories:
     """Gateway factories used by API runtime assembly."""
 
@@ -48,17 +41,17 @@ class EngineFactory:
     def __init__(
         self,
         *,
-        startup_services: AgentApiStartupServices,
+        retrieval_embedder_factory: RetrievalEmbedderFactory,
         gateway_factories: AgentApiGatewayFactories,
         settings: AgentPlatformConfig,
     ) -> None:
-        self._startup_services = startup_services
+        self._retrieval_embedder_factory = retrieval_embedder_factory
         self._gateway_factories = gateway_factories
         self._settings = settings
 
     def build(self) -> AgentApiRuntime:
         retrieval_embedder: DeterministicRetrievalEmbedder = (
-            self._startup_services.retrieval_embedder_factory.build(
+            self._retrieval_embedder_factory.build(
                 self._settings.retrieval.embedding_dim
             )
         )

@@ -8,7 +8,6 @@ from agent_api.adapters.http.application import AgentApiApplication
 from agent_api.adapters.http.web_application_factory import WebApplicationFactory
 from agent_api.startup.engine_factory import (
     AgentApiGatewayFactories,
-    AgentApiStartupServices,
     EngineFactory,
 )
 from agent_api.startup.runtime_settings import AgentApiConfigFactory
@@ -32,9 +31,7 @@ def main() -> int:
     ).bundle
     runtime_settings = AgentApiConfigFactory().build(agent_settings)
     engine_factory = EngineFactory(
-        startup_services=AgentApiStartupServices(
-            retrieval_embedder_factory=RetrievalEmbedderFactory(),
-        ),
+        retrieval_embedder_factory=RetrievalEmbedderFactory(),
         gateway_factories=AgentApiGatewayFactories(
             llm=LLMGatewayFactory(
                 client=OllamaClient(

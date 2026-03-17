@@ -18,7 +18,7 @@ from agent_platform.startup.retrieval_gateway_factory import RetrievalGatewayFac
 
 
 @dataclass(frozen=True)
-class AgentApiRuntime:
+class Engine:
     """Narrow grounded-response boundary exposed to the HTTP layer."""
 
     grounded_response_service: GroundedResponseService
@@ -49,7 +49,7 @@ class EngineFactory:
         self._gateway_factories = gateway_factories
         self._settings = settings
 
-    def build(self) -> AgentApiRuntime:
+    def build(self) -> Engine:
         retrieval_embedder: DeterministicRetrievalEmbedder = (
             self._retrieval_embedder_factory.build(
                 self._settings.retrieval.embedding_dim
@@ -66,4 +66,4 @@ class EngineFactory:
             model=self._settings.llm.llm_model,
             retrieval_limit=self._settings.retrieval.retrieval_limit,
         )
-        return AgentApiRuntime(grounded_response_service=grounded_response_service)
+        return Engine(grounded_response_service=grounded_response_service)

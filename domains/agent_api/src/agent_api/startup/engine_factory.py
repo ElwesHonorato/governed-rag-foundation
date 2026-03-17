@@ -11,9 +11,7 @@ from agent_platform.grounded_response.contracts import GroundedResponse
 from agent_platform.grounded_response.service import GroundedResponseService
 from agent_platform.startup.contracts import AgentPlatformConfig
 from agent_platform.startup.llm_gateway_factory import LLMGatewayFactory
-from agent_platform.startup.retrieval_embedder_factory import (
-    RetrievalEmbedderFactory,
-)
+from agent_platform.startup.embedder_factory import EmbedderFactory
 from agent_platform.startup.retrieval_gateway_factory import RetrievalGatewayFactory
 
 
@@ -41,7 +39,7 @@ class EngineFactory:
     def __init__(
         self,
         *,
-        retrieval_embedder_factory: RetrievalEmbedderFactory,
+        retrieval_embedder_factory: EmbedderFactory,
         gateway_factories: AgentApiGatewayFactories,
         settings: AgentPlatformConfig,
     ) -> None:

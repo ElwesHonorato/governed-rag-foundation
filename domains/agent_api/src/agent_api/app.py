@@ -14,9 +14,7 @@ from agent_api.startup.runtime_settings import AgentApiConfigFactory
 from agent_platform.clients.llm.ollama_client import OllamaClient
 from agent_platform.startup.llm_gateway_factory import LLMGatewayFactory
 from agent_platform.startup.retrieval_gateway_factory import RetrievalGatewayFactory
-from agent_platform.startup.retrieval_embedder_factory import (
-    RetrievalEmbedderFactory,
-)
+from agent_platform.startup.embedder_factory import EmbedderFactory
 from agent_settings.settings import (
     AgentApiSettings,
     EnvironmentSettingsProvider,
@@ -31,7 +29,7 @@ def main() -> int:
     ).bundle
     runtime_settings = AgentApiConfigFactory().build(agent_settings)
     engine_factory = EngineFactory(
-        retrieval_embedder_factory=RetrievalEmbedderFactory(),
+        retrieval_embedder_factory=EmbedderFactory(),
         gateway_factories=AgentApiGatewayFactories(
             llm=LLMGatewayFactory(
                 client=OllamaClient(

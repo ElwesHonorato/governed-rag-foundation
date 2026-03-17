@@ -1,10 +1,8 @@
 """Service graph assembly for worker_embed_chunks startup."""
 
+from agent_platform.startup.embedder_factory import EmbedderFactory
 from pipeline_common.startup import WorkerRuntimeContext, WorkerServiceFactory
 from worker_embed_chunks.services.worker_embed_chunks_service import WorkerEmbedChunksService
-from worker_embed_chunks.startup.embedding_composition import (
-    EmbeddingCompositionFactory,
-)
 from worker_embed_chunks.startup.contracts import RuntimeEmbedChunksJobConfig
 from worker_embed_chunks.startup.processor_factory import (
     EmbedChunksProcessorFactory,
@@ -17,10 +15,10 @@ class EmbedChunksServiceFactory(WorkerServiceFactory[RuntimeEmbedChunksJobConfig
     def __init__(
         self,
         *,
-        embedding_composition_factory: EmbeddingCompositionFactory,
+        embedder_factory: EmbedderFactory,
         processor_factory: EmbedChunksProcessorFactory,
     ) -> None:
-        self._embedding_composition_factory = embedding_composition_factory
+        self._embedder_factory = embedder_factory
         self._processor_factory = processor_factory
 
     def build(
@@ -29,9 +27,9 @@ class EmbedChunksServiceFactory(WorkerServiceFactory[RuntimeEmbedChunksJobConfig
         worker_config: RuntimeEmbedChunksJobConfig,
     ) -> WorkerEmbedChunksService:
         """Construct worker embed_chunks service object graph."""
-        embedding = self._embedding_composition_factory.build(worker_config.dimension)
+        embedder = self._embedder_factory.build(worker_config.dimension)
         processor = self._processor_factory.build(
-            embedding=embedding,
+            embedder=embedder,
             object_storage=runtime.object_storage_gateway,
             worker_config=worker_config,
         )

@@ -1,4 +1,4 @@
-"""Factory for retrieval embedder construction."""
+"""Factory for embedder construction."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ from ai_infra.retrieval.deterministic_hash_embedder import (
 )
 
 
-class RetrievalEmbedderFactory:
-    """Build retrieval embedders for local agent-platform startup."""
+class EmbedderFactory:
+    """Build embedders for local agent-platform startup."""
 
     def build(self, embedding_dim: int) -> DeterministicHashEmbedder:
         return DeterministicHashEmbedder(embedding_dim)

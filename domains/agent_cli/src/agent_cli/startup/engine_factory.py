@@ -40,9 +40,7 @@ from agent_platform.startup.packaged_configuration import (
     load_capability_catalog,
     load_skill_registry,
 )
-from agent_platform.startup.retrieval_embedder_factory import (
-    RetrievalEmbedderFactory,
-)
+from agent_platform.startup.embedder_factory import EmbedderFactory
 from agent_platform.startup.retrieval_gateway_factory import RetrievalGatewayFactory
 from agent_platform.startup.vector_gateway_factory import VectorGatewayFactory
 
@@ -86,7 +84,7 @@ class EngineStartupServices:
     """Startup-time collaborators for engine assembly."""
 
     bootstrapper: RuntimeBootstrapper
-    retrieval_embedder_factory: RetrievalEmbedderFactory
+    retrieval_embedder_factory: EmbedderFactory
     local_state_stores_factory: LocalStateStoresFactory
 
 

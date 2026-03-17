@@ -9,17 +9,17 @@ from agent_settings.settings import LLMSettings, RetrievalSettings, SettingsBund
 
 
 @dataclass(frozen=True)
-class AgentApiConfig(LLMRetrievalConfig):
+class AgentAPIConfig(LLMRetrievalConfig):
     llm: LLMSettings
     retrieval: RetrievalSettings
 
 
 @dataclass(frozen=True)
-class AgentApiConfigFactory:
+class AgentAPIConfigFactory:
     """Build API runtime config from the centralized settings bundle."""
 
-    def build(self, settings: SettingsBundle) -> AgentApiConfig:
-        return AgentApiConfig(
+    def build(self, settings: SettingsBundle) -> AgentAPIConfig:
+        return AgentAPIConfig(
             llm=settings.llm,
             retrieval=settings.retrieval,
         )

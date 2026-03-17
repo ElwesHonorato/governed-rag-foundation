@@ -12,7 +12,7 @@ from agent_platform.grounded_response.service import GroundedResponseService
 from agent_platform.startup.llm_gateway_factory import LLMGatewayFactory
 from agent_platform.startup.embedder_factory import EmbedderFactory
 from agent_platform.startup.retrieval_gateway_factory import RetrievalGatewayFactory
-from agent_api.startup.runtime_settings import AgentApiConfig
+from agent_api.startup.runtime_settings import AgentAPIConfig
 
 
 @dataclass(frozen=True)
@@ -41,7 +41,7 @@ class EngineFactory:
         *,
         retrieval_embedder_factory: EmbedderFactory,
         gateway_factories: AgentApiGatewayFactories,
-        settings: AgentApiConfig,
+        settings: AgentAPIConfig,
     ) -> None:
         self._retrieval_embedder_factory = retrieval_embedder_factory
         self._gateway_factories = gateway_factories

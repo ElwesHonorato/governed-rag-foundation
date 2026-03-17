@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from agent_platform.clients.llm.ollama_client import OllamaClient
 from agent_platform.gateways.llm.llm_gateway import LLMGateway
-from agent_platform.startup.contracts import AgentPlatformConfig
+from agent_platform.startup.contracts import LLMRetrievalConfig
 
 
 class LLMGatewayFactory:
@@ -13,5 +13,5 @@ class LLMGatewayFactory:
     def __init__(self, *, client: OllamaClient) -> None:
         self._client = client
 
-    def build(self, settings: AgentPlatformConfig) -> LLMGateway:
+    def build(self, settings: LLMRetrievalConfig) -> LLMGateway:
         return LLMGateway(client=self._client)

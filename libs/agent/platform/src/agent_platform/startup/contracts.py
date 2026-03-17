@@ -4,8 +4,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Protocol
 
 from agent_settings.settings import LLMSettings, RetrievalSettings
+
+
+class LLMRetrievalConfig(Protocol):
+    """Startup configuration that exposes only LLM and retrieval settings."""
+
+    llm: LLMSettings
+    retrieval: RetrievalSettings
 
 
 @dataclass(frozen=True)
@@ -13,7 +21,6 @@ class RuntimePaths:
     """Resolved runtime paths used by the local agent runtime."""
 
     workspace_root: Path
-    state_dir: Path
     vector_fixture_dir: Path
     vector_index_path: Path
     vector_index_ignore_path: Path

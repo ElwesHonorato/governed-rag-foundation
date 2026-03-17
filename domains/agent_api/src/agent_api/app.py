@@ -8,8 +8,8 @@ from agent_api.adapters.http.application import AgentApiApplication
 from agent_api.adapters.http.web_application_factory import WebApplicationFactory
 from agent_api.startup.engine_factory import (
     AgentApiGatewayFactories,
-    AgentApiRuntimeFactory,
     AgentApiStartupServices,
+    EngineFactory,
 )
 from agent_api.startup.runtime_settings import AgentApiConfigFactory
 from agent_platform.clients.llm.ollama_client import OllamaClient
@@ -31,7 +31,7 @@ def main() -> int:
         SettingsRequest(agent_api=True, llm=True, retrieval=True)
     ).bundle
     runtime_settings = AgentApiConfigFactory().build(agent_settings)
-    runtime_factory = AgentApiRuntimeFactory(
+    engine_factory = EngineFactory(
         startup_services=AgentApiStartupServices(
             retrieval_embedder_factory=RetrievalEmbedderFactory(),
         ),
@@ -49,7 +49,7 @@ def main() -> int:
     agent_api_settings: AgentApiSettings = agent_settings.agent_api
     agent_api_app: AgentApiApplication = WebApplicationFactory(
         settings=agent_api_settings,
-        agent_app=runtime_factory.build(),
+        agent_app=engine_factory.build(),
     ).create()
     with make_server(
         agent_api_settings.host,

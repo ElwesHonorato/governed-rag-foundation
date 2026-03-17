@@ -42,7 +42,7 @@ class AgentApiGatewayFactories:
     retrieval: RetrievalGatewayFactory
 
 
-class AgentApiRuntimeFactory:
+class EngineFactory:
     """Build the agent API grounded-response runtime graph."""
 
     def __init__(

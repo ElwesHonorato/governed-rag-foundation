@@ -12,11 +12,11 @@ from agent_platform.grounded_response.service import GroundedResponseService
 from agent_platform.startup.llm_gateway_factory import LLMGatewayFactory
 from agent_platform.startup.embedder_factory import EmbedderFactory
 from agent_platform.startup.retrieval_gateway_factory import RetrievalGatewayFactory
-from agent_api.startup.runtime_settings import AgentAPIConfig
+from agent_api.startup.runtime_settings import AgentAPIEngineConfig
 
 
 @dataclass(frozen=True)
-class Engine:
+class AgentAPIFactory:
     """Narrow grounded-response boundary exposed to the HTTP layer."""
 
     grounded_response_service: GroundedResponseService
@@ -33,7 +33,7 @@ class AgentApiGatewayFactories:
     retrieval: RetrievalGatewayFactory
 
 
-class EngineFactory:
+class AgentAPIEngineFactory:
     """Build the agent API grounded-response runtime graph."""
 
     def __init__(
@@ -41,13 +41,13 @@ class EngineFactory:
         *,
         retrieval_embedder_factory: EmbedderFactory,
         gateway_factories: AgentApiGatewayFactories,
-        settings: AgentAPIConfig,
+        settings: AgentAPIEngineConfig,
     ) -> None:
         self._retrieval_embedder_factory = retrieval_embedder_factory
         self._gateway_factories = gateway_factories
         self._settings = settings
 
-    def build(self) -> Engine:
+    def build(self) -> AgentAPIFactory:
         retrieval_embedder: DeterministicHashEmbedder = (
             self._retrieval_embedder_factory.build(
                 self._settings.retrieval.embedding_dim
@@ -64,4 +64,4 @@ class EngineFactory:
             model=self._settings.llm.llm_model,
             retrieval_limit=self._settings.retrieval.retrieval_limit,
         )
-        return Engine(grounded_response_service=grounded_response_service)
+        return AgentAPIFactory(grounded_response_service=grounded_response_service)

@@ -6,14 +6,14 @@ from dataclasses import asdict
 from http import HTTPStatus
 
 from agent_api.adapters.http.responses import JsonResponse
-from agent_api.startup.engine_factory import Engine
+from agent_api.startup.engine_factory import AgentAPIFactory
 from agent_settings.settings import AgentApiSettings
 
 
 class AgentApiHandlers:
     """Endpoint orchestration for agent API routes."""
 
-    def __init__(self, *, settings: AgentApiSettings, agent_app: Engine) -> None:
+    def __init__(self, *, settings: AgentApiSettings, agent_app: AgentAPIFactory) -> None:
         self._settings = settings
         self._agent_app = agent_app
 

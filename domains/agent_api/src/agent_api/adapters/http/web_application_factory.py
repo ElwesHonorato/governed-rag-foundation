@@ -6,7 +6,7 @@ from agent_api.adapters.http.application import AgentApiApplication
 from agent_api.adapters.http.handlers import AgentApiHandlers
 from agent_api.adapters.http.request_normalization import WsgiRequestNormalizer
 from agent_api.adapters.http.router import AgentApiRouter
-from agent_api.startup.engine_factory import Engine
+from agent_api.startup.engine_factory import AgentAPIFactory
 from agent_settings.settings import AgentApiSettings
 
 
@@ -17,7 +17,7 @@ class WebApplicationFactory:
         self,
         *,
         settings: AgentApiSettings,
-        agent_app: Engine,
+        agent_app: AgentAPIFactory,
     ) -> None:
         self._settings = settings
         self._agent_app = agent_app

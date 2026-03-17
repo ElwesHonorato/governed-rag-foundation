@@ -1,4 +1,4 @@
-"""Composition root for the local agent-platform runtime."""
+"""Composition root for the agent API runtime."""
 
 from __future__ import annotations
 
@@ -11,42 +11,40 @@ from ai_infra.contracts.capability_descriptor import CapabilityDescriptor
 from ai_infra.contracts.evaluation_run import EvaluationRun
 from ai_infra.evaluation.offline_evaluation_runner import OfflineEvaluationRunner
 from ai_infra.registry.capability_registry import CapabilityRegistry
-from agent_platform.startup.bootstrap import PreparedRuntimeArtifacts, RuntimeBootstrapper
 from ai_infra.retrieval.deterministic_retrieval_embedder import (
     DeterministicRetrievalEmbedder,
 )
-from agent_platform.agent_runtime.objective_runner import ObjectiveRunner
-from agent_platform.startup.contracts import AgentPlatformConfig
 from agent_platform.agent_runtime.execution_runtime_factory import (
     EngineGateways,
     ExecutionRuntimeFactory,
 )
+from agent_platform.agent_runtime.objective_runner import ObjectiveRunner
 from agent_platform.agent_runtime.skill_registry import SkillRegistry
+from agent_platform.gateways.state.local_run_store import LocalRunStore
+from agent_platform.gateways.state.local_session_store import LocalSessionStore
 from agent_platform.grounded_response.contracts import GroundedResponse
 from agent_platform.grounded_response.grounded_response_factory import (
     GroundedResponseFactory,
 )
 from agent_platform.grounded_response.service import GroundedResponseService
-from agent_platform.gateways.state.local_run_store import LocalRunStore
-from agent_platform.gateways.state.local_session_store import LocalSessionStore
+from agent_platform.startup.bootstrap import PreparedRuntimeArtifacts, RuntimeBootstrapper
 from agent_platform.startup.command_gateway_factory import CommandGatewayFactory
+from agent_platform.startup.contracts import AgentPlatformConfig
 from agent_platform.startup.filesystem_gateway_factory import FilesystemGatewayFactory
+from agent_platform.startup.llm_gateway_factory import LLMGatewayFactory
 from agent_platform.startup.local_state_stores_factory import (
     LocalStateStores,
     LocalStateStoresFactory,
 )
-from agent_platform.startup.llm_gateway_factory import LLMGatewayFactory
 from agent_platform.startup.packaged_configuration import (
     load_capability_catalog,
     load_skill_registry,
 )
-from agent_platform.startup.retrieval_gateway_factory import RetrievalGatewayFactory
 from agent_platform.startup.retrieval_embedder_factory import (
     RetrievalEmbedderFactory,
 )
-from agent_platform.startup.runtime_settings import AgentPlatformConfigFactory
+from agent_platform.startup.retrieval_gateway_factory import RetrievalGatewayFactory
 from agent_platform.startup.vector_gateway_factory import VectorGatewayFactory
-from agent_settings.settings import SettingsBundle
 
 
 @dataclass(frozen=True)
@@ -112,7 +110,7 @@ class EngineRuntimeFactories:
 
 
 class EngineFactory:
-    """Build the local runtime graph for agent-platform."""
+    """Build the agent API runtime graph."""
 
     def __init__(
         self,
@@ -120,7 +118,7 @@ class EngineFactory:
         startup_services: EngineStartupServices,
         gateway_factories: EngineGatewayFactories,
         runtime_factories: EngineRuntimeFactories,
-        settings: SettingsBundle,
+        settings: AgentPlatformConfig,
     ) -> None:
         self._startup_services = startup_services
         self._gateway_factories = gateway_factories
@@ -131,15 +129,14 @@ class EngineFactory:
         self._vector_index_path: Path | None = None
 
     def build(self) -> Engine:
-        settings: AgentPlatformConfig = AgentPlatformConfigFactory().build(self._settings)
         retrieval_embedder: DeterministicRetrievalEmbedder = (
             self._startup_services.retrieval_embedder_factory.build(
-            self._settings.retrieval.embedding_dim
+                self._settings.retrieval.embedding_dim
             )
         )
         prepared_artifacts: PreparedRuntimeArtifacts = (
             self._startup_services.bootstrapper.bootstrap(
-                settings,
+                self._settings,
                 retrieval_embedder=retrieval_embedder,
             )
         )
@@ -148,14 +145,14 @@ class EngineFactory:
         )
         skill_registry: SkillRegistry = load_skill_registry()
         stores: LocalStateStores = self._startup_services.local_state_stores_factory.build(
-            settings
+            self._settings
         )
-        self._runtime_settings = settings
+        self._runtime_settings = self._settings
         self._retrieval_embedder = retrieval_embedder
         self._vector_index_path = prepared_artifacts.vector_index_path
         gateways: EngineGateways = self._build_gateways()
         execution_runtime = self._runtime_factories.execution.build(
-            settings,
+            self._settings,
             capability_registry,
             skill_registry,
             stores,
@@ -163,7 +160,7 @@ class EngineFactory:
         )
         grounded_response_service: GroundedResponseService = (
             self._runtime_factories.grounded_response.build(
-                settings,
+                self._settings,
                 gateways,
             )
         )

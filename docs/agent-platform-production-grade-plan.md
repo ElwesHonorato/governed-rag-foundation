@@ -31,7 +31,7 @@ This document now describes the current state and the remaining work. It does no
 #### 1. Package namespace is restored, but it now needs to stay stable
 
 Current examples:
-- `from agent_platform.startup.engine_factory import EngineFactory`
+- `from agent_cli.startup.engine_factory import EngineFactory`
 - `from agent_platform.gateways.command.local_command_gateway import LocalCommandGateway`
 - `from agent_cli.app import main`
 
@@ -138,7 +138,7 @@ Keep as the deployable consumer:
   - `libs/agent/platform/src/agent_platform/infrastructure`
   - `libs/agent/platform/src/agent_platform/config`
 - enforce imports such as:
-  - `from agent_platform.startup.engine_factory import EngineFactory`
+  - `from agent_cli.startup.engine_factory import EngineFactory`
   - `from agent_platform.gateways.command.local_command_gateway import LocalCommandGateway`
   - `from agent_cli.app import main`
 - keep Poetry package inclusion and script targets aligned with that namespace

@@ -13,6 +13,9 @@ agent-platform = "agent_cli.app:main"
 
 [tool.poetry]
 packages = [{ include = "agent_cli", from = "src" }]
+include = [
+  "src/agent_cli/config/.repositorylisterignore",
+]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

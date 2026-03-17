@@ -6,6 +6,13 @@ from wsgiref.simple_server import make_server
 
 from agent_api.adapters.http.application import AgentApiApplication
 from agent_api.adapters.http.web_application_factory import WebApplicationFactory
+from agent_api.startup.engine_factory import (
+    EngineFactory,
+    EngineGatewayFactories,
+    EngineRuntimeFactories,
+    EngineStartupServices,
+)
+from agent_api.startup.runtime_settings import AgentApiConfigFactory
 from agent_platform.agent_runtime.execution_runtime_factory import (
     ExecutionRuntimeFactory,
 )
@@ -15,12 +22,6 @@ from agent_platform.grounded_response.grounded_response_factory import (
 )
 from agent_platform.startup.bootstrap import RuntimeBootstrapper
 from agent_platform.startup.command_gateway_factory import CommandGatewayFactory
-from agent_platform.startup.engine_factory import (
-    EngineFactory,
-    EngineGatewayFactories,
-    EngineRuntimeFactories,
-    EngineStartupServices,
-)
 from agent_platform.startup.filesystem_gateway_factory import (
     FilesystemGatewayFactory,
 )
@@ -43,6 +44,7 @@ def main() -> int:
     agent_settings: SettingsBundle = EnvironmentSettingsProvider(
         SettingsRequest(agent_api=True, llm=True, retrieval=True)
     ).bundle
+    runtime_settings = AgentApiConfigFactory().build(agent_settings)
     engine_factory = EngineFactory(
         startup_services=EngineStartupServices(
             bootstrapper=RuntimeBootstrapper(),
@@ -65,7 +67,7 @@ def main() -> int:
             execution=ExecutionRuntimeFactory(),
             grounded_response=GroundedResponseFactory(),
         ),
-        settings=agent_settings,
+        settings=runtime_settings,
     )
     agent_api_settings: AgentApiSettings = agent_settings.agent_api
     agent_api_app: AgentApiApplication = WebApplicationFactory(

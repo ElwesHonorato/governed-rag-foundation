@@ -61,7 +61,7 @@ libs/agent/platform/src/agent_platform/
 Current imports:
 
 ```python
-from agent_platform.startup.engine_factory import EngineFactory
+from agent_cli.startup.engine_factory import EngineFactory
 from agent_platform.gateways.command.local_command_gateway import LocalCommandGateway
 from agent_cli.app import main
 ```

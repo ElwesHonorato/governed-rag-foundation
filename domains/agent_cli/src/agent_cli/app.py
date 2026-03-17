@@ -5,6 +5,14 @@ from __future__ import annotations
 import argparse
 import json
 
+from agent_cli.startup.engine_factory import (
+    Engine,
+    EngineFactory,
+    EngineGatewayFactories,
+    EngineRuntimeFactories,
+    EngineStartupServices,
+)
+from agent_cli.startup.runtime_settings import AgentCliConfigFactory
 from agent_settings.settings import (
     EnvironmentSettingsProvider,
     SettingsBundle,
@@ -19,13 +27,6 @@ from agent_platform.grounded_response.grounded_response_factory import (
 )
 from agent_platform.startup.bootstrap import RuntimeBootstrapper
 from agent_platform.startup.command_gateway_factory import CommandGatewayFactory
-from agent_platform.startup.engine_factory import (
-    Engine,
-    EngineFactory,
-    EngineGatewayFactories,
-    EngineRuntimeFactories,
-    EngineStartupServices,
-)
 from agent_platform.startup.filesystem_gateway_factory import (
     FilesystemGatewayFactory,
 )
@@ -63,6 +64,7 @@ def main(argv: list[str] | None = None) -> int:
     agent_settings: SettingsBundle = EnvironmentSettingsProvider(
         SettingsRequest(llm=True, retrieval=True)
     ).bundle
+    runtime_settings = AgentCliConfigFactory().build(agent_settings)
     engine_factory: EngineFactory = EngineFactory(
         startup_services=EngineStartupServices(
             bootstrapper=RuntimeBootstrapper(),
@@ -85,7 +87,7 @@ def main(argv: list[str] | None = None) -> int:
             execution=ExecutionRuntimeFactory(),
             grounded_response=GroundedResponseFactory(),
         ),
-        settings=agent_settings,
+        settings=runtime_settings,
     )
     agent_cli_engine: Engine = engine_factory.build()
 

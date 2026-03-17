@@ -1,7 +1,7 @@
 """Shared retrieval embedding implementations."""
 
-from ai_infra.retrieval.deterministic_retrieval_embedder import (
-    DeterministicRetrievalEmbedder,
+from ai_infra.retrieval.deterministic_hash_embedder import (
+    DeterministicHashEmbedder,
 )
 
-__all__ = ["DeterministicRetrievalEmbedder"]
+__all__ = ["DeterministicHashEmbedder"]

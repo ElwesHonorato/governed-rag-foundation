@@ -7,8 +7,8 @@ from dataclasses import dataclass
 from typing import Any
 from urllib import error, request
 
-from ai_infra.retrieval.deterministic_retrieval_embedder import (
-    DeterministicRetrievalEmbedder,
+from ai_infra.retrieval.deterministic_hash_embedder import (
+    DeterministicHashEmbedder,
 )
 
 
@@ -31,7 +31,7 @@ class WeaviateClient:
         self,
         *,
         weaviate_url: str,
-        embedder: DeterministicRetrievalEmbedder,
+        embedder: DeterministicHashEmbedder,
         timeout_seconds: float = 10.0,
     ) -> None:
         self._weaviate_url = weaviate_url.rstrip("/")

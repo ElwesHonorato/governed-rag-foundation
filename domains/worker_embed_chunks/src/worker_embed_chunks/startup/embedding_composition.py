@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ai_infra.retrieval.deterministic_retrieval_embedder import (
-    DeterministicRetrievalEmbedder,
+from ai_infra.retrieval.deterministic_hash_embedder import (
+    DeterministicHashEmbedder,
 )
 
 
@@ -13,7 +13,7 @@ from ai_infra.retrieval.deterministic_retrieval_embedder import (
 class EmbeddingComposition:
     """Shared embedding collaborators used by the embed worker."""
 
-    embedder: DeterministicRetrievalEmbedder
+    embedder: DeterministicHashEmbedder
 
 
 class EmbeddingCompositionFactory:
@@ -21,5 +21,5 @@ class EmbeddingCompositionFactory:
 
     def build(self, dimension: int) -> EmbeddingComposition:
         return EmbeddingComposition(
-            embedder=DeterministicRetrievalEmbedder(dimension)
+            embedder=DeterministicHashEmbedder(dimensions=dimension)
         )

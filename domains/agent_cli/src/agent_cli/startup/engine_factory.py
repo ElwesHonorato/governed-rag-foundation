@@ -11,8 +11,8 @@ from ai_infra.contracts.capability_descriptor import CapabilityDescriptor
 from ai_infra.contracts.evaluation_run import EvaluationRun
 from ai_infra.evaluation.offline_evaluation_runner import OfflineEvaluationRunner
 from ai_infra.registry.capability_registry import CapabilityRegistry
-from ai_infra.retrieval.deterministic_retrieval_embedder import (
-    DeterministicRetrievalEmbedder,
+from ai_infra.retrieval.deterministic_hash_embedder import (
+    DeterministicHashEmbedder,
 )
 from agent_platform.agent_runtime.execution_runtime_factory import (
     EngineGateways,
@@ -125,11 +125,11 @@ class EngineFactory:
         self._runtime_factories = runtime_factories
         self._settings = settings
         self._runtime_settings: AgentPlatformConfig | None = None
-        self._retrieval_embedder: DeterministicRetrievalEmbedder | None = None
+        self._retrieval_embedder: DeterministicHashEmbedder | None = None
         self._vector_index_path: Path | None = None
 
     def build(self) -> Engine:
-        retrieval_embedder: DeterministicRetrievalEmbedder = (
+        retrieval_embedder: DeterministicHashEmbedder = (
             self._startup_services.retrieval_embedder_factory.build(
                 self._settings.retrieval.embedding_dim
             )

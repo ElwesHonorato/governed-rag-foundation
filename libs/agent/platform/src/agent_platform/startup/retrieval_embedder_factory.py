@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from ai_infra.retrieval.deterministic_retrieval_embedder import (
-    DeterministicRetrievalEmbedder,
+from ai_infra.retrieval.deterministic_hash_embedder import (
+    DeterministicHashEmbedder,
 )
 
 
 class RetrievalEmbedderFactory:
     """Build retrieval embedders for local agent-platform startup."""
 
-    def build(self, embedding_dim: int) -> DeterministicRetrievalEmbedder:
-        return DeterministicRetrievalEmbedder(embedding_dim)
+    def build(self, embedding_dim: int) -> DeterministicHashEmbedder:
+        return DeterministicHashEmbedder(embedding_dim)

@@ -7,8 +7,8 @@ from pathlib import Path
 import subprocess
 from typing import Iterable
 
-from ai_infra.retrieval.deterministic_retrieval_embedder import (
-    DeterministicRetrievalEmbedder,
+from ai_infra.retrieval.deterministic_hash_embedder import (
+    DeterministicHashEmbedder,
 )
 
 MAX_FILE_BYTES = 24_000
@@ -18,7 +18,7 @@ def bootstrap_vector_index(
     workspace_root: str,
     output_path: str,
     ignore_file_path: str,
-    embedder: DeterministicRetrievalEmbedder,
+    embedder: DeterministicHashEmbedder,
 ) -> None:
     """Index the current repo snapshot using a gitignore-style exclude file."""
 

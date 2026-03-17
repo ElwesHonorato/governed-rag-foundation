@@ -6,8 +6,8 @@ import json
 import uuid
 from dataclasses import dataclass
 
-from ai_infra.retrieval.deterministic_retrieval_embedder import (
-    DeterministicRetrievalEmbedder,
+from ai_infra.retrieval.deterministic_hash_embedder import (
+    DeterministicHashEmbedder,
 )
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.helpers.run_ids import build_source_run_id
@@ -74,7 +74,7 @@ class EmbedChunksProcessor:
     def __init__(
         self,
         *,
-        embedder: DeterministicRetrievalEmbedder,
+        embedder: DeterministicHashEmbedder,
         object_storage: ObjectStorageGateway,
         storage_bucket: str,
         output_prefix: str,

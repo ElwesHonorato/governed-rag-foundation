@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from ai_infra.retrieval.deterministic_retrieval_embedder import (
-    DeterministicRetrievalEmbedder,
+from ai_infra.retrieval.deterministic_hash_embedder import (
+    DeterministicHashEmbedder,
 )
 from agent_platform.clients.retrieval.weaviate_client import WeaviateClient
 from agent_platform.gateways.retrieval.retrieval_gateway import RetrievalGateway
@@ -17,7 +17,7 @@ class RetrievalGatewayFactory:
         self,
         *,
         settings: AgentPlatformConfig,
-        retrieval_embedder: DeterministicRetrievalEmbedder,
+        retrieval_embedder: DeterministicHashEmbedder,
     ) -> RetrievalGateway:
         client = WeaviateClient(
             weaviate_url=settings.retrieval.weaviate_url,

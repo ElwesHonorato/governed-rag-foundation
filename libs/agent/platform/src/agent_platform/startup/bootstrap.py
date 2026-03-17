@@ -5,8 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from ai_infra.retrieval.deterministic_retrieval_embedder import (
-    DeterministicRetrievalEmbedder,
+from ai_infra.retrieval.deterministic_hash_embedder import (
+    DeterministicHashEmbedder,
 )
 from agent_platform.startup.bootstrap_vector_index import bootstrap_vector_index
 from agent_platform.startup.contracts import AgentPlatformConfig
@@ -25,7 +25,7 @@ class RuntimeBootstrapper:
     def bootstrap(
         self,
         settings: AgentPlatformConfig,
-        retrieval_embedder: DeterministicRetrievalEmbedder,
+        retrieval_embedder: DeterministicHashEmbedder,
     ) -> PreparedRuntimeArtifacts:
         self._ensure_vector_fixture_dir(settings)
         vector_index_path: Path = self._bootstrap_vector_index(
@@ -40,7 +40,7 @@ class RuntimeBootstrapper:
     def _bootstrap_vector_index(
         self,
         settings: AgentPlatformConfig,
-        retrieval_embedder: DeterministicRetrievalEmbedder,
+        retrieval_embedder: DeterministicHashEmbedder,
     ) -> Path:
         vector_index_path = settings.paths.vector_index_path
         if not vector_index_path.exists():

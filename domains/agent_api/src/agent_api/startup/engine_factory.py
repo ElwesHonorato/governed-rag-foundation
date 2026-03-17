@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ai_infra.retrieval.deterministic_retrieval_embedder import (
-    DeterministicRetrievalEmbedder,
+from ai_infra.retrieval.deterministic_hash_embedder import (
+    DeterministicHashEmbedder,
 )
 from agent_platform.grounded_response.contracts import GroundedResponse
 from agent_platform.grounded_response.service import GroundedResponseService
@@ -50,7 +50,7 @@ class EngineFactory:
         self._settings = settings
 
     def build(self) -> Engine:
-        retrieval_embedder: DeterministicRetrievalEmbedder = (
+        retrieval_embedder: DeterministicHashEmbedder = (
             self._retrieval_embedder_factory.build(
                 self._settings.retrieval.embedding_dim
             )

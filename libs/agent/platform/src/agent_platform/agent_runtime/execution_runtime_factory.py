@@ -52,6 +52,7 @@ class EngineGateways:
     command_gateway: LocalCommandGateway
     vector_gateway: LocalVectorSearchGateway
     llm_gateway: LLMGateway
+    llm_model: str
     retrieval_gateway: RetrievalGateway
 
 
@@ -68,10 +69,7 @@ class ExecutionRuntimeFactory:
     ) -> ExecutionRuntime:
         planning_service = CapabilityPlanningService()
         session_manager = AgentSessionManager(stores.session_store)
-        execution_service = self._build_execution_service(
-            gateways,
-            llm_model=settings.llm.llm_model,
-        )
+        execution_service = self._build_execution_service(gateways)
         supervisor = self._build_supervisor(
             settings,
             capability_registry,
@@ -91,8 +89,6 @@ class ExecutionRuntimeFactory:
     def _build_execution_service(
         self,
         gateways: EngineGateways,
-        *,
-        llm_model: str,
     ) -> CapabilityExecutionService:
         prompt_repository = LocalPromptRepository()
         prompt_assembly_service = PromptAssemblyService(
@@ -103,7 +99,7 @@ class ExecutionRuntimeFactory:
             command_gateway=gateways.command_gateway,
             vector_gateway=gateways.vector_gateway,
             llm_gateway=gateways.llm_gateway,
-            llm_model=llm_model,
+            llm_model=gateways.llm_model,
             prompt_assembly_service=prompt_assembly_service,
         )
 

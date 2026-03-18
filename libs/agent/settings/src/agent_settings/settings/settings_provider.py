@@ -68,7 +68,6 @@ def optional_int_env(name: str, default: int) -> int:
 def load_llm_settings_from_env() -> LLMSettings:
     return LLMSettings(
         llm_url=required_env("LLM_URL"),
-        llm_model=required_env("LLM_MODEL"),
         llm_timeout_seconds=required_int_env("LLM_TIMEOUT_SECONDS"),
     )
 

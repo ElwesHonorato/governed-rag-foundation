@@ -31,7 +31,10 @@ from agent_platform.startup.bootstrap import PreparedRuntimeArtifacts, RuntimeBo
 from agent_platform.startup.command_gateway_factory import CommandGatewayFactory
 from agent_platform.startup.contracts import AgentPlatformConfig
 from agent_platform.startup.filesystem_gateway_factory import FilesystemGatewayFactory
-from agent_platform.startup.llm_gateway_factory import LLMGatewayFactory
+from agent_platform.startup.llm_gateway_factory import (
+    LLMGatewayFactory,
+    ResolvedLLMGateway,
+)
 from agent_platform.startup.local_state_stores_factory import (
     LocalStateStores,
     LocalStateStoresFactory,
@@ -170,6 +173,7 @@ class EngineFactory:
         )
 
     def _build_gateways(self) -> EngineGateways:
+        resolved_llm_gateway: ResolvedLLMGateway = self._build_llm_gateway()
         return EngineGateways(
             filesystem_gateway=self._gateway_factories.filesystem.build(
                 self._runtime_settings
@@ -181,12 +185,13 @@ class EngineFactory:
                 vector_index_path=self._vector_index_path,
                 retrieval_embedder=self._retrieval_embedder,
             ),
-            llm_gateway=self._build_llm_gateway(),
+            llm_gateway=resolved_llm_gateway.gateway,
+            llm_model=resolved_llm_gateway.model,
             retrieval_gateway=self._build_retrieval_gateway(),
         )
 
     def _build_llm_gateway(self):
-        return self._gateway_factories.llm.build(self._runtime_settings)
+        return self._gateway_factories.llm.build()
 
     def _build_retrieval_gateway(self):
         return RetrievalGatewayFactory(

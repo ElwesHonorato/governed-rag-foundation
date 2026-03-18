@@ -38,6 +38,22 @@ class OllamaClient:
         self._timeout_seconds = timeout_seconds
         self._retries = max(0, int(retries))
 
+    def list_models(self) -> list[str]:
+        data = self._get_with_retries("/api/tags")
+        models = data.get("models")
+        if not isinstance(models, list):
+            raise LLMResponseError("Ollama tags response is missing 'models' list")
+
+        names: list[str] = []
+        for item in models:
+            if not isinstance(item, dict):
+                raise LLMResponseError("Ollama tags response contains a non-object model entry")
+            name = item.get("name")
+            if not isinstance(name, str) or not name.strip():
+                raise LLMResponseError("Ollama tags response contains a model without a valid name")
+            names.append(name.strip())
+        return names
+
     def chat(
         self,
         *,
@@ -124,6 +140,21 @@ class OllamaClient:
             time.sleep(0.2 * attempt)
         raise LLMError("unexpected retry state")
 
+    def _get_with_retries(self, path: str) -> dict[str, Any]:
+        endpoint = f"{self._llm_url}{path}"
+        total_attempts = self._retries + 1
+        for attempt in range(1, total_attempts + 1):
+            try:
+                return self._get_once(endpoint)
+            except LLMConnectionError:
+                if attempt == total_attempts:
+                    raise
+            except LLMHTTPError as exc:
+                if exc.status_code not in {502, 503, 504} or attempt == total_attempts:
+                    raise
+            time.sleep(0.2 * attempt)
+        raise LLMError("unexpected retry state")
+
     def _post_once(self, endpoint: str, payload: dict[str, Any], *, model: str) -> dict[str, Any]:
         req = request.Request(
             endpoint,
@@ -144,6 +175,31 @@ class OllamaClient:
             raise LLMConnectionError(
                 f"Connection error calling {endpoint} (model='{model}'): "
                 f"{getattr(exc, 'reason', str(exc))}"
+            ) from exc
+
+        text = raw.decode("utf-8", errors="replace")
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError as exc:
+            raise LLMResponseError(f"Invalid JSON from {endpoint}: {self._truncate(text, 500)}") from exc
+        if not isinstance(data, dict):
+            raise LLMResponseError("Ollama response JSON must be an object")
+        return data
+
+    def _get_once(self, endpoint: str) -> dict[str, Any]:
+        req = request.Request(endpoint, method="GET")
+        try:
+            with request.urlopen(req, timeout=self._timeout_seconds) as resp:
+                raw = resp.read()
+        except error.HTTPError as exc:
+            body_preview = self._truncate(self._read_error_body(exc), 500)
+            raise LLMHTTPError(
+                exc.code,
+                f"HTTP {exc.code} from {endpoint}: {body_preview}",
+            ) from exc
+        except (error.URLError, TimeoutError) as exc:
+            raise LLMConnectionError(
+                f"Connection error calling {endpoint}: {getattr(exc, 'reason', str(exc))}"
             ) from exc
 
         text = raw.decode("utf-8", errors="replace")

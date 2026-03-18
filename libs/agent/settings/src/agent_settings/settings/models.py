@@ -10,7 +10,6 @@ class LLMSettings:
     """Settings for the local LLM gateway."""
 
     llm_url: str
-    llm_model: str
     llm_timeout_seconds: int
 
 

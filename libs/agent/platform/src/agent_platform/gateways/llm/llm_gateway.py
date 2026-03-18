@@ -16,6 +16,9 @@ class LLMGateway:
     def __init__(self, *, client: OllamaClient) -> None:
         self._client = client
 
+    def list_models(self) -> list[str]:
+        return self._client.list_models()
+
     def generate(self, prompt: str, model: str) -> str:
         try:
             return self._client.generate(

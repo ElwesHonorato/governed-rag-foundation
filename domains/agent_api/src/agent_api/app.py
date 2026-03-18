@@ -83,7 +83,6 @@ def main() -> int:
     )
     retrieval_client = WeaviateClient(
         weaviate_url=agent_settings.retrieval.weaviate_url,
-        embedder=retrieval_embedder,
     )
 
     # Gateway factories adapt infrastructure clients into domain-facing interfaces.
@@ -93,6 +92,7 @@ def main() -> int:
     )
     retrieval_gateway: RetrievalGateway = RetrievalGateway(
         client=retrieval_client,
+        embedder=retrieval_embedder,
         params=retrieval_params,
     )
 

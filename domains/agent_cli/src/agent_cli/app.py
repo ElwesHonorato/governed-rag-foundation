@@ -79,8 +79,8 @@ def main(argv: list[str] | None = None) -> int:
     retrieval_gateway = RetrievalGateway(
         client=WeaviateClient(
             weaviate_url=agent_settings.retrieval.weaviate_url,
-            embedder=retrieval_embedder,
         ),
+        embedder=retrieval_embedder,
         params=runtime_settings.retrieval,
     )
     engine_factory: EngineFactory = EngineFactory(

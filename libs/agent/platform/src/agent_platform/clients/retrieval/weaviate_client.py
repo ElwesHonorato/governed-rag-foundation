@@ -31,14 +31,18 @@ class WeaviateClient:
         self,
         *,
         weaviate_url: str,
-        embedder: DeterministicHashEmbedder,
         timeout_seconds: float = 10.0,
     ) -> None:
         self._weaviate_url = weaviate_url.rstrip("/")
         self._timeout_seconds = timeout_seconds
-        self._embedder = embedder
 
-    def retrieve(self, *, query_text: str, limit: int) -> list[RetrievedChunk]:
+    def retrieve(
+        self,
+        *,
+        query_text: str,
+        limit: int,
+        embedder: DeterministicHashEmbedder,
+    ) -> list[RetrievedChunk]:
         query = query_text.strip()
         if not query:
             return []
@@ -49,10 +53,20 @@ class WeaviateClient:
                 return like_results
         except Exception:
             pass
-        return self._near_vector_search(query=query, limit=safe_limit)
+        return self._near_vector_search(
+            query=query,
+            limit=safe_limit,
+            embedder=embedder,
+        )
 
-    def _near_vector_search(self, *, query: str, limit: int) -> list[RetrievedChunk]:
-        vector = self._embedder.embed(query)
+    def _near_vector_search(
+        self,
+        *,
+        query: str,
+        limit: int,
+        embedder: DeterministicHashEmbedder,
+    ) -> list[RetrievedChunk]:
+        vector = embedder.embed(query)
         vector_values = ",".join(f"{value:.8f}" for value in vector)
         gql = (
             "{Get{DocumentChunk("

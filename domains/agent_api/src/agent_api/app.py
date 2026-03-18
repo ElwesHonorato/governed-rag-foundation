@@ -37,9 +37,8 @@ from agent_platform.grounded_response.service import GroundedResponseService
 
 # --- Gateway factories (bridge infra → domain) ---
 from agent_platform.startup.contracts import (
-    LLMConfig,
+    EmbedderParams,
     LLMParams,
-    RetrievalConfig,
     RetrievalParams,
 )
 from agent_platform.startup.llm_gateway_factory import LLMGatewayFactory
@@ -64,18 +63,14 @@ def main() -> int:
         SettingsRequest(agent_api=True, llm=True, retrieval=True)
     ).bundle
 
-    llm_config = LLMConfig(
-        settings=agent_settings.llm,
-        params=LLMParams(
-            llm_timeout_seconds=30,
-        ),
+    llm_params = LLMParams(
+        llm_timeout_seconds=30,
     )
-    retrieval_config = RetrievalConfig(
-        settings=agent_settings.retrieval,
-        params=RetrievalParams(
-            embedding_dim=32,
-            retrieval_limit=5,
-        ),
+    retrieval_params = RetrievalParams(
+        retrieval_limit=5,
+    )
+    embedder_params = EmbedderParams(
+        embedding_dim=32,
     )
 
     # ---------------------------------------------------------------------
@@ -83,24 +78,24 @@ def main() -> int:
     # ---------------------------------------------------------------------
     # LLM client is the concrete external dependency (Ollama in this case).
     llm_client = OllamaClient(
-        llm_url=llm_config.settings.llm_url,
+        llm_url=agent_settings.llm.llm_url,
     )
     retrieval_embedder = DeterministicHashEmbedder(
-        retrieval_config.params.embedding_dim
+        embedder_params.embedding_dim
     )
     retrieval_client = WeaviateClient(
-        weaviate_url=retrieval_config.settings.weaviate_url,
+        weaviate_url=agent_settings.retrieval.weaviate_url,
         embedder=retrieval_embedder,
     )
 
     # Gateway factories adapt infrastructure clients into domain-facing interfaces.
     llm_gateway: LLMGateway = LLMGatewayFactory(
         client=llm_client,
-        config=llm_config,
+        params=llm_params,
     ).build()
     retrieval_gateway: RetrievalGateway = RetrievalGatewayFactory(
         client=retrieval_client,
-        config=retrieval_config,
+        params=retrieval_params,
     ).build()
 
     # ---------------------------------------------------------------------

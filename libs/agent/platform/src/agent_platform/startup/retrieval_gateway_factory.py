@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from agent_platform.clients.retrieval.weaviate_client import WeaviateClient
 from agent_platform.gateways.retrieval.retrieval_gateway import RetrievalGateway
-from agent_platform.startup.contracts import RetrievalConfig
+from agent_platform.startup.contracts import RetrievalParams
 
 
 class RetrievalGatewayFactory:
@@ -14,13 +14,13 @@ class RetrievalGatewayFactory:
         self,
         *,
         client: WeaviateClient,
-        config: RetrievalConfig,
+        params: RetrievalParams,
     ) -> None:
         self._client = client
-        self._config = config
+        self._params = params
 
     def build(self) -> RetrievalGateway:
         return RetrievalGateway(
             client=self._client,
-            configs=self._config,
+            params=self._params,
         )

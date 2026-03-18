@@ -53,7 +53,7 @@ class GroundedResponseService:
 
     def run(self, *, messages: list[dict[str, str]]) -> GroundedResponse:
         user_query = self._latest_user_query(messages)
-        retrieval_cap = max(1, min(self._retrieval_gateway.configs.params.retrieval_limit, 8))
+        retrieval_cap = max(1, min(self._retrieval_gateway.params.retrieval_limit, 8))
         retrieved = self._retrieval_gateway.retrieve(
             query_text=user_query,
             limit=retrieval_cap,

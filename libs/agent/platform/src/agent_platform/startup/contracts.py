@@ -5,8 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from agent_settings.settings import LLMSettings, RetrievalSettings
-
 
 @dataclass(frozen=True)
 class LLMParams:
@@ -16,27 +14,17 @@ class LLMParams:
 
 
 @dataclass(frozen=True)
-class LLMConfig:
-    """Runtime LLM configuration owned by the composition root."""
-
-    settings: LLMSettings
-    params: LLMParams
-
-
-@dataclass(frozen=True)
 class RetrievalParams:
     """Runtime retrieval parameters owned by the composition root."""
 
-    embedding_dim: int
     retrieval_limit: int
 
 
 @dataclass(frozen=True)
-class RetrievalConfig:
-    """Runtime retrieval configuration owned by the composition root."""
+class EmbedderParams:
+    """Runtime embedder parameters owned by the composition root."""
 
-    settings: RetrievalSettings
-    params: RetrievalParams
+    embedding_dim: int
 
 
 @dataclass(frozen=True)
@@ -56,5 +44,6 @@ class AgentPlatformConfig:
     """Resolved startup configuration grouped by component."""
 
     paths: RuntimePaths
-    llm: LLMConfig
-    retrieval: RetrievalConfig
+    llm: LLMParams
+    retrieval: RetrievalParams
+    embedder: EmbedderParams

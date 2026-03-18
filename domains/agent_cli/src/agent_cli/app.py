@@ -68,7 +68,7 @@ def main(argv: list[str] | None = None) -> int:
     ).bundle
     runtime_settings = AgentCliConfigFactory().build(agent_settings)
     retrieval_embedder = DeterministicHashEmbedder(
-        runtime_settings.retrieval.params.embedding_dim
+        runtime_settings.embedder.embedding_dim
     )
     engine_factory: EngineFactory = EngineFactory(
         startup_services=EngineStartupServices(
@@ -82,16 +82,16 @@ def main(argv: list[str] | None = None) -> int:
             vector=VectorGatewayFactory(),
             llm=LLMGatewayFactory(
                 client=OllamaClient(
-                    llm_url=runtime_settings.llm.settings.llm_url,
+                    llm_url=agent_settings.llm.llm_url,
                 ),
-                config=runtime_settings.llm,
+                params=runtime_settings.llm,
             ),
             retrieval=RetrievalGatewayFactory(
                 client=WeaviateClient(
-                    weaviate_url=runtime_settings.retrieval.settings.weaviate_url,
+                    weaviate_url=agent_settings.retrieval.weaviate_url,
                     embedder=retrieval_embedder,
                 ),
-                config=runtime_settings.retrieval,
+                params=runtime_settings.retrieval,
             ),
         ),
         runtime_factories=EngineRuntimeFactories(

@@ -7,9 +7,8 @@ from pathlib import Path
 
 from agent_platform.startup.contracts import (
     AgentPlatformConfig,
-    LLMConfig,
+    EmbedderParams,
     LLMParams,
-    RetrievalConfig,
     RetrievalParams,
     RuntimePaths,
 )
@@ -35,18 +34,14 @@ class AgentCliConfigFactory:
         runtime_paths = self._resolve_local_paths()
         return AgentPlatformConfig(
             paths=runtime_paths,
-            llm=LLMConfig(
-                settings=settings.llm,
-                params=LLMParams(
-                    llm_timeout_seconds=30,
-                ),
+            llm=LLMParams(
+                llm_timeout_seconds=30,
             ),
-            retrieval=RetrievalConfig(
-                settings=settings.retrieval,
-                params=RetrievalParams(
-                    embedding_dim=32,
-                    retrieval_limit=5,
-                ),
+            retrieval=RetrievalParams(
+                retrieval_limit=5,
+            ),
+            embedder=EmbedderParams(
+                embedding_dim=32,
             ),
         )
 

@@ -1,30 +1,41 @@
 # app_elasticsearch domain
 
-This domain is a standalone Elasticsearch spike/prototype.
+Containerized CLI domain for the isolated Elasticsearch prototype.
 
-It exists to give you a minimal local proof of concept for:
-- starting Elasticsearch
-- creating an index
-- seeding chunk-like documents
-- importing real chunk artifacts from MinIO
-- searching those documents from the command line
+## Deep Dive
 
-It is intentionally isolated from the current production architecture.
+### Domain responsibility
+- Creates and manages a local Elasticsearch spike index.
+- Seeds sample chunk-like documents for local exploration.
+- Imports real chunk artifacts from MinIO under `DEV/04_chunks/`.
+- Runs simple lexical searches against the Elasticsearch index.
+- Provides a demo runner for local end-to-end validation.
 
-## What This Is
-
+### What this is
 - A small CLI-oriented Elasticsearch playground.
-- A local interview-prep sandbox for understanding indexing, mappings, bulk ingest, and simple text search.
-- A domain-scoped prototype that follows the repository's `domains/` layout without integrating into current runtime flows.
+- A local interview-prep sandbox for indexing, bulk ingest, and simple text search.
+- A separate app domain that talks to Elasticsearch and MinIO without joining the production retrieval flow.
 
-## What This Is Not
-
-- Not integrated with current gateways, factories, workers, DI, or startup flow.
+### What this is not
+- Not a queue-driven worker.
+- Not an HTTP API.
+- Not integrated with current gateways, factories, workers, or startup flow.
 - Not part of the existing retrieval path.
-- Not a production Elasticsearch architecture.
 - Not implementing custom analyzers, vectors, hybrid retrieval, or advanced relevance tuning.
 
-## Files Of Interest
+### Runtime dependencies
+- `STACK_NETWORK` for container access to the shared Docker network.
+- `ELASTICSEARCH_POC_URL` for the target Elasticsearch endpoint.
+- `ELASTICSEARCH_POC_INDEX` for the target index name.
+- `ELASTICSEARCH_POC_S3_ENDPOINT`, `ELASTICSEARCH_POC_S3_BUCKET`, `ELASTICSEARCH_POC_S3_PREFIX` for MinIO chunk import.
+- `ELASTICSEARCH_POC_S3_ACCESS_KEY`, `ELASTICSEARCH_POC_S3_SECRET_KEY` for MinIO credentials.
+
+### Operational notes
+- Service container: `app-elasticsearch`.
+- This domain is command-oriented, not a long-running server.
+- Elasticsearch itself runs separately in `domains/infra_elasticsearch`.
+
+### Files of interest
 
 - `domains/app_elasticsearch/docker-compose.yml`
 - `domains/app_elasticsearch/Dockerfile`
@@ -36,7 +47,7 @@ It is intentionally isolated from the current production architecture.
 - `domains/app_elasticsearch/src/elasticsearch_poc/demo.py`
 - `domains/app_elasticsearch/sample_data/rag_chunks.json`
 
-## Local Setup
+### Local setup
 
 Default runtime values:
 - `ELASTICSEARCH_POC_URL=http://localhost:9201`
@@ -60,6 +71,10 @@ This domain also has its own container packaging:
 docker compose -f domains/app_elasticsearch/docker-compose.yml build
 docker compose -f domains/app_elasticsearch/docker-compose.yml run --rm app-elasticsearch poetry run elasticsearch-poc
 ```
+
+Local env template:
+
+- Copy `.env.example` to `.env` in this domain if you want a domain-scoped compose env file.
 
 ## Start Elasticsearch
 

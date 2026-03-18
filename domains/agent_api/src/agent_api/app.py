@@ -30,12 +30,13 @@ from agent_api.adapters.http.web_application_factory import WebApplicationFactor
 
 # --- Engine + gateway composition ---
 from agent_api.startup.engine_factory import (
+    AgentAPIFactory,
     AgentApiGatewayFactories,
-    AgentAPIEngineFactory,
 )
 
 # --- Infrastructure clients ---
 from agent_platform.clients.llm.ollama_client import OllamaClient
+from agent_platform.grounded_response.service import GroundedResponseService
 
 # --- Gateway factories (bridge infra → domain) ---
 from agent_platform.startup.contracts import (
@@ -107,12 +108,15 @@ def main() -> int:
     # - retrieval embedder (vectorization strategy)
     # - gateways (LLM + retrieval access)
     # - runtime settings (policies/config)
-    engine_factory = AgentAPIEngineFactory(
-        gateway_factories=gateway_factories,
+    grounded_response_service = GroundedResponseService(
+        llm_gateway=gateway_factories.llm.build(),
+        retrieval_gateway=gateway_factories.retrieval.build(),
     )
 
     # Build the actual runtime agent application (core execution unit)
-    agent_app = engine_factory.build()
+    agent_app = AgentAPIFactory(
+        grounded_response_service=grounded_response_service,
+    )
 
     # ---------------------------------------------------------------------
     # 4. Assemble HTTP layer (adapter → domain boundary)

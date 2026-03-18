@@ -6,16 +6,21 @@ from dataclasses import asdict
 from http import HTTPStatus
 
 from agent_api.adapters.http.responses import JsonResponse
-from agent_api.startup.engine_factory import AgentAPIFactory
+from agent_platform.grounded_response.service import GroundedResponseService
 from agent_settings.settings import AgentApiSettings
 
 
 class AgentApiHandlers:
     """Endpoint orchestration for agent API routes."""
 
-    def __init__(self, *, settings: AgentApiSettings, agent_app: AgentAPIFactory) -> None:
+    def __init__(
+        self,
+        *,
+        settings: AgentApiSettings,
+        grounded_response_service: GroundedResponseService,
+    ) -> None:
         self._settings = settings
-        self._agent_app = agent_app
+        self._grounded_response_service = grounded_response_service
 
     def get_health(self) -> JsonResponse:
         return JsonResponse(
@@ -24,5 +29,5 @@ class AgentApiHandlers:
         )
 
     def query_grounded_response(self, body: dict[str, object]) -> JsonResponse:
-        response = self._agent_app.query_grounded_response(body)
+        response = self._grounded_response_service.respond(body)
         return JsonResponse(payload=response.to_dict(), status=HTTPStatus.OK)

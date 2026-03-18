@@ -28,11 +28,6 @@ from agent_api.adapters.http.request_normalization import WsgiRequestNormalizer
 from agent_api.adapters.http.router import AgentApiRouter
 from agent_api.adapters.http.web_application_factory import WebApplicationFactory
 
-# --- Engine + gateway composition ---
-from agent_api.startup.engine_factory import (
-    AgentAPIFactory,
-)
-
 # --- Infrastructure clients ---
 from agent_platform.clients.llm.ollama_client import OllamaClient
 from agent_platform.clients.retrieval.weaviate_client import WeaviateClient
@@ -120,11 +115,6 @@ def main() -> int:
         retrieval_gateway=retrieval_gateway,
     )
 
-    # Build the actual runtime agent application (core execution unit)
-    agent_app = AgentAPIFactory(
-        grounded_response_service=grounded_response_service,
-    )
-
     # ---------------------------------------------------------------------
     # 4. Assemble HTTP layer (adapter → domain boundary)
     # ---------------------------------------------------------------------
@@ -133,7 +123,7 @@ def main() -> int:
     # Handlers translate HTTP requests into domain-level calls
     handlers = AgentApiHandlers(
         settings=agent_api_settings,
-        agent_app=agent_app,
+        grounded_response_service=grounded_response_service,
     )
 
     # Normalizer ensures incoming WSGI requests are converted

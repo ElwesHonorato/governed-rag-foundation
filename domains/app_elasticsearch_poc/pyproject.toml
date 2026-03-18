@@ -1,0 +1,23 @@
+[project]
+name = "elasticsearch-poc"
+version = "0.1.0"
+description = "Standalone Elasticsearch proof of concept"
+authors = [{ name = "Governed RAG Foundation" }]
+requires-python = "==3.11.14"
+dependencies = [
+  "elasticsearch==8.17.2",
+]
+
+[project.scripts]
+elasticsearch-poc = "elasticsearch_poc.app:main"
+elasticsearch-poc-create-index = "elasticsearch_poc.create_index:main"
+elasticsearch-poc-seed = "elasticsearch_poc.seed_documents:main"
+elasticsearch-poc-search = "elasticsearch_poc.search_documents:main"
+elasticsearch-poc-demo = "elasticsearch_poc.demo:main"
+
+[tool.poetry]
+packages = [{ include = "elasticsearch_poc", from = "src" }]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

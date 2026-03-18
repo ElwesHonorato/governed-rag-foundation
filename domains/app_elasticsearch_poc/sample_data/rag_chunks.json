@@ -1,0 +1,74 @@
+[
+  {
+    "chunk_id": "chunk-001",
+    "doc_id": "governance-apply",
+    "source_key": "07_metadata/governance/apply-overview.md",
+    "text": "Governance apply loads YAML definitions, resolves references, and upserts metadata into DataHub in deterministic order.",
+    "content_type": "text/markdown",
+    "created_at": "2026-03-18T12:00:00Z",
+    "metadata": {
+      "security_clearance": "internal",
+      "source_type": "governance_doc"
+    }
+  },
+  {
+    "chunk_id": "chunk-002",
+    "doc_id": "lineage-ops",
+    "source_key": "07_metadata/lineage/runtime-ops.md",
+    "text": "Runtime lineage events record worker stage transitions, queue handoffs, and output datasets so operators can trace one processing run end to end.",
+    "content_type": "text/markdown",
+    "created_at": "2026-03-18T12:01:00Z",
+    "metadata": {
+      "security_clearance": "internal",
+      "source_type": "operations_doc"
+    }
+  },
+  {
+    "chunk_id": "chunk-003",
+    "doc_id": "retrieval-design",
+    "source_key": "docs/retrieval/keyword-search-notes.md",
+    "text": "Keyword retrieval is useful for exact terminology such as job ids, queue names, contract keys, and security clearance labels.",
+    "content_type": "text/markdown",
+    "created_at": "2026-03-18T12:02:00Z",
+    "metadata": {
+      "security_clearance": "internal",
+      "source_type": "design_note"
+    }
+  },
+  {
+    "chunk_id": "chunk-004",
+    "doc_id": "embedding-stage",
+    "source_key": "05_embeddings/embedder/runtime-contract.md",
+    "text": "The embedding stage converts chunk text into deterministic vectors and records embedder name, version, and parameter hash for traceability.",
+    "content_type": "text/markdown",
+    "created_at": "2026-03-18T12:03:00Z",
+    "metadata": {
+      "security_clearance": "internal",
+      "source_type": "runtime_contract"
+    }
+  },
+  {
+    "chunk_id": "chunk-005",
+    "doc_id": "queue-contracts",
+    "source_key": "queue/contracts/worker-routing.md",
+    "text": "Queue contracts define which worker consumes each stage and which downstream queue receives the next artifact notification.",
+    "content_type": "text/markdown",
+    "created_at": "2026-03-18T12:04:00Z",
+    "metadata": {
+      "security_clearance": "restricted",
+      "source_type": "contract_doc"
+    }
+  },
+  {
+    "chunk_id": "chunk-006",
+    "doc_id": "search-spike",
+    "source_key": "search/elasticsearch/spike-notes.md",
+    "text": "This Elasticsearch spike stores chunk-like records with source metadata so command line searches can preview how lexical retrieval could fit later.",
+    "content_type": "text/markdown",
+    "created_at": "2026-03-18T12:05:00Z",
+    "metadata": {
+      "security_clearance": "internal",
+      "source_type": "spike_note"
+    }
+  }
+]

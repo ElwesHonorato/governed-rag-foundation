@@ -1,4 +1,4 @@
-# app_elasticsearch_poc domain
+# app_elasticsearch domain
 
 This domain is a standalone Elasticsearch spike/prototype.
 
@@ -27,12 +27,12 @@ It is intentionally isolated from the current production architecture.
 ## Files Of Interest
 
 - `domains/infra_elasticsearch/docker-compose.yml`
-- `domains/app_elasticsearch_poc/src/elasticsearch_poc/create_index.py`
-- `domains/app_elasticsearch_poc/src/elasticsearch_poc/seed_documents.py`
-- `domains/app_elasticsearch_poc/src/elasticsearch_poc/import_minio_chunks.py`
-- `domains/app_elasticsearch_poc/src/elasticsearch_poc/search_documents.py`
-- `domains/app_elasticsearch_poc/src/elasticsearch_poc/demo.py`
-- `domains/app_elasticsearch_poc/sample_data/rag_chunks.json`
+- `domains/app_elasticsearch/src/elasticsearch_poc/create_index.py`
+- `domains/app_elasticsearch/src/elasticsearch_poc/seed_documents.py`
+- `domains/app_elasticsearch/src/elasticsearch_poc/import_minio_chunks.py`
+- `domains/app_elasticsearch/src/elasticsearch_poc/search_documents.py`
+- `domains/app_elasticsearch/src/elasticsearch_poc/demo.py`
+- `domains/app_elasticsearch/sample_data/rag_chunks.json`
 
 ## Local Setup
 
@@ -48,7 +48,7 @@ Default runtime values:
 Install the Python package:
 
 ```bash
-cd domains/app_elasticsearch_poc
+cd domains/app_elasticsearch
 poetry install
 ```
 
@@ -67,7 +67,7 @@ curl http://localhost:9201/_cluster/health
 ## Create The Index
 
 ```bash
-cd domains/app_elasticsearch_poc
+cd domains/app_elasticsearch
 poetry run elasticsearch-poc-create-index
 ```
 
@@ -78,7 +78,7 @@ Expected behavior:
 ## Seed Sample Documents
 
 ```bash
-cd domains/app_elasticsearch_poc
+cd domains/app_elasticsearch
 poetry run elasticsearch-poc-seed
 ```
 
@@ -100,7 +100,7 @@ It does not query MinIO directly with Elasticsearch. Instead it:
 Command:
 
 ```bash
-cd domains/app_elasticsearch_poc
+cd domains/app_elasticsearch
 poetry run elasticsearch-poc-import-minio
 ```
 
@@ -123,7 +123,7 @@ poetry run elasticsearch-poc-import-minio
 ## Run Searches
 
 ```bash
-cd domains/app_elasticsearch_poc
+cd domains/app_elasticsearch
 poetry run elasticsearch-poc-search "lineage runtime"
 poetry run elasticsearch-poc-search "security clearance" --limit 3
 ```
@@ -145,7 +145,7 @@ The demo runner:
 - runs example searches
 
 ```bash
-cd domains/app_elasticsearch_poc
+cd domains/app_elasticsearch
 poetry run elasticsearch-poc-demo
 ```
 

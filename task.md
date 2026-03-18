@@ -23,7 +23,7 @@ What already exists:
 
 - `domains/infra_elasticsearch`
   - standalone Elasticsearch service for the spike
-- `domains/app_elasticsearch_poc`
+- `domains/app_elasticsearch`
   - create-index script
   - seed script
   - search script
@@ -98,7 +98,7 @@ Status:
 Work:
 
 1. Keep `infra_elasticsearch` as the isolated long-running Elasticsearch service.
-2. Keep `app_elasticsearch_poc` as a CLI domain for learning and local validation.
+2. Keep `app_elasticsearch` as a CLI domain for learning and local validation.
 3. Use the importer to read `DEV/04_chunks/` from MinIO and populate Elasticsearch.
 4. Keep all spike env keys prefixed with `ELASTICSEARCH_POC_*` so they do not collide with production stack env.
 
@@ -323,7 +323,7 @@ Keep the current POC healthy:
 
 ### Task 2
 
-Add delete scripts to `app_elasticsearch_poc`:
+Add delete scripts to `app_elasticsearch`:
 
 - delete by `doc_id`
 - delete by `root_source_uri`

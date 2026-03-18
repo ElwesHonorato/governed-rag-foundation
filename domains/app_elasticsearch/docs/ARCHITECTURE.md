@@ -20,6 +20,7 @@ Key runtime wiring:
 
 Deployment shape:
 - standalone Python CLI domain
+- containerized CLI domain with its own Dockerfile and compose file
 - local Elasticsearch infra lives separately in `domains/infra_elasticsearch`
 - optional MinIO read path uses the repo's existing local S3-compatible storage env convention
 - intentionally not integrated with current workers or retrieval runtime

@@ -1,0 +1,18 @@
+services:
+  app-elasticsearch:
+    build:
+      context: ../..
+      dockerfile: ./domains/app_elasticsearch/Dockerfile
+    environment:
+      ELASTICSEARCH_POC_URL: ${ELASTICSEARCH_POC_URL:-http://elasticsearch:9200}
+      ELASTICSEARCH_POC_INDEX: ${ELASTICSEARCH_POC_INDEX:-rag_chunks}
+      ELASTICSEARCH_POC_S3_ENDPOINT: ${ELASTICSEARCH_POC_S3_ENDPOINT:-http://minio:9000}
+      ELASTICSEARCH_POC_S3_BUCKET: ${ELASTICSEARCH_POC_S3_BUCKET:-rag-data}
+      ELASTICSEARCH_POC_S3_PREFIX: ${ELASTICSEARCH_POC_S3_PREFIX:-DEV/04_chunks/}
+      ELASTICSEARCH_POC_S3_ACCESS_KEY: ${ELASTICSEARCH_POC_S3_ACCESS_KEY:-minio}
+      ELASTICSEARCH_POC_S3_SECRET_KEY: ${ELASTICSEARCH_POC_S3_SECRET_KEY:-minio123}
+
+networks:
+  default:
+    external: true
+    name: ${STACK_NETWORK:?STACK_NETWORK is required}

@@ -26,6 +26,8 @@ It is intentionally isolated from the current production architecture.
 
 ## Files Of Interest
 
+- `domains/app_elasticsearch/docker-compose.yml`
+- `domains/app_elasticsearch/Dockerfile`
 - `domains/infra_elasticsearch/docker-compose.yml`
 - `domains/app_elasticsearch/src/elasticsearch_poc/create_index.py`
 - `domains/app_elasticsearch/src/elasticsearch_poc/seed_documents.py`
@@ -52,6 +54,13 @@ cd domains/app_elasticsearch
 poetry install
 ```
 
+This domain also has its own container packaging:
+
+```bash
+docker compose -f domains/app_elasticsearch/docker-compose.yml build
+docker compose -f domains/app_elasticsearch/docker-compose.yml run --rm app-elasticsearch poetry run elasticsearch-poc
+```
+
 ## Start Elasticsearch
 
 ```bash
@@ -71,6 +80,12 @@ cd domains/app_elasticsearch
 poetry run elasticsearch-poc-create-index
 ```
 
+Container form:
+
+```bash
+docker compose -f domains/app_elasticsearch/docker-compose.yml run --rm app-elasticsearch poetry run elasticsearch-poc-create-index
+```
+
 Expected behavior:
 - creates the `rag_chunks` index with a simple mapping
 - if the index already exists, prints a helpful message and exits cleanly
@@ -80,6 +95,12 @@ Expected behavior:
 ```bash
 cd domains/app_elasticsearch
 poetry run elasticsearch-poc-seed
+```
+
+Container form:
+
+```bash
+docker compose -f domains/app_elasticsearch/docker-compose.yml run --rm app-elasticsearch poetry run elasticsearch-poc-seed
 ```
 
 Expected behavior:
@@ -104,6 +125,12 @@ cd domains/app_elasticsearch
 poetry run elasticsearch-poc-import-minio
 ```
 
+Container form:
+
+```bash
+docker compose -f domains/app_elasticsearch/docker-compose.yml run --rm app-elasticsearch poetry run elasticsearch-poc-import-minio
+```
+
 Expected behavior:
 - creates the index if needed
 - imports real chunk artifacts from MinIO
@@ -126,6 +153,12 @@ poetry run elasticsearch-poc-import-minio
 cd domains/app_elasticsearch
 poetry run elasticsearch-poc-search "lineage runtime"
 poetry run elasticsearch-poc-search "security clearance" --limit 3
+```
+
+Container form:
+
+```bash
+docker compose -f domains/app_elasticsearch/docker-compose.yml run --rm app-elasticsearch poetry run elasticsearch-poc-search "lineage runtime"
 ```
 
 Expected output shape:

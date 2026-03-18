@@ -66,6 +66,7 @@ def main() -> int:
     )
     retrieval_config = RetrievalConfig(
         settings=agent_settings.retrieval,
+        embedding_dim=32,
         retrieval_limit=5,
     )
 
@@ -78,7 +79,7 @@ def main() -> int:
         timeout_seconds=llm_config.llm_timeout_seconds,
     )
     retrieval_embedder = DeterministicHashEmbedder(
-        retrieval_config.settings.embedding_dim
+        retrieval_config.embedding_dim
     )
 
     # Gateway factories adapt infrastructure clients into domain-facing interfaces.

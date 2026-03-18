@@ -11,7 +11,6 @@ services:
       AGENT_PLATFORM_WORKSPACE_ROOT: /workspace
       LLM_URL: ${LLM_URL:?LLM_URL is required}
       WEAVIATE_URL: ${WEAVIATE_URL:?WEAVIATE_URL is required}
-      EMBEDDING_DIM: ${EMBEDDING_DIM:?EMBEDDING_DIM is required}
     volumes:
       - .:/workspace
 

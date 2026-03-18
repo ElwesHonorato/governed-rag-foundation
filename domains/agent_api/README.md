@@ -16,7 +16,6 @@ Required environment:
 - `AGENT_PLATFORM_WORKSPACE_ROOT` (container default `/workspace`)
 - `LLM_URL`
 - `WEAVIATE_URL`
-- `EMBEDDING_DIM`
 - `STACK_NETWORK` for the shared Docker network
 
 Local env template:

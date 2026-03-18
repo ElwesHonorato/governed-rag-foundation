@@ -39,6 +39,7 @@ class AgentCliConfigFactory:
             ),
             retrieval=RetrievalConfig(
                 settings=settings.retrieval,
+                embedding_dim=32,
                 retrieval_limit=5,
             ),
         )

@@ -17,7 +17,6 @@ class RetrievalSettings:
     """Settings for retrieval infrastructure."""
 
     weaviate_url: str
-    embedding_dim: int
 
 
 @dataclass(frozen=True)

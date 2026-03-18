@@ -21,6 +21,7 @@ class RetrievalConfig:
     """Runtime retrieval configuration owned by the composition root."""
 
     settings: RetrievalSettings
+    embedding_dim: int
     retrieval_limit: int
 
 

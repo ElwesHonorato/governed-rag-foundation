@@ -47,7 +47,7 @@ class AgentAPIEngineFactory:
         grounded_response_service = GroundedResponseService(
             llm_gateway=llm_gateway,
             retrieval_gateway=retrieval_gateway,
-            retrieval_limit=self._retrieval_config.retrieval_limit,
+            retrieval_config=self._retrieval_config,
         )
         return AgentAPIFactory(grounded_response_service=grounded_response_service)
 

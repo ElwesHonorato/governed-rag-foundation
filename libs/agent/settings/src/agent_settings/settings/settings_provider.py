@@ -70,7 +70,6 @@ def load_agent_api_settings_from_env() -> AgentApiSettings:
 def load_retrieval_settings_from_env() -> RetrievalSettings:
     return RetrievalSettings(
         weaviate_url=required_env("WEAVIATE_URL"),
-        embedding_dim=required_int_env("EMBEDDING_DIM"),
     )
 
 

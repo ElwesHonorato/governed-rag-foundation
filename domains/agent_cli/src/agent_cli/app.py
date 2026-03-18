@@ -70,7 +70,7 @@ def main(argv: list[str] | None = None) -> int:
         startup_services=EngineStartupServices(
             bootstrapper=RuntimeBootstrapper(),
             retrieval_embedder=DeterministicHashEmbedder(
-                runtime_settings.retrieval.settings.embedding_dim
+                runtime_settings.retrieval.embedding_dim
             ),
             local_state_stores_factory=LocalStateStoresFactory(),
         ),

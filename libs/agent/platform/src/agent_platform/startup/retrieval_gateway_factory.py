@@ -7,7 +7,7 @@ from ai_infra.retrieval.deterministic_hash_embedder import (
 )
 from agent_platform.clients.retrieval.weaviate_client import WeaviateClient
 from agent_platform.gateways.retrieval.retrieval_gateway import RetrievalGateway
-from agent_platform.startup.contracts import LLMRetrievalConfig
+from agent_platform.startup.contracts import RetrievalConfig
 
 
 class RetrievalGatewayFactory:
@@ -19,10 +19,10 @@ class RetrievalGatewayFactory:
     def build(
         self,
         *,
-        settings: LLMRetrievalConfig,
+        settings: RetrievalConfig,
     ) -> RetrievalGateway:
         client = WeaviateClient(
-            weaviate_url=settings.retrieval.settings.weaviate_url,
+            weaviate_url=settings.settings.weaviate_url,
             embedder=self._retrieval_embedder,
         )
         return RetrievalGateway(client=client)

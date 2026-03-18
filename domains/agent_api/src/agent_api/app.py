@@ -33,7 +33,6 @@ from agent_api.startup.engine_factory import (
     AgentApiGatewayFactories,
     AgentAPIEngineFactory,
 )
-from agent_api.startup.config import AgentAPIConfig
 
 # --- Infrastructure clients ---
 from agent_platform.clients.llm.ollama_client import OllamaClient
@@ -61,15 +60,13 @@ def main() -> int:
     agent_settings: SettingsBundle = EnvironmentSettingsProvider(
         SettingsRequest(agent_api=True, llm=True, retrieval=True)
     ).bundle
-    agent_config: AgentAPIConfig = AgentAPIConfig(
-        llm=LLMConfig(
-            settings=agent_settings.llm,
-            llm_timeout_seconds=30,
-        ),
-        retrieval=RetrievalConfig(
-            settings=agent_settings.retrieval,
-            retrieval_limit=5,
-        ),
+    llm_config = LLMConfig(
+        settings=agent_settings.llm,
+        llm_timeout_seconds=30,
+    )
+    retrieval_config = RetrievalConfig(
+        settings=agent_settings.retrieval,
+        retrieval_limit=5,
     )
 
     # ---------------------------------------------------------------------
@@ -77,11 +74,11 @@ def main() -> int:
     # ---------------------------------------------------------------------
     # LLM client is the concrete external dependency (Ollama in this case).
     llm_client = OllamaClient(
-        llm_url=agent_config.llm.settings.llm_url,
-        timeout_seconds=agent_config.llm.llm_timeout_seconds,
+        llm_url=llm_config.settings.llm_url,
+        timeout_seconds=llm_config.llm_timeout_seconds,
     )
     retrieval_embedder = DeterministicHashEmbedder(
-        agent_config.retrieval.settings.embedding_dim
+        retrieval_config.settings.embedding_dim
     )
 
     # Gateway factories adapt infrastructure clients into domain-facing interfaces.
@@ -99,7 +96,7 @@ def main() -> int:
     # - runtime settings (policies/config)
     engine_factory = AgentAPIEngineFactory(
         gateway_factories=gateway_factories,
-        settings=agent_config,
+        retrieval_config=retrieval_config,
     )
 
     # Build the actual runtime agent application (core execution unit)

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol
 
 from agent_settings.settings import LLMSettings, RetrievalSettings
 
@@ -23,13 +22,6 @@ class RetrievalConfig:
 
     settings: RetrievalSettings
     retrieval_limit: int
-
-
-class LLMRetrievalConfig(Protocol):
-    """Startup configuration that exposes only LLM and retrieval settings."""
-
-    llm: LLMConfig
-    retrieval: RetrievalConfig
 
 
 @dataclass(frozen=True)

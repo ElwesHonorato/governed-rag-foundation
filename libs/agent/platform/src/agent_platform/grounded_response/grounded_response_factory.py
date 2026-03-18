@@ -18,6 +18,5 @@ class GroundedResponseFactory:
         return GroundedResponseService(
             llm_gateway=gateways.llm_gateway,
             retrieval_gateway=gateways.retrieval_gateway,
-            model=gateways.llm_model,
             retrieval_limit=settings.retrieval.retrieval_limit,
         )

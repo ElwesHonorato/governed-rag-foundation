@@ -20,12 +20,10 @@ class GroundedResponseService:
         *,
         llm_gateway: LLMGateway,
         retrieval_gateway: RetrievalGateway,
-        model: str,
         retrieval_limit: int,
     ) -> None:
         self._llm_gateway = llm_gateway
         self._retrieval_gateway = retrieval_gateway
-        self._model = model
         self._retrieval_limit = retrieval_limit
 
     def respond(self, payload: dict[str, object]) -> GroundedResponse:
@@ -63,7 +61,8 @@ class GroundedResponseService:
             limit=retrieval_cap,
         )
         grounded_messages = self._build_grounded_messages(messages=messages, retrieved=retrieved)
-        response = self._llm_gateway.chat(messages=grounded_messages, model=self._model)
+        model = self._llm_gateway.resolve_model()
+        response = self._llm_gateway.chat(messages=grounded_messages, model=model)
         assistant_message = {"role": "assistant", "content": response}
         citations = [
             Citation(
@@ -76,7 +75,7 @@ class GroundedResponseService:
             for chunk in retrieved
         ]
         return GroundedResponse(
-            model=self._model,
+            model=model,
             response=response,
             assistant_message=assistant_message,
             citations=citations,

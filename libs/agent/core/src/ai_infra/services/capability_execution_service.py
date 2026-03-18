@@ -23,14 +23,12 @@ class CapabilityExecutionService:
         command_gateway: CommandExecutionGateway,
         vector_gateway: VectorSearchGateway,
         llm_gateway: LLMGateway,
-        llm_model: str,
         prompt_assembly_service: PromptAssemblyService,
     ) -> None:
         self._filesystem_gateway = filesystem_gateway
         self._command_gateway = command_gateway
         self._vector_gateway = vector_gateway
         self._llm_gateway = llm_gateway
-        self._llm_model = llm_model
         self._prompt_assembly_service = prompt_assembly_service
 
     def execute(self, request: CapabilityRequest, run: AgentRun) -> CapabilityResult:
@@ -56,7 +54,7 @@ class CapabilityExecutionService:
                 )
                 text = self._llm_gateway.generate(
                     prompt=prompt,
-                    model=self._llm_model,
+                    model=self._llm_gateway.resolve_model(),
                 )
                 output = {"text": text, "prompt_key": prompt_key}
             else:

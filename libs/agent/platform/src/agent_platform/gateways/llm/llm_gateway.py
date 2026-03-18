@@ -19,6 +19,18 @@ class LLMGateway:
     def list_models(self) -> list[str]:
         return self._client.list_models()
 
+    def resolve_model(self) -> str:
+        available_models = self.list_models()
+        if not available_models:
+            raise ValueError("No LLM models are available from the configured backend.")
+        if len(available_models) > 1:
+            available_display = ", ".join(sorted(available_models))
+            raise ValueError(
+                "Multiple LLM models are available from the configured backend. "
+                f"Expected exactly one model, found: {available_display}"
+            )
+        return available_models[0]
+
     def generate(self, prompt: str, model: str) -> str:
         try:
             return self._client.generate(

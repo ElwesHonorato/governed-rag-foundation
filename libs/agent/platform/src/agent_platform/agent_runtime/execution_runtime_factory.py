@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ai_infra.protocols.gateways.llm_gateway import LLMGateway
 from ai_infra.evaluation.offline_evaluation_runner import OfflineEvaluationRunner
 from ai_infra.kernel.agent_session_manager import AgentSessionManager
 from ai_infra.policies.capability_policy import CapabilityPolicy
 from ai_infra.policies.sandbox_policy import SandboxPolicy
 from ai_infra.policies.termination_policy import TerminationPolicy
+from ai_infra.protocols.gateways.llm_gateway import LLMGateway
 from ai_infra.runtime.execution_state_manager import ExecutionStateManager
 from ai_infra.services.capability_execution_service import CapabilityExecutionService
 from ai_infra.services.capability_planning_service import CapabilityPlanningService
@@ -52,7 +52,6 @@ class EngineGateways:
     command_gateway: LocalCommandGateway
     vector_gateway: LocalVectorSearchGateway
     llm_gateway: LLMGateway
-    llm_model: str
     retrieval_gateway: RetrievalGateway
 
 
@@ -99,7 +98,6 @@ class ExecutionRuntimeFactory:
             command_gateway=gateways.command_gateway,
             vector_gateway=gateways.vector_gateway,
             llm_gateway=gateways.llm_gateway,
-            llm_model=gateways.llm_model,
             prompt_assembly_service=prompt_assembly_service,
         )
 

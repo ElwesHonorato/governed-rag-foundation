@@ -10,6 +10,7 @@ from ai_infra.contracts.agent_session import AgentSession
 from ai_infra.contracts.capability_descriptor import CapabilityDescriptor
 from ai_infra.contracts.evaluation_run import EvaluationRun
 from ai_infra.evaluation.offline_evaluation_runner import OfflineEvaluationRunner
+from ai_infra.protocols.gateways.llm_gateway import LLMGateway
 from ai_infra.registry.capability_registry import CapabilityRegistry
 from ai_infra.retrieval.deterministic_hash_embedder import (
     DeterministicHashEmbedder,
@@ -31,10 +32,7 @@ from agent_platform.startup.bootstrap import PreparedRuntimeArtifacts, RuntimeBo
 from agent_platform.startup.command_gateway_factory import CommandGatewayFactory
 from agent_platform.startup.contracts import AgentPlatformConfig
 from agent_platform.startup.filesystem_gateway_factory import FilesystemGatewayFactory
-from agent_platform.startup.llm_gateway_factory import (
-    LLMGatewayFactory,
-    ResolvedLLMGateway,
-)
+from agent_platform.startup.llm_gateway_factory import LLMGatewayFactory
 from agent_platform.startup.local_state_stores_factory import (
     LocalStateStores,
     LocalStateStoresFactory,
@@ -173,7 +171,6 @@ class EngineFactory:
         )
 
     def _build_gateways(self) -> EngineGateways:
-        resolved_llm_gateway: ResolvedLLMGateway = self._build_llm_gateway()
         return EngineGateways(
             filesystem_gateway=self._gateway_factories.filesystem.build(
                 self._runtime_settings
@@ -185,12 +182,11 @@ class EngineFactory:
                 vector_index_path=self._vector_index_path,
                 retrieval_embedder=self._retrieval_embedder,
             ),
-            llm_gateway=resolved_llm_gateway.gateway,
-            llm_model=resolved_llm_gateway.model,
+            llm_gateway=self._build_llm_gateway(),
             retrieval_gateway=self._build_retrieval_gateway(),
         )
 
-    def _build_llm_gateway(self):
+    def _build_llm_gateway(self) -> LLMGateway:
         return self._gateway_factories.llm.build()
 
     def _build_retrieval_gateway(self):

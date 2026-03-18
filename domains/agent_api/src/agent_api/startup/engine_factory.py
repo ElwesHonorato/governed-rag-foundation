@@ -42,12 +42,11 @@ class AgentAPIEngineFactory:
         self._settings = settings
 
     def build(self) -> AgentAPIFactory:
-        resolved_llm_gateway = self._build_llm_gateway()
+        llm_gateway = self._build_llm_gateway()
         retrieval_gateway = self._build_retrieval_gateway()
         grounded_response_service = GroundedResponseService(
-            llm_gateway=resolved_llm_gateway.gateway,
+            llm_gateway=llm_gateway,
             retrieval_gateway=retrieval_gateway,
-            model=resolved_llm_gateway.model,
             retrieval_limit=self._settings.retrieval.retrieval_limit,
         )
         return AgentAPIFactory(grounded_response_service=grounded_response_service)

@@ -39,6 +39,12 @@ class OllamaClient:
         self._retries = max(0, int(retries))
 
     def list_models(self) -> list[str]:
+        """Return model tags exposed by Ollama's built-in ``/api/tags`` endpoint.
+
+        This lists models currently available on the configured Ollama instance,
+        typically models that have already been pulled locally. It does not
+        return the full set of models Ollama could download from its registry.
+        """
         data = self._get_with_retries("/api/tags")
         models = data.get("models")
         if not isinstance(models, list):

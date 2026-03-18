@@ -5,6 +5,7 @@ description = "Standalone Elasticsearch proof of concept"
 authors = [{ name = "Governed RAG Foundation" }]
 requires-python = "==3.11.14"
 dependencies = [
+  "boto3==1.37.38",
   "elasticsearch==8.17.2",
 ]
 
@@ -13,6 +14,7 @@ elasticsearch-poc = "elasticsearch_poc.app:main"
 elasticsearch-poc-create-index = "elasticsearch_poc.create_index:main"
 elasticsearch-poc-seed = "elasticsearch_poc.seed_documents:main"
 elasticsearch-poc-search = "elasticsearch_poc.search_documents:main"
+elasticsearch-poc-import-minio = "elasticsearch_poc.import_minio_chunks:main"
 elasticsearch-poc-demo = "elasticsearch_poc.demo:main"
 
 [tool.poetry]

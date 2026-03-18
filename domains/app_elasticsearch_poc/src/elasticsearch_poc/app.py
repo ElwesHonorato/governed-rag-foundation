@@ -8,6 +8,7 @@ def main() -> int:
     print("- poetry run elasticsearch-poc-create-index")
     print("- poetry run elasticsearch-poc-seed")
     print("- poetry run elasticsearch-poc-search \"<query>\"")
+    print("- poetry run elasticsearch-poc-import-minio")
     print("- poetry run elasticsearch-poc-demo")
     return 0
 

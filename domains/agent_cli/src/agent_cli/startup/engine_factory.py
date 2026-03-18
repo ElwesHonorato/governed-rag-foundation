@@ -20,6 +20,7 @@ from agent_platform.agent_runtime.execution_runtime_factory import (
     ExecutionRuntimeFactory,
 )
 from agent_platform.agent_runtime.objective_runner import ObjectiveRunner
+from agent_platform.gateways.retrieval.retrieval_gateway import RetrievalGateway
 from agent_platform.agent_runtime.skill_registry import SkillRegistry
 from agent_platform.gateways.state.local_run_store import LocalRunStore
 from agent_platform.gateways.state.local_session_store import LocalSessionStore
@@ -96,6 +97,7 @@ class EngineGatewayFactories:
     command: CommandGatewayFactory
     vector: VectorGatewayFactory
     llm: LLMGatewayFactory
+    retrieval: RetrievalGatewayFactory
 
 
 @dataclass(frozen=True)
@@ -188,8 +190,5 @@ class EngineFactory:
     def _build_llm_gateway(self) -> LLMGateway:
         return self._gateway_factories.llm.build()
 
-    def _build_retrieval_gateway(self):
-        return RetrievalGatewayFactory(
-            retrieval_embedder=self._retrieval_embedder,
-            config=self._runtime_settings.retrieval,
-        ).build()
+    def _build_retrieval_gateway(self) -> RetrievalGateway:
+        return self._gateway_factories.retrieval.build()

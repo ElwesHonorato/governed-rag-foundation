@@ -26,6 +26,7 @@ from agent_platform.agent_runtime.execution_runtime_factory import (
     ExecutionRuntimeFactory,
 )
 from agent_platform.clients.llm.ollama_client import OllamaClient
+from agent_platform.clients.retrieval.weaviate_client import WeaviateClient
 from agent_platform.grounded_response.grounded_response_factory import (
     GroundedResponseFactory,
 )
@@ -66,12 +67,13 @@ def main(argv: list[str] | None = None) -> int:
         SettingsRequest(llm=True, retrieval=True)
     ).bundle
     runtime_settings = AgentCliConfigFactory().build(agent_settings)
+    retrieval_embedder = DeterministicHashEmbedder(
+        runtime_settings.retrieval.params.embedding_dim
+    )
     engine_factory: EngineFactory = EngineFactory(
         startup_services=EngineStartupServices(
             bootstrapper=RuntimeBootstrapper(),
-            retrieval_embedder=DeterministicHashEmbedder(
-                runtime_settings.retrieval.params.embedding_dim
-            ),
+            retrieval_embedder=retrieval_embedder,
             local_state_stores_factory=LocalStateStoresFactory(),
         ),
         gateway_factories=EngineGatewayFactories(
@@ -83,6 +85,13 @@ def main(argv: list[str] | None = None) -> int:
                     llm_url=runtime_settings.llm.settings.llm_url,
                 ),
                 config=runtime_settings.llm,
+            ),
+            retrieval=RetrievalGatewayFactory(
+                client=WeaviateClient(
+                    weaviate_url=runtime_settings.retrieval.settings.weaviate_url,
+                    embedder=retrieval_embedder,
+                ),
+                config=runtime_settings.retrieval,
             ),
         ),
         runtime_factories=EngineRuntimeFactories(

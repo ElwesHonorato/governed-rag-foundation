@@ -35,6 +35,9 @@ from agent_api.startup.engine_factory import (
 
 # --- Infrastructure clients ---
 from agent_platform.clients.llm.ollama_client import OllamaClient
+from agent_platform.clients.retrieval.weaviate_client import WeaviateClient
+from agent_platform.gateways.llm.llm_gateway import LLMGateway
+from agent_platform.gateways.retrieval.retrieval_gateway import RetrievalGateway
 from agent_platform.grounded_response.service import GroundedResponseService
 
 # --- Gateway factories (bridge infra → domain) ---
@@ -90,16 +93,20 @@ def main() -> int:
     retrieval_embedder = DeterministicHashEmbedder(
         retrieval_config.params.embedding_dim
     )
+    retrieval_client = WeaviateClient(
+        weaviate_url=retrieval_config.settings.weaviate_url,
+        embedder=retrieval_embedder,
+    )
 
     # Gateway factories adapt infrastructure clients into domain-facing interfaces.
-    llm_gateway_factory = LLMGatewayFactory(
+    llm_gateway: LLMGateway = LLMGatewayFactory(
         client=llm_client,
         config=llm_config,
-    )
-    retrieval_gateway_factory = RetrievalGatewayFactory(
-        retrieval_embedder=retrieval_embedder,
+    ).build()
+    retrieval_gateway: RetrievalGateway = RetrievalGatewayFactory(
+        client=retrieval_client,
         config=retrieval_config,
-    )
+    ).build()
 
     # ---------------------------------------------------------------------
     # 3. Construct the agent execution engine
@@ -109,8 +116,8 @@ def main() -> int:
     # - gateways (LLM + retrieval access)
     # - runtime settings (policies/config)
     grounded_response_service = GroundedResponseService(
-        llm_gateway=llm_gateway_factory.build(),
-        retrieval_gateway=retrieval_gateway_factory.build(),
+        llm_gateway=llm_gateway,
+        retrieval_gateway=retrieval_gateway,
     )
 
     # Build the actual runtime agent application (core execution unit)

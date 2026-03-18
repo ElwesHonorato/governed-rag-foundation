@@ -1,585 +1,402 @@
-You are a principal-level AI systems architect and staff software engineer specializing in:
+# Elasticsearch Implementation Plan
 
-- LLM platforms
-- distributed systems
-- capability-oriented architectures
-- agent orchestration runtimes
-- AI platform infrastructure
+## Goal
 
-Your task is to design and implement a **state-of-the-art capability-oriented AI agent platform** suitable for a portfolio project that demonstrates **elite architectural thinking**.
+Evolve the current isolated Elasticsearch spike into a realistic local indexing/search flow without refactoring the existing production architecture.
 
-The goal is NOT to design a simple RAG system or a prompt wrapper.
+The target model is:
 
-The goal is to design a **mini AI platform / Agent Operating System** capable of:
+1. MinIO remains the system of record for pipeline artifacts.
+2. Elasticsearch runs as a long-lived search service and stores its own indexes.
+3. A separate indexing step consumes change events and writes searchable documents into Elasticsearch.
+4. Search queries hit Elasticsearch directly, not MinIO.
 
-- orchestrating LLM-assisted reasoning
-- executing capabilities and tools safely
-- integrating MCP-compatible services
-- interacting with real-world systems
-- composing reusable skills
-- managing stateful agent sessions
-- supervising multi-step execution
-- validating execution results
-- evaluating system performance
-- evolving prompts and capabilities safely over time
+This plan is intentionally incremental and should preserve the current repo shape:
 
-The architecture must appear credible to **senior platform engineers** reviewing the repository.
+- keep the existing workers
+- avoid touching current agent/retrieval flows
+- add new Elasticsearch-specific pieces in isolation
 
-Avoid shallow AI wrappers.
+## Current State
 
-Favor:
+What already exists:
 
-- explicit contracts
-- modular orchestration
-- runtime governance
-- capability composition
-- clean architecture boundaries
+- `domains/infra_elasticsearch`
+  - standalone Elasticsearch service for the spike
+- `domains/app_elasticsearch_poc`
+  - create-index script
+  - seed script
+  - search script
+  - MinIO importer for `rag-data/DEV/04_chunks/`
 
----
+What is missing:
 
-# Core Execution Principle
+- automatic indexing when new chunk artifacts land
+- delete handling when source files are removed
+- update handling when chunk artifacts are regenerated
+- a long-running indexer process tied to queue-driven events
 
-The LLM must **never directly execute actions**.
+## Architecture Direction
 
-Instead the system must enforce a supervised runtime flow:
+Use Elasticsearch as a separate serving/search store.
 
-LLM reasoning / planning  
-→ structured capability or skill request  
-→ capability readiness validation  
-→ policy validation  
-→ execution engine  
-→ normalized result  
-→ postcondition validation  
-→ runtime state update  
-→ supervisor decision  
-→ continue / replan / pause / terminate
+Do not make Elasticsearch read the bucket directly.
 
-Execution must always be **platform controlled**.
+Instead:
 
----
+1. pipeline writes chunk artifacts to MinIO
+2. queue emits indexing work
+3. Elasticsearch indexer reads chunk artifacts from MinIO
+4. indexer upserts or deletes Elasticsearch documents
+5. queries run against Elasticsearch indexes
 
-# Architectural Model
+This keeps responsibilities clear:
 
-The platform must follow a **Capability-Oriented Architecture**.
+- MinIO: artifact storage
+- RabbitMQ: work notification
+- Elasticsearch: persistent search index
+- indexer: synchronization bridge
 
-Capabilities represent all actions the system can perform:
+## Indexing Document Model
 
-Examples include:
+Base Elasticsearch document shape:
 
-- retrieval
-- API calls
-- filesystem actions
-- command execution
-- workflow triggers
-- vector search
-- knowledge queries
-- document transformations
-- synthesis steps
+- `chunk_id`
+- `doc_id`
+- `source_key`
+- `text`
+- `content_type`
+- `created_at`
+- `metadata.security_clearance`
+- `metadata.source_type`
 
-Capabilities must be:
+Useful extra metadata for operational handling:
 
-- discoverable
-- composable
-- policy-governed
-- execution-safe
-- pluggable
-- version-aware
+- `metadata.root_source_uri`
+- `metadata.stage_source_key`
+- `metadata.offsets_start`
+- `metadata.offsets_end`
+- `metadata.chunk_text_hash`
 
-Capabilities may be implemented through:
+Deletion should key off one of:
 
-- MCP servers
-- HTTP APIs
-- local commands
-- filesystem operations
-- workflow engines
-- vector databases
-- lexical search engines
-- SDK integrations
+- `doc_id`
+- `metadata.root_source_uri`
 
----
+Preferred document id:
 
-# Skills-Oriented Layer
+- Elasticsearch `_id = chunk_id`
 
-The platform must support **skills**.
+That makes re-indexing idempotent for the same chunk artifact.
 
-A **skill** represents a reusable behavior composed of one or more capabilities.
+## Phase 1: Keep The Spike Manual But Correct
 
-Example skills:
+Status:
 
-- answer_customer_question
-- summarize_document
-- analyze_repository
-- generate_sales_report
-- create_support_ticket
-- investigate_system_failure
+- mostly done
 
-A skill may internally generate an **ExecutionPlan**.
+Work:
 
-Skills improve stability by providing **higher-level reusable behaviors** instead of planning raw capabilities each time.
+1. Keep `infra_elasticsearch` as the isolated long-running Elasticsearch service.
+2. Keep `app_elasticsearch_poc` as a CLI domain for learning and local validation.
+3. Use the importer to read `DEV/04_chunks/` from MinIO and populate Elasticsearch.
+4. Keep all spike env keys prefixed with `ELASTICSEARCH_POC_*` so they do not collide with production stack env.
 
----
+Why:
 
-# Control Plane vs Execution Plane
+- validates the document model
+- validates index mapping
+- validates search behavior
+- stays fully isolated
 
-The platform must clearly separate **control plane** and **execution plane** responsibilities.
+## Phase 2: Add Delete Support To The Spike
 
-### Control Plane
+Add small CLI scripts to exercise lifecycle behavior.
 
-Responsible for configuration, governance, and evaluation.
+Suggested commands:
 
-Responsibilities include:
+- `elasticsearch-poc-delete-by-doc-id`
+- `elasticsearch-poc-delete-by-root-source-uri`
 
-- capability registry
-- capability metadata
-- policies
-- prompt versioning
+Behavior:
+
+- delete all indexed chunks for a logical document
+- print deleted count
+- keep implementation simple with `delete_by_query`
+
+Why:
+
+- makes add/update/delete behavior explicit
+- lets local testing mirror real indexing lifecycle
+
+## Phase 3: Introduce An Isolated Elasticsearch Index Worker
+
+Add a new domain, separate from the current production retrieval path.
+
+Suggested domain:
+
+- `domains/worker_index_elasticsearch`
+
+Responsibilities:
+
+1. consume indexing work from RabbitMQ
+2. fetch chunk artifacts from MinIO
+3. transform chunk artifacts into Elasticsearch documents
+4. upsert documents into Elasticsearch
+5. handle delete events by removing matching Elasticsearch docs
+
+Keep the worker aligned with existing repo conventions:
+
+- composition root in `src/worker_index_elasticsearch/app.py`
+- startup contracts local to the worker
+- queue-driven service layer
+- minimal service factory only if it matches current worker conventions
+
+Do not integrate it into agent runtime or retrieval runtime yet.
+
+## Phase 4: Define Queue Contract For Elasticsearch Indexing
+
+There are two reasonable options.
+
+### Option A: Reuse Current Stage Progression
+
+Trigger Elasticsearch indexing from the existing chunk stage output.
+
+Flow:
+
+1. chunk artifact written to `DEV/04_chunks/`
+2. queue message carries artifact URI
+3. Elasticsearch worker consumes URI
+4. worker reads the artifact and indexes it
+
+Pros:
+
+- minimal new concepts
+- follows current governed pipeline style
+
+Cons:
+
+- only covers create/update unless deletion events are added separately
+
+### Option B: Introduce Explicit Search Index Events
+
+Create a dedicated queue contract for index mutations.
+
+Example event types:
+
+- `upsert_chunk`
+- `delete_document`
+- `delete_chunk`
+
+Pros:
+
+- cleaner long-term lifecycle model
+- explicit delete semantics
+
+Cons:
+
+- slightly more upfront design work
+
+Recommended next step:
+
+- start with Option A for upserts
+- add explicit delete events only when needed
+
+## Phase 5: Handle File Removal Correctly
+
+Elasticsearch must remove stale indexed records when source documents are removed.
+
+Deletion flow:
+
+1. source file deletion is detected upstream
+2. pipeline emits delete work with stable identity
+3. Elasticsearch worker runs delete-by-query
+
+Preferred delete keys:
+
+- first choice: `doc_id`
+- second choice: `metadata.root_source_uri`
+
+Reason:
+
+- one source document usually maps to many chunks
+- delete needs to remove all derived chunk documents together
+
+## Phase 6: Support Update / Reindex
+
+Updates should behave like:
+
+1. source changes
+2. chunks are regenerated
+3. same logical document is reprocessed
+4. Elasticsearch receives new upserts
+5. stale chunks are removed if chunk ids changed
+
+Two possible approaches:
+
+### Simple approach
+
+- delete all docs by `doc_id`
+- reindex current chunk set
+
+### Smarter approach
+
+- upsert current chunk ids
+- diff and delete stale chunk ids
+
+Recommended first implementation:
+
+- delete by `doc_id`
+- then reindex current chunks
+
+This is simpler and good enough for the first real worker.
+
+## Phase 7: Keep Search Separate From Retrieval For Now
+
+Do not wire Elasticsearch into:
+
+- `agent_api`
+- current retrieval gateways
+- current grounded-response flow
+
+Instead keep it as:
+
+- separate searchable index
+- separate CLI or test surface
+- optional future retrieval source
+
+Why:
+
+- preserves current architecture
+- avoids accidental refactor drift
+- lets Elasticsearch mature independently
+
+## Phase 8: Later Integration Options
+
+Once the indexing worker is stable, choose one of these paths.
+
+### Option 1: Lexical Retrieval Sidecar
+
+Elasticsearch becomes a keyword search backend alongside Weaviate.
+
+Use cases:
+
+- exact phrase recall
+- filters
+- debugging retrieved corpus
+
+### Option 2: Hybrid Retrieval Layer
+
+Elasticsearch provides lexical recall while Weaviate provides vector recall.
+
+Requires:
+
+- ranking/fusion design
+- query orchestration
 - evaluation datasets
-- evaluation runs
-- skill definitions
-- supervisor configuration
-- planner configuration
-- capability enable/disable/versioning
-
-The control plane determines **how the system behaves**.
-
----
-
-### Execution Plane
-
-Responsible for live runtime work.
-
-Responsibilities include:
-
-- executing `AgentRun`
-- capability invocation
-- tool execution
-- API calls
-- retrieval
-- filesystem actions
-- workflow triggers
-- runtime state updates
-- approvals and pauses
-- result validation
-- runtime supervision
-
-The execution plane performs **actual operations**.
-
----
-
-# Agent Kernel (Session Runtime)
-
-The platform must include an **Agent Kernel layer** between the control plane and the execution plane.
-
-This kernel acts as the **Agent Operating System runtime**.
-
-Responsibilities include:
-
-- managing long-lived agent sessions
-- binding session context and memory
-- managing checkpoints
-- handling interrupts and resumes
-- supporting human approvals
-- tracking artifacts produced during execution
-- enabling handoffs between skills or agents
-
-The kernel must define concepts such as:
-
-- AgentSession
-- SessionState
-- SessionCheckpoint
-- RunContext
-- ArtifactReference
-- HandoffRequest
-- HandoffResult
-- InterruptSignal
-- ResumeToken
-
----
-
-# Required Repository Structure
-
-The design must respect the following structure.
-
-Explain responsibilities for each folder.
-
-
-domains/
-agent_platform/
-
-contracts/
-  agent_run.py
-  execution_plan.py
-  action_step.py
-  step_dependency.py
-  capability_descriptor.py
-  capability_request.py
-  capability_result.py
-  next_step_decision.py
-  replan_decision.py
-  termination_decision.py
-  prompt_template.py
-  prompt_version.py
-  inference_configuration.py
-  evaluation_case.py
-  evaluation_run.py
-
-services/
-  run_supervisor.py
-  capability_planning_service.py
-  next_step_decider.py
-  capability_execution_service.py
-  step_result_evaluation_service.py
-  plan_revision_service.py
-  prompt_assembly_service.py
-  response_validation_service.py
-  evaluation_execution_service.py
-
-policies/
-  capability_policy.py
-  approval_policy.py
-  termination_policy.py
-  token_budget_policy.py
-  cost_budget_policy.py
-  latency_budget_policy.py
-  sandbox_policy.py
-
-gateways/
-  capability_registry_gateway.py
-  vector_search_gateway.py
-  lexical_search_gateway.py
-  context_storage_gateway.py
-  model_gateway.py
-  mcp_gateway.py
-  command_execution_gateway.py
-  filesystem_gateway.py
-  workflow_gateway.py
-  prompt_template_repository.py
-  evaluation_dataset_gateway.py
-
-registry/
-  capability_registry.py
-  capability_catalog.py
-  capability_resolver.py
-
-runtime/
-  agent_run_manager.py
-  execution_state_manager.py
-  run_memory_manager.py
-  execution_journal.py
-
-approval/
-  approval_request_service.py
-  approval_state_store.py
-
-evaluation/
-  retrieval_evaluation_service.py
-  capability_selection_evaluation_service.py
-  answer_quality_evaluation_service.py
-  result_comparison_service.py
-
-kernel/
-  agent_session_manager.py
-  session_state_store.py
-  checkpoint_manager.py
-  artifact_registry.py
-  handoff_service.py
-  interrupt_manager.py
-
-startup/
-  contracts.py
-  config_extractor.py
-  service_factory.py
-
-libs/
-ai_infra/
-langchain_adapters/
-mcp_adapters/
-model_provider_adapters/
-vector_db_adapters/
-workflow_adapters/
-command_runners/
-filesystem_adapters/
-tokenization/
-schema_validation/
-
-interfaces/
-cli/
-agent_cli.py
-
-
----
-
-# Capability Registry
-
-Capabilities must include metadata such as:
-
-- capability name
-- capability type
-- capability category
-- risk classification
-- execution backend
-- version
-- input schema
-- output schema
-- side effects
-- approval requirements
-- authentication scope
-- behavioral contracts
 
----
+### Option 3: Ops / Inspection Search
 
-# Capability Behavioral Contracts
+Use Elasticsearch only as an engineering and governance search surface.
 
-Capabilities must define:
+Use cases:
 
-### Preconditions
-Conditions required before execution.
+- inspect indexed chunks
+- debug ingestion
+- trace document presence
 
-### Postconditions
-Expected state after execution.
+Recommended near-term path:
 
-### Invariants
-Conditions that must remain true.
+- Option 3 first
+- Option 1 second
+- hybrid only after evaluation proves it is worth the complexity
 
-Examples:
+## Concrete Work Breakdown
 
-- sandbox restrictions
-- filesystem boundaries
-- API allowlists
-- credential isolation
-- output validity expectations
+### Task 1
 
-These contracts must influence:
+Keep the current POC healthy:
 
-- planning
-- runtime validation
-- failure recovery
-- step evaluation
+- verify `infra_elasticsearch` starts cleanly
+- verify `elasticsearch-poc-import-minio`
+- verify `elasticsearch-poc-search`
 
----
+### Task 2
 
-# Capability Graph
+Add delete scripts to `app_elasticsearch_poc`:
 
-Capabilities must expose dependency metadata so the system can construct a **capability graph**.
+- delete by `doc_id`
+- delete by `root_source_uri`
 
-The graph must describe:
+### Task 3
 
-- required inputs
-- produced outputs
-- dependency chains
-- valid capability sequences
+Create `domains/worker_index_elasticsearch`:
 
-This graph supports robust planning.
+- queue consumer
+- MinIO reader
+- Elasticsearch writer
+- simple upsert behavior
 
----
+### Task 4
 
-# Supervisor Runtime Loop
+Define queue contract for upsert events:
 
-The runtime must implement a supervised execution loop.
+- likely artifact URI payload first
+- typed contract later if needed
 
-Entities include:
+### Task 5
 
-- AgentRun
-- ExecutionStepRecord
-- NextStepDecision
-- ReplanDecision
-- TerminationDecision
+Add delete event handling:
 
-Services include:
+- document deletion
+- delete-by-query in Elasticsearch
 
-- RunSupervisor
-- NextStepDecider
-- CapabilityExecutionService
-- StepResultEvaluationService
-- PlanRevisionService
+### Task 6
 
-The runtime loop must:
+Document the worker architecture:
 
-1. read run state
-2. check policies and budgets
-3. validate capability readiness
-4. select next step
-5. execute capability
-6. validate postconditions
-7. update state
-8. decide continue / replan / pause / terminate
+- README
+- `docs/ARCHITECTURE.md`
+- env vars
+- queue behavior
 
----
+## Minimal Env Additions For A Real Worker
 
-# Run Budget Governance
+If a dedicated worker is added later, it will likely need:
 
-Runtime must enforce budgets such as:
+- `ELASTICSEARCH_URL`
+- `ELASTICSEARCH_INDEX`
+- existing RabbitMQ env vars
+- existing S3 env vars
 
-- max steps
-- max tool calls
-- max tokens
-- max latency
-- max cost
+Do not reuse the `ELASTICSEARCH_POC_*` names for the real worker.
 
-Budgets influence planning, execution, and termination.
+Those prefixed keys should remain spike-only.
 
----
+## Risks
 
-# Approval and Human-in-the-Loop
+1. Env collision between spike config and production stack config.
+2. Duplicate indexing of the same chunk if queue semantics are not idempotent.
+3. Stale documents in Elasticsearch if delete flow is skipped.
+4. Update drift if regenerated chunks are indexed without removing old chunk docs.
+5. Premature integration into agent retrieval before the indexing lifecycle is stable.
 
-Some actions must require approval.
+## Recommended Immediate Next Step
 
-Examples:
+Build the smallest real next increment:
 
-- filesystem modification
-- shell execution
-- workflow triggers
-- external system changes
+1. keep the current spike
+2. add delete CLI scripts
+3. create `worker_index_elasticsearch` as a separate queue-driven worker
+4. feed it chunk artifact URIs
+5. keep it out of the agent retrieval path until it is operationally stable
 
-Approval system must support:
+## Definition Of Done For The Next Increment
 
-- pause/resume
-- approval requests
-- approval rejection
-- persistent approval state
+The next increment is done when:
 
----
-
-# Retrieval Integration
-
-Retrieval must be implemented as capabilities.
-
-Supported retrieval types include:
-
-- vector search
-- lexical search
-- metadata filtering
-- knowledge graph queries
-- document retrieval
-
-Explain how retrieval integrates with planning and prompt assembly.
-
----
-
-# Prompt Versioning
-
-Prompts must be versioned assets.
-
-Define:
-
-- PromptTemplate
-- PromptVersion
-- PromptVariant
-- InferenceConfiguration
-
-Prompt versioning must support experiments and evaluation.
-
----
-
-# Evaluation Framework
-
-The platform must support evaluation-driven development.
-
-Evaluation must measure:
-
-- retrieval usefulness
-- capability selection accuracy
-- answer correctness
-- schema compliance
-- task completion success
-
-Distinguish between:
-
-- offline evaluation
-- runtime evaluation
-
----
-
-# MCP Integration
-
-The system must support **plug-and-play MCP capabilities**.
-
-Explain how MCP providers integrate via adapters and behave as first-class capabilities.
-
----
-
-# CLI Interface
-
-The platform must expose a CLI for interaction.
-
-Example commands:
-
-
-agent run "analyze this repository"
-agent skill list
-agent capability list
-agent session show <session_id>
-agent approve list
-agent eval run benchmark_suite
-
-
-CLI must interact with the kernel and runtime layers.
-
----
-
-# Deliverables
-
-Provide a detailed design covering:
-
-1. Domain Architecture Overview  
-2. Control Plane vs Execution Plane  
-3. Agent Kernel Design  
-4. Folder Structure Explanation  
-5. Contracts Layer  
-6. Capability Registry  
-7. Capability Behavioral Contracts  
-8. Capability Graph  
-9. Skills Layer  
-10. Services Layer  
-11. Policies Layer  
-12. Gateways Layer  
-13. Runtime Layer  
-14. Supervisor Loop  
-15. Replanning Strategy  
-16. Termination Model  
-17. Budget Governance  
-18. Approval Workflow  
-19. Result Normalization  
-20. Retrieval Integration  
-21. Prompt Versioning  
-22. Evaluation Framework  
-23. MCP Integration  
-24. Infrastructure Adapters  
-25. CLI Interface Design  
-26. End-to-End Execution Flow  
-27. Anti-patterns to Avoid  
-28. Minimal Portfolio Implementation  
-29. Example Python Code Skeleton
-
----
-
-# Design Constraints
-
-Use Python.
-
-Favor immutable dataclasses.
-
-Prefer explicit contracts.
-
-Avoid framework-driven architecture.
-
-Avoid hidden global state.
-
-Avoid LLM-controlled execution.
-
-Avoid one-shot planning.
-
-Use structured planning artifacts instead of chain-of-thought text.
-
----
-
-# Output Expectations
-
-Your answer must:
-
-- be technically detailed
-- avoid vague architectural buzzwords
-- explain tradeoffs clearly
-- reflect modern AI platform architecture
-- optimize for portfolio credibility
-- demonstrate strong systems thinking
+1. Elasticsearch runs continuously as a local service.
+2. A new chunk artifact can be indexed automatically through queue-driven flow.
+3. A removed source document causes indexed Elasticsearch records to be deleted.
+4. Search results reflect current MinIO-derived chunk state.
+5. No existing agent runtime or retrieval flow was refactored to achieve this.

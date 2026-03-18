@@ -23,7 +23,9 @@ from ai_infra.retrieval.deterministic_hash_embedder import (
 
 # --- HTTP layer components (pure adapters) ---
 from agent_api.adapters.http.application import AgentApiApplication
-from agent_api.adapters.http.handlers import AgentApiHandlers
+from agent_api.adapters.http.grounded_response_http_handler import (
+    GroundedResponseHttpHandler,
+)
 from agent_api.adapters.http.request_normalization import WsgiRequestNormalizer
 from agent_api.adapters.http.router import AgentApiRouter
 from agent_api.adapters.http.web_application_factory import WebApplicationFactory
@@ -114,7 +116,7 @@ def main() -> int:
     agent_api_settings: AgentApiSettings = agent_settings.agent_api
 
     # Handlers translate HTTP requests into domain-level calls
-    handlers = AgentApiHandlers(
+    handlers = GroundedResponseHttpHandler(
         settings=agent_api_settings,
         grounded_response_service=grounded_response_service,
     )

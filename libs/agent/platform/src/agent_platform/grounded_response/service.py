@@ -21,11 +21,11 @@ class GroundedResponseService:
         *,
         llm_gateway: LLMGateway,
         retrieval_gateway: RetrievalGateway,
-        retrieval_config: RetrievalConfig,
+        config: RetrievalConfig,
     ) -> None:
         self._llm_gateway = llm_gateway
         self._retrieval_gateway = retrieval_gateway
-        self._retrieval_config = retrieval_config
+        self._config = config
 
     def respond(self, payload: dict[str, object]) -> GroundedResponse:
         messages = self.normalize_messages(payload)
@@ -56,7 +56,7 @@ class GroundedResponseService:
 
     def run(self, *, messages: list[dict[str, str]]) -> GroundedResponse:
         user_query = self._latest_user_query(messages)
-        retrieval_cap = max(1, min(self._retrieval_config.params.retrieval_limit, 8))
+        retrieval_cap = max(1, min(self._config.params.retrieval_limit, 8))
         retrieved = self._retrieval_gateway.retrieve(
             query_text=user_query,
             limit=retrieval_cap,

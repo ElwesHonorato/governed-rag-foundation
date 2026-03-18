@@ -10,11 +10,12 @@ from agent_platform.startup.contracts import LLMConfig
 class LLMGatewayFactory:
     """Build LLM gateways for local agent-platform runtime."""
 
-    def __init__(self, *, client: OllamaClient) -> None:
+    def __init__(self, *, client: OllamaClient, config: LLMConfig) -> None:
         self._client = client
+        self._config = config
 
-    def build(self, *, settings: LLMConfig) -> LLMGateway:
+    def build(self) -> LLMGateway:
         return LLMGateway(
             client=self._client,
-            timeout_seconds=settings.params.llm_timeout_seconds,
+            configs=self._config,
         )

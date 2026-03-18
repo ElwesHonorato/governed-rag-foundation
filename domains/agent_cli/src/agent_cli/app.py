@@ -81,7 +81,8 @@ def main(argv: list[str] | None = None) -> int:
             llm=LLMGatewayFactory(
                 client=OllamaClient(
                     llm_url=runtime_settings.llm.settings.llm_url,
-                )
+                ),
+                config=runtime_settings.llm,
             ),
         ),
         runtime_factories=EngineRuntimeFactories(

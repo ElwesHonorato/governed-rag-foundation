@@ -13,16 +13,21 @@ from agent_platform.startup.contracts import RetrievalConfig
 class RetrievalGatewayFactory:
     """Build retrieval gateways for local agent-platform runtime."""
 
-    def __init__(self, *, retrieval_embedder: DeterministicHashEmbedder) -> None:
-        self._retrieval_embedder = retrieval_embedder
-
-    def build(
+    def __init__(
         self,
         *,
-        settings: RetrievalConfig,
-    ) -> RetrievalGateway:
+        retrieval_embedder: DeterministicHashEmbedder,
+        config: RetrievalConfig,
+    ) -> None:
+        self._retrieval_embedder = retrieval_embedder
+        self._config = config
+
+    def build(self) -> RetrievalGateway:
         client = WeaviateClient(
-            weaviate_url=settings.settings.weaviate_url,
+            weaviate_url=self._config.settings.weaviate_url,
             embedder=self._retrieval_embedder,
         )
-        return RetrievalGateway(client=client)
+        return RetrievalGateway(
+            client=client,
+            configs=self._config,
+        )

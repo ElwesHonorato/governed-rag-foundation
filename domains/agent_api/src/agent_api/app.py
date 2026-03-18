@@ -93,8 +93,11 @@ def main() -> int:
 
     # Gateway factories adapt infrastructure clients into domain-facing interfaces.
     gateway_factories = AgentApiGatewayFactories(
-        llm=LLMGatewayFactory(client=llm_client),
-        retrieval=RetrievalGatewayFactory(retrieval_embedder=retrieval_embedder),
+        llm=LLMGatewayFactory(client=llm_client, config=llm_config),
+        retrieval=RetrievalGatewayFactory(
+            retrieval_embedder=retrieval_embedder,
+            config=retrieval_config,
+        ),
     )
 
     # ---------------------------------------------------------------------
@@ -106,7 +109,6 @@ def main() -> int:
     # - runtime settings (policies/config)
     engine_factory = AgentAPIEngineFactory(
         gateway_factories=gateway_factories,
-        llm_config=llm_config,
         retrieval_config=retrieval_config,
     )
 

@@ -31,10 +31,6 @@ Container runtime contract:
 Primary endpoints:
 
 - `GET /`
-- `GET /capabilities`
-- `GET /skills`
-- `POST /runs`
-- `POST /evaluations`
 - `POST /grounded-response/query`
 
 `POST /grounded-response/query` request body:

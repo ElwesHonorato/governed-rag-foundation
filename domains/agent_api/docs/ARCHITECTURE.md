@@ -10,12 +10,11 @@ Current responsibilities:
 
 Key runtime wiring:
 - `src/agent_api/app.py` is the process startup entrypoint and assembles runtime inputs, including the grounded-response runtime graph.
-- `src/agent_api/startup/engine_factory.py` is the backend-facing boundary for API runtime construction.
-- `src/agent_api/adapters/http/web_application_factory.py` contains the class-based composition root for HTTP adapter wiring.
+- `src/agent_api/adapters/http/grounded_response_http_handler.py` translates HTTP requests into grounded-response service calls.
 - `src/agent_api/adapters/http/application.py` handles the WSGI application boundary and takes prebuilt collaborators.
+- `src/agent_api/adapters/http/router.py` dispatches the supported HTTP routes.
 - `src/agent_api/adapters/http/request_normalization.py` handles WSGI request normalization.
-- `src/agent_api/settings.py` owns the domain's concrete HTTP settings model and environment-backed provider.
-- `../../libs/agent/settings/src/agent_settings/settings/settings_provider.py` provides the shared `SettingsProvider` abstraction used by the domain composition root.
+- `../../libs/agent/settings/src/agent_settings/settings.py` provides the shared environment-backed settings bundle used by the domain composition root.
 
 Deployment shape:
 - long-running containerized HTTP service

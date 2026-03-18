@@ -9,14 +9,15 @@ This domain is the artifact backbone of the RAG pipeline. Every worker reads and
 
 ### How it contributes to RAG
 - Stores stage artifacts in object storage, including:
-  - `01_incoming/`
-  - `02_raw/`
-  - `03_processed/`
-  - `04_chunks/`
-  - `05_embeddings/`
-  - `06_indexes/`
-  - `07_metadata/`
+  - `DEV/01_incoming/`
+  - `DEV/02_raw/`
+  - `DEV/03_processed/`
+  - `DEV/04_chunks/`
+  - `DEV/05_embeddings/`
+  - `DEV/06_indexes/`
+  - `DEV/07_metadata/`
 - Serves as the persistent handoff medium across workers.
+  Runtime prefixes are environment-scoped by the worker startup layer.
 
 ### Runtime dependencies
 - Credentials via `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`.

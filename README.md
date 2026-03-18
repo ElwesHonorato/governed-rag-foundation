@@ -57,6 +57,7 @@ Recommended first-run order from repository root:
 ./stack.sh up infra_lineage
 ./stack.sh up infra_portainer
 ./stack.sh up infra_llm
+./stack.sh up agent_api
 ./stack.sh up ai_ui
 ./stack.sh up app_vector_ui
 ./stack.sh up worker_scan
@@ -97,12 +98,13 @@ When finished:
 - MinIO Console: `http://localhost:9001`
 - Weaviate: `http://localhost:8080`
 - RabbitMQ Management UI: `http://localhost:15672`
-- DataHub GMS: value of `DATAHUB_GMS_URL`
+- DataHub GMS: `http://localhost:${DATAHUB_MAPPED_GMS_PORT}`
 - DataHub frontend: `http://localhost:${DATAHUB_MAPPED_FRONTEND_PORT}`
-- Portainer: `https://localhost:9443`
+- Portainer: `https://localhost:${PORTAINER_HTTPS_PORT}`
 - Ollama API: `http://localhost:11434`
+- agent-api: `http://localhost:${AGENT_API_PORT}`
 - ai-ui: `http://localhost:8000`
-- vector-ui: `http://localhost:8010`
+- vector-ui: `http://localhost:${VECTOR_UI_PORT:-8010}`
 
 ## Lineage Guide
 

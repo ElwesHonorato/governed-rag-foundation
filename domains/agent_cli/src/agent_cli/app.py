@@ -37,7 +37,6 @@ from agent_platform.startup.filesystem_gateway_factory import (
 from agent_platform.startup.local_state_stores_factory import LocalStateStoresFactory
 from agent_platform.startup.llm_gateway_factory import LLMGatewayFactory
 from agent_platform.startup.retrieval_gateway_factory import RetrievalGatewayFactory
-from agent_platform.startup.embedder_factory import EmbedderFactory
 from agent_platform.startup.vector_gateway_factory import VectorGatewayFactory
 
 
@@ -70,10 +69,8 @@ def main(argv: list[str] | None = None) -> int:
     engine_factory: EngineFactory = EngineFactory(
         startup_services=EngineStartupServices(
             bootstrapper=RuntimeBootstrapper(),
-            retrieval_embedder_factory=EmbedderFactory(
-                embedder=DeterministicHashEmbedder(
-                    runtime_settings.retrieval.settings.embedding_dim
-                )
+            retrieval_embedder=DeterministicHashEmbedder(
+                runtime_settings.retrieval.settings.embedding_dim
             ),
             local_state_stores_factory=LocalStateStoresFactory(),
         ),

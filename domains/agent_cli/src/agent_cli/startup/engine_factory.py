@@ -41,7 +41,6 @@ from agent_platform.startup.packaged_configuration import (
     load_capability_catalog,
     load_skill_registry,
 )
-from agent_platform.startup.embedder_factory import EmbedderFactory
 from agent_platform.startup.retrieval_gateway_factory import RetrievalGatewayFactory
 from agent_platform.startup.vector_gateway_factory import VectorGatewayFactory
 
@@ -85,7 +84,7 @@ class EngineStartupServices:
     """Startup-time collaborators for engine assembly."""
 
     bootstrapper: RuntimeBootstrapper
-    retrieval_embedder_factory: EmbedderFactory
+    retrieval_embedder: DeterministicHashEmbedder
     local_state_stores_factory: LocalStateStoresFactory
 
 
@@ -128,7 +127,7 @@ class EngineFactory:
 
     def build(self) -> Engine:
         retrieval_embedder: DeterministicHashEmbedder = (
-            self._startup_services.retrieval_embedder_factory.build()
+            self._startup_services.retrieval_embedder
         )
         prepared_artifacts: PreparedRuntimeArtifacts = (
             self._startup_services.bootstrapper.bootstrap(

@@ -42,7 +42,6 @@ from agent_platform.clients.llm.ollama_client import OllamaClient
 from agent_platform.startup.contracts import LLMConfig, RetrievalConfig
 from agent_platform.startup.llm_gateway_factory import LLMGatewayFactory
 from agent_platform.startup.retrieval_gateway_factory import RetrievalGatewayFactory
-from agent_platform.startup.embedder_factory import EmbedderFactory
 
 # --- Settings / configuration ---
 from agent_settings.settings import (
@@ -81,11 +80,9 @@ def main() -> int:
         llm_url=agent_config.llm.settings.llm_url,
         timeout_seconds=agent_config.llm.llm_timeout_seconds,
     )
-    retrieval_embedder = EmbedderFactory(
-        embedder=DeterministicHashEmbedder(
-            agent_config.retrieval.settings.embedding_dim
-        )
-    ).build()
+    retrieval_embedder = DeterministicHashEmbedder(
+        agent_config.retrieval.settings.embedding_dim
+    )
 
     # Gateway factories adapt infrastructure clients into domain-facing interfaces.
     gateway_factories = AgentApiGatewayFactories(

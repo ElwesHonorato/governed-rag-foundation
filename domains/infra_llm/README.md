@@ -8,7 +8,7 @@ This domain is the model-serving layer. It provides the language model endpoint 
 - `ollama` built from `domains/infra_llm/Dockerfile`
 
 ### How it contributes to RAG
-- Receives chat/generation requests from `rag-api`.
+- Receives chat/generation requests from `agent_api`.
 - Produces final responses from retrieval-grounded prompts.
 
 ### Runtime dependencies

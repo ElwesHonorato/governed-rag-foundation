@@ -1,17 +1,20 @@
-[tool.poetry]
+[project]
 name = "worker-parse-document"
 version = "0.1.0"
 description = "Worker stage: raw -> processed"
-authors = ["Governed RAG Foundation"]
-package-mode = false
+authors = [{ name = "Governed RAG Foundation" }]
+requires-python = "==3.11.14"
+dependencies = [
+  "pipeline-common @ ../../libs/pipeline-common",
+  "trafilatura==1.12.2",
+]
 
-[tool.poetry.dependencies]
-python = ">=3.11,<3.12"
-boto3 = "1.37.0"
-pika = "1.3.2"
-trafilatura = "1.12.2"
-acryl-datahub = "1.4.0.2"
+[project.scripts]
+worker-parse-document = "worker_parse_document.app:main"
+
+[tool.poetry]
+packages = [{ include = "worker_parse_document", from = "src" }]
 
 [build-system]
-requires = ["poetry-core==2.0.0"]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"

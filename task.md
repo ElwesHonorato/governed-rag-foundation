@@ -1,170 +1,585 @@
-# Prompt: Implement Chunking Registry + Embedding Registry (Enterprise RAG Lineage)
+You are a principal-level AI systems architect and staff software engineer specializing in:
 
-You are a senior platform engineer implementing enterprise-grade provenance for a RAG pipeline.
-We persist chunks to S3 and index embeddings asynchronously in a vector DB.
-We want TWO registries:
-1) Chunking Registry: one row per chunk produced
-2) Embedding Registry: one row per (chunk_id, embedder_version, index_target) produced (and optionally per attempt/run)
+- LLM platforms
+- distributed systems
+- capability-oriented architectures
+- agent orchestration runtimes
+- AI platform infrastructure
 
-Goal: keep DataHub lineage UI readable (dataset-level), while allowing deterministic traceability:
-vector_result(chunk_id) -> chunk registry -> embedding registry -> exact source file version + exact run(s) + exact code/config.
+Your task is to design and implement a **state-of-the-art capability-oriented AI agent platform** suitable for a portfolio project that demonstrates **elite architectural thinking**.
 
-## Hard requirements
+The goal is NOT to design a simple RAG system or a prompt wrapper.
 
-### Deterministic identity
-- Define `source_content_hash = sha256(source_bytes)`
-- Define `chunk_params_hash = sha256(canonical_json(chunker_params))`
-- Define `chunk_id = sha256(
-    source_dataset_urn
-    + source_content_hash
-    + chunker_name + chunker_version + chunk_params_hash
-    + offsets.start + offsets.end
-  )`
-- Define `embedding_params_hash = sha256(canonical_json(embedder_params))`
-- Define `embedding_id = sha256(
-    chunk_id
-    + embedder_name + embedder_version + embedding_params_hash
-    + index_target
-  )`
+The goal is to design a **mini AI platform / Agent Operating System** capable of:
 
-IDs must be stable across retries.
+- orchestrating LLM-assisted reasoning
+- executing capabilities and tools safely
+- integrating MCP-compatible services
+- interacting with real-world systems
+- composing reusable skills
+- managing stateful agent sessions
+- supervising multi-step execution
+- validating execution results
+- evaluating system performance
+- evolving prompts and capabilities safely over time
 
-### Registries are authoritative
-- Chunking Registry is the source of truth for “what chunks exist and where”.
-- Embedding Registry is the source of truth for “what got embedded/indexed, with what model, when, and where”.
+The architecture must appear credible to **senior platform engineers** reviewing the repository.
 
-### Async embedding
-Embedding workers run independently, out-of-order, with retries. Registry writes must be:
-- idempotent
-- safe under concurrency
-- track status transitions (STARTED -> SUCCEEDED/FAILED), and allow multiple attempts.
+Avoid shallow AI wrappers.
 
-## Deliverables
+Favor:
 
-### 1) Data model (schemas)
-Implement schemas and storage for both registries (choose one storage option; default: Parquet on S3 with partitioning by date and/or run_id, plus a compacted “latest” table; or Postgres if simpler).
-Provide CREATE TABLE if using SQL.
+- explicit contracts
+- modular orchestration
+- runtime governance
+- capability composition
+- clean architecture boundaries
 
-#### Chunking Registry schema (minimum)
-- chunk_id (PK)
-- source_dataset_urn
-- source_s3_uri (or canonical source uri)
-- source_content_hash
-- chunk_s3_uri (location of stored chunk object)
-- offsets_start
-- offsets_end
-- breadcrumb (optional)
-- chunk_text_hash (sha256)
-- chunker_name
-- chunker_version
-- chunk_params_hash
-- chunking_run_id
-- created_at (timestamp)
-- observed_at (timestamp)  # last time seen/verified
-- status (ENUM: ACTIVE, DELETED, SUPERSEDED)  # choose minimal status semantics
+---
 
-#### Embedding Registry schema (minimum)
-- embedding_id (PK)  # deterministic
-- chunk_id (FK to chunking registry)
-- index_target (e.g. "qdrant://collection=x" or "pgvector://schema.table")
-- embedder_name
-- embedder_version
-- embedding_params_hash
-- embedding_dim
-- embedding_vector_hash (optional)  # hash of embedding bytes if you want
-- embedding_run_id
-- chunking_run_id (copied for convenience)
-- attempt (int)
-- status (ENUM: STARTED, SUCCEEDED, FAILED)
-- error_message (nullable)
-- started_at
-- finished_at (nullable)
-- upserted_at (timestamp)
-- vector_record_id (id used in vector db, typically chunk_id or embedding_id)
+# Core Execution Principle
 
-Add any extra fields you need for your runtime (tenant, domain, namespace, etc).
+The LLM must **never directly execute actions**.
 
-### 2) Canonical provenance envelope
-Implement:
-- `build_chunk_envelope(...) -> dict` (for chunk objects and registry writes)
-- `build_embedding_envelope(...) -> dict` (for vector records and embedding registry writes)
-Ensure envelopes contain all fields to join across registries by chunk_id.
+Instead the system must enforce a supervised runtime flow:
 
-### 3) Writers with idempotency + concurrency safety
-Implement registry writers that support:
-- upsert semantics by PK
-- status transitions with optimistic concurrency (if DB) or “append + compact” (if S3 parquet)
-- ability to query:
-  - by chunk_id
-  - by source_dataset_urn + source_content_hash
-  - by chunking_run_id
-  - embedding latest for a chunk_id and index_target
+LLM reasoning / planning  
+→ structured capability or skill request  
+→ capability readiness validation  
+→ policy validation  
+→ execution engine  
+→ normalized result  
+→ postcondition validation  
+→ runtime state update  
+→ supervisor decision  
+→ continue / replan / pause / terminate
 
-If using S3 parquet:
-- Write append-only partitions (e.g., dt=YYYY-MM-DD/run_id=...)
-- Provide a compaction job that materializes “latest state” tables for fast lookup.
+Execution must always be **platform controlled**.
 
-### 4) Pipeline integration
-Update pipeline stages:
+---
 
-#### Chunking stage
-For each input file:
-- compute source_content_hash
-- chunk into segments
-- for each segment:
-  - compute chunk_id deterministically
-  - write chunk object to S3 at chunk_s3_uri (include envelope metadata in object)
-  - write row to chunking registry (upsert/append)
-At end of run:
-- produce a run manifest (optional) OR rely on chunking_run_id partition in registry.
+# Architectural Model
 
-#### Embedding stage (async workers)
-Each worker receives (chunking_run_id, batch_id) OR queries chunking registry for unembedded chunks:
-- mark embedding registry row as STARTED with attempt increment
-- compute embedding
-- upsert embedding to vector DB with metadata including chunk_id + embedding_id + versions + run ids
-- mark embedding registry row SUCCEEDED with finished_at
-On error:
-- mark FAILED with error_message
+The platform must follow a **Capability-Oriented Architecture**.
 
-### 5) DataHub modeling (dataset-level only)
-Emit DataHub entities and lineage:
-- Dataset: source file datasets (already)
-- Dataset: chunk_store_dataset (S3 prefix)
-- Dataset: chunking_registry_dataset (table/prefix)
-- Dataset: vector_index_dataset (vector collection)
-- Dataset: embedding_registry_dataset (table/prefix)
+Capabilities represent all actions the system can perform:
 
-Static lineage:
-- source_file_dataset -> chunking_job -> chunk_store_dataset
-- chunking_job -> chunking_registry_dataset
-- chunking_registry_dataset -> embedding_job -> vector_index_dataset
-- embedding_job -> embedding_registry_dataset
+Examples include:
 
-Runtime lineage (DPI):
-- chunking DPI includes manifest/partition pointer and chunk_count
-- embedding DPI includes processed_count, batch_id, and references to chunking_run_id
+- retrieval
+- API calls
+- filesystem actions
+- command execution
+- workflow triggers
+- vector search
+- knowledge queries
+- document transformations
+- synthesis steps
 
-IMPORTANT: Do NOT create a DataHub Dataset per chunk.
+Capabilities must be:
 
-### 6) Queries / APIs to implement
-Provide functions:
-- `get_chunk_provenance(chunk_id) -> {source_urn, source_hash, chunk_s3_uri, offsets, chunker...}`
-- `get_embedding_provenance(chunk_id, index_target) -> {embedding_id, embedder..., status, run_ids, vector_record_id}`
-- `trace_from_vector_result(chunk_id) -> full chain`
+- discoverable
+- composable
+- policy-governed
+- execution-safe
+- pluggable
+- version-aware
 
-### 7) Testing
-Add unit tests for:
-- deterministic chunk_id
-- deterministic embedding_id
-- registry upsert/idempotency behavior
-- status transition logic (STARTED->SUCCEEDED, retries)
-- concurrency safety strategy (append+compact or db upsert)
+Capabilities may be implemented through:
 
-## Output format
-- Provide file-by-file code blocks with paths.
-- Include a short README explaining:
-  - registry storage choice
-  - how to trace a chunk from vector DB back to source and runs
-  - how async embedding is represented
-  - how DataHub lineage remains readable
+- MCP servers
+- HTTP APIs
+- local commands
+- filesystem operations
+- workflow engines
+- vector databases
+- lexical search engines
+- SDK integrations
+
+---
+
+# Skills-Oriented Layer
+
+The platform must support **skills**.
+
+A **skill** represents a reusable behavior composed of one or more capabilities.
+
+Example skills:
+
+- answer_customer_question
+- summarize_document
+- analyze_repository
+- generate_sales_report
+- create_support_ticket
+- investigate_system_failure
+
+A skill may internally generate an **ExecutionPlan**.
+
+Skills improve stability by providing **higher-level reusable behaviors** instead of planning raw capabilities each time.
+
+---
+
+# Control Plane vs Execution Plane
+
+The platform must clearly separate **control plane** and **execution plane** responsibilities.
+
+### Control Plane
+
+Responsible for configuration, governance, and evaluation.
+
+Responsibilities include:
+
+- capability registry
+- capability metadata
+- policies
+- prompt versioning
+- evaluation datasets
+- evaluation runs
+- skill definitions
+- supervisor configuration
+- planner configuration
+- capability enable/disable/versioning
+
+The control plane determines **how the system behaves**.
+
+---
+
+### Execution Plane
+
+Responsible for live runtime work.
+
+Responsibilities include:
+
+- executing `AgentRun`
+- capability invocation
+- tool execution
+- API calls
+- retrieval
+- filesystem actions
+- workflow triggers
+- runtime state updates
+- approvals and pauses
+- result validation
+- runtime supervision
+
+The execution plane performs **actual operations**.
+
+---
+
+# Agent Kernel (Session Runtime)
+
+The platform must include an **Agent Kernel layer** between the control plane and the execution plane.
+
+This kernel acts as the **Agent Operating System runtime**.
+
+Responsibilities include:
+
+- managing long-lived agent sessions
+- binding session context and memory
+- managing checkpoints
+- handling interrupts and resumes
+- supporting human approvals
+- tracking artifacts produced during execution
+- enabling handoffs between skills or agents
+
+The kernel must define concepts such as:
+
+- AgentSession
+- SessionState
+- SessionCheckpoint
+- RunContext
+- ArtifactReference
+- HandoffRequest
+- HandoffResult
+- InterruptSignal
+- ResumeToken
+
+---
+
+# Required Repository Structure
+
+The design must respect the following structure.
+
+Explain responsibilities for each folder.
+
+
+domains/
+agent_platform/
+
+contracts/
+  agent_run.py
+  execution_plan.py
+  action_step.py
+  step_dependency.py
+  capability_descriptor.py
+  capability_request.py
+  capability_result.py
+  next_step_decision.py
+  replan_decision.py
+  termination_decision.py
+  prompt_template.py
+  prompt_version.py
+  inference_configuration.py
+  evaluation_case.py
+  evaluation_run.py
+
+services/
+  run_supervisor.py
+  capability_planning_service.py
+  next_step_decider.py
+  capability_execution_service.py
+  step_result_evaluation_service.py
+  plan_revision_service.py
+  prompt_assembly_service.py
+  response_validation_service.py
+  evaluation_execution_service.py
+
+policies/
+  capability_policy.py
+  approval_policy.py
+  termination_policy.py
+  token_budget_policy.py
+  cost_budget_policy.py
+  latency_budget_policy.py
+  sandbox_policy.py
+
+gateways/
+  capability_registry_gateway.py
+  vector_search_gateway.py
+  lexical_search_gateway.py
+  context_storage_gateway.py
+  model_gateway.py
+  mcp_gateway.py
+  command_execution_gateway.py
+  filesystem_gateway.py
+  workflow_gateway.py
+  prompt_template_repository.py
+  evaluation_dataset_gateway.py
+
+registry/
+  capability_registry.py
+  capability_catalog.py
+  capability_resolver.py
+
+runtime/
+  agent_run_manager.py
+  execution_state_manager.py
+  run_memory_manager.py
+  execution_journal.py
+
+approval/
+  approval_request_service.py
+  approval_state_store.py
+
+evaluation/
+  retrieval_evaluation_service.py
+  capability_selection_evaluation_service.py
+  answer_quality_evaluation_service.py
+  result_comparison_service.py
+
+kernel/
+  agent_session_manager.py
+  session_state_store.py
+  checkpoint_manager.py
+  artifact_registry.py
+  handoff_service.py
+  interrupt_manager.py
+
+startup/
+  contracts.py
+  config_extractor.py
+  service_factory.py
+
+libs/
+ai_infra/
+langchain_adapters/
+mcp_adapters/
+model_provider_adapters/
+vector_db_adapters/
+workflow_adapters/
+command_runners/
+filesystem_adapters/
+tokenization/
+schema_validation/
+
+interfaces/
+cli/
+agent_cli.py
+
+
+---
+
+# Capability Registry
+
+Capabilities must include metadata such as:
+
+- capability name
+- capability type
+- capability category
+- risk classification
+- execution backend
+- version
+- input schema
+- output schema
+- side effects
+- approval requirements
+- authentication scope
+- behavioral contracts
+
+---
+
+# Capability Behavioral Contracts
+
+Capabilities must define:
+
+### Preconditions
+Conditions required before execution.
+
+### Postconditions
+Expected state after execution.
+
+### Invariants
+Conditions that must remain true.
+
+Examples:
+
+- sandbox restrictions
+- filesystem boundaries
+- API allowlists
+- credential isolation
+- output validity expectations
+
+These contracts must influence:
+
+- planning
+- runtime validation
+- failure recovery
+- step evaluation
+
+---
+
+# Capability Graph
+
+Capabilities must expose dependency metadata so the system can construct a **capability graph**.
+
+The graph must describe:
+
+- required inputs
+- produced outputs
+- dependency chains
+- valid capability sequences
+
+This graph supports robust planning.
+
+---
+
+# Supervisor Runtime Loop
+
+The runtime must implement a supervised execution loop.
+
+Entities include:
+
+- AgentRun
+- ExecutionStepRecord
+- NextStepDecision
+- ReplanDecision
+- TerminationDecision
+
+Services include:
+
+- RunSupervisor
+- NextStepDecider
+- CapabilityExecutionService
+- StepResultEvaluationService
+- PlanRevisionService
+
+The runtime loop must:
+
+1. read run state
+2. check policies and budgets
+3. validate capability readiness
+4. select next step
+5. execute capability
+6. validate postconditions
+7. update state
+8. decide continue / replan / pause / terminate
+
+---
+
+# Run Budget Governance
+
+Runtime must enforce budgets such as:
+
+- max steps
+- max tool calls
+- max tokens
+- max latency
+- max cost
+
+Budgets influence planning, execution, and termination.
+
+---
+
+# Approval and Human-in-the-Loop
+
+Some actions must require approval.
+
+Examples:
+
+- filesystem modification
+- shell execution
+- workflow triggers
+- external system changes
+
+Approval system must support:
+
+- pause/resume
+- approval requests
+- approval rejection
+- persistent approval state
+
+---
+
+# Retrieval Integration
+
+Retrieval must be implemented as capabilities.
+
+Supported retrieval types include:
+
+- vector search
+- lexical search
+- metadata filtering
+- knowledge graph queries
+- document retrieval
+
+Explain how retrieval integrates with planning and prompt assembly.
+
+---
+
+# Prompt Versioning
+
+Prompts must be versioned assets.
+
+Define:
+
+- PromptTemplate
+- PromptVersion
+- PromptVariant
+- InferenceConfiguration
+
+Prompt versioning must support experiments and evaluation.
+
+---
+
+# Evaluation Framework
+
+The platform must support evaluation-driven development.
+
+Evaluation must measure:
+
+- retrieval usefulness
+- capability selection accuracy
+- answer correctness
+- schema compliance
+- task completion success
+
+Distinguish between:
+
+- offline evaluation
+- runtime evaluation
+
+---
+
+# MCP Integration
+
+The system must support **plug-and-play MCP capabilities**.
+
+Explain how MCP providers integrate via adapters and behave as first-class capabilities.
+
+---
+
+# CLI Interface
+
+The platform must expose a CLI for interaction.
+
+Example commands:
+
+
+agent run "analyze this repository"
+agent skill list
+agent capability list
+agent session show <session_id>
+agent approve list
+agent eval run benchmark_suite
+
+
+CLI must interact with the kernel and runtime layers.
+
+---
+
+# Deliverables
+
+Provide a detailed design covering:
+
+1. Domain Architecture Overview  
+2. Control Plane vs Execution Plane  
+3. Agent Kernel Design  
+4. Folder Structure Explanation  
+5. Contracts Layer  
+6. Capability Registry  
+7. Capability Behavioral Contracts  
+8. Capability Graph  
+9. Skills Layer  
+10. Services Layer  
+11. Policies Layer  
+12. Gateways Layer  
+13. Runtime Layer  
+14. Supervisor Loop  
+15. Replanning Strategy  
+16. Termination Model  
+17. Budget Governance  
+18. Approval Workflow  
+19. Result Normalization  
+20. Retrieval Integration  
+21. Prompt Versioning  
+22. Evaluation Framework  
+23. MCP Integration  
+24. Infrastructure Adapters  
+25. CLI Interface Design  
+26. End-to-End Execution Flow  
+27. Anti-patterns to Avoid  
+28. Minimal Portfolio Implementation  
+29. Example Python Code Skeleton
+
+---
+
+# Design Constraints
+
+Use Python.
+
+Favor immutable dataclasses.
+
+Prefer explicit contracts.
+
+Avoid framework-driven architecture.
+
+Avoid hidden global state.
+
+Avoid LLM-controlled execution.
+
+Avoid one-shot planning.
+
+Use structured planning artifacts instead of chain-of-thought text.
+
+---
+
+# Output Expectations
+
+Your answer must:
+
+- be technically detailed
+- avoid vague architectural buzzwords
+- explain tradeoffs clearly
+- reflect modern AI platform architecture
+- optimize for portfolio credibility
+- demonstrate strong systems thinking

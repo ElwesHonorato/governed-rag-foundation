@@ -13,7 +13,7 @@ These scripts centralize local infrastructure lifecycle for development and test
 ./stack.sh up infra_llm
 ./stack.sh logs infra_lineage
 ./stack.sh ps
-./stack.sh ps app_rag_api
+./stack.sh ps ai_ui
 ```
 
 ## Domain-by-domain start
@@ -25,7 +25,9 @@ These scripts centralize local infrastructure lifecycle for development and test
 ./stack.sh up infra_portainer
 ./stack.sh up infra_queue
 ./stack.sh up infra_llm
-./stack.sh up app_rag_api
+./stack.sh up agent_api
+./stack.sh up ai_ui
+./stack.sh up app_vector_ui
 ./stack.sh up worker_scan
 ./stack.sh up worker_parse_document
 ./stack.sh up worker_chunk_text
@@ -41,6 +43,9 @@ The `infra_llm` domain builds a custom Ollama image and bakes `LLM_MODEL` (defau
 - MinIO console: http://localhost:9001
 - Weaviate: http://localhost:8080
 - DataHub GMS: http://localhost:${DATAHUB_MAPPED_GMS_PORT}
-- Portainer: https://localhost:9443
+- DataHub frontend: http://localhost:${DATAHUB_MAPPED_FRONTEND_PORT}
+- Portainer: https://localhost:${PORTAINER_HTTPS_PORT}
 - Ollama API: http://localhost:11434
-- rag-api: http://localhost:8000
+- agent-api: http://localhost:${AGENT_API_PORT}
+- ai-ui: http://localhost:8000
+- vector-ui: http://localhost:${VECTOR_UI_PORT:-8010}

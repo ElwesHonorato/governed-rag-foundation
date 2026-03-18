@@ -6,24 +6,23 @@ from vector_ui.weaviate_client import WeaviateClient
 ALLOWED_SORT_FIELDS = {"chunk_id", "doc_id", "source_uri", "security_clearance"}
 
 
-def create_app() -> Flask:
-    settings = Settings.from_env()
-    weaviate_client = WeaviateClient(
+def create_app(*, settings: Settings) -> Flask:
+    weaviate_client: WeaviateClient = WeaviateClient(
         weaviate_url=settings.weaviate_url,
         timeout_seconds=settings.query_timeout_seconds,
     )
 
-    app = Flask(__name__)
+    vector_ui_app: Flask = Flask(__name__)
 
-    @app.get("/")
+    @vector_ui_app.get("/")
     def root() -> str:
         return render_template("ui.html")
 
-    @app.get("/health")
+    @vector_ui_app.get("/health")
     def health() -> tuple[dict[str, str], int]:
         return {"status": "ok", "service": "vector-ui"}, 200
 
-    @app.post("/query")
+    @vector_ui_app.post("/query")
     def query() -> tuple[dict[str, object], int]:
         payload = request.get_json(silent=True) or {}
         phrase = str(payload.get("phrase", "")).strip()
@@ -55,11 +54,18 @@ def create_app() -> Flask:
 
         return jsonify({"count": len(records), "records": records, "graphql_query": graphql_query}), 200
 
-    return app
+    return vector_ui_app
 
 
-app = create_app()
+app: Flask = create_app(settings=Settings.from_env())
+
+
+def main() -> int:
+    vector_ui_settings: Settings = Settings.from_env()
+    vector_ui_app: Flask = create_app(settings=vector_ui_settings)
+    vector_ui_app.run(host="0.0.0.0", port=8000)
+    return 0
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000)
+    raise SystemExit(main())

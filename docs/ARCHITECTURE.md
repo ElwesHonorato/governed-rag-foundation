@@ -40,15 +40,19 @@ Separation of concerns:
 - Worker runtime path: `domains/worker_*` + `libs/pipeline-common`.
 - Governance path: `domains/gov_governance`.
 - App path: `domains/app_*`.
+- Agent platform path: `libs/agent/platform` + `domains/agent_api` + `libs/agent/core`.
 - Local infra path: `domains/infra_*` + `stack.sh`.
+- RAG app split: `domains/ai_ui` is the UI/front door and `domains/agent_api` is the retrieval/LLM backend.
 
 # 3. Architectural Overview
 
 Overall design:
 - Multi-domain monorepo with shared runtime core (`pipeline_common`) and multiple executable domains.
+- The agent-platform MVP adds a second shared runtime core (`ai_infra`) for supervised capability execution and a thin API domain that reuses the same service graph.
+- `libs/agent/platform` now also owns reusable RAG backend logic: LLM access, Weaviate retrieval, and retrieval-grounded response orchestration.
 
 Layering (observed in code):
-- Composition roots: domain entrypoints (`app.py`, `apply.py`).
+- Composition roots: package entrypoints (`<package>.app`, `apply.py`).
 - Startup wiring: `pipeline_common.startup` for workers.
 - Infrastructure adapters: `pipeline_common.gateways`.
 - Configuration adapter: `pipeline_common.settings`.
@@ -71,8 +75,12 @@ Why chosen:
 
 Repository structure (architecture-relevant):
 - `domains/`: deployable worker/app/governance/infra units.
+- `domains/agent_api/`: HTTP wrapper around the `agent_platform` service graph and the active RAG backend surface.
+- `domains/ai_ui/`: Flask UI/front-door that forwards prompt execution to `agent_api`.
+- `libs/agent/settings/`: shared settings-provider abstractions used by agent libraries and domains.
 - `libs/pipeline-common/`: shared worker/runtime abstractions and adapters.
-- `registry/`: DataHub job-key registry used by worker entrypoints.
+- `libs/agent/core/`: shared contracts, protocols, policies, registries, and orchestration services for the agent platform.
+- `libs/agent/platform/`: reusable agent runtime package with local adapters, packaged config assets, and grounded-response services.
 - `docs/`: architecture and standards documentation.
 - `stack.sh` + domain compose files: local stack orchestration.
 
@@ -87,8 +95,11 @@ Architecture document index (central references):
 - `domains/worker_chunk_text/docs/ARCHITECTURE.md`
 - `domains/worker_embed_chunks/docs/ARCHITECTURE.md`
 - `domains/worker_index_weaviate/docs/ARCHITECTURE.md`
-- `domains/app_rag_api/docs/ARCHITECTURE.md`
+- `domains/ai_ui/docs/ARCHITECTURE.md`
+- `domains/agent_api/docs/ARCHITECTURE.md`
 - `domains/app_vector_ui/docs/ARCHITECTURE.md`
+- `libs/agent/core/`
+- `libs/agent/platform/docs/ARCHITECTURE.md`
 - `libs/pipeline-common/src/pipeline_common/startup/docs/ARCHITECTURE.md`
 - `libs/pipeline-common/src/pipeline_common/settings/docs/ARCHITECTURE.md`
 - `libs/pipeline-common/src/pipeline_common/gateways/docs/ARCHITECTURE.md`
@@ -106,10 +117,12 @@ What belongs where:
 
 Editor note:
 - [`/.vscode/settings.json`](/home/sultan/repos/governed-rag-foundation/.vscode/settings.json) uses per-domain Pylance execution environments only to keep click-through and "Go to Definition" working.
-- This is needed because multiple worker `src/` roots expose the same top-level package names such as `startup` and `services`.
+- This is still useful because the repo has many separate Python source roots, even though the worker and agent projects now use namespaced package roots instead of generic top-level modules.
 
 Dependency flow:
-- `domains/*` may depend on `libs/pipeline-common` and `registry`.
+- `domains/*` may depend on reusable `libs/*` packages.
+- `domains/agent_api` may depend on `libs/agent/platform` and `libs/agent/core`.
+- Within `libs/agent`, `settings` and `core` remain independent; `platform` may depend on both.
 - `libs/*` must not depend on `domains/*`.
 - Driver SDKs are concentrated in gateway/infrastructure adapters.
 
@@ -125,7 +138,6 @@ graph TD
 
     H[domains/app_*] --> I[Flask + local clients]
 
-    J[registry] --> A
 ```
 
 # 5. Runtime Flow (Golden Path)
@@ -147,7 +159,7 @@ Shutdown/termination behavior:
 
 ```mermaid
 flowchart TD
-    A[worker_*/app.py] --> B[SettingsProvider]
+    A[worker_*.app] --> B[SettingsProvider]
     B --> C[RuntimeContextFactory]
     C --> D[Extract config + build service]
     D --> E[WorkerService.serve]

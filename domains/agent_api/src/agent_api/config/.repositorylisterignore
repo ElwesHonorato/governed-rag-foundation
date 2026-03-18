@@ -1,0 +1,40 @@
+# VCS and Python caches
+.git/
+.venv/
+__pycache__/
+*.pyc
+
+# Local runtime/state
+.agent_platform/
+localdata/
+
+# Dependency and build outputs
+node_modules/
+dist/
+build/
+
+# Large or irrelevant repo areas
+**/.mypy_cache/
+**/.pytest_cache/
+**/.ruff_cache/
+
+# File types we do not want in the local vector fixture
+*.lock
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.pdf
+*.zip
+*.tar
+*.gz
+*.bz2
+*.xz
+*.mp3
+*.mp4
+*.mov
+*.wav
+*.so
+*.dylib
+*.dll

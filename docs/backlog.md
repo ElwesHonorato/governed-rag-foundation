@@ -37,3 +37,11 @@
    d. Refactor `worker_scan` to use metadata-only checksum lookup so scan remains a pure move operation and does not pull full source payloads into worker memory.
    e. Add tests covering checksum lookup success, missing checksum metadata, and the fail-fast behavior for unsupported objects.
    f. Document the storage checksum policy and the temporary current-state exception: until this lands, `worker_scan` keeps the existing read-and-hash implementation.
+
+6. Add explicit LLM model selection instead of picking the first available model.
+   a. Define where the selected model lives in runtime configuration and how callers provide or inherit it.
+   b. Preserve `LLMGateway` as the boundary and avoid introducing wrapper contracts just to carry model state.
+   c. Update agent execution and grounded-response paths to use the explicit model selection instead of `list_models()[0]`.
+   d. Decide expected behavior when the configured model is missing, duplicated across providers, or the gateway returns no models.
+   e. Add tests for configured-model success, no-models failure, and invalid-model failure.
+   f. Update architecture/startup docs to describe the final model-selection flow and remove the temporary first-model fallback note.

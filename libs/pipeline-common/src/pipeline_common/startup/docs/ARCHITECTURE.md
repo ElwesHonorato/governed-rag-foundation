@@ -20,7 +20,7 @@ What it does not do:
 - It does not run deployment orchestration or process supervision.
 
 Boundaries:
-- Upstream: worker entrypoints under `domains/worker_*/src/app.py`.
+- Upstream: worker entrypoints under `domains/worker_*/src/<worker_package>/app.py`.
 - Downstream: `pipeline_common.settings` and `pipeline_common.gateways`.
 
 # 2. High-Level Responsibilities
@@ -83,7 +83,7 @@ Dependency flow:
 
 ```mermaid
 graph TD
-    A[domains/worker_*/src/app.py] --> B[SettingsProvider bundle]
+    A[domains/worker_*/src/<worker_package>/app.py] --> B[SettingsProvider bundle]
     A --> C[RuntimeContextFactory]
     A --> D[WorkerConfigExtractor]
     A --> E[WorkerServiceFactory]
@@ -162,7 +162,7 @@ Where to add features:
 - New worker service graph: worker-local `startup/service_factory.py`.
 
 How to add a new worker following conventions:
-1. Create worker `src/app.py` composition root.
+1. Create worker `src/<worker_package>/app.py` composition root.
 2. Request needed settings via `SettingsRequest`.
 3. Build `RuntimeContextFactory` with job key from registry.
 4. Implement worker extractor + service factory.

@@ -16,5 +16,5 @@ This domain is an operational dashboard for the local stack. It is not part of a
 - Persists Portainer data in named volume `portainer-data`.
 
 ### Interface
-- HTTPS UI on `${PORTAINER_HTTPS_PORT}:9443`.
+- HTTPS UI on `${PORTAINER_HTTPS_PORT}:9443` inside the container, typically `https://localhost:${PORTAINER_HTTPS_PORT}` on the host.
 - HTTP UI on `${PORTAINER_HTTP_PORT}:9000` (mapped from container).

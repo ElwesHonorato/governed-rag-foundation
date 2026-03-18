@@ -1,0 +1,13 @@
+[project]
+name = "ai-infra"
+version = "0.1.0"
+description = "Capability-oriented agent platform runtime primitives"
+authors = [{ name = "Governed RAG Foundation" }]
+requires-python = "==3.11.14"
+
+[tool.poetry]
+packages = [{ include = "ai_infra", from = "src" }]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -14,12 +14,11 @@ This domain converts text chunks into vector embeddings, preparing them for vect
 
 ### Embedding behavior
 - Uses deterministic pseudo-embeddings based on SHA-256 hashing.
-- Embedding dimensionality controlled by `EMBEDDING_DIM`.
+- Embedding dimensionality is fixed at `32`.
 
 ### Runtime dependencies
 - Queue: `BROKER_URL`.
 - Storage: `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`.
-- Embedding dimension: `EMBEDDING_DIM`.
 
 ### Operational notes
 - Service container: `pipeline-worker-embed-chunks`.

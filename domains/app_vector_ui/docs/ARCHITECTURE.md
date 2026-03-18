@@ -17,7 +17,7 @@ app_vector_ui is a Flask UI/API for querying DocumentChunk records in Weaviate.
 
 # 4. Module Structure
 
-- src/vector_ui/app.py
+- installable entrypoint: `vector_ui.app:main`
 - src/vector_ui/config.py
 - src/vector_ui/weaviate_client.py
 - src/vector_ui/templates/ui.html

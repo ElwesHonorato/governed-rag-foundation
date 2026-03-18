@@ -1,0 +1,152 @@
+"""Process startup for the agent API service.
+
+This module is the composition root of the Agent API.
+
+Responsibilities:
+- Load environment-driven settings
+- Build runtime configuration for the agent engine
+- Wire all infrastructure dependencies (LLM, retrieval, embedder)
+- Construct the agent execution engine
+- Assemble the HTTP layer (handlers, router, application)
+- Start the WSGI server
+
+Nothing here should contain business logic — only wiring.
+"""
+
+from __future__ import annotations
+
+from wsgiref.simple_server import make_server
+
+from ai_infra.retrieval.deterministic_hash_embedder import (
+    DeterministicHashEmbedder,
+)
+
+# --- HTTP layer components (pure adapters) ---
+from agent_api.adapters.http.application import AgentApiApplication
+from agent_api.adapters.http.grounded_response_http_handler import (
+    GroundedResponseHttpHandler,
+)
+from agent_api.adapters.http.request_normalization import WsgiRequestNormalizer
+from agent_api.adapters.http.router import AgentApiRouter
+
+# --- Infrastructure clients ---
+from agent_platform.clients.llm.ollama_client import OllamaClient
+from agent_platform.clients.retrieval.weaviate_client import WeaviateClient
+from agent_platform.gateways.llm.llm_gateway import LLMGateway
+from agent_platform.gateways.retrieval.retrieval_gateway import RetrievalGateway
+from agent_platform.grounded_response.service import GroundedResponseService
+
+# --- Gateway factories (bridge infra → domain) ---
+from agent_platform.startup.contracts import (
+    EmbedderParams,
+    LLMParams,
+    RetrievalParams,
+)
+
+# --- Settings / configuration ---
+from agent_settings.settings import (
+    AgentApiSettings,
+    EnvironmentSettingsProvider,
+    SettingsBundle,
+    SettingsRequest,
+)
+
+
+def main() -> int:
+    # ---------------------------------------------------------------------
+    # 1. Load settings from environment / configuration sources
+    # ---------------------------------------------------------------------
+    # SettingsBundle is a strongly-typed aggregation of all required configs
+    # for this process (agent_api, llm, retrieval).
+    agent_settings: SettingsBundle = EnvironmentSettingsProvider(
+        SettingsRequest(agent_api=True, llm=True, retrieval=True)
+    ).bundle
+
+    llm_params = LLMParams(
+        llm_timeout_seconds=30,
+    )
+    retrieval_params = RetrievalParams(
+        retrieval_limit=5,
+    )
+    embedder_params = EmbedderParams(
+        embedding_dim=32,
+    )
+
+    # ---------------------------------------------------------------------
+    # 2. Build infrastructure gateways (LLM + retrieval)
+    # ---------------------------------------------------------------------
+    # LLM client is the concrete external dependency (Ollama in this case).
+    llm_client = OllamaClient(
+        llm_url=agent_settings.llm.llm_url,
+    )
+    retrieval_embedder = DeterministicHashEmbedder(
+        embedder_params.embedding_dim
+    )
+    retrieval_client = WeaviateClient(
+        weaviate_url=agent_settings.retrieval.weaviate_url,
+    )
+
+    # Gateway factories adapt infrastructure clients into domain-facing interfaces.
+    llm_gateway: LLMGateway = LLMGateway(
+        client=llm_client,
+        params=llm_params,
+    )
+    retrieval_gateway: RetrievalGateway = RetrievalGateway(
+        client=retrieval_client,
+        embedder=retrieval_embedder,
+        params=retrieval_params,
+    )
+
+    # ---------------------------------------------------------------------
+    # 3. Construct the agent execution engine
+    # ---------------------------------------------------------------------
+    # This wires:
+    # - retrieval embedder (vectorization strategy)
+    # - gateways (LLM + retrieval access)
+    # - runtime settings (policies/config)
+    grounded_response_service = GroundedResponseService(
+        llm_gateway=llm_gateway,
+        retrieval_gateway=retrieval_gateway,
+    )
+
+    # ---------------------------------------------------------------------
+    # 4. Assemble HTTP layer (adapter → domain boundary)
+    # ---------------------------------------------------------------------
+    agent_api_settings: AgentApiSettings = agent_settings.agent_api
+
+    # Handlers translate HTTP requests into domain-level calls
+    handlers = GroundedResponseHttpHandler(
+        settings=agent_api_settings,
+        grounded_response_service=grounded_response_service,
+    )
+
+    # Normalizer ensures incoming WSGI requests are converted
+    # into a consistent internal request format
+    request_normalizer = WsgiRequestNormalizer()
+
+    # Router maps HTTP routes → handlers
+    router = AgentApiRouter(handlers=handlers)
+
+    # Assemble the WSGI application boundary
+    agent_api_app: AgentApiApplication = AgentApiApplication(
+        request_normalizer=request_normalizer,
+        router=router,
+    )
+
+    # ---------------------------------------------------------------------
+    # 5. Start HTTP server (WSGI - development server)
+    # ---------------------------------------------------------------------
+    # NOTE: wsgiref is suitable for local/dev usage.
+    # Replace with a production server (gunicorn/uvicorn) in real deployments.
+    with make_server(
+        agent_api_settings.host,
+        agent_api_settings.port,
+        agent_api_app,
+    ) as server:
+        server.serve_forever()
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

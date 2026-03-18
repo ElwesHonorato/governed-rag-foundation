@@ -1,0 +1,15 @@
+services:
+  ai-ui:
+    build:
+      context: .
+      dockerfile: ./domains/ai_ui/Dockerfile
+    ports:
+      - "${AI_UI_PORT:?AI_UI_PORT is required}:8000"
+    environment:
+      AGENT_API_URL: ${AGENT_API_URL:-http://agent-api:8010}
+      AGENT_API_TIMEOUT_SECONDS: ${AGENT_API_TIMEOUT_SECONDS:-30}
+
+networks:
+  default:
+    external: true
+    name: ${STACK_NETWORK:?STACK_NETWORK is required}

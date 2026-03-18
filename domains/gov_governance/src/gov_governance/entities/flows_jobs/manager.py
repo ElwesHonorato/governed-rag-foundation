@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+"""Flow and job governance manager."""
+
+from __future__ import annotations
+
+import logging
+
+from gov_governance.entities.shared.context import FlowJobManagerContext
+from gov_governance.entities.shared.definitions import JobDefinition, PipelineDefinition
+from gov_governance.entities.shared.ports import GovernanceCatalogWriterPort
+
+logger = logging.getLogger(__name__)
+
+
+class FlowJobManager:
+    """Apply flow and job template entities.
+
+    Design note:
+    This manager is the first phase of a deliberate two-phase strategy:
+    1) upsert flows/jobs with core metadata
+    2) later attach lineage edges in ``LineageContractManager``
+    """
+
+    def __init__(self, governance_def_ctx: FlowJobManagerContext) -> None:
+        """Store shared governance execution context."""
+
+        self.governance_def_ctx = governance_def_ctx
+        self._governance_writer: GovernanceCatalogWriterPort = governance_def_ctx.governance_writer
+
+    def apply(self, pipelines: list[PipelineDefinition]) -> None:
+        """Upsert flows and jobs without lineage contract edges.
+
+        This intentionally does not set inlets/outlets; lineage is attached in phase two.
+        """
+
+        for pipeline in pipelines:
+            for job in pipeline.jobs:
+                self._upsert_job(pipeline, job, inlets=[], outlets=[])
+                logger.info("upserted job %s", job.id)
+
+            flow_def = pipeline.flow
+            self._governance_writer.upsert_flow(
+                platform=flow_def.platform,
+                flow_id=flow_def.id,
+                env=self.governance_def_ctx.env,
+                description=flow_def.description,
+                domain=self.governance_def_ctx.domain_urns[flow_def.domain],
+                owners=[self.governance_def_ctx.group_urns[group_id] for group_id in flow_def.owners],
+            )
+            logger.info("upserted flow %s", flow_def.id)
+
+    def _upsert_job(
+        self,
+        pipeline: PipelineDefinition,
+        job: JobDefinition,
+        inlets: list[str],
+        outlets: list[str],
+    ) -> None:
+        """Upsert one DataJob payload with optional inlets/outlets."""
+        flow_def = pipeline.flow
+        self._governance_writer.upsert_job(
+            flow_platform=flow_def.platform,
+            flow_id=flow_def.id,
+            env=self.governance_def_ctx.env,
+            job_id=job.id,
+            description=job.description,
+            custom_properties=job.custom_properties,
+            domain=self.governance_def_ctx.domain_urns[job.domain],
+            owners=[self.governance_def_ctx.group_urns[group_id] for group_id in job.owners],
+            inlets=inlets,
+            outlets=outlets,
+        )

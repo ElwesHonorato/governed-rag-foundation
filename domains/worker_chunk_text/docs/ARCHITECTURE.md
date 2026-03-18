@@ -32,7 +32,7 @@ Non-responsibilities:
 # 3. Architectural Overview
 
 Design:
-- Composition root in src/app.py.
+- Composition root in `src/worker_chunk_text/app.py`.
 - Startup extension points in src/startup/config_extractor.py and src/startup/service_factory.py.
 - Queue-and-lineage orchestration in src/service.
 - Chunk compute path in src/processor and src/chunking uses LangChain splitters.
@@ -45,7 +45,7 @@ Patterns:
 
 # 4. Module Structure
 
-- src/app.py
+- src/worker_chunk_text/app.py
 - `src/startup/contracts.py`
 - `src/processor/metadata.py`
 - `src/chunking/params.py`

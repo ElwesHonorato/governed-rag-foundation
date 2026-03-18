@@ -7,7 +7,7 @@ Core infrastructure image tags are hardcoded in the domain compose files.
 
 ## Repository Layout
 
-- `domains/app_rag_api`: API service for RAG operations.
+- `domains/ai_ui`: UI service for AI interactions.
 - `libs/pipeline-common`: Shared pipeline helpers used by isolated worker domains.
 - `domains/`: Docker Compose definitions split by domain:
   - `infra_storage` (MinIO)
@@ -16,7 +16,7 @@ Core infrastructure image tags are hardcoded in the domain compose files.
   - `infra_lineage` (DataHub quickstart)
   - `infra_portainer` (Docker container UI)
   - `infra_llm` (Ollama)
-  - `app_rag_api` (rag-api only)
+  - `ai_ui` (ai-ui only)
   - `app_vector_ui` (standalone Weaviate query UI)
   - `worker_scan`
   - `worker_parse_document`
@@ -57,7 +57,8 @@ Recommended first-run order from repository root:
 ./stack.sh up infra_lineage
 ./stack.sh up infra_portainer
 ./stack.sh up infra_llm
-./stack.sh up app_rag_api
+./stack.sh up agent_api
+./stack.sh up ai_ui
 ./stack.sh up app_vector_ui
 ./stack.sh up worker_scan
 ./stack.sh up worker_parse_document
@@ -70,7 +71,7 @@ Then check status/logs:
 
 ```bash
 ./stack.sh ps
-./stack.sh logs app_rag_api
+./stack.sh logs ai_ui
 ```
 
 ## Local Stack Commands
@@ -97,12 +98,13 @@ When finished:
 - MinIO Console: `http://localhost:9001`
 - Weaviate: `http://localhost:8080`
 - RabbitMQ Management UI: `http://localhost:15672`
-- DataHub GMS: value of `DATAHUB_GMS_URL`
+- DataHub GMS: `http://localhost:${DATAHUB_MAPPED_GMS_PORT}`
 - DataHub frontend: `http://localhost:${DATAHUB_MAPPED_FRONTEND_PORT}`
-- Portainer: `https://localhost:9443`
+- Portainer: `https://localhost:${PORTAINER_HTTPS_PORT}`
 - Ollama API: `http://localhost:11434`
-- rag-api: `http://localhost:8000`
-- vector-ui: `http://localhost:8010`
+- agent-api: `http://localhost:${AGENT_API_PORT}`
+- ai-ui: `http://localhost:8000`
+- vector-ui: `http://localhost:${VECTOR_UI_PORT:-8010}`
 
 ## Lineage Guide
 
@@ -115,7 +117,7 @@ When finished:
 Python projects in this repository are managed independently with Poetry (one `pyproject.toml` per app/lib/worker).
 
 Projects include:
-- `domains/app_rag_api`
+- `domains/ai_ui`
 - `libs/pipeline-common`
 - `domains/worker_*`
 

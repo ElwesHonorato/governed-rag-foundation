@@ -1,0 +1,23 @@
+[project]
+name = "agent-api"
+version = "0.1.0"
+description = "HTTP API for the agent platform"
+authors = [{ name = "Governed RAG Foundation" }]
+requires-python = "==3.11.14"
+dependencies = [
+  "agent-platform @ ../../libs/agent/platform",
+  "agent-settings @ ../../libs/agent/settings",
+]
+
+[project.scripts]
+agent-api = "agent_api.app:main"
+
+[tool.poetry]
+packages = [{ include = "agent_api", from = "src" }]
+include = [
+  "src/agent_api/config/.repositorylisterignore",
+]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

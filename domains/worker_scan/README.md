@@ -5,8 +5,8 @@ This domain is the pipeline starter. It watches incoming documents, moves valid 
 ## Deep Dive
 
 ### Stage responsibility
-- Reads from `01_incoming/`.
-- Moves accepted files to `02_raw/`.
+- Reads from the environment-scoped incoming prefix, for example `DEV/01_incoming/`.
+- Moves accepted files to the environment-scoped raw prefix, for example `DEV/02_raw/`.
 - Emits DataHub DPI events for scan runs.
 - Enqueues parse jobs to the DataHub-configured `queue.produce` value for `worker_scan`.
 

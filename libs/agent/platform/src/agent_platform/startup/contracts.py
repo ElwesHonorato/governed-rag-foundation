@@ -9,11 +9,26 @@ from agent_settings.settings import LLMSettings, RetrievalSettings
 
 
 @dataclass(frozen=True)
+class LLMParams:
+    """Runtime LLM parameters owned by the composition root."""
+
+    llm_timeout_seconds: int
+
+
+@dataclass(frozen=True)
 class LLMConfig:
     """Runtime LLM configuration owned by the composition root."""
 
     settings: LLMSettings
-    llm_timeout_seconds: int
+    params: LLMParams
+
+
+@dataclass(frozen=True)
+class RetrievalParams:
+    """Runtime retrieval parameters owned by the composition root."""
+
+    embedding_dim: int
+    retrieval_limit: int
 
 
 @dataclass(frozen=True)
@@ -21,8 +36,7 @@ class RetrievalConfig:
     """Runtime retrieval configuration owned by the composition root."""
 
     settings: RetrievalSettings
-    embedding_dim: int
-    retrieval_limit: int
+    params: RetrievalParams
 
 
 @dataclass(frozen=True)

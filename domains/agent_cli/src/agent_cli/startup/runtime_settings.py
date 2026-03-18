@@ -8,7 +8,9 @@ from pathlib import Path
 from agent_platform.startup.contracts import (
     AgentPlatformConfig,
     LLMConfig,
+    LLMParams,
     RetrievalConfig,
+    RetrievalParams,
     RuntimePaths,
 )
 from agent_settings.settings import SettingsBundle
@@ -35,12 +37,16 @@ class AgentCliConfigFactory:
             paths=runtime_paths,
             llm=LLMConfig(
                 settings=settings.llm,
-                llm_timeout_seconds=30,
+                params=LLMParams(
+                    llm_timeout_seconds=30,
+                ),
             ),
             retrieval=RetrievalConfig(
                 settings=settings.retrieval,
-                embedding_dim=32,
-                retrieval_limit=5,
+                params=RetrievalParams(
+                    embedding_dim=32,
+                    retrieval_limit=5,
+                ),
             ),
         )
 

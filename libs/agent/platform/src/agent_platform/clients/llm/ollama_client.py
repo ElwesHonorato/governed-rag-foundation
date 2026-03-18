@@ -31,21 +31,20 @@ class LLMResponseError(LLMError):
 class OllamaClient:
     """Calls an Ollama-compatible HTTP API."""
 
-    def __init__(self, *, llm_url: str, timeout_seconds: float = 30.0, retries: int = 1) -> None:
+    def __init__(self, *, llm_url: str, retries: int = 1) -> None:
         if not isinstance(llm_url, str) or not llm_url.strip():
             raise ValueError("llm_url must be a non-empty string")
         self._llm_url = llm_url.strip().rstrip("/")
-        self._timeout_seconds = timeout_seconds
         self._retries = max(0, int(retries))
 
-    def list_models(self) -> list[str]:
+    def list_models(self, *, timeout_seconds: float = 30.0) -> list[str]:
         """Return model tags exposed by Ollama's built-in ``/api/tags`` endpoint.
 
         This lists models currently available on the configured Ollama instance,
         typically models that have already been pulled locally. It does not
         return the full set of models Ollama could download from its registry.
         """
-        data = self._get_with_retries("/api/tags")
+        data = self._get_with_retries("/api/tags", timeout_seconds=timeout_seconds)
         models = data.get("models")
         if not isinstance(models, list):
             raise LLMResponseError("Ollama tags response is missing 'models' list")
@@ -67,6 +66,7 @@ class OllamaClient:
         model: str,
         options: dict[str, Any] | None = None,
         stream: bool = False,
+        timeout_seconds: float = 30.0,
     ) -> str:
         if not isinstance(model, str) or not model.strip():
             raise ValueError("model must be a non-empty string")
@@ -91,7 +91,12 @@ class OllamaClient:
         if options is not None:
             payload["options"] = options
 
-        data = self._post_with_retries("/api/chat", payload, model=model.strip())
+        data = self._post_with_retries(
+            "/api/chat",
+            payload,
+            model=model.strip(),
+            timeout_seconds=timeout_seconds,
+        )
         if data.get("error"):
             raise LLMResponseError(f"Ollama error for model '{model.strip()}': {data['error']}")
 
@@ -110,6 +115,7 @@ class OllamaClient:
         prompt: str,
         model: str,
         stream: bool = False,
+        timeout_seconds: float = 30.0,
     ) -> str:
         if not isinstance(model, str) or not model.strip():
             raise ValueError("model must be a non-empty string")
@@ -122,6 +128,7 @@ class OllamaClient:
             "/api/generate",
             {"model": model.strip(), "prompt": prompt, "stream": stream},
             model=model.strip(),
+            timeout_seconds=timeout_seconds,
         )
         if data.get("error"):
             raise LLMResponseError(f"Ollama error for model '{model.strip()}': {data['error']}")
@@ -131,12 +138,24 @@ class OllamaClient:
             raise LLMResponseError("Ollama generate response is missing response text")
         return response_text
 
-    def _post_with_retries(self, path: str, payload: dict[str, Any], *, model: str) -> dict[str, Any]:
+    def _post_with_retries(
+        self,
+        path: str,
+        payload: dict[str, Any],
+        *,
+        model: str,
+        timeout_seconds: float,
+    ) -> dict[str, Any]:
         endpoint = f"{self._llm_url}{path}"
         total_attempts = self._retries + 1
         for attempt in range(1, total_attempts + 1):
             try:
-                return self._post_once(endpoint, payload, model=model)
+                return self._post_once(
+                    endpoint,
+                    payload,
+                    model=model,
+                    timeout_seconds=timeout_seconds,
+                )
             except LLMConnectionError:
                 if attempt == total_attempts:
                     raise
@@ -146,12 +165,12 @@ class OllamaClient:
             time.sleep(0.2 * attempt)
         raise LLMError("unexpected retry state")
 
-    def _get_with_retries(self, path: str) -> dict[str, Any]:
+    def _get_with_retries(self, path: str, *, timeout_seconds: float) -> dict[str, Any]:
         endpoint = f"{self._llm_url}{path}"
         total_attempts = self._retries + 1
         for attempt in range(1, total_attempts + 1):
             try:
-                return self._get_once(endpoint)
+                return self._get_once(endpoint, timeout_seconds=timeout_seconds)
             except LLMConnectionError:
                 if attempt == total_attempts:
                     raise
@@ -161,7 +180,14 @@ class OllamaClient:
             time.sleep(0.2 * attempt)
         raise LLMError("unexpected retry state")
 
-    def _post_once(self, endpoint: str, payload: dict[str, Any], *, model: str) -> dict[str, Any]:
+    def _post_once(
+        self,
+        endpoint: str,
+        payload: dict[str, Any],
+        *,
+        model: str,
+        timeout_seconds: float,
+    ) -> dict[str, Any]:
         req = request.Request(
             endpoint,
             data=json.dumps(payload).encode("utf-8"),
@@ -169,7 +195,7 @@ class OllamaClient:
             method="POST",
         )
         try:
-            with request.urlopen(req, timeout=self._timeout_seconds) as resp:
+            with request.urlopen(req, timeout=timeout_seconds) as resp:
                 raw = resp.read()
         except error.HTTPError as exc:
             body_preview = self._truncate(self._read_error_body(exc), 500)
@@ -192,10 +218,10 @@ class OllamaClient:
             raise LLMResponseError("Ollama response JSON must be an object")
         return data
 
-    def _get_once(self, endpoint: str) -> dict[str, Any]:
+    def _get_once(self, endpoint: str, *, timeout_seconds: float) -> dict[str, Any]:
         req = request.Request(endpoint, method="GET")
         try:
-            with request.urlopen(req, timeout=self._timeout_seconds) as resp:
+            with request.urlopen(req, timeout=timeout_seconds) as resp:
                 raw = resp.read()
         except error.HTTPError as exc:
             body_preview = self._truncate(self._read_error_body(exc), 500)

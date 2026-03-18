@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from agent_platform.grounded_response.contracts import GroundedResponse
 from agent_platform.grounded_response.service import GroundedResponseService
-from agent_platform.startup.contracts import RetrievalConfig
+from agent_platform.startup.contracts import LLMConfig, RetrievalConfig
 from agent_platform.startup.llm_gateway_factory import LLMGatewayFactory
 from agent_platform.startup.retrieval_gateway_factory import RetrievalGatewayFactory
 
@@ -36,9 +36,11 @@ class AgentAPIEngineFactory:
         self,
         *,
         gateway_factories: AgentApiGatewayFactories,
+        llm_config: LLMConfig,
         retrieval_config: RetrievalConfig,
     ) -> None:
         self._gateway_factories = gateway_factories
+        self._llm_config = llm_config
         self._retrieval_config = retrieval_config
 
     def build(self) -> AgentAPIFactory:
@@ -52,7 +54,7 @@ class AgentAPIEngineFactory:
         return AgentAPIFactory(grounded_response_service=grounded_response_service)
 
     def _build_llm_gateway(self):
-        return self._gateway_factories.llm.build()
+        return self._gateway_factories.llm.build(settings=self._llm_config)
 
     def _build_retrieval_gateway(self):
         return self._gateway_factories.retrieval.build(

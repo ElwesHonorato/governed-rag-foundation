@@ -38,7 +38,12 @@ from agent_api.startup.engine_factory import (
 from agent_platform.clients.llm.ollama_client import OllamaClient
 
 # --- Gateway factories (bridge infra → domain) ---
-from agent_platform.startup.contracts import LLMConfig, RetrievalConfig
+from agent_platform.startup.contracts import (
+    LLMConfig,
+    LLMParams,
+    RetrievalConfig,
+    RetrievalParams,
+)
 from agent_platform.startup.llm_gateway_factory import LLMGatewayFactory
 from agent_platform.startup.retrieval_gateway_factory import RetrievalGatewayFactory
 
@@ -60,14 +65,19 @@ def main() -> int:
     agent_settings: SettingsBundle = EnvironmentSettingsProvider(
         SettingsRequest(agent_api=True, llm=True, retrieval=True)
     ).bundle
+
     llm_config = LLMConfig(
         settings=agent_settings.llm,
-        llm_timeout_seconds=30,
+        params=LLMParams(
+            llm_timeout_seconds=30,
+        ),
     )
     retrieval_config = RetrievalConfig(
         settings=agent_settings.retrieval,
-        embedding_dim=32,
-        retrieval_limit=5,
+        params=RetrievalParams(
+            embedding_dim=32,
+            retrieval_limit=5,
+        ),
     )
 
     # ---------------------------------------------------------------------
@@ -76,10 +86,9 @@ def main() -> int:
     # LLM client is the concrete external dependency (Ollama in this case).
     llm_client = OllamaClient(
         llm_url=llm_config.settings.llm_url,
-        timeout_seconds=llm_config.llm_timeout_seconds,
     )
     retrieval_embedder = DeterministicHashEmbedder(
-        retrieval_config.embedding_dim
+        retrieval_config.params.embedding_dim
     )
 
     # Gateway factories adapt infrastructure clients into domain-facing interfaces.
@@ -97,6 +106,7 @@ def main() -> int:
     # - runtime settings (policies/config)
     engine_factory = AgentAPIEngineFactory(
         gateway_factories=gateway_factories,
+        llm_config=llm_config,
         retrieval_config=retrieval_config,
     )
 

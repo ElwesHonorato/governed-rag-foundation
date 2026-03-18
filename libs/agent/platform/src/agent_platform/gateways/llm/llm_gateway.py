@@ -13,11 +13,12 @@ from agent_platform.clients.llm.ollama_client import (
 class LLMGateway:
     """Expose app-facing LLM operations over the configured LLM client."""
 
-    def __init__(self, *, client: OllamaClient) -> None:
+    def __init__(self, *, client: OllamaClient, timeout_seconds: float) -> None:
         self._client = client
+        self._timeout_seconds = timeout_seconds
 
     def list_models(self) -> list[str]:
-        return self._client.list_models()
+        return self._client.list_models(timeout_seconds=self._timeout_seconds)
 
     def resolve_model(self) -> str:
         available_models = self.list_models()
@@ -37,6 +38,7 @@ class LLMGateway:
                 prompt=prompt,
                 model=model,
                 stream=False,
+                timeout_seconds=self._timeout_seconds,
             )
         except LLMHTTPError as exc:
             raise ValueError(
@@ -51,7 +53,11 @@ class LLMGateway:
 
     def chat(self, *, messages: list[dict[str, str]], model: str) -> str:
         try:
-            return self._client.chat(messages=messages, model=model)
+            return self._client.chat(
+                messages=messages,
+                model=model,
+                timeout_seconds=self._timeout_seconds,
+            )
         except LLMHTTPError as exc:
             raise ValueError(
                 f"LLM HTTP {exc.status_code} for model '{model}': {exc}"

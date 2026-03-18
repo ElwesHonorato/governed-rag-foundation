@@ -186,7 +186,7 @@ class EngineFactory:
         )
 
     def _build_llm_gateway(self) -> LLMGateway:
-        return self._gateway_factories.llm.build()
+        return self._gateway_factories.llm.build(settings=self._runtime_settings.llm)
 
     def _build_retrieval_gateway(self):
         return RetrievalGatewayFactory(

@@ -8,4 +8,3 @@ The package sends `llm_synthesize` requests to a real Ollama-compatible LLM back
 
 Required environment variables:
 - `LLM_URL`
-- `LLM_TIMEOUT_SECONDS`

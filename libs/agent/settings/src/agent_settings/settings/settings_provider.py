@@ -54,21 +54,9 @@ def required_int_env(name: str) -> int:
     except ValueError as exc:
         raise ValueError(f"{name} must be an integer") from exc
 
-
-def optional_int_env(name: str, default: int) -> int:
-    raw_value = os.environ.get(name)
-    if raw_value is None or not raw_value.strip():
-        return default
-    try:
-        return int(raw_value.strip())
-    except ValueError as exc:
-        raise ValueError(f"{name} must be an integer") from exc
-
-
 def load_llm_settings_from_env() -> LLMSettings:
     return LLMSettings(
         llm_url=required_env("LLM_URL"),
-        llm_timeout_seconds=required_int_env("LLM_TIMEOUT_SECONDS"),
     )
 
 
@@ -83,7 +71,6 @@ def load_retrieval_settings_from_env() -> RetrievalSettings:
     return RetrievalSettings(
         weaviate_url=required_env("WEAVIATE_URL"),
         embedding_dim=required_int_env("EMBEDDING_DIM"),
-        retrieval_limit=optional_int_env("WEAVIATE_QUERY_DEFAULTS_LIMIT", 5),
     )
 
 

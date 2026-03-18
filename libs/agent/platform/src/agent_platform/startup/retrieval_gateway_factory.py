@@ -22,7 +22,7 @@ class RetrievalGatewayFactory:
         settings: LLMRetrievalConfig,
     ) -> RetrievalGateway:
         client = WeaviateClient(
-            weaviate_url=settings.retrieval.weaviate_url,
+            weaviate_url=settings.retrieval.settings.weaviate_url,
             embedder=self._retrieval_embedder,
         )
         return RetrievalGateway(client=client)

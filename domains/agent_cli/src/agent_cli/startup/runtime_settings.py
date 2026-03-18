@@ -5,7 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from agent_platform.startup.contracts import AgentPlatformConfig, RuntimePaths
+from agent_platform.startup.contracts import (
+    AgentPlatformConfig,
+    LLMConfig,
+    RetrievalConfig,
+    RuntimePaths,
+)
 from agent_settings.settings import SettingsBundle
 
 
@@ -28,8 +33,14 @@ class AgentCliConfigFactory:
         runtime_paths = self._resolve_local_paths()
         return AgentPlatformConfig(
             paths=runtime_paths,
-            llm=settings.llm,
-            retrieval=settings.retrieval,
+            llm=LLMConfig(
+                settings=settings.llm,
+                llm_timeout_seconds=30,
+            ),
+            retrieval=RetrievalConfig(
+                settings=settings.retrieval,
+                retrieval_limit=5,
+            ),
         )
 
     def _resolve_local_paths(self) -> RuntimePaths:

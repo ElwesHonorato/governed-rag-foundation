@@ -9,11 +9,27 @@ from typing import Protocol
 from agent_settings.settings import LLMSettings, RetrievalSettings
 
 
+@dataclass(frozen=True)
+class LLMConfig:
+    """Runtime LLM configuration owned by the composition root."""
+
+    settings: LLMSettings
+    llm_timeout_seconds: int
+
+
+@dataclass(frozen=True)
+class RetrievalConfig:
+    """Runtime retrieval configuration owned by the composition root."""
+
+    settings: RetrievalSettings
+    retrieval_limit: int
+
+
 class LLMRetrievalConfig(Protocol):
     """Startup configuration that exposes only LLM and retrieval settings."""
 
-    llm: LLMSettings
-    retrieval: RetrievalSettings
+    llm: LLMConfig
+    retrieval: RetrievalConfig
 
 
 @dataclass(frozen=True)
@@ -33,5 +49,5 @@ class AgentPlatformConfig:
     """Resolved startup configuration grouped by component."""
 
     paths: RuntimePaths
-    llm: LLMSettings
-    retrieval: RetrievalSettings
+    llm: LLMConfig
+    retrieval: RetrievalConfig

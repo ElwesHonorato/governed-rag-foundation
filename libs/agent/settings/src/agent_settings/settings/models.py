@@ -10,7 +10,6 @@ class LLMSettings:
     """Settings for the local LLM gateway."""
 
     llm_url: str
-    llm_timeout_seconds: int
 
 
 @dataclass(frozen=True)
@@ -19,7 +18,6 @@ class RetrievalSettings:
 
     weaviate_url: str
     embedding_dim: int
-    retrieval_limit: int
 
 
 @dataclass(frozen=True)

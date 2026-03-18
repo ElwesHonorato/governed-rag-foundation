@@ -72,7 +72,7 @@ def main(argv: list[str] | None = None) -> int:
             bootstrapper=RuntimeBootstrapper(),
             retrieval_embedder_factory=EmbedderFactory(
                 embedder=DeterministicHashEmbedder(
-                    runtime_settings.retrieval.embedding_dim
+                    runtime_settings.retrieval.settings.embedding_dim
                 )
             ),
             local_state_stores_factory=LocalStateStoresFactory(),
@@ -83,8 +83,8 @@ def main(argv: list[str] | None = None) -> int:
             vector=VectorGatewayFactory(),
             llm=LLMGatewayFactory(
                 client=OllamaClient(
-                    llm_url=agent_settings.llm.llm_url,
-                    timeout_seconds=agent_settings.llm.llm_timeout_seconds,
+                    llm_url=runtime_settings.llm.settings.llm_url,
+                    timeout_seconds=runtime_settings.llm.llm_timeout_seconds,
                 )
             ),
         ),

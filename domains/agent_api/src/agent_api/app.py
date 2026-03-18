@@ -33,11 +33,13 @@ from agent_api.startup.engine_factory import (
     AgentApiGatewayFactories,
     AgentAPIEngineFactory,
 )
+from agent_api.startup.config import AgentAPIConfig
 
 # --- Infrastructure clients ---
 from agent_platform.clients.llm.ollama_client import OllamaClient
 
 # --- Gateway factories (bridge infra → domain) ---
+from agent_platform.startup.contracts import LLMConfig, RetrievalConfig
 from agent_platform.startup.llm_gateway_factory import LLMGatewayFactory
 from agent_platform.startup.retrieval_gateway_factory import RetrievalGatewayFactory
 from agent_platform.startup.embedder_factory import EmbedderFactory
@@ -60,17 +62,29 @@ def main() -> int:
     agent_settings: SettingsBundle = EnvironmentSettingsProvider(
         SettingsRequest(agent_api=True, llm=True, retrieval=True)
     ).bundle
+    agent_config: AgentAPIConfig = AgentAPIConfig(
+        llm=LLMConfig(
+            settings=agent_settings.llm,
+            llm_timeout_seconds=30,
+        ),
+        retrieval=RetrievalConfig(
+            settings=agent_settings.retrieval,
+            retrieval_limit=5,
+        ),
+    )
 
     # ---------------------------------------------------------------------
     # 2. Build infrastructure gateways (LLM + retrieval)
     # ---------------------------------------------------------------------
     # LLM client is the concrete external dependency (Ollama in this case).
     llm_client = OllamaClient(
-        llm_url=agent_settings.llm.llm_url,
-        timeout_seconds=agent_settings.llm.llm_timeout_seconds,
+        llm_url=agent_config.llm.settings.llm_url,
+        timeout_seconds=agent_config.llm.llm_timeout_seconds,
     )
     retrieval_embedder = EmbedderFactory(
-        embedder=DeterministicHashEmbedder(agent_settings.retrieval.embedding_dim)
+        embedder=DeterministicHashEmbedder(
+            agent_config.retrieval.settings.embedding_dim
+        )
     ).build()
 
     # Gateway factories adapt infrastructure clients into domain-facing interfaces.
@@ -88,7 +102,7 @@ def main() -> int:
     # - runtime settings (policies/config)
     engine_factory = AgentAPIEngineFactory(
         gateway_factories=gateway_factories,
-        settings=agent_settings,
+        settings=agent_config,
     )
 
     # Build the actual runtime agent application (core execution unit)

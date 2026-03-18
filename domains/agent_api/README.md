@@ -15,10 +15,8 @@ Required environment:
 - `AGENT_API_PORT`
 - `AGENT_PLATFORM_WORKSPACE_ROOT` (container default `/workspace`)
 - `LLM_URL`
-- `LLM_TIMEOUT_SECONDS`
 - `WEAVIATE_URL`
 - `EMBEDDING_DIM`
-- `WEAVIATE_QUERY_DEFAULTS_LIMIT` (optional, defaults to `5`)
 - `STACK_NETWORK` for the shared Docker network
 
 Local env template:

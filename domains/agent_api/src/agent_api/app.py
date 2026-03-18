@@ -109,7 +109,6 @@ def main() -> int:
     # - runtime settings (policies/config)
     engine_factory = AgentAPIEngineFactory(
         gateway_factories=gateway_factories,
-        retrieval_config=retrieval_config,
     )
 
     # Build the actual runtime agent application (core execution unit)

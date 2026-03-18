@@ -31,7 +31,6 @@ from agent_api.adapters.http.web_application_factory import WebApplicationFactor
 # --- Engine + gateway composition ---
 from agent_api.startup.engine_factory import (
     AgentAPIFactory,
-    AgentApiGatewayFactories,
 )
 
 # --- Infrastructure clients ---
@@ -93,12 +92,13 @@ def main() -> int:
     )
 
     # Gateway factories adapt infrastructure clients into domain-facing interfaces.
-    gateway_factories = AgentApiGatewayFactories(
-        llm=LLMGatewayFactory(client=llm_client, config=llm_config),
-        retrieval=RetrievalGatewayFactory(
-            retrieval_embedder=retrieval_embedder,
-            config=retrieval_config,
-        ),
+    llm_gateway_factory = LLMGatewayFactory(
+        client=llm_client,
+        config=llm_config,
+    )
+    retrieval_gateway_factory = RetrievalGatewayFactory(
+        retrieval_embedder=retrieval_embedder,
+        config=retrieval_config,
     )
 
     # ---------------------------------------------------------------------
@@ -109,8 +109,8 @@ def main() -> int:
     # - gateways (LLM + retrieval access)
     # - runtime settings (policies/config)
     grounded_response_service = GroundedResponseService(
-        llm_gateway=gateway_factories.llm.build(),
-        retrieval_gateway=gateway_factories.retrieval.build(),
+        llm_gateway=llm_gateway_factory.build(),
+        retrieval_gateway=retrieval_gateway_factory.build(),
     )
 
     # Build the actual runtime agent application (core execution unit)

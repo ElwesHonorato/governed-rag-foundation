@@ -28,7 +28,6 @@ from agent_api.adapters.http.grounded_response_http_handler import (
 )
 from agent_api.adapters.http.request_normalization import WsgiRequestNormalizer
 from agent_api.adapters.http.router import AgentApiRouter
-from agent_api.adapters.http.web_application_factory import WebApplicationFactory
 
 # --- Infrastructure clients ---
 from agent_platform.clients.llm.ollama_client import OllamaClient
@@ -128,11 +127,11 @@ def main() -> int:
     # Router maps HTTP routes → handlers
     router = AgentApiRouter(handlers=handlers)
 
-    # Web application factory assembles the WSGI application
-    agent_api_app: AgentApiApplication = WebApplicationFactory(
+    # Assemble the WSGI application boundary
+    agent_api_app: AgentApiApplication = AgentApiApplication(
         request_normalizer=request_normalizer,
         router=router,
-    ).create()
+    )
 
     # ---------------------------------------------------------------------
     # 5. Start HTTP server (WSGI - development server)

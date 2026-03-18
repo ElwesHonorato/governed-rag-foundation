@@ -41,8 +41,6 @@ from agent_platform.startup.contracts import (
     LLMParams,
     RetrievalParams,
 )
-from agent_platform.startup.llm_gateway_factory import LLMGatewayFactory
-from agent_platform.startup.retrieval_gateway_factory import RetrievalGatewayFactory
 
 # --- Settings / configuration ---
 from agent_settings.settings import (
@@ -89,14 +87,14 @@ def main() -> int:
     )
 
     # Gateway factories adapt infrastructure clients into domain-facing interfaces.
-    llm_gateway: LLMGateway = LLMGatewayFactory(
+    llm_gateway: LLMGateway = LLMGateway(
         client=llm_client,
         params=llm_params,
-    ).build()
-    retrieval_gateway: RetrievalGateway = RetrievalGatewayFactory(
+    )
+    retrieval_gateway: RetrievalGateway = RetrievalGateway(
         client=retrieval_client,
         params=retrieval_params,
-    ).build()
+    )
 
     # ---------------------------------------------------------------------
     # 3. Construct the agent execution engine

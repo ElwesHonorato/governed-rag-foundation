@@ -27,6 +27,8 @@ from agent_platform.agent_runtime.execution_runtime_factory import (
 )
 from agent_platform.clients.llm.ollama_client import OllamaClient
 from agent_platform.clients.retrieval.weaviate_client import WeaviateClient
+from agent_platform.gateways.llm.llm_gateway import LLMGateway
+from agent_platform.gateways.retrieval.retrieval_gateway import RetrievalGateway
 from agent_platform.grounded_response.grounded_response_factory import (
     GroundedResponseFactory,
 )
@@ -36,8 +38,6 @@ from agent_platform.startup.filesystem_gateway_factory import (
     FilesystemGatewayFactory,
 )
 from agent_platform.startup.local_state_stores_factory import LocalStateStoresFactory
-from agent_platform.startup.llm_gateway_factory import LLMGatewayFactory
-from agent_platform.startup.retrieval_gateway_factory import RetrievalGatewayFactory
 from agent_platform.startup.vector_gateway_factory import VectorGatewayFactory
 
 
@@ -67,8 +67,21 @@ def main(argv: list[str] | None = None) -> int:
         SettingsRequest(llm=True, retrieval=True)
     ).bundle
     runtime_settings = AgentCliConfigFactory().build(agent_settings)
+    llm_gateway = LLMGateway(
+        client=OllamaClient(
+            llm_url=agent_settings.llm.llm_url,
+        ),
+        params=runtime_settings.llm,
+    )
     retrieval_embedder = DeterministicHashEmbedder(
         runtime_settings.embedder.embedding_dim
+    )
+    retrieval_gateway = RetrievalGateway(
+        client=WeaviateClient(
+            weaviate_url=agent_settings.retrieval.weaviate_url,
+            embedder=retrieval_embedder,
+        ),
+        params=runtime_settings.retrieval,
     )
     engine_factory: EngineFactory = EngineFactory(
         startup_services=EngineStartupServices(
@@ -80,24 +93,13 @@ def main(argv: list[str] | None = None) -> int:
             filesystem=FilesystemGatewayFactory(),
             command=CommandGatewayFactory(),
             vector=VectorGatewayFactory(),
-            llm=LLMGatewayFactory(
-                client=OllamaClient(
-                    llm_url=agent_settings.llm.llm_url,
-                ),
-                params=runtime_settings.llm,
-            ),
-            retrieval=RetrievalGatewayFactory(
-                client=WeaviateClient(
-                    weaviate_url=agent_settings.retrieval.weaviate_url,
-                    embedder=retrieval_embedder,
-                ),
-                params=runtime_settings.retrieval,
-            ),
         ),
         runtime_factories=EngineRuntimeFactories(
             execution=ExecutionRuntimeFactory(),
             grounded_response=GroundedResponseFactory(),
         ),
+        llm_gateway=llm_gateway,
+        retrieval_gateway=retrieval_gateway,
         settings=runtime_settings,
     )
     agent_cli_engine: Engine = engine_factory.build()

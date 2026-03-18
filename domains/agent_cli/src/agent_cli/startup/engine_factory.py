@@ -33,7 +33,6 @@ from agent_platform.startup.bootstrap import PreparedRuntimeArtifacts, RuntimeBo
 from agent_platform.startup.command_gateway_factory import CommandGatewayFactory
 from agent_platform.startup.contracts import AgentPlatformConfig
 from agent_platform.startup.filesystem_gateway_factory import FilesystemGatewayFactory
-from agent_platform.startup.llm_gateway_factory import LLMGatewayFactory
 from agent_platform.startup.local_state_stores_factory import (
     LocalStateStores,
     LocalStateStoresFactory,
@@ -42,7 +41,6 @@ from agent_platform.startup.packaged_configuration import (
     load_capability_catalog,
     load_skill_registry,
 )
-from agent_platform.startup.retrieval_gateway_factory import RetrievalGatewayFactory
 from agent_platform.startup.vector_gateway_factory import VectorGatewayFactory
 
 
@@ -96,8 +94,6 @@ class EngineGatewayFactories:
     filesystem: FilesystemGatewayFactory
     command: CommandGatewayFactory
     vector: VectorGatewayFactory
-    llm: LLMGatewayFactory
-    retrieval: RetrievalGatewayFactory
 
 
 @dataclass(frozen=True)
@@ -117,11 +113,15 @@ class EngineFactory:
         startup_services: EngineStartupServices,
         gateway_factories: EngineGatewayFactories,
         runtime_factories: EngineRuntimeFactories,
+        llm_gateway: LLMGateway,
+        retrieval_gateway: RetrievalGateway,
         settings: AgentPlatformConfig,
     ) -> None:
         self._startup_services = startup_services
         self._gateway_factories = gateway_factories
         self._runtime_factories = runtime_factories
+        self._llm_gateway = llm_gateway
+        self._retrieval_gateway = retrieval_gateway
         self._settings = settings
         self._runtime_settings: AgentPlatformConfig | None = None
         self._retrieval_embedder: DeterministicHashEmbedder | None = None
@@ -188,7 +188,7 @@ class EngineFactory:
         )
 
     def _build_llm_gateway(self) -> LLMGateway:
-        return self._gateway_factories.llm.build()
+        return self._llm_gateway
 
     def _build_retrieval_gateway(self) -> RetrievalGateway:
-        return self._gateway_factories.retrieval.build()
+        return self._retrieval_gateway

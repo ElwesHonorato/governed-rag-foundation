@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.11.14-slim
 
 ENV POETRY_VIRTUALENVS_CREATE=false \
     POETRY_NO_INTERACTION=1 \
@@ -12,6 +12,7 @@ WORKDIR /app
 RUN python3 -m pip install --no-cache-dir poetry
 
 COPY domains/worker_embed_chunks /app/domains/worker_embed_chunks
+COPY libs/agent/core /app/libs/agent/core
 COPY libs/pipeline-common /app/libs/pipeline-common
 
 WORKDIR /app/domains/worker_embed_chunks

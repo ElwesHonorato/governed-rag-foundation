@@ -157,6 +157,20 @@ vertexai = ["Deprecated (<2.0.0)", "PyYAML (<7.0.0)", "aiohttp (<4)", "avro (>=1
 vertica = ["Deprecated (<2.0.0)", "IPython (!=8.22.0,<9.0.0)", "PyYAML (<7.0.0)", "acryl-datahub-classify (==0.0.11)", "acryl-great-expectations (==0.15.50.1)", "aiohttp (<4)", "avro (>=1.11.3,<1.13)", "avro-gen3 (==0.7.16)", "cached_property (<3.0.0)", "cachetools (<6.0.0)", "click (>=7.1.2,!=8.2.0,<9.0.0)", "click-default-group (<2.0.0)", "click-spinner (<0.2.0)", "docker (<8.0.0)", "expandvars (>=0.6.5,<2.0.0)", "greenlet (<4.0.0)", "humanfriendly (<11.0.0)", "ijson (<4.0.0)", "importlib_metadata (>=4.0.0,<9.0.0) ; python_version < \"3.10\"", "jsonref (<2.0.0)", "jsonschema (<5.0.0)", "jupyter_server (>=2.14.1,<3.0.0)", "numpy (<2)", "packaging (<26.0.0)", "patchy (==2.8.0)", "pip", "progressbar2 (<5.0.0)", "psutil (>=5.8.0,<8.0.0)", "python-dateutil (>=2.8.0,<3.0.0)", "requests_file (<4.0.0)", "ruamel.yaml (<0.19.0)", "schwifty (<2026.0.0)", "scipy (>=1.7.2,<2.0.0)", "sqlalchemy (>=1.4.39,<2)", "sqlglot[rs] (==27.27.0)", "sqlparse (<0.6.0)", "tabulate (<0.10.0)", "toml (>=0.10.0,<=0.10.2)", "traitlets (!=5.2.2,<6.0.0)", "vertica-sqlalchemy-dialect[vertica-python] (==0.0.8.2)"]
 
 [[package]]
+name = "ai-infra"
+version = "0.1.0"
+description = "Capability-oriented agent platform runtime primitives"
+optional = false
+python-versions = "==3.11.14"
+groups = ["main"]
+files = []
+develop = false
+
+[package.source]
+type = "directory"
+url = "../../libs/agent/core"
+
+[[package]]
 name = "aiohappyeyeballs"
 version = "2.6.1"
 description = "Happy Eyeballs for asyncio"
@@ -2618,4 +2632,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = "==3.11.14"
-content-hash = "d6f62fd193c1b7c34fb73841ff67c80ecb01957b6ebc271d4e9f2e320ac4ff57"
+content-hash = "2dc370a3da81e8c7c3dfe98690373a03e903b9768f3d9693e38683bd27b48cbd"

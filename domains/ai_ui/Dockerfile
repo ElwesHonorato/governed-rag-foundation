@@ -11,9 +11,12 @@ WORKDIR /app
 
 RUN pip install --no-cache-dir poetry
 
-COPY pyproject.toml /app/pyproject.toml
-COPY poetry.lock /app/poetry.lock
-COPY src /app/src
+COPY domains/ai_ui /app/domains/ai_ui
+COPY libs/agent/core /app/libs/agent/core
+COPY libs/agent/settings /app/libs/agent/settings
+
+WORKDIR /app/domains/ai_ui
+
 RUN poetry install --only main
 
 EXPOSE 8000

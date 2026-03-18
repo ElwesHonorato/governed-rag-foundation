@@ -11,11 +11,26 @@ files = []
 develop = false
 
 [package.dependencies]
-ai-infra = {path = "../../libs/agent/core"}
+agent-settings = {path = "../settings"}
+ai-infra = {path = "../core"}
 
 [package.source]
 type = "directory"
 url = "../../libs/agent/platform"
+
+[[package]]
+name = "agent-settings"
+version = "0.1.0"
+description = "Shared settings-provider abstractions for the agent stack"
+optional = false
+python-versions = "==3.11.14"
+groups = ["main"]
+files = []
+develop = false
+
+[package.source]
+type = "directory"
+url = "../../libs/agent/settings"
 
 [[package]]
 name = "ai-infra"
@@ -34,4 +49,4 @@ url = "../../libs/agent/core"
 [metadata]
 lock-version = "2.1"
 python-versions = "==3.11.14"
-content-hash = "8a9a7ae6d28d0b57ad19a922252d37bb3efc31a628775069e66f750ccc874b96"
+content-hash = "39ad715a1a1cf1b1d3215061b2d0f4080aa70fe7f91f141be35b9d937caceeb2"

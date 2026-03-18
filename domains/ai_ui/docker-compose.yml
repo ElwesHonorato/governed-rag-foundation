@@ -1,8 +1,8 @@
 services:
   ai-ui:
     build:
-      context: ./domains/ai_ui
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./domains/ai_ui/Dockerfile
     ports:
       - "${AI_UI_PORT:?AI_UI_PORT is required}:8000"
     environment:

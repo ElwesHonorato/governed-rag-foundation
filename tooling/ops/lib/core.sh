@@ -18,6 +18,7 @@ readonly DOMAINS=(
   infra_lineage
   infra_portainer
   infra_llm
+  infra_app_elasticsearch
   ai_ui
   app_vector_ui
   agent_api

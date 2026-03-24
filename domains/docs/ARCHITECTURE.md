@@ -12,7 +12,7 @@ What it does:
 - Hosts worker runtime processes (`worker_*`).
 - Hosts user-facing app processes (`ai_ui`, `app_vector_ui`).
 - Hosts governance apply domain (`gov_governance`).
-- Hosts infrastructure compose domains (`infra_*`).
+- Hosts infrastructure deployment domains (`infra_*`).
 
 What it does not do:
 - It does not define shared runtime libraries (those are in `libs/`).
@@ -36,16 +36,16 @@ Non-responsibilities:
 
 Separation of concerns by subdomain:
 - `worker_*`: queue-driven pipeline workers.
-- `app_*`: HTTP app services.
+- `app_*`: app-facing runtime packages, usually HTTP services but not exclusively.
 - `gov_governance`: governance metadata apply CLI.
-- `infra_*`: local infrastructure deployment descriptors.
+- `infra_*`: local deployment descriptors and image build contexts.
 
 # 3. Architectural Overview
 
 Overall design:
 - Multi-process monorepo with independent domain packages.
 - Workers follow a common startup pattern using `pipeline_common.startup`.
-- Apps are lightweight Flask-based services.
+- Apps are usually lightweight Flask services, but may also be CLI-facing runtime packages.
 - Governance is a CLI orchestration path with manager-based apply flow.
 
 Layering patterns observed:
@@ -69,13 +69,13 @@ Top-level structure under `domains/`:
 
 What belongs where:
 - New worker pipeline stage: `domains/worker_<stage>/`.
-- New HTTP service: `domains/app_<name>/`.
+- New app runtime package: `domains/app_<name>/`.
 - Governance apply features: `domains/gov_governance/`.
-- Local infra compose stack: `domains/infra_<name>/`.
+- Local infra deployment stack: `domains/infra_<name>/`.
 
 Dependency flow:
 - Worker domains depend on `pipeline_common` and `registry`.
-- App domains typically depend on local app modules and external HTTP/vector clients.
+- App domains typically depend on local app modules and external service clients.
 - Governance domain depends on `pipeline_common.settings` and DataHub SDK.
 
 ```mermaid
@@ -83,12 +83,12 @@ graph TD
     A[domains/worker_*] --> B[libs/pipeline-common]
     A --> C[registry]
 
-    D[domains/app_*] --> E[Flask + local clients]
+    D[domains/app_*] --> E[service runtime + local clients]
 
     F[domains/gov_governance] --> B
     F --> G[DataHub SDK]
 
-    H[domains/infra_*] --> I[docker-compose only]
+    H[domains/infra_*] --> I[compose and image packaging]
 ```
 
 # 5. Runtime Flow (Golden Path)
@@ -103,7 +103,7 @@ Primary runtime path (workers):
 
 Alternate runtime paths:
 - Governance path: `domains/gov_governance/src/apply.py` loads definitions and applies DataHub updates.
-- App path: Flask app factory creates clients/routes and serves HTTP.
+- App path: app entrypoint creates clients/routes or runs CLI flows.
 
 Shutdown/termination behavior:
 - Owned by each domain process implementation and runtime container/process manager.
@@ -119,8 +119,8 @@ flowchart TD
     G[gov_governance apply.py] --> H[Load definitions + refs]
     H --> I[Apply via managers + DataHub adapter]
 
-    J[app_* Flask create_app] --> K[Register routes/clients]
-    K --> L[Serve HTTP]
+    J[app_* entrypoint] --> K[Register clients or CLI flow]
+    K --> L[Serve HTTP or run CLI]
 ```
 
 # 6. Key Abstractions
@@ -212,6 +212,6 @@ Confirmed roadmap:
 
 - Domain: independently deployable unit in this repo.
 - Worker Domain: queue-driven pipeline process with a long-running serve loop.
-- App Domain: HTTP service process.
+- App Domain: app-facing process, often an HTTP service but not always.
 - Governance Domain: CLI process that applies governance definitions to DataHub.
-- Infra Domain: compose/deployment configuration package for local infrastructure.
+- Infra Domain: compose/deployment configuration package for local infrastructure or containerized runtime packaging.

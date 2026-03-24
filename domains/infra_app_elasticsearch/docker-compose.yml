@@ -2,7 +2,7 @@ services:
   app-elasticsearch:
     build:
       context: ../..
-      dockerfile: ./domains/app_elasticsearch/Dockerfile
+      dockerfile: ./domains/infra_app_elasticsearch/Dockerfile
     environment:
       ELASTICSEARCH_POC_URL: ${ELASTICSEARCH_POC_URL:-http://elasticsearch:9200}
       ELASTICSEARCH_POC_INDEX: ${ELASTICSEARCH_POC_INDEX:-rag_chunks}

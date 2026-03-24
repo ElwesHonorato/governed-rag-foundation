@@ -1,6 +1,6 @@
 # Elasticsearch POC Architecture
 
-This domain is an isolated CLI prototype for local Elasticsearch indexing and search.
+This domain is an isolated Python CLI prototype for local Elasticsearch indexing and search.
 
 Current responsibilities:
 - create a local index
@@ -20,7 +20,7 @@ Key runtime wiring:
 
 Deployment shape:
 - standalone Python CLI domain
-- containerized CLI domain with its own Dockerfile and compose file
+- separate infra packaging in `domains/infra_app_elasticsearch`
 - local Elasticsearch infra lives separately in `domains/infra_elasticsearch`
 - optional MinIO read path uses the repo's existing local S3-compatible storage env convention
 - intentionally not integrated with current workers or retrieval runtime

@@ -1,6 +1,6 @@
 # app_elasticsearch domain
 
-Containerized CLI domain for the isolated Elasticsearch prototype.
+Python CLI domain for the isolated Elasticsearch prototype.
 
 ## Deep Dive
 
@@ -14,7 +14,7 @@ Containerized CLI domain for the isolated Elasticsearch prototype.
 ### What this is
 - A small CLI-oriented Elasticsearch playground.
 - A local interview-prep sandbox for indexing, bulk ingest, and simple text search.
-- A separate app domain that talks to Elasticsearch and MinIO without joining the production retrieval flow.
+- A separate Python package that talks to Elasticsearch and MinIO without joining the production retrieval flow.
 
 ### What this is not
 - Not a queue-driven worker.
@@ -24,21 +24,20 @@ Containerized CLI domain for the isolated Elasticsearch prototype.
 - Not implementing custom analyzers, vectors, hybrid retrieval, or advanced relevance tuning.
 
 ### Runtime dependencies
-- `STACK_NETWORK` for container access to the shared Docker network.
 - `ELASTICSEARCH_POC_URL` for the target Elasticsearch endpoint.
 - `ELASTICSEARCH_POC_INDEX` for the target index name.
 - `ELASTICSEARCH_POC_S3_ENDPOINT`, `ELASTICSEARCH_POC_S3_BUCKET`, `ELASTICSEARCH_POC_S3_PREFIX` for MinIO chunk import.
 - `ELASTICSEARCH_POC_S3_ACCESS_KEY`, `ELASTICSEARCH_POC_S3_SECRET_KEY` for MinIO credentials.
 
 ### Operational notes
-- Service container: `app-elasticsearch`.
 - This domain is command-oriented, not a long-running server.
+- Container packaging lives separately in `domains/infra_app_elasticsearch`.
 - Elasticsearch itself runs separately in `domains/infra_elasticsearch`.
 
 ### Files of interest
 
-- `domains/app_elasticsearch/docker-compose.yml`
-- `domains/app_elasticsearch/Dockerfile`
+- `domains/infra_app_elasticsearch/docker-compose.yml`
+- `domains/infra_app_elasticsearch/Dockerfile`
 - `domains/infra_elasticsearch/docker-compose.yml`
 - `domains/app_elasticsearch/src/elasticsearch_poc/create_index.py`
 - `domains/app_elasticsearch/src/elasticsearch_poc/seed_documents.py`
@@ -65,16 +64,16 @@ cd domains/app_elasticsearch
 poetry install
 ```
 
-This domain also has its own container packaging:
+Container packaging for this CLI lives in `domains/infra_app_elasticsearch`:
 
 ```bash
-docker compose -f domains/app_elasticsearch/docker-compose.yml build
-docker compose -f domains/app_elasticsearch/docker-compose.yml run --rm app-elasticsearch poetry run elasticsearch-poc
+docker compose -f domains/infra_app_elasticsearch/docker-compose.yml build
+docker compose -f domains/infra_app_elasticsearch/docker-compose.yml run --rm app-elasticsearch poetry run elasticsearch-poc
 ```
 
 Local env template:
 
-- Copy `.env.example` to `.env` in this domain if you want a domain-scoped compose env file.
+- Copy `.env.example` to `.env` in this domain if you want a domain-scoped local CLI env file.
 
 ## Start Elasticsearch
 
@@ -98,7 +97,7 @@ poetry run elasticsearch-poc-create-index
 Container form:
 
 ```bash
-docker compose -f domains/app_elasticsearch/docker-compose.yml run --rm app-elasticsearch poetry run elasticsearch-poc-create-index
+docker compose -f domains/infra_app_elasticsearch/docker-compose.yml run --rm app-elasticsearch poetry run elasticsearch-poc-create-index
 ```
 
 Expected behavior:
@@ -115,7 +114,7 @@ poetry run elasticsearch-poc-seed
 Container form:
 
 ```bash
-docker compose -f domains/app_elasticsearch/docker-compose.yml run --rm app-elasticsearch poetry run elasticsearch-poc-seed
+docker compose -f domains/infra_app_elasticsearch/docker-compose.yml run --rm app-elasticsearch poetry run elasticsearch-poc-seed
 ```
 
 Expected behavior:
@@ -143,7 +142,7 @@ poetry run elasticsearch-poc-import-minio
 Container form:
 
 ```bash
-docker compose -f domains/app_elasticsearch/docker-compose.yml run --rm app-elasticsearch poetry run elasticsearch-poc-import-minio
+docker compose -f domains/infra_app_elasticsearch/docker-compose.yml run --rm app-elasticsearch poetry run elasticsearch-poc-import-minio
 ```
 
 Expected behavior:
@@ -173,7 +172,7 @@ poetry run elasticsearch-poc-search "security clearance" --limit 3
 Container form:
 
 ```bash
-docker compose -f domains/app_elasticsearch/docker-compose.yml run --rm app-elasticsearch poetry run elasticsearch-poc-search "lineage runtime"
+docker compose -f domains/infra_app_elasticsearch/docker-compose.yml run --rm app-elasticsearch poetry run elasticsearch-poc-search "lineage runtime"
 ```
 
 Expected output shape:

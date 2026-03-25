@@ -1,5 +1,6 @@
 """Shared settings loading contracts and providers."""
 
+from pipeline_common.gateways.elasticsearch.settings import ElasticsearchApiSettings
 from pipeline_common.settings.provider import (
     CacheSettings,
     DBSettings,
@@ -13,6 +14,7 @@ from pipeline_common.settings.provider import (
 __all__ = [
     "CacheSettings",
     "DBSettings",
+    "ElasticsearchApiSettings",
     "QueueSettings",
     "SettingsBundle",
     "SettingsProvider",

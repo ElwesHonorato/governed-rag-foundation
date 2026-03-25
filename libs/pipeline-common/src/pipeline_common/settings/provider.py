@@ -20,6 +20,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from pipeline_common.gateways.elasticsearch.settings import ElasticsearchApiSettings
 from pipeline_common.helpers.config import _optional_env
 from pipeline_common.gateways.lineage.settings import DataHubSettings
 from pipeline_common.gateways.object_storage.settings import S3StorageSettings
@@ -49,6 +50,7 @@ class SettingsRequest:
     queue: bool = False
     datahub: bool = False
     cache: bool = False
+    elasticsearch_api: bool = False
 
 
 @dataclass(frozen=True)
@@ -61,6 +63,7 @@ class SettingsBundle:
     queue: QueueSettings | None = None
     datahub: DataHubSettings | None = None
     cache: CacheSettings | None = None
+    elasticsearch_api: ElasticsearchApiSettings | None = None
 
 
 def load_db_settings_from_env() -> DBSettings:
@@ -86,6 +89,11 @@ def load_datahub_settings_from_env() -> DataHubSettings:
 def load_cache_settings_from_env() -> CacheSettings:
     """Load cache settings from environment."""
     raise NotImplementedError("Cache settings loader is not implemented yet.")
+
+
+def load_elasticsearch_api_settings_from_env() -> ElasticsearchApiSettings:
+    """Load Elasticsearch query API settings from environment."""
+    return ElasticsearchApiSettings.from_env()
 
 
 def load_env_name_from_env() -> str | None:
@@ -152,6 +160,13 @@ class SettingsProvider:
         return load_cache_settings_from_env()
 
     @property
+    def elasticsearch_api(self) -> ElasticsearchApiSettings | None:
+        """Load Elasticsearch query API settings when requested."""
+        if not self._request.elasticsearch_api:
+            return None
+        return load_elasticsearch_api_settings_from_env()
+
+    @property
     def bundle(self) -> SettingsBundle:
         """Return the loaded settings bundle."""
         return SettingsBundle(
@@ -161,4 +176,5 @@ class SettingsProvider:
             queue=self.queue,
             datahub=self.datahub,
             cache=self.cache,
+            elasticsearch_api=self.elasticsearch_api,
         )

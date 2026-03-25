@@ -38,7 +38,7 @@ def main() -> int:
 
     gateway = ElasticsearchGateway(
         url=api_settings.elasticsearch_url,
-        index_name=api_settings.elasticsearch_index,
+        index_name="rag_chunks",
         index_policy=index_policy,
         search_policy=search_policy,
     )

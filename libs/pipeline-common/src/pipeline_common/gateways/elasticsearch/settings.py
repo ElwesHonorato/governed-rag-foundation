@@ -10,7 +10,6 @@ class ElasticsearchApiSettings:
     host: str
     port: int
     elasticsearch_url: str
-    elasticsearch_index: str
 
     @classmethod
     def from_env(cls) -> "ElasticsearchApiSettings":
@@ -19,5 +18,4 @@ class ElasticsearchApiSettings:
             host=_required_env("APP_ELASTICSEARCH_HOST"),
             port=int(_required_env("APP_ELASTICSEARCH_PORT")),
             elasticsearch_url=_required_env("ELASTICSEARCH_URL"),
-            elasticsearch_index=_required_env("ELASTICSEARCH_INDEX"),
         )

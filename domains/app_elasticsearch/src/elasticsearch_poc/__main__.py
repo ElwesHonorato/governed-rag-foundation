@@ -1,9 +1,4 @@
-"""Module entrypoint for the Elasticsearch app domain.
-
-This wrapper supports `python -m elasticsearch_poc` and delegates execution to
-`elasticsearch_poc.app.main()`. Keeping the execution handoff here leaves
-`app.py` focused on the command index for this domain.
-"""
+"""Module entrypoint for the Elasticsearch API domain."""
 
 from elasticsearch_poc.app import main
 

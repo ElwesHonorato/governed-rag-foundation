@@ -1,24 +1,23 @@
 # app_elasticsearch domain
 
-Python CLI domain for the isolated Elasticsearch prototype.
+HTTP retrieval app plus local utility commands for the Elasticsearch integration.
 
 ## Deep Dive
 
 ### Domain responsibility
-- Creates and manages a local Elasticsearch spike index.
+- Exposes a retrieval endpoint over Elasticsearch for lexical chunk search.
+- Creates and manages a local Elasticsearch index for local development.
 - Seeds sample chunk-like documents for local exploration.
 - Imports real chunk artifacts from MinIO under `DEV/04_chunks/`.
 - Runs simple lexical searches against the Elasticsearch index.
-- Provides a demo runner for local end-to-end validation.
 
 ### What this is
-- A small CLI-oriented Elasticsearch playground.
-- A local interview-prep sandbox for indexing, bulk ingest, and simple text search.
-- A separate Python package that talks to Elasticsearch and MinIO without joining the production retrieval flow.
+- A small HTTP app for Elasticsearch retrieval plus a few local utility commands.
+- A local sandbox for indexing, bulk ingest, and simple BM25-style search.
+- The query surface for the Elasticsearch indexing path.
 
 ### What this is not
 - Not a queue-driven worker.
-- Not an HTTP API.
 - Not integrated with current gateways, factories, workers, or startup flow.
 - Not part of the existing retrieval path.
 - Not implementing custom analyzers, vectors, hybrid retrieval, or advanced relevance tuning.
@@ -30,7 +29,7 @@ Python CLI domain for the isolated Elasticsearch prototype.
 - `ELASTICSEARCH_POC_S3_ACCESS_KEY`, `ELASTICSEARCH_POC_S3_SECRET_KEY` for MinIO credentials.
 
 ### Operational notes
-- This domain is command-oriented, not a long-running server.
+- The primary runtime is a long-running HTTP process.
 - Container packaging lives separately in `domains/infra_app_elasticsearch`.
 - Elasticsearch itself runs separately in `domains/infra_elasticsearch`.
 
@@ -64,11 +63,26 @@ cd domains/app_elasticsearch
 poetry install
 ```
 
-Container packaging for this CLI lives in `domains/infra_app_elasticsearch`:
+Run the HTTP query API locally:
+
+```bash
+cd domains/app_elasticsearch
+poetry run elasticsearch-poc-api
+```
+
+Query it:
+
+```bash
+curl -X POST http://localhost:8081/retrieve \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"lineage runtime","limit":3}'
+```
+
+Container packaging for this app lives in `domains/infra_app_elasticsearch`:
 
 ```bash
 docker compose -f domains/infra_app_elasticsearch/docker-compose.yml build
-docker compose -f domains/infra_app_elasticsearch/docker-compose.yml run --rm app-elasticsearch poetry run elasticsearch-poc
+docker compose -f domains/infra_app_elasticsearch/docker-compose.yml run --rm app-elasticsearch poetry run elasticsearch-poc-api
 ```
 
 Local env template:

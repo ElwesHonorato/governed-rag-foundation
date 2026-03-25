@@ -17,4 +17,4 @@ WORKDIR /app/domains/app_elasticsearch
 
 RUN poetry install --only main
 
-CMD ["poetry", "run", "elasticsearch-poc"]
+CMD ["poetry", "run", "elasticsearch-poc-api"]

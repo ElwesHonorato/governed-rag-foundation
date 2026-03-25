@@ -7,10 +7,11 @@ requires-python = "==3.11.14"
 dependencies = [
   "boto3==1.37.38",
   "elasticsearch==8.17.2",
+  "pipeline-common @ ../../libs/pipeline-common",
 ]
 
 [project.scripts]
-elasticsearch-poc = "elasticsearch_poc.app:main"
+elasticsearch-poc-api = "elasticsearch_poc.app:main"
 elasticsearch-poc-create-index = "elasticsearch_poc.create_index:main"
 elasticsearch-poc-seed = "elasticsearch_poc.seed_documents:main"
 elasticsearch-poc-search = "elasticsearch_poc.search_documents:main"

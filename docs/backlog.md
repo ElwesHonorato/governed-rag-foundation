@@ -53,3 +53,11 @@
    d. Decide whether health endpoints should use a shared payload contract or remain domain-specific.
    e. Prove the abstraction against at least the current `agent_api` and `app_elasticsearch` shapes before introducing framework-style base classes.
    f. Document guardrails so shared HTTP infrastructure does not absorb domain routing, handler logic, or service orchestration.
+
+8. Add a query adapter between user intent and Elasticsearch lexical search.
+   a. Define the contract boundary between user-facing retrieval requests and the internal Elasticsearch lexical query shape.
+   b. Decide whether the adapter should remain a simple prompt-to-lexical translator or also support structured retrieval inputs.
+   c. Keep Elasticsearch query construction out of the HTTP handler so request intent translation and search-policy behavior stay separate.
+   d. Define fail-fast behavior for unsupported request shapes instead of silently dumping arbitrary prompts into lexical search.
+   e. Add tests covering direct keyword queries, natural-language prompts, and invalid request forms.
+   f. Document the boundary so future hybrid/vector retrieval work can extend the adapter without coupling API payloads to raw Elasticsearch DSL.

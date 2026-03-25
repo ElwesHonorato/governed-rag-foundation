@@ -44,6 +44,7 @@ jobs:
       job.queue.pop_timeout_seconds: "1"
       job.queue.consume: q.chunk_text
       job.queue.produce: q.embed_chunks
+      job.queue.elasticsearch_produce: q.index_elasticsearch
       job.queue.dlq: q.chunk_text.dlq
       job.storage.bucket: rag-data
       job.storage.output_prefix: 04_chunks/
@@ -65,6 +66,18 @@ jobs:
       job.storage.output_prefix: 05_embeddings/
       job.storage.manifest_prefix: 07_metadata/manifest/
       job.dimension: "32"
+
+  - id: worker_index_elasticsearch
+    domain: rag-indexing
+    owners: [daedalus]
+    custom_properties:
+      job.version: "0.0.1"
+      job.poll_interval_seconds: "30"
+      job.queue.stage: index_elasticsearch
+      job.queue.queue_pop_timeout_seconds: "1"
+      job.queue.pop_timeout_seconds: "1"
+      job.queue.consume: q.index_elasticsearch
+      job.queue.dlq: q.index_elasticsearch.dlq
 
   - id: worker_index_weaviate
     domain: rag-indexing

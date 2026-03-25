@@ -1,0 +1,8 @@
+datasets:
+  - id: elasticsearch.rag_chunks
+    platform: elasticsearch
+    name: rag_chunks
+    domain: rag-indexing
+    owners: [daedalus]
+    tags: [internal]
+    terms: [chunk]

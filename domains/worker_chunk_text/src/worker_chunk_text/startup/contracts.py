@@ -81,13 +81,16 @@ class RawChunkJobConfig:
 
     storage: RawChunkStorageConfig
     poll_interval_seconds: int
+    elasticsearch_index_queue_name: str
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> RawChunkJobConfig:
         """Build raw chunk job config from a dictionary payload."""
+        queue_payload = payload["queue"]
         return cls(
             storage=RawChunkStorageConfig.from_dict(payload["storage"]),
             poll_interval_seconds=int(payload["poll_interval_seconds"]),
+            elasticsearch_index_queue_name=str(queue_payload["elasticsearch_produce"]),
         )
 
 
@@ -102,3 +105,4 @@ class RuntimeChunkJobConfig:
 
     poll_interval_seconds: int
     storage: RuntimeChunkStorageConfig
+    elasticsearch_index_queue_name: str

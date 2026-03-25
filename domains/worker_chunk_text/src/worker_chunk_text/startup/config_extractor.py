@@ -34,4 +34,5 @@ class ChunkTextConfigExtractor(WorkerConfigExtractor[RuntimeChunkJobConfig]):
         return RuntimeChunkJobConfig(
             storage=RuntimeChunkStorageConfig.from_raw(raw_job_config.storage, env=env),
             poll_interval_seconds=raw_job_config.poll_interval_seconds,
+            elasticsearch_index_queue_name=raw_job_config.elasticsearch_index_queue_name,
         )

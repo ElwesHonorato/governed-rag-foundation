@@ -50,6 +50,7 @@ Overall design:
 - Multi-domain monorepo with shared runtime core (`pipeline_common`) and multiple executable domains.
 - The agent-platform MVP adds a second shared runtime core (`ai_infra`) for supervised capability execution and a thin API domain that reuses the same service graph.
 - `libs/agent/platform` now also owns reusable RAG backend logic: LLM access, Weaviate retrieval, and retrieval-grounded response orchestration.
+- Elasticsearch lexical retrieval now follows the same queue-driven worker pattern as the other pipeline stages: `worker_chunk_text` fans out chunk URIs to a dedicated indexing queue, `worker_index_elasticsearch` projects chunk `StageArtifact` payloads into Elasticsearch, and `app_elasticsearch` exposes the HTTP retrieval surface over that index.
 
 Layering (observed in code):
 - Composition roots: package entrypoints (`<package>.app`, `apply.py`).

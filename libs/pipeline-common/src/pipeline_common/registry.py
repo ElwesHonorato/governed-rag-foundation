@@ -10,6 +10,7 @@ class GovernedRagJobId(Enum):
     WORKER_PARSE_DOCUMENT = "worker_parse_document"
     WORKER_CHUNK_TEXT = "worker_chunk_text"
     WORKER_EMBED_CHUNKS = "worker_embed_chunks"
+    WORKER_INDEX_ELASTICSEARCH = "worker_index_elasticsearch"
     WORKER_INDEX_WEAVIATE = "worker_index_weaviate"
 
 
@@ -19,6 +20,11 @@ class DataHubPipelineJobs(Enum):
         GovernedRagJobId.WORKER_PARSE_DOCUMENT: DataHubDataJobKey("governed-rag", "worker_parse_document", "custom"),
         GovernedRagJobId.WORKER_CHUNK_TEXT: DataHubDataJobKey("governed-rag", "worker_chunk_text", "custom"),
         GovernedRagJobId.WORKER_EMBED_CHUNKS: DataHubDataJobKey("governed-rag", "worker_embed_chunks", "custom"),
+        GovernedRagJobId.WORKER_INDEX_ELASTICSEARCH: DataHubDataJobKey(
+            "governed-rag",
+            "worker_index_elasticsearch",
+            "custom",
+        ),
         GovernedRagJobId.WORKER_INDEX_WEAVIATE: DataHubDataJobKey("governed-rag", "worker_index_weaviate", "custom"),
     }
 

@@ -7,6 +7,7 @@ from typing import Any, ClassVar, Iterator
 from worker_chunk_text.chunking.stage_contract import ChunkingStage, ChunkingStages
 from worker_chunk_text.chunking.stage_splitter import StageSplitter
 from langchain_core.documents import Document
+from pipeline_common.elasticsearch import ElasticsearchIndexWorkItem
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import Envelope, QueueGateway
 from pipeline_common.provenance import build_id, chunk_params_hash, sha256_hex
@@ -44,12 +45,14 @@ class ChunkTextProcessor(BaseProcessor):
         self,
         object_storage: ObjectStorageGateway,
         queue_gateway: QueueGateway,
+        elasticsearch_queue_gateway: QueueGateway,
         storage_bucket: str,
         output_prefix: str,
     ) -> None:
         """Initialize the processor dependencies used for storage and queue output."""
         self.object_storage = object_storage
         self.queue_gateway = queue_gateway
+        self.elasticsearch_queue_gateway = elasticsearch_queue_gateway
         self.storage_bucket = storage_bucket
         self.output_prefix = output_prefix
 
@@ -171,7 +174,11 @@ class ChunkTextProcessor(BaseProcessor):
                 storage_stage_artifact.destination_key,
             )
             self._write_chunk_object(storage_stage_artifact.to_payload, destination_uri=destination_uri)
-            self._push_chunk_message(destination_uri)
+            self._push_chunk_messages(
+                destination_uri=destination_uri,
+                doc_id=root_metadata.doc_id,
+                chunk_id=storage_stage_artifact.artifact.content_metadata["chunk_id"],
+            )
             written += 1
 
         return ChunkingExecutionMetadata(
@@ -275,10 +282,17 @@ class ChunkTextProcessor(BaseProcessor):
             content_type="application/json",
         )
 
-    def _push_chunk_message(self, destination_uri: str) -> None:
-        """Publish the written chunk URI to the downstream queue."""
+    def _push_chunk_messages(self, *, destination_uri: str, doc_id: str, chunk_id: str) -> None:
+        """Publish the written chunk artifact to downstream queues."""
         self.queue_gateway.push(
             Envelope(
                 payload=destination_uri,
             ).to_payload
+        )
+        self.elasticsearch_queue_gateway.push(
+            ElasticsearchIndexWorkItem(
+                uri=destination_uri,
+                doc_id=doc_id,
+                chunk_id=chunk_id,
+            ).to_dict
         )

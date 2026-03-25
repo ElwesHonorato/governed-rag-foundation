@@ -1,5 +1,6 @@
 """Service graph assembly for worker_chunk_text startup."""
 
+from pipeline_common.gateways.queue import QueueGateway
 from worker_chunk_text.chunking.resolver import ChunkingStagesResolver
 from pipeline_common.gateways.object_storage import ManifestWriter
 from pipeline_common.startup import WorkerRuntimeContext, WorkerServiceFactory
@@ -10,6 +11,10 @@ from worker_chunk_text.startup.contracts import RuntimeChunkJobConfig
 
 class ChunkTextServiceFactory(WorkerServiceFactory[RuntimeChunkJobConfig, WorkerChunkingService]):
     """Build chunk_text service from runtime context and typed config."""
+
+    def __init__(self, *, elasticsearch_queue_gateway: QueueGateway) -> None:
+        """Store the dedicated Elasticsearch queue publisher."""
+        self._elasticsearch_queue_gateway = elasticsearch_queue_gateway
 
     def build(
         self,
@@ -22,6 +27,7 @@ class ChunkTextServiceFactory(WorkerServiceFactory[RuntimeChunkJobConfig, Worker
         processor: ChunkTextProcessor = ChunkTextProcessor(
             object_storage=runtime.object_storage_gateway,
             queue_gateway=runtime.stage_queue_gateway,
+            elasticsearch_queue_gateway=self._elasticsearch_queue_gateway,
             storage_bucket=worker_config.storage.bucket,
             output_prefix=worker_config.storage.output_prefix,
         )

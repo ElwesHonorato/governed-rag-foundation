@@ -1,5 +1,6 @@
 """Installable entrypoint for the ``worker_chunk_text`` domain."""
 
+from pipeline_common.gateways.factories import QueueGatewayFactory
 from pipeline_common.registry import DataHubDataJobKey, DataHubPipelineJobs, GovernedRagJobId
 from pipeline_common.settings import SettingsBundle, SettingsProvider, SettingsRequest
 from pipeline_common.startup import RuntimeContextFactory
@@ -25,7 +26,16 @@ def main() -> int:
         worker_chunk_text_runtime_context.job_properties,
         env=worker_chunk_text_runtime_context.env,
     )
-    worker_chunk_text_service: WorkerChunkingService = ChunkTextServiceFactory().build(
+    elasticsearch_queue_gateway = QueueGatewayFactory(
+        queue_settings=worker_chunk_text_settings.queue,
+        queue_config={
+            "produce": worker_chunk_text_runtime_job_config.elasticsearch_index_queue_name,
+            "queue_pop_timeout_seconds": worker_chunk_text_settings.queue.queue_pop_timeout_seconds,
+        },
+    ).build()
+    worker_chunk_text_service: WorkerChunkingService = ChunkTextServiceFactory(
+        elasticsearch_queue_gateway=elasticsearch_queue_gateway,
+    ).build(
         worker_chunk_text_runtime_context,
         worker_chunk_text_runtime_job_config,
     )

@@ -7,6 +7,7 @@ class DatasetPlatform(str, Enum):
     POSTGRES = "postgres"
     RABBITMQ = "rabbitmq"
     WEAVIATE = "weaviate"
+    ELASTICSEARCH = "elasticsearch"
     MYSQL = "mysql"
     KAFKA = "kafka"
 

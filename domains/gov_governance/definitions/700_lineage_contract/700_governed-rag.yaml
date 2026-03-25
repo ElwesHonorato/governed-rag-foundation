@@ -16,6 +16,10 @@ lineage_contract:
     inputs: [s3.rag-data.04_chunks]
     outputs: [s3.rag-data.05_embeddings]
 
+  - job: worker_index_elasticsearch
+    inputs: [s3.rag-data.04_chunks]
+    outputs: [elasticsearch.rag_chunks]
+
   - job: worker_index_weaviate
     inputs: [s3.rag-data.05_embeddings]
     outputs: [s3.rag-data.06_indexes]

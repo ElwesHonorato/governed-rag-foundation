@@ -1,0 +1,19 @@
+[project]
+name = "worker-index-elasticsearch"
+version = "0.1.0"
+description = "Pipeline worker worker_index_elasticsearch"
+authors = [{ name = "Governed RAG Foundation" }]
+requires-python = "==3.11.14"
+dependencies = [
+  "pipeline-common @ ../../libs/pipeline-common",
+]
+
+[project.scripts]
+worker-index-elasticsearch = "worker_index_elasticsearch.app:main"
+
+[tool.poetry]
+packages = [{ include = "worker_index_elasticsearch", from = "src" }]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

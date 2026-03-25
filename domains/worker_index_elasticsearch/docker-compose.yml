@@ -1,0 +1,20 @@
+services:
+  pipeline-worker-index-elasticsearch:
+    build:
+      context: .
+      dockerfile: ./domains/worker_index_elasticsearch/Dockerfile
+    environment:
+      ELASTICSEARCH_URL: ${ELASTICSEARCH_URL:?ELASTICSEARCH_URL is required}
+      ELASTICSEARCH_INDEX: ${ELASTICSEARCH_INDEX:-rag_chunks}
+      BROKER_URL: ${BROKER_URL:?BROKER_URL is required}
+      S3_ENDPOINT: ${S3_ENDPOINT:?S3_ENDPOINT is required}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?S3_ACCESS_KEY is required}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?S3_SECRET_KEY is required}
+      DATAHUB_GMS_SERVER: ${DATAHUB_GMS_SERVER:-${DATAHUB_GMS_URL:-http://datahub-gms:8080}}
+      ENV: ${ENV:?ENV is required}
+      DATAHUB_TOKEN: ${DATAHUB_TOKEN:-}
+
+networks:
+  default:
+    external: true
+    name: ${STACK_NETWORK:?STACK_NETWORK is required}

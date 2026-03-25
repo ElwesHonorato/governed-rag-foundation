@@ -23,16 +23,13 @@ class WsgiRequestNormalizer:
 
     def normalize(self, env: WsgiEnv) -> NormalizedRequest:
         return NormalizedRequest(
-            method=str(env.get("REQUEST_METHOD", "GET")).upper(),
-            path=str(env.get("PATH_INFO", "/")),
+            method=str(env["REQUEST_METHOD"]).upper(),
+            path=str(env["PATH_INFO"]),
             body=self._read_json_body(env),
         )
 
     def _read_json_body(self, env: WsgiEnv) -> dict[str, object]:
-        try:
-            content_length = int(str(env.get("CONTENT_LENGTH") or "0"))
-        except ValueError:
-            content_length = 0
+        content_length = int(str(env.get("CONTENT_LENGTH") or "0"))
         if content_length <= 0:
             return {}
         wsgi_input = cast(Any, env["wsgi.input"])

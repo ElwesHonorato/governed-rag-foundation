@@ -31,8 +31,8 @@ class ElasticsearchSearchPolicy(Protocol):
         """Build one typed result object from raw Elasticsearch hits."""
 
 
-class ElasticsearchGateway:
-    """Narrow runtime facade for Elasticsearch indexing and search operations."""
+class ElasticsearchIndexGateway:
+    """Narrow runtime facade for Elasticsearch indexing operations."""
 
     def __init__(
         self,
@@ -40,14 +40,12 @@ class ElasticsearchGateway:
         url: str,
         index_name: str,
         index_policy: ElasticsearchIndexPolicy,
-        search_policy: ElasticsearchSearchPolicy,
         timeout_seconds: float = 10.0,
     ) -> None:
         """Initialize Elasticsearch client state."""
         self._index_name = index_name.strip()
         self._client = Elasticsearch(url.strip(), request_timeout=timeout_seconds)
         self._index_policy = index_policy
-        self._search_policy = search_policy
 
     @property
     def index_name(self) -> str:
@@ -76,6 +74,32 @@ class ElasticsearchGateway:
             document=self._index_policy.serialize_document(document),
             refresh="false",
         )
+
+
+class ElasticsearchSearchGateway:
+    """Narrow runtime facade for Elasticsearch search operations."""
+
+    def __init__(
+        self,
+        *,
+        url: str,
+        index_name: str,
+        search_policy: ElasticsearchSearchPolicy,
+        timeout_seconds: float = 10.0,
+    ) -> None:
+        """Initialize Elasticsearch client state."""
+        self._index_name = index_name.strip()
+        self._client = Elasticsearch(url.strip(), request_timeout=timeout_seconds)
+        self._search_policy = search_policy
+
+    @property
+    def index_name(self) -> str:
+        """Return the configured Elasticsearch index name."""
+        return self._index_name
+
+    def ping(self) -> bool:
+        """Return whether Elasticsearch is reachable."""
+        return bool(self._client.ping())
 
     def search(self, *, query_text: str, limit: int) -> object:
         """Run one configured Elasticsearch search operation."""

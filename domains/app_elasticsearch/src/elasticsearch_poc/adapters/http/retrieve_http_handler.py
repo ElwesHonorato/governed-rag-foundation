@@ -7,7 +7,7 @@ from http import HTTPStatus
 
 from elasticsearch_poc.adapters.http.contracts import RetrieveRequest
 from pipeline_common.elasticsearch import ElasticsearchRetrievedDocumentList
-from pipeline_common.gateways.elasticsearch import ElasticsearchGateway
+from pipeline_common.gateways.elasticsearch import ElasticsearchSearchGateway
 from pipeline_common.http import JsonResponse
 from pipeline_common.settings import ElasticsearchApiSettings
 
@@ -18,7 +18,7 @@ class RetrieveHttpHandler:
         self,
         *,
         settings: ElasticsearchApiSettings,
-        gateway: ElasticsearchGateway,
+        gateway: ElasticsearchSearchGateway,
     ) -> None:
         self._settings = settings
         self._gateway = gateway

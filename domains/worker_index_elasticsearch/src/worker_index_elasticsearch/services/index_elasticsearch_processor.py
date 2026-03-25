@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import json
-from typing import Any
 
-from pipeline_common.elasticsearch import IndexedChunkDocument
-from pipeline_common.gateways.elasticsearch import ElasticsearchGateway
+from pipeline_common.gateways.elasticsearch import ElasticsearchIndexGateway
 from pipeline_common.provenance import chunk_params_hash
 from pipeline_common.stages_contracts import ProcessResult, ProcessorContext, StageArtifact
 from pipeline_common.stages_contracts.step_00_common import ProcessorMetadata
@@ -21,7 +19,7 @@ class IndexElasticsearchProcessor:
     def __init__(
         self,
         *,
-        elasticsearch_gateway: ElasticsearchGateway,
+        elasticsearch_gateway: ElasticsearchIndexGateway,
         document_mapper: IndexedChunkDocumentMapper,
     ) -> None:
         """Store Elasticsearch runtime dependency."""

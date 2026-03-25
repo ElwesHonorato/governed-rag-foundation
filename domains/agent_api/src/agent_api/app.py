@@ -26,8 +26,8 @@ from agent_api.adapters.http.application import AgentApiApplication
 from agent_api.adapters.http.grounded_response_http_handler import (
     GroundedResponseHttpHandler,
 )
-from agent_api.adapters.http.request_normalization import WsgiRequestNormalizer
 from agent_api.adapters.http.router import AgentApiRouter
+from pipeline_common.http import WsgiRequestNormalizer
 
 # --- Infrastructure clients ---
 from agent_platform.clients.llm.ollama_client import OllamaClient

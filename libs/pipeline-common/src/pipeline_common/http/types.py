@@ -1,4 +1,4 @@
-"""Shared HTTP types for the Elasticsearch WSGI app."""
+"""Shared HTTP types for stdlib WSGI applications."""
 
 from __future__ import annotations
 

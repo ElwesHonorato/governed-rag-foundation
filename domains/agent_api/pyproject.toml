@@ -7,6 +7,7 @@ requires-python = "==3.11.14"
 dependencies = [
   "agent-platform @ ../../libs/agent/platform",
   "agent-settings @ ../../libs/agent/settings",
+  "pipeline-common @ ../../libs/pipeline-common",
 ]
 
 [project.scripts]

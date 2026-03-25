@@ -5,8 +5,7 @@ from __future__ import annotations
 from agent_api.adapters.http.grounded_response_http_handler import (
     GroundedResponseHttpHandler,
 )
-from agent_api.adapters.http.request_normalization import NormalizedRequest
-from agent_api.adapters.http.responses import JsonResponse
+from pipeline_common.http import JsonResponse, NormalizedRequest
 
 
 class AgentApiRouter:

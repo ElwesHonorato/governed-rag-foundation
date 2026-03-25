@@ -6,10 +6,8 @@ from dataclasses import asdict
 from http import HTTPStatus
 
 from pipeline_common.gateways.elasticsearch import ElasticsearchGateway
+from pipeline_common.http import JsonResponse
 from pipeline_common.settings import ElasticsearchApiSettings
-
-from elasticsearch_poc.adapters.http.responses import JsonResponse
-
 
 class RetrieveHttpHandler:
     """Build JSON responses for retrieval HTTP endpoints."""

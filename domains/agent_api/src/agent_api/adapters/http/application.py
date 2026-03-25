@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from agent_api.adapters.http.http_types import StartResponse, WsgiEnv
-from agent_api.adapters.http.request_normalization import WsgiRequestNormalizer
 from agent_api.adapters.http.router import AgentApiRouter
+from pipeline_common.http import StartResponse, WsgiEnv, WsgiRequestNormalizer
 
 
 class AgentApiApplication:

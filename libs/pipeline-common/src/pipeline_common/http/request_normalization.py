@@ -1,4 +1,4 @@
-"""WSGI request normalization for the Elasticsearch API."""
+"""WSGI request normalization shared across HTTP APIs."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass
 from typing import Any, cast
 
-from elasticsearch_poc.adapters.http.http_types import WsgiEnv
+from pipeline_common.http.types import WsgiEnv
 
 
 @dataclass(slots=True)

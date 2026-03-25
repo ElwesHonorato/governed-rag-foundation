@@ -5,9 +5,9 @@ from __future__ import annotations
 from dataclasses import asdict
 from http import HTTPStatus
 
-from agent_api.adapters.http.responses import JsonResponse
 from agent_platform.grounded_response.service import GroundedResponseService
 from agent_settings.settings import AgentApiSettings
+from pipeline_common.http import JsonResponse
 
 
 class GroundedResponseHttpHandler:

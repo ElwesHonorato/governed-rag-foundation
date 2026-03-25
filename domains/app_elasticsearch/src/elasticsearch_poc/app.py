@@ -20,9 +20,9 @@ from pipeline_common.gateways.elasticsearch import ElasticsearchGateway
 from pipeline_common.settings import ElasticsearchApiSettings, SettingsProvider, SettingsRequest
 
 from elasticsearch_poc.adapters.http.application import ElasticsearchApiApplication
-from elasticsearch_poc.adapters.http.request_normalization import WsgiRequestNormalizer
 from elasticsearch_poc.adapters.http.retrieve_http_handler import RetrieveHttpHandler
 from elasticsearch_poc.adapters.http.router import ElasticsearchApiRouter
+from pipeline_common.http import WsgiRequestNormalizer
 
 
 def main() -> int:

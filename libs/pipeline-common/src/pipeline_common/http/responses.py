@@ -1,11 +1,11 @@
-"""JSON response construction for the agent API."""
+"""JSON response construction shared across HTTP APIs."""
 
 from __future__ import annotations
 
 import json
 from http import HTTPStatus
 
-from agent_api.adapters.http.http_types import JsonValue, StartResponse
+from pipeline_common.http.types import JsonValue, StartResponse
 
 
 class JsonResponse:

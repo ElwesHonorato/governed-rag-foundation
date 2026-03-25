@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from elasticsearch_poc.adapters.http.request_normalization import NormalizedRequest
-from elasticsearch_poc.adapters.http.responses import JsonResponse
 from elasticsearch_poc.adapters.http.retrieve_http_handler import RetrieveHttpHandler
+from pipeline_common.http import JsonResponse, NormalizedRequest
 
 
 class ElasticsearchApiRouter:

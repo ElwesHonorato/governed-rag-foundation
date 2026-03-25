@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from elasticsearch_poc.adapters.http.http_types import StartResponse, WsgiEnv
-from elasticsearch_poc.adapters.http.request_normalization import WsgiRequestNormalizer
 from elasticsearch_poc.adapters.http.router import ElasticsearchApiRouter
+from pipeline_common.http import StartResponse, WsgiEnv, WsgiRequestNormalizer
 
 
 class ElasticsearchApiApplication:

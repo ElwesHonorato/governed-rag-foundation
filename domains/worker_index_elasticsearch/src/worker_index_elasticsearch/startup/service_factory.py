@@ -3,6 +3,9 @@
 from pipeline_common.gateways.elasticsearch import ElasticsearchGateway
 from pipeline_common.startup import WorkerRuntimeContext, WorkerServiceFactory
 from worker_index_elasticsearch.services.index_elasticsearch_processor import IndexElasticsearchProcessor
+from worker_index_elasticsearch.services.indexed_chunk_document_mapper import (
+    IndexedChunkDocumentMapper,
+)
 from worker_index_elasticsearch.services.worker_index_elasticsearch_service import WorkerIndexElasticsearchService
 from worker_index_elasticsearch.startup.contracts import RuntimeIndexElasticsearchJobConfig
 
@@ -22,8 +25,10 @@ class IndexElasticsearchServiceFactory(
         worker_config: RuntimeIndexElasticsearchJobConfig,
     ) -> WorkerIndexElasticsearchService:
         """Construct worker index_elasticsearch service object graph."""
+        document_mapper = IndexedChunkDocumentMapper()
         processor = IndexElasticsearchProcessor(
             elasticsearch_gateway=self._elasticsearch_gateway,
+            document_mapper=document_mapper,
         )
         return WorkerIndexElasticsearchService(
             stage_queue=runtime.stage_queue_gateway,

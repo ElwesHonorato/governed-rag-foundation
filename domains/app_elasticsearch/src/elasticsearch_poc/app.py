@@ -16,6 +16,10 @@ from __future__ import annotations
 
 from wsgiref.simple_server import make_server
 
+from pipeline_common.elasticsearch import (
+    ChunkDocumentIndexPolicy,
+    ChunkSearchPolicy,
+)
 from pipeline_common.gateways.elasticsearch import ElasticsearchGateway
 from pipeline_common.settings import ElasticsearchApiSettings, SettingsProvider, SettingsRequest
 
@@ -29,10 +33,14 @@ def main() -> int:
     """Start the local Elasticsearch query API process."""
     settings_bundle = SettingsProvider(SettingsRequest(elasticsearch_api=True)).bundle
     api_settings: ElasticsearchApiSettings = settings_bundle.elasticsearch_api
+    index_policy = ChunkDocumentIndexPolicy()
+    search_policy = ChunkSearchPolicy()
 
     gateway = ElasticsearchGateway(
         url=api_settings.elasticsearch_url,
         index_name=api_settings.elasticsearch_index,
+        index_policy=index_policy,
+        search_policy=search_policy,
     )
 
     handlers = RetrieveHttpHandler(

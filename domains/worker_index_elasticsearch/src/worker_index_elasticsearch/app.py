@@ -1,5 +1,9 @@
 """Installable entrypoint for the ``worker_index_elasticsearch`` domain."""
 
+from pipeline_common.elasticsearch import (
+    ChunkDocumentIndexPolicy,
+    ChunkSearchPolicy,
+)
 from pipeline_common.gateways.elasticsearch import ElasticsearchGateway
 from pipeline_common.registry import DataHubDataJobKey, DataHubPipelineJobs, GovernedRagJobId
 from pipeline_common.settings import SettingsBundle, SettingsProvider, SettingsRequest
@@ -25,9 +29,13 @@ def main() -> int:
     runtime_job_config: RuntimeIndexElasticsearchJobConfig = IndexElasticsearchConfigExtractor().extract(
         runtime_context.job_properties,
     )
+    index_policy = ChunkDocumentIndexPolicy()
+    search_policy = ChunkSearchPolicy()
     elasticsearch_gateway = ElasticsearchGateway(
         url=runtime_job_config.elasticsearch_url,
         index_name=runtime_job_config.elasticsearch_index,
+        index_policy=index_policy,
+        search_policy=search_policy,
     )
     worker_service: WorkerIndexElasticsearchService = IndexElasticsearchServiceFactory(
         elasticsearch_gateway=elasticsearch_gateway,

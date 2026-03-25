@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import asdict
 from http import HTTPStatus
 
+from elasticsearch_poc.adapters.http.contracts import RetrieveRequest
+from pipeline_common.elasticsearch import ElasticsearchRetrievedDocumentList
 from pipeline_common.gateways.elasticsearch import ElasticsearchGateway
 from pipeline_common.http import JsonResponse
 from pipeline_common.settings import ElasticsearchApiSettings
@@ -31,12 +33,13 @@ class RetrieveHttpHandler:
             status=HTTPStatus.OK,
         )
 
-    def retrieve(self, body: dict[str, object]) -> JsonResponse:
-        query_text = str(body.get("query", "")).strip()
-        limit = int(body.get("limit", 5))
-        hits = self._gateway.search(query_text=query_text, limit=limit)
+    def retrieve(self, request: RetrieveRequest) -> JsonResponse:
+        response: ElasticsearchRetrievedDocumentList = self._gateway.search(
+            query_text=request.query,
+            limit=request.limit,
+        )
         return JsonResponse(
-            payload={"query": query_text, "limit": limit, "hits": hits},
+            payload=response.to_dict,
             status=HTTPStatus.OK,
         )
 

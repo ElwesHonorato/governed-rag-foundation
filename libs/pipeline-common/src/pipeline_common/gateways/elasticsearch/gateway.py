@@ -6,7 +6,11 @@ from typing import Any
 
 from elasticsearch import Elasticsearch
 
-from pipeline_common.elasticsearch import ElasticsearchRetrievedDocument, IndexedChunkDocument
+from pipeline_common.elasticsearch import (
+    ElasticsearchRetrievedDocument,
+    ElasticsearchRetrievedDocumentList,
+    IndexedChunkDocument,
+)
 
 
 class ElasticsearchGateway:
@@ -69,11 +73,11 @@ class ElasticsearchGateway:
             refresh="false",
         )
 
-    def search(self, *, query_text: str, limit: int) -> list[dict[str, Any]]:
+    def search(self, *, query_text: str, limit: int) -> ElasticsearchRetrievedDocumentList:
         """Run a BM25-style search over indexed chunk text."""
         safe_query = query_text.strip()
         if not safe_query:
-            return []
+            return ElasticsearchRetrievedDocumentList(documents=[])
         response = self._client.search(
             index=self._index_name,
             size=max(1, min(limit, 20)),
@@ -87,22 +91,24 @@ class ElasticsearchGateway:
         )
         hits = response.get("hits", {}).get("hits", [])
         if not isinstance(hits, list):
-            return []
-        return [self._to_retrieved_document(hit).to_dict for hit in hits if isinstance(hit, dict)]
+            return ElasticsearchRetrievedDocumentList(documents=[])
+        return ElasticsearchRetrievedDocumentList(
+            documents=[self._to_retrieved_document(hit) for hit in hits if isinstance(hit, dict)]
+        )
 
     def _to_retrieved_document(self, hit: dict[str, Any]) -> ElasticsearchRetrievedDocument:
         """Build one normalized retrieval result from a raw Elasticsearch hit."""
         source = hit.get("_source", {})
         if not isinstance(source, dict):
             source = {}
-        raw_score = hit.get("_score", 0.0)
-        score = float(raw_score) if isinstance(raw_score, (float, int)) else 0.0
-        return ElasticsearchRetrievedDocument(
-            chunk_id=str(source.get("chunk_id", "")),
-            doc_id=str(source.get("doc_id", "")),
-            chunk_text=str(source.get("chunk_text", "")),
-            source_uri=str(source.get("source_uri", "")),
-            artifact_uri=str(source.get("artifact_uri", "")),
-            security_clearance=str(source.get("security_clearance", "")),
-            score=score,
+        return ElasticsearchRetrievedDocument.from_dict(
+            {
+                "chunk_id": source["chunk_id"],
+                "doc_id": source["doc_id"],
+                "chunk_text": source["chunk_text"],
+                "source_uri": source["source_uri"],
+                "artifact_uri": source["artifact_uri"],
+                "security_clearance": source["security_clearance"],
+                "score": hit["_score"],
+            }
         )

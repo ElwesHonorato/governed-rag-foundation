@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from elasticsearch_poc.adapters.http.contracts import RetrieveRequest
 from elasticsearch_poc.adapters.http.retrieve_http_handler import RetrieveHttpHandler
 from pipeline_common.http import JsonResponse, NormalizedRequest
 
@@ -17,6 +18,6 @@ class ElasticsearchApiRouter:
             case ("GET", "/"):
                 return self._handlers.get_health()
             case ("POST", "/retrieve"):
-                return self._handlers.retrieve(request.body)
+                return self._handlers.retrieve(RetrieveRequest.from_dict(request.body))
             case _:
                 return self._handlers.not_found(path=request.path)

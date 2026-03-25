@@ -72,7 +72,26 @@ class ElasticsearchRetrievedDocument:
     security_clearance: str
     score: float
 
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> "ElasticsearchRetrievedDocument":
+        """Build one retrieval hit from dictionary payload data."""
+        return cls(**payload)
+
     @property
     def to_dict(self) -> dict[str, Any]:
         """Serialize the retrieval hit for HTTP responses."""
         return asdict(self)
+
+
+@dataclass(frozen=True)
+class ElasticsearchRetrievedDocumentList:
+    """Typed retrieval result set returned from Elasticsearch queries."""
+
+    documents: list[ElasticsearchRetrievedDocument]
+
+    @property
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize the retrieval result set for HTTP responses."""
+        return {
+            "documents": [document.to_dict for document in self.documents],
+        }

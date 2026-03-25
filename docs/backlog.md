@@ -45,3 +45,11 @@
    d. Decide expected behavior when the configured model is missing, duplicated across providers, or the gateway returns no models.
    e. Add tests for configured-model success, no-models failure, and invalid-model failure.
    f. Update architecture/startup docs to describe the final model-selection flow and remove the temporary first-model fallback note.
+
+7. Evaluate a shared WSGI HTTP mini-framework after standardizing the low-level HTTP primitives.
+   a. Inventory what is still duplicated across API domains after sharing `WsgiRequestNormalizer`, `NormalizedRequest`, `JsonResponse`, and WSGI types.
+   b. Decide whether a shared application boundary should exist or whether per-domain application classes should remain local.
+   c. Define a single error-mapping policy for route misses, invalid JSON, validation errors, and uncaught exceptions.
+   d. Decide whether health endpoints should use a shared payload contract or remain domain-specific.
+   e. Prove the abstraction against at least the current `agent_api` and `app_elasticsearch` shapes before introducing framework-style base classes.
+   f. Document guardrails so shared HTTP infrastructure does not absorb domain routing, handler logic, or service orchestration.

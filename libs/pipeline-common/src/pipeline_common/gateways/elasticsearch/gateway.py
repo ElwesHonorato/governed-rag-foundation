@@ -47,10 +47,6 @@ class ElasticsearchIndexGateway:
         self._client = Elasticsearch(url.strip(), request_timeout=timeout_seconds)
         self._index_policy = index_policy
 
-    def ping(self) -> bool:
-        """Return whether Elasticsearch is reachable."""
-        return bool(self._client.ping())
-
     def ensure_index(self) -> None:
         """Create the configured index if it does not already exist."""
         if self._client.indices.exists(index=self.index_name):
@@ -86,10 +82,6 @@ class ElasticsearchSearchGateway:
         self.index_name = index_name.strip()
         self._client = Elasticsearch(url.strip(), request_timeout=timeout_seconds)
         self._search_policy = search_policy
-
-    def ping(self) -> bool:
-        """Return whether Elasticsearch is reachable."""
-        return bool(self._client.ping())
 
     def search(self, *, query_text: str, limit: int) -> object:
         """Run one configured Elasticsearch search operation."""

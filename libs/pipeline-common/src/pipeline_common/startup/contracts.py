@@ -49,6 +49,7 @@ class WorkerPollingContract:
 class ElasticsearchIndexingContract:
     """Governed Elasticsearch indexing config resolved from job properties."""
 
+    policy: str
     index_name: str
     request_timeout_seconds: float
 
@@ -56,6 +57,7 @@ class ElasticsearchIndexingContract:
     def from_dict(cls, payload: Mapping[str, Any]) -> "ElasticsearchIndexingContract":
         """Build Elasticsearch indexing config from a job.elasticsearch payload."""
         return cls(
+            policy=str(payload["policy"]).strip(),
             index_name=str(payload["index_name"]).strip(),
             request_timeout_seconds=float(payload["request_timeout_seconds"]),
         )

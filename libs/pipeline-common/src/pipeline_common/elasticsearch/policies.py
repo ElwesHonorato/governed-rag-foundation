@@ -12,6 +12,10 @@ from pipeline_common.elasticsearch.contracts import (
 )
 
 
+CHUNK_DOCUMENT = "chunk_document"
+CHUNK_SEARCH = "chunk_search"
+
+
 @dataclass(frozen=True)
 class ChunkDocumentIndexPolicy:
     """Chunk-specific Elasticsearch indexing policy."""
@@ -99,3 +103,9 @@ def _require_indexed_chunk_document(document: object) -> IndexedChunkDocument:
     if not isinstance(document, IndexedChunkDocument):
         raise TypeError("expected IndexedChunkDocument")
     return document
+
+
+ELASTICSEARCH_POLICIES = {
+    CHUNK_DOCUMENT: ChunkDocumentIndexPolicy(),
+    CHUNK_SEARCH: ChunkSearchPolicy(),
+}

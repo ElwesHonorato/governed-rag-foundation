@@ -7,6 +7,9 @@ from pipeline_common.elasticsearch.contracts import (
     IndexedChunkDocument,
 )
 from pipeline_common.elasticsearch.policies import (
+    CHUNK_DOCUMENT,
+    CHUNK_SEARCH,
+    ELASTICSEARCH_POLICIES,
     ChunkDocumentIndexPolicy,
     ChunkSearchPolicy,
 )
@@ -16,6 +19,9 @@ __all__ = [
     "ElasticsearchRetrievedDocument",
     "ElasticsearchRetrievedDocumentList",
     "IndexedChunkDocument",
+    "CHUNK_DOCUMENT",
+    "CHUNK_SEARCH",
+    "ELASTICSEARCH_POLICIES",
     "ChunkDocumentIndexPolicy",
     "ChunkSearchPolicy",
 ]

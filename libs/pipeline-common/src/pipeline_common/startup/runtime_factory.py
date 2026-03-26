@@ -17,9 +17,8 @@ Non-goals:
 
 from typing import Any, Mapping
 
-from elasticsearch import Elasticsearch
 from pipeline_common.gateways.elasticsearch import ElasticsearchIndexGateway
-from pipeline_common.gateways.elasticsearch.gateway import ElasticsearchIndexPolicy
+from pipeline_common.gateways.factories.elasticsearch_gateway_factory import ElasticsearchIndexGatewayFactory
 from pipeline_common.gateways.lineage.contracts import DataHubDataJobKey
 from pipeline_common.gateways.factories.lineage_gateway_factory import DataHubLineageGatewayFactory
 from pipeline_common.gateways.factories.object_storage_gateway_factory import ObjectStorageGatewayFactory
@@ -56,11 +55,9 @@ class RuntimeContextFactory:
         *,
         data_job_key: DataHubDataJobKey,
         settings_bundle: SettingsBundle,
-        elasticsearch_index_policy: ElasticsearchIndexPolicy | None = None,
     ) -> None:
         self._data_job_key = data_job_key
         self._settings_bundle = settings_bundle
-        self._elasticsearch_index_policy = elasticsearch_index_policy
 
     def build(self) -> WorkerRuntimeContext:
         """Resolve shared runtime dependencies required by every worker."""
@@ -118,20 +115,15 @@ class RuntimeContextFactory:
     ) -> ElasticsearchIndexGateway | None:
         """Create Elasticsearch index gateway from runtime settings when requested."""
         elasticsearch_settings = self._settings_bundle.elasticsearch_api
-        if self._elasticsearch_index_policy is None and elasticsearch_settings is None:
+        if elasticsearch_settings is None:
             return None
         elasticsearch_config = ElasticsearchIndexingContract.from_dict(
             job_properties["job"]["elasticsearch"],
         )
-        elasticsearch_client = Elasticsearch(
-            elasticsearch_settings.elasticsearch_url,
-            request_timeout=elasticsearch_config.request_timeout_seconds,
-        )
-        return ElasticsearchIndexGateway(
-            client=elasticsearch_client,
-            index_name=elasticsearch_config.index_name,
-            index_policy=self._elasticsearch_index_policy,
-        )
+        return ElasticsearchIndexGatewayFactory(
+            elasticsearch_settings=elasticsearch_settings,
+            elasticsearch_config=elasticsearch_config,
+        ).build()
 
     def _require_datahub_settings(self) -> DataHubSettings:
         datahub_settings = self._settings_bundle.datahub

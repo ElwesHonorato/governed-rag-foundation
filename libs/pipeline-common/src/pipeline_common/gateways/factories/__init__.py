@@ -1,8 +1,10 @@
+from pipeline_common.gateways.factories.elasticsearch_gateway_factory import ElasticsearchIndexGatewayFactory
 from pipeline_common.gateways.factories.lineage_gateway_factory import DataHubLineageGatewayFactory
 from pipeline_common.gateways.factories.object_storage_gateway_factory import ObjectStorageGatewayFactory
 from pipeline_common.gateways.factories.queue_gateway_factory import QueueGatewayFactory
 
 __all__ = [
+    "ElasticsearchIndexGatewayFactory",
     "DataHubLineageGatewayFactory",
     "ObjectStorageGatewayFactory",
     "QueueGatewayFactory",

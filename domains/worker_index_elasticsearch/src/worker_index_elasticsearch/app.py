@@ -1,8 +1,4 @@
 """Installable entrypoint for the ``worker_index_elasticsearch`` domain."""
-
-from pipeline_common.elasticsearch import (
-    ChunkDocumentIndexPolicy,
-)
 from pipeline_common.registry import DataHubDataJobKey, DataHubPipelineJobs, GovernedRagJobId
 from pipeline_common.settings import SettingsBundle, SettingsProvider, SettingsRequest
 from pipeline_common.startup import RuntimeContextFactory
@@ -23,7 +19,6 @@ def main() -> int:
     runtime_context: WorkerRuntimeContext = RuntimeContextFactory(
         data_job_key=data_job_key,
         settings_bundle=worker_settings,
-        elasticsearch_index_policy=ChunkDocumentIndexPolicy(),
     ).build()
     runtime_job_config: RuntimeIndexElasticsearchJobConfig = IndexElasticsearchConfigExtractor().extract(
         runtime_context.job_properties,

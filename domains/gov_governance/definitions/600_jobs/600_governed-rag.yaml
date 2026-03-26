@@ -73,6 +73,7 @@ jobs:
     custom_properties:
       job.version: "0.0.1"
       job.poll_interval_seconds: "30"
+      job.elasticsearch.policy: chunk_document
       job.elasticsearch.index_name: rag_chunks
       job.elasticsearch.request_timeout_seconds: "10"
       job.queue.stage: index_elasticsearch

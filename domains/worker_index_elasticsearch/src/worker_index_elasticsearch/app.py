@@ -3,7 +3,6 @@
 from pipeline_common.elasticsearch import (
     ChunkDocumentIndexPolicy,
 )
-from pipeline_common.gateways.elasticsearch import ElasticsearchIndexGateway
 from pipeline_common.registry import DataHubDataJobKey, DataHubPipelineJobs, GovernedRagJobId
 from pipeline_common.settings import SettingsBundle, SettingsProvider, SettingsRequest
 from pipeline_common.startup import RuntimeContextFactory
@@ -16,7 +15,7 @@ from worker_index_elasticsearch.startup.service_factory import IndexElasticsearc
 
 def main() -> int:
     worker_settings: SettingsBundle = SettingsProvider(
-        SettingsRequest(datahub=True, storage=True, queue=True),
+        SettingsRequest(datahub=True, storage=True, queue=True, elasticsearch_api=True),
     ).bundle
     data_job_key: DataHubDataJobKey = DataHubPipelineJobs.CUSTOM_GOVERNED_RAG.job(
         GovernedRagJobId.WORKER_INDEX_ELASTICSEARCH
@@ -24,19 +23,12 @@ def main() -> int:
     runtime_context: WorkerRuntimeContext = RuntimeContextFactory(
         data_job_key=data_job_key,
         settings_bundle=worker_settings,
+        elasticsearch_index_policy=ChunkDocumentIndexPolicy(),
     ).build()
     runtime_job_config: RuntimeIndexElasticsearchJobConfig = IndexElasticsearchConfigExtractor().extract(
         runtime_context.job_properties,
     )
-    index_policy = ChunkDocumentIndexPolicy()
-    elasticsearch_gateway = ElasticsearchIndexGateway(
-        url=runtime_job_config.elasticsearch_url,
-        index_name=runtime_job_config.elasticsearch_index,
-        index_policy=index_policy,
-    )
-    worker_service: WorkerIndexElasticsearchService = IndexElasticsearchServiceFactory(
-        elasticsearch_gateway=elasticsearch_gateway,
-    ).build(
+    worker_service: WorkerIndexElasticsearchService = IndexElasticsearchServiceFactory().build(
         runtime_context,
         runtime_job_config,
     )

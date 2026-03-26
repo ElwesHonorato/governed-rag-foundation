@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 
+from pipeline_common.gateways.elasticsearch import ElasticsearchIndexGateway
 from pipeline_common.gateways.lineage import LineageRuntimeGateway
 from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import QueueGateway
@@ -15,4 +16,5 @@ class WorkerRuntimeContext:
     lineage_gateway: LineageRuntimeGateway
     object_storage_gateway: ObjectStorageGateway | None
     stage_queue_gateway: QueueGateway | None
+    elasticsearch_index_gateway: ElasticsearchIndexGateway | None
     job_properties: dict[str, object]

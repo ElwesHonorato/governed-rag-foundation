@@ -148,10 +148,10 @@ flowchart TD
 
 `RuntimeContextFactory`
 - Represents: shared runtime dependency assembler.
-- Why exists: one place to build lineage/storage/queue gateways, and parsed job properties.
+- Why exists: one place to build lineage/storage/queue/optional Elasticsearch gateways, and parsed job properties.
 - Depends on: settings bundle, data job key, gateway factories.
 - Depended on by: worker entrypoints.
-- Safe extension: preserve returned `WorkerRuntimeContext` contract and avoid worker-specific logic.
+- Safe extension: preserve returned `WorkerRuntimeContext` contract and keep additions capability-driven rather than worker-specific.
 
 # 7. Extension Points
 

@@ -1,8 +1,5 @@
 """Startup-specific contracts for worker_index_elasticsearch."""
 
-from __future__ import annotations
-
-import os
 from dataclasses import dataclass
 from typing import Any
 
@@ -26,21 +23,13 @@ class RuntimeIndexElasticsearchJobConfig:
     """Runtime config consumed by the worker service graph."""
 
     poll_interval_seconds: int
-    elasticsearch_url: str
-    elasticsearch_index: str
 
     @classmethod
     def from_raw(
         cls,
         raw: RawIndexElasticsearchJobConfig,
     ) -> "RuntimeIndexElasticsearchJobConfig":
-        """Build runtime config from raw job properties and environment."""
-        elasticsearch_url = os.environ.get("ELASTICSEARCH_URL", "").strip()
-        if not elasticsearch_url:
-            raise ValueError("ELASTICSEARCH_URL is not configured")
-        elasticsearch_index = os.environ.get("ELASTICSEARCH_INDEX", "rag_chunks").strip()
+        """Build runtime config from raw job properties."""
         return cls(
             poll_interval_seconds=raw.poll_interval_seconds,
-            elasticsearch_url=elasticsearch_url,
-            elasticsearch_index=elasticsearch_index,
         )

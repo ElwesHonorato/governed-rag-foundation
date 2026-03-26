@@ -37,14 +37,13 @@ class ElasticsearchIndexGateway:
     def __init__(
         self,
         *,
-        url: str,
+        client: Elasticsearch,
         index_name: str,
         index_policy: ElasticsearchIndexPolicy,
-        timeout_seconds: float = 10.0,
     ) -> None:
         """Initialize Elasticsearch client state."""
         self.index_name = index_name.strip()
-        self._client = Elasticsearch(url.strip(), request_timeout=timeout_seconds)
+        self._client = client
         self._index_policy = index_policy
 
     def ensure_index(self) -> None:
@@ -85,11 +84,19 @@ class ElasticsearchSearchGateway:
 
     def search(self, *, query_text: str, limit: int) -> object:
         """Run one configured Elasticsearch search operation."""
-        response = self._client.search(
+        response = self._search_response(query_text=query_text, limit=limit)
+        return self._search_policy.build_response(self._search_hits(response))
+
+    def _search_response(self, *, query_text: str, limit: int) -> dict[str, Any]:
+        """Run one raw Elasticsearch search request."""
+        return self._client.search(
             index=self.index_name,
             **self._search_policy.build_request(query_text, limit),
         )
+
+    def _search_hits(self, response: dict[str, Any]) -> list[dict[str, Any]]:
+        """Return raw Elasticsearch hits filtered to dictionaries only."""
         hits = response.get("hits", {}).get("hits", [])
         if not isinstance(hits, list):
             hits = []
-        return self._search_policy.build_response([hit for hit in hits if isinstance(hit, dict)])
+        return [hit for hit in hits if isinstance(hit, dict)]

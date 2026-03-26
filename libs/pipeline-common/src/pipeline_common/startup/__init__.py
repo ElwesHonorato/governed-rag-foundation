@@ -1,6 +1,7 @@
 """Worker startup package exports."""
 
 from pipeline_common.startup.contracts import (
+    ElasticsearchIndexingContract,
     WorkerConfigExtractor,
     WorkerPollingContract,
     WorkerService,
@@ -13,6 +14,7 @@ from pipeline_common.startup.runtime_factory import RuntimeContextFactory
 __all__ = [
     "JobPropertiesParser",
     "RuntimeContextFactory",
+    "ElasticsearchIndexingContract",
     "WorkerConfigExtractor",
     "WorkerPollingContract",
     "WorkerRuntimeContext",

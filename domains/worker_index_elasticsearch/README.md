@@ -13,7 +13,7 @@ Queue-driven worker that indexes `StageArtifact` chunk payloads into Elasticsear
 ### Runtime dependencies
 - Queue: `BROKER_URL`.
 - Storage: `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`.
-- Elasticsearch: `ELASTICSEARCH_URL`, `ELASTICSEARCH_INDEX`.
+- Elasticsearch: `ELASTICSEARCH_URL`.
 
 ### Operational notes
 - Service container: `pipeline-worker-index-elasticsearch`.

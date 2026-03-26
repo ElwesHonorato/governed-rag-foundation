@@ -43,3 +43,19 @@ class WorkerPollingContract:
     """Polling cadence contract for long-running worker loops."""
 
     poll_interval_seconds: int
+
+
+@dataclass(frozen=True)
+class ElasticsearchIndexingContract:
+    """Governed Elasticsearch indexing config resolved from job properties."""
+
+    index_name: str
+    request_timeout_seconds: float
+
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> "ElasticsearchIndexingContract":
+        """Build Elasticsearch indexing config from a job.elasticsearch payload."""
+        return cls(
+            index_name=str(payload["index_name"]).strip(),
+            request_timeout_seconds=float(payload["request_timeout_seconds"]),
+        )

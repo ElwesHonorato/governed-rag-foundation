@@ -18,7 +18,7 @@ Non-goals:
 from typing import Any, Mapping
 
 from elasticsearch import Elasticsearch
-from pipeline_common.gateways.elasticsearch import ElasticsearchApiSettings, ElasticsearchIndexGateway
+from pipeline_common.gateways.elasticsearch import ElasticsearchIndexGateway
 from pipeline_common.gateways.elasticsearch.gateway import ElasticsearchIndexPolicy
 from pipeline_common.gateways.lineage.contracts import DataHubDataJobKey
 from pipeline_common.gateways.factories.lineage_gateway_factory import DataHubLineageGatewayFactory
@@ -29,6 +29,7 @@ from pipeline_common.gateways.object_storage import ObjectStorageGateway
 from pipeline_common.gateways.queue import QueueGateway
 from pipeline_common.gateways.lineage.settings import DataHubSettings
 from pipeline_common.settings import SettingsBundle
+from pipeline_common.startup.contracts import ElasticsearchIndexingContract
 from pipeline_common.startup.job_properties import JobPropertiesParser
 from pipeline_common.startup.runtime_context import WorkerRuntimeContext
 
@@ -67,7 +68,7 @@ class RuntimeContextFactory:
         job_properties = JobPropertiesParser(lineage_gateway.resolved_job_config.custom_properties).job_properties
         object_storage_gateway = self._build_object_storage_gateway()
         stage_queue_gateway = self._build_stage_queue_gateway(job_properties=job_properties)
-        elasticsearch_index_gateway = self._build_elasticsearch_index_gateway()
+        elasticsearch_index_gateway = self._build_elasticsearch_index_gateway(job_properties=job_properties)
         return WorkerRuntimeContext(
             env=self._settings_bundle.env,
             lineage_gateway=lineage_gateway,
@@ -110,18 +111,25 @@ class RuntimeContextFactory:
             queue_config=queue_config,
         ).build()
 
-    def _build_elasticsearch_index_gateway(self) -> ElasticsearchIndexGateway | None:
+    def _build_elasticsearch_index_gateway(
+        self,
+        *,
+        job_properties: Mapping[str, Any],
+    ) -> ElasticsearchIndexGateway | None:
         """Create Elasticsearch index gateway from runtime settings when requested."""
-        if self._elasticsearch_index_policy is None:
+        elasticsearch_settings = self._settings_bundle.elasticsearch_api
+        if self._elasticsearch_index_policy is None and elasticsearch_settings is None:
             return None
-        elasticsearch_settings = self._require_elasticsearch_settings()
+        elasticsearch_config = ElasticsearchIndexingContract.from_dict(
+            job_properties["job"]["elasticsearch"],
+        )
         elasticsearch_client = Elasticsearch(
-            elasticsearch_settings.elasticsearch_url.strip(),
-            request_timeout=10.0,
+            elasticsearch_settings.elasticsearch_url,
+            request_timeout=elasticsearch_config.request_timeout_seconds,
         )
         return ElasticsearchIndexGateway(
             client=elasticsearch_client,
-            index_name=elasticsearch_settings.elasticsearch_index,
+            index_name=elasticsearch_config.index_name,
             index_policy=self._elasticsearch_index_policy,
         )
 
@@ -130,9 +138,3 @@ class RuntimeContextFactory:
         if datahub_settings is None:
             raise ValueError("RuntimeContextFactory requires datahub settings.")
         return datahub_settings
-
-    def _require_elasticsearch_settings(self) -> ElasticsearchApiSettings:
-        elasticsearch_settings = self._settings_bundle.elasticsearch_api
-        if elasticsearch_settings is None:
-            raise ValueError("RuntimeContextFactory requires elasticsearch_api settings.")
-        return elasticsearch_settings

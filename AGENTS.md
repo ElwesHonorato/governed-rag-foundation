@@ -34,6 +34,10 @@ This file defines repo-wide rules for Codex changes.
 - When old payloads/contracts are incompatible, fail fast with a clear error.
 - If compatibility is required, the task must state it explicitly.
 
+## Simplicity Policy
+- Do not add defensive-programming scaffolding unless the user explicitly asks for it.
+- Prefer direct contract reads over extra guards, wrapper helpers, fallback branches, and validation layers when the governed/shared contract already defines the required shape.
+
 ## Definition Of Done
 - Changed code compiles/tests for affected projects.
 - No unrelated refactors or behavior drift.
